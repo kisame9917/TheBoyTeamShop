@@ -27,7 +27,7 @@ public class MauSac {
     private String ten;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "mauSac", fetch = FetchType.LAZY)
     @JsonIgnore

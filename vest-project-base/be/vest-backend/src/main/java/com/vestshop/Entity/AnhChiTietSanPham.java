@@ -29,6 +29,6 @@ public class AnhChiTietSanPham {
     private String ten;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
 }

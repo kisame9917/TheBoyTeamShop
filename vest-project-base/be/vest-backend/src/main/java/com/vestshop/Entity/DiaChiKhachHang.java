@@ -47,6 +47,6 @@ public class DiaChiKhachHang {
     private Boolean laMacDinh;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
 }

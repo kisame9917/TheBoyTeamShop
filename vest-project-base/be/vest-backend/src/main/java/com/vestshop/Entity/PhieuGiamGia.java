@@ -56,7 +56,7 @@ public class PhieuGiamGia {
     private BigDecimal giaTriTienMat;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "phieuGiamGia", fetch = FetchType.LAZY)
     @JsonIgnore

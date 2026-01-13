@@ -27,7 +27,7 @@ public class Fit {
     private String ten;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "fit", fetch = FetchType.LAZY)
     @JsonIgnore

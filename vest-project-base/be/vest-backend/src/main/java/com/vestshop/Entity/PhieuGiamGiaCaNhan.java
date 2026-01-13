@@ -38,6 +38,6 @@ public class PhieuGiamGiaCaNhan {
     private Boolean daSuDung;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
 }

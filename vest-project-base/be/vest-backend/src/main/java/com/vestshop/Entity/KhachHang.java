@@ -43,7 +43,7 @@ public class KhachHang {
     private LocalDateTime ngayCapNhat;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @Column(name="email", length=255)
     private String email;

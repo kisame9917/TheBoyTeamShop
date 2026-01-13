@@ -44,6 +44,6 @@ public class HoaDonChiTiet {
     private String nguoiSua;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
 }

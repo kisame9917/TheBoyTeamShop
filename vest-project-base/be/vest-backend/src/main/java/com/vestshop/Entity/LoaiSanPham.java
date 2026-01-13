@@ -30,7 +30,7 @@ public class LoaiSanPham {
     private String moTa;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "loaiSanPham", fetch = FetchType.LAZY)
     @JsonIgnore

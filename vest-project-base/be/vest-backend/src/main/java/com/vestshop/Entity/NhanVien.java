@@ -66,7 +66,7 @@ public class NhanVien {
     private String diaChi;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "nhanVien", fetch = FetchType.LAZY)
     @JsonIgnore

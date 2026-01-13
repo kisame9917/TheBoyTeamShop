@@ -27,7 +27,7 @@ public class XeTa {
     private String ten;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "xeTa", fetch = FetchType.LAZY)
     @JsonIgnore

@@ -53,7 +53,7 @@ public class SanPhamChiTiet {
     private LocalDateTime ngayCapNhat;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
     @OneToMany(mappedBy = "sanPhamChiTiet", fetch = FetchType.LAZY)
     @JsonIgnore
