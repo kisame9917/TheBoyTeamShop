@@ -1,7 +1,7 @@
 package com.vestshop.web.controller;
 
-import com.vestshop.common.ApiResponse;
-import com.vestshop.service.SanPhamService;
+import com.vestshop.Common.ApiResponse;
+import com.vestshop.Service.SanPhamService;
 import com.vestshop.web.dto.SanPhamCreateRequest;
 import com.vestshop.web.dto.SanPhamResponse;
 import jakarta.validation.Valid;

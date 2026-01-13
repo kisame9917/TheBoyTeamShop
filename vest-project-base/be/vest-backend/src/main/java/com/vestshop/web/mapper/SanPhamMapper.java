@@ -1,6 +1,6 @@
 package com.vestshop.web.mapper;
 
-import com.vestshop.domain.entity.SanPham;
+import com.vestshop.Entity.SanPham;
 import com.vestshop.web.dto.SanPhamResponse;
 
 public final class SanPhamMapper {
