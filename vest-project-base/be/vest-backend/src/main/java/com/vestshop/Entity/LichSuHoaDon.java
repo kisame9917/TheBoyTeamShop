@@ -34,6 +34,6 @@ public class LichSuHoaDon {
     private String hanhDong;
 
     @Column(name="trang_thai", nullable=false)
-    private Integer trangThai;
+    private Boolean trangThai;
 
 }

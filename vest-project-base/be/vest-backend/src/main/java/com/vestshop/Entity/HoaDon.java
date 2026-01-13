@@ -38,7 +38,7 @@ public class HoaDon {
     private String maHoaDon;
 
     @Column(name="loai_don")
-    private Integer loaiDon;
+    private Boolean loaiDon;
 
     @Column(name="phi_van_chuyen", nullable=false, precision=18, scale=2)
     private BigDecimal phiVanChuyen;

@@ -37,9 +37,6 @@ public class LichSuThanhToan {
     @Column(name="hinh_thuc_thanh_toan", length=255)
     private String hinhThucThanhToan;
 
-    @Column(name="loai_thanh_tien")
-    private Integer loaiThanhTien;
-
     @Column(name="ghi_chu", length=500)
     private String ghiChu;
 

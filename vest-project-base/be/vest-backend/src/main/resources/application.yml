@@ -6,9 +6,9 @@ spring:
     name: vest-backend
 
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=vest_db;encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://localhost:1433;databaseName=VestShop;encrypt=true;trustServerCertificate=true
     username: sa
-    password: yourStrong(!)Password
+    password: 123
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
