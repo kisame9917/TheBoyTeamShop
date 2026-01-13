@@ -51,7 +51,7 @@ public class NhanVien {
     private LocalDate ngaySinh;
 
     @Column(name="gioi_tinh")
-    private Integer gioiTinh;
+    private Boolean gioiTinh;
 
     @Column(name="ngay_tao", nullable=false)
     private LocalDateTime ngayTao;

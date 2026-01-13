@@ -32,7 +32,7 @@ public class PhieuGiamGia {
     private Integer soLuong;
 
     @Column(name="loai_giam")
-    private Integer loaiGiam;
+    private Boolean loaiGiam;
 
     @Column(name="ngay_bat_dau")
     private LocalDateTime ngayBatDau;

@@ -13,7 +13,7 @@ import lombok.*;
 @AllArgsConstructor
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
-@Table(name="Phieu_giam_gia_ca_nhan")
+@Table(name="phieu_giam_gia_ca_nhan")
 public class PhieuGiamGiaCaNhan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
