@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<p th:text="${pgg.id}"></p>
+<p th:text="${pgg.maGiamGia}"></p>
+<p th:text="${pgg.tenGiamGia}"></p>
+<p th:text="${pgg.soLuong}"></p>
+<p th:text="${pgg.ngayTao}"></p>
+<p th:text="${pgg.loaiGiam ? 'Phần trăm' : 'Tiền mặt'}"></p>
+<p>
+  <span th:if="${pgg.loaiGiam }" th:text="${pgg.giaTriPhanTram + '%'}"></span>
+  <span th:if="${!pgg.loaiGiam }" th:text="${pgg.giaTriTienMat}"></span>
+</p>
+<p th:text="${pgg.ngayBatdau}"></p>
+<p th:text="${pgg.ngayKetThuc}"></p>
+<p th:text="${pgg.trangThai  ? 'Hoạt động' : 'Ngưng'}"></p>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Phiếu giảm giá</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<h2>DANH SÁCH PHIẾU GIẢM GIÁ</h2>
+
+
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Mã</th>
+        <th>Tên</th>
+        <th>Số lượng</th>
+        <th>Ngay Tao</th>
+        <th>Loại</th>
+        <th>Giá trị</th>
+        <th>Ngày BD</th>
+        <th>Ngày KT</th>
+        <th>Trạng thái</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="pgg : ${listpgg}">
+        <td th:text="${pgg.id}"></td>
+        <td th:text="${pgg.maGiamGia}"></td>
+        <td th:text="${pgg.tenGiamGia}"></td>
+        <td th:text="${pgg.soLuong}"></td>
+        <td th:text="${pgg.ngayTao}"></td>
+        <td th:text="${pgg.loaiGiam ? 'Phần trăm' : 'Tiền mặt'}"></td>
+        <td>
+            <span th:if="${pgg.loaiGiam }" th:text="${pgg.giaTriPhanTram + '%'}"></span>
+            <span th:if="${!pgg.loaiGiam }" th:text="${pgg.giaTriTienMat}"></span>
+        </td>
+        <td th:text="${pgg.ngayBatDau}"></td>
+        <td th:text="${pgg.ngayKetThuc}"></td>
+        <td th:text="${pgg.trangThai ? 'Hoạt động' : 'Ngưng'}"></td>
+        <td>
+            <a th:href="@{/test/pgg/{id}(id=${pgg.id})}">Chi tiet</a>
+
+        </td>
+    </tr>
+    </tbody>
+</table>
+<div>Quan ly phieu giam gia</div>
+<form th:action="@{/test/pgg/create}" method="post">
+    MGG: <input type="text" name="maGiamGia" /> <br>
+    TGG: <input type="text" name="tenGiamGia" /><br>
+    SL: <input type="text" name="soLuong" /><br>
+    Ngay Tao: <input type="text" name="ngayTao" /><br>
+    Loai Giam: <br>
+      Gia Tri %:                 <input type="radio" name="loaiGiam" value="true" />
+      Gia Tri tien mat:          <input type="radio" name="loaiGiam" value="false" /><br>
+    Ngay Bat Dau: <input type="text" name="ngayBatDau" /><br>
+    Ngay Ket Thuc: <input type="text" name="ngayKetThuc" /><br>
+    <button type="submit">Them</button><br>
+</form>
+</body>
+</html>

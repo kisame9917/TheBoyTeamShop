@@ -1,4 +1,4 @@
-package com.vestshop.web.controller;
+package com.vestshop.Controller;
 
 import com.vestshop.Repository.HoaDonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
