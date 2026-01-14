@@ -23,15 +23,15 @@ public class HoaDon {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="id_khach_hang", nullable=false)
+    @JoinColumn(name="id_khach_hang", nullable=true)
     private KhachHang khachHang;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="id_phieu_giam_gia", nullable=false)
+    @JoinColumn(name="id_phieu_giam_gia", nullable=true)
     private PhieuGiamGia phieuGiamGia;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="id_nhan_vien", nullable=false)
+    @JoinColumn(name="id_nhan_vien", nullable=true)
     private NhanVien nhanVien;
 
     @Column(name="ma_hoa_don", nullable=false, length=80)
