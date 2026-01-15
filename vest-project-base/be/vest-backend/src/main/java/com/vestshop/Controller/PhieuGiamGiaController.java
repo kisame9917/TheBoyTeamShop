@@ -2,32 +2,42 @@ package com.vestshop.Controller;
 
 import com.vestshop.Entity.PhieuGiamGia;
 import com.vestshop.Service.PhieuGiamGiaService;
+import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
+import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
+import com.vestshop.dto.response.GetPhieuGiamGiaDto;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
-@RequestMapping("/test/pgg")
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/pgg")
 public class PhieuGiamGiaController {
     @Autowired
   private  PhieuGiamGiaService service;
 
     @GetMapping
-    public String hienThiBang(Model model){
-        model.addAttribute("listpgg",service.getAll());
-        return "test_view_pgg";
-    }
-    @GetMapping("/{id}")
-    public String findById(@PathVariable Long id , Model model){
-        model.addAttribute("pgg",service.findbyId(id));
-        return "test_view_detail_pgg";
+    public List<GetPhieuGiamGiaDto> getAll(){
+        return service.getAll();
     }
 
-    @PostMapping("/test/pgg/create")
-    public String CreatePgg(@ModelAttribute PhieuGiamGia pgg){
+    @PostMapping("/create")
+    public ResponseEntity<?> create(@RequestBody PhieuGiamGiaCreateRequest pgg){
         service.create(pgg);
-        return "test_view_pgg";
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PhieuGiamGiaUpdateRequest pgg) throws Exception {
+        service.update(id,pgg);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id){
+        service.delete(id);
+        return ResponseEntity.ok().build();
     }
 
 }

@@ -1,5 +1,6 @@
 package com.vestshop.Entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -35,15 +36,18 @@ public class PhieuGiamGia {
     private Boolean loaiGiam;
 
     @Column(name="ngay_bat_dau")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime ngayBatDau;
 
     @Column(name="ngay_ket_thuc")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime ngayKetThuc;
 
     @Column(name="mo_ta", length=500)
     private String moTa;
 
     @Column(name="ngay_tao", nullable=false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime ngayTao;
 
     @Column(name="ngay_cap_nhat")

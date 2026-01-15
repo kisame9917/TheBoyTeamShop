@@ -1,5 +1,10 @@
 server:
   port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+
 
 spring:
   application:
@@ -24,9 +29,14 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+    root: INFO
+    com.vestshop: DEBUG
+    org.springframework.web: DEBUG
+
 
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger
+
