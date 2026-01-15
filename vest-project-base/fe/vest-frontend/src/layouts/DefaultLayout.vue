@@ -3,7 +3,7 @@
     <AppSidebar />
     <div>
       <AppTopbar />
-      <main class="container">
+      <main style="padding: 24px; min-width: 0;">
         <RouterView />
       </main>
     </div>
