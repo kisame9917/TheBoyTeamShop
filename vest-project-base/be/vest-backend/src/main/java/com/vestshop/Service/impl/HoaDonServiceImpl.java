@@ -3,11 +3,14 @@ package com.vestshop.Service.impl;
 import com.vestshop.Entity.*;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.HoaDonService;
-import com.vestshop.dto.request.HoaDonCreateRequest;
-import com.vestshop.dto.request.HoaDonUpdateRequest;
-import com.vestshop.dto.response.HoaDonResponse;
+import com.vestshop.common.TrangThaiDonHang;
+import com.vestshop.dto.request.HoaDonChangeStatusRequest;
+import com.vestshop.dto.request.HoaDonReturnRequest;
+import com.vestshop.dto.response.*;
+import com.vestshop.spec.HoaDonSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,249 +25,226 @@ public class HoaDonServiceImpl implements HoaDonService {
 
     private final HoaDonRepository hoaDonRepository;
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
+    private final AnhChiTietSanPhamRepository anhChiTietSanPhamRepository;
     private final SanPhamChiTietRepository sanPhamChiTietRepository;
-    private final KhachHangRepository khachHangRepository;
-    private final NhanVienRepository nhanVienRepository;
-    private final PhieuGiamGiaRepository phieuGiamGiaRepository;
-
-    @Override
-    @Transactional
-    public HoaDonResponse create(HoaDonCreateRequest req) {
-        Map<Long, Integer> merged = mergeItems(req.getItems());
-
-        KhachHang kh = req.getIdKhachHang() == null ? null :
-                khachHangRepository.findById(req.getIdKhachHang())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
-
-        NhanVien nv = req.getIdNhanVien() == null ? null :
-                nhanVienRepository.findById(req.getIdNhanVien())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhân viên"));
-
-        PhieuGiamGia pgg = req.getIdPhieuGiamGia() == null ? null :
-                phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
-
-        HoaDon hd = HoaDon.builder()
-                .maHoaDon(generateMaHoaDon())
-                .khachHang(kh)
-                .nhanVien(nv)
-                .phieuGiamGia(pgg)
-                .loaiDon(req.getLoaiDon())
-                .phiVanChuyen(nvl(req.getPhiVanChuyen()))
-                .tenKhachHang(req.getTenKhachHang())
-                .soDienThoai(req.getSoDienThoai())
-                .diaChiKhachHang(req.getDiaChiKhachHang())
-                .emailKhachHang(req.getEmailKhachHang())
-                .qrCode(req.getQrCode())
-                .ghiChu(req.getGhiChu())
-                .tongTien(BigDecimal.ZERO)
-                .tongTienGiam(BigDecimal.ZERO)
-                .tongTienSauGiam(BigDecimal.ZERO)
-                .trangThai(true)
-                .ngayTao(LocalDateTime.now())
-                .build();
-
-        HoaDon saved = hoaDonRepository.save(hd);
-
-        List<HoaDonChiTiet> chiTiets = buildChiTiet(saved, merged);
-        hoaDonChiTietRepository.saveAll(chiTiets);
-
-        recalcTotals(saved, chiTiets, pgg);
-        HoaDon saved2 = hoaDonRepository.save(saved);
-
-        return toResponse(saved2, chiTiets);
-    }
+    private final LichSuHoaDonRepository lichSuHoaDonRepository;
+    private final LichSuThanhToanRepository lichSuThanhToanRepository;
+    private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public HoaDonResponse getById(Long id) {
-        HoaDon hd = hoaDonRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
-        List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(id);
-        return toResponse(hd, cts);
-    }
+    public Page<HoaDonListResponse> search(
+            String keyword,
+            Integer trangThaiDon,
+            String phanLoai,
+            Boolean loaiDon,
+            LocalDateTime from,
+            LocalDateTime to,
+            BigDecimal minTotal,
+            BigDecimal maxTotal,
+            Boolean hasVoucher,
+            Long idNhanVien,
+            Boolean active,
+            Pageable pageable
+    ) {
+        Specification<HoaDon> spec = HoaDonSpecifications.advanced(
+                keyword, trangThaiDon, phanLoai, loaiDon, from, to, minTotal, maxTotal, hasVoucher, idNhanVien, active
+        );
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<HoaDonResponse> getPage(Boolean trangThai, Pageable pageable) {
-        Page<HoaDon> page = trangThai == null
-                ? hoaDonRepository.findAll(pageable)
-                : hoaDonRepository.findByTrangThai(trangThai, pageable);
+        Page<HoaDon> page = hoaDonRepository.findAll(spec, pageable);
 
         return page.map(hd -> {
-            List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(hd.getId());
-            return toResponse(hd, cts);
+            TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
+            return HoaDonListResponse.builder()
+                    .id(hd.getId())
+                    .maHoaDon(hd.getMaHoaDon())
+                    .trangThaiDon(hd.getTrangThaiDon())
+                    .tenTrangThaiDon(st.getTen())
+                    .loaiDon(hd.getLoaiDon())
+                    .tongTienSauGiam(hd.getTongTienSauGiam())
+                    .tenKhachHang(hd.getTenKhachHang())
+                    .soDienThoai(hd.getSoDienThoai())
+                    .ngayTao(hd.getNgayTao())
+                    .build();
         });
     }
 
     @Override
-    @Transactional
-    public HoaDonResponse update(Long id, HoaDonUpdateRequest req) {
+    @Transactional(readOnly = true)
+    public HoaDonDetailResponse getDetailById(Long id) {
         HoaDon hd = hoaDonRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
+        return buildDetail(hd);
+    }
 
-        KhachHang kh = req.getIdKhachHang() == null ? null :
-                khachHangRepository.findById(req.getIdKhachHang())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
+    @Override
+    @Transactional(readOnly = true)
+    public HoaDonDetailResponse getDetailByMaHoaDon(String maHoaDon) {
+        HoaDon hd = hoaDonRepository.findByMaHoaDon(maHoaDon)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
+        return buildDetail(hd);
+    }
 
-        NhanVien nv = req.getIdNhanVien() == null ? null :
-                nhanVienRepository.findById(req.getIdNhanVien())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhân viên"));
+    @Override
+    @Transactional(readOnly = true)
+    public List<LichSuHoaDonResponse> getLichSuHoaDon(Long idHoaDon) {
+        return lichSuHoaDonRepository.findAllByHoaDon_IdOrderByThoiGianDesc(idHoaDon)
+                .stream()
+                .map(x -> LichSuHoaDonResponse.builder()
+                        .id(x.getId())
+                        .hanhDong(x.getHanhDong())
+                        .ghiChu(x.getGhiChu())
+                        .thoiGian(x.getThoiGian())
+                        .build())
+                .collect(Collectors.toList());
+    }
 
-        PhieuGiamGia pgg = req.getIdPhieuGiamGia() == null ? null :
-                phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
+    @Override
+    @Transactional(readOnly = true)
+    public List<LichSuThanhToanResponse> getLichSuThanhToan(Long idHoaDon) {
+        return lichSuThanhToanRepository.findAllByHoaDon_IdOrderByNgayThanhToanDesc(idHoaDon)
+                .stream()
+                .map(x -> LichSuThanhToanResponse.builder()
+                        .id(x.getId())
+                        .maGiaoDich(x.getMaGiaoDich())
+                        .soTien(x.getSoTien())
+                        .ngayThanhToan(x.getNgayThanhToan())
+                        .hinhThucThanhToan(x.getHinhThucThanhToan())
+                        .ghiChu(x.getGhiChu())
+                        .build())
+                .collect(Collectors.toList());
+    }
 
-        hd.setKhachHang(kh);
-        hd.setNhanVien(nv);
-        hd.setPhieuGiamGia(pgg);
-
-        hd.setLoaiDon(req.getLoaiDon());
-        hd.setPhiVanChuyen(nvl(req.getPhiVanChuyen()));
-
-        hd.setTenKhachHang(req.getTenKhachHang());
-        hd.setSoDienThoai(req.getSoDienThoai());
-        hd.setDiaChiKhachHang(req.getDiaChiKhachHang());
-        hd.setEmailKhachHang(req.getEmailKhachHang());
-        hd.setQrCode(req.getQrCode());
-        hd.setGhiChu(req.getGhiChu());
-
-        hd.setNgayCapNhat(LocalDateTime.now());
-
-        List<HoaDonChiTiet> cts;
-        if (req.getItems() != null) {
-            Map<Long, Integer> merged = mergeItems(req.getItems());
-            hoaDonChiTietRepository.deleteByHoaDonId(id);
-            hoaDonRepository.flush();
-            cts = buildChiTiet(hd, merged);
-            hoaDonChiTietRepository.saveAll(cts);
-        } else {
-            cts = hoaDonChiTietRepository.findAllByHoaDon_Id(id);
-        }
-
-        recalcTotals(hd, cts, pgg);
-        HoaDon saved = hoaDonRepository.save(hd);
-
-        return toResponse(saved, cts);
+    @Override
+    @Transactional(readOnly = true)
+    public List<GiaoDichThanhToanResponse> getGiaoDichThanhToan(Long idHoaDon) {
+        return giaoDichThanhToanRepository.findAllByHoaDon_IdOrderByThoiGianTaoDesc(idHoaDon)
+                .stream()
+                .map(x -> GiaoDichThanhToanResponse.builder()
+                        .id(x.getId())
+                        .idPhuongThucThanhToan(x.getPhuongThucThanhToan() == null ? null : x.getPhuongThucThanhToan().getId())
+                        .tenPhuongThucThanhToan(x.getPhuongThucThanhToan() == null ? null : x.getPhuongThucThanhToan().getTenPhuongThucThanhToan())
+                        .soTien(x.getSoTien())
+                        .maGiaoDich(x.getMaGiaoDich())
+                        .maYeuCau(x.getMaYeuCau())
+                        .maGiaoDichNgoai(x.getMaGiaoDichNgoai())
+                        .maThamChieu(x.getMaThamChieu())
+                        .duLieuQr(x.getDuLieuQr())
+                        .thoiHan(x.getThoiHan())
+                        .thoiGianTao(x.getThoiGianTao())
+                        .thoiGianCapNhat(x.getThoiGianCapNhat())
+                        .ghiChu(x.getGhiChu())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public void softDelete(Long id) {
-        HoaDon hd = hoaDonRepository.findById(id)
+    public HoaDonDetailResponse changeStatus(Long idHoaDon, HoaDonChangeStatusRequest req) {
+        HoaDon hd = hoaDonRepository.findById(idHoaDon)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
-        hd.setTrangThai(false);
+
+        TrangThaiDonHang st = TrangThaiDonHang.fromCode(req.getTrangThaiDon());
+
+        hd.setTrangThaiDon(st.getCode());
         hd.setNgayCapNhat(LocalDateTime.now());
         hoaDonRepository.save(hd);
+
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setHoaDon(hd);
+        ls.setHanhDong(st.name());
+        ls.setGhiChu(req.getGhiChu());
+        ls.setThoiGian(LocalDateTime.now());
+        ls.setTrangThai(true);
+        lichSuHoaDonRepository.save(ls);
+
+        return buildDetail(hd);
     }
 
-    private Map<Long, Integer> mergeItems(List<? extends Object> items) {
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("Danh sách sản phẩm không được trống");
+    @Override
+    @Transactional
+    public HoaDonDetailResponse hoanHang(Long idHoaDon, HoaDonReturnRequest req) {
+        HoaDon hd = hoaDonRepository.findById(idHoaDon)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
+
+        Integer stNow = hd.getTrangThaiDon() == null ? 0 : hd.getTrangThaiDon();
+        if (stNow == TrangThaiDonHang.DA_HUY.getCode() || stNow == TrangThaiDonHang.DA_HOAN.getCode()) {
+            throw new IllegalArgumentException("Đơn đã huỷ/đã hoàn, không thể hoàn hàng");
         }
 
-        Map<Long, Integer> merged = new HashMap<>();
+        List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(idHoaDon);
 
-        for (Object obj : items) {
-            Long idSpct;
-            Integer soLuong;
-
-            if (obj instanceof HoaDonCreateRequest.Item it) {
-                idSpct = it.getIdSanPhamChiTiet();
-                soLuong = it.getSoLuong();
-            } else if (obj instanceof HoaDonUpdateRequest.Item it) {
-                idSpct = it.getIdSanPhamChiTiet();
-                soLuong = it.getSoLuong();
-            } else {
-                throw new IllegalArgumentException("Item không hợp lệ");
-            }
-
-            if (idSpct == null) throw new IllegalArgumentException("Thiếu idSanPhamChiTiet");
-            if (soLuong == null || soLuong <= 0) throw new IllegalArgumentException("Số lượng phải > 0");
-
-            merged.merge(idSpct, soLuong, Integer::sum);
-        }
-
-        return merged;
-    }
-
-    private List<HoaDonChiTiet> buildChiTiet(HoaDon hoaDon, Map<Long, Integer> merged) {
-        List<HoaDonChiTiet> list = new ArrayList<>();
-
-        for (Map.Entry<Long, Integer> e : merged.entrySet()) {
-            SanPhamChiTiet spct = sanPhamChiTietRepository.findById(e.getKey())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy SPCT id=" + e.getKey()));
-
-            HoaDonChiTiet ct = new HoaDonChiTiet();
-            ct.setHoaDon(hoaDon);
-            ct.setSanPhamChiTiet(spct);
-            ct.setSoLuong(e.getValue());
-            ct.setNgayTao(LocalDateTime.now());
-            ct.setTrangThai(true);
-
-            list.add(ct);
-        }
-
-        return list;
-    }
-
-    private void recalcTotals(HoaDon hoaDon, List<HoaDonChiTiet> cts, PhieuGiamGia pgg) {
-        BigDecimal tongTien = BigDecimal.ZERO;
-
+        Map<Long, Integer> plus = new HashMap<>();
         for (HoaDonChiTiet ct : cts) {
-            BigDecimal donGia = ct.getSanPhamChiTiet() != null ? ct.getSanPhamChiTiet().getDonGia() : BigDecimal.ZERO;
-            if (donGia == null) donGia = BigDecimal.ZERO;
-            tongTien = tongTien.add(donGia.multiply(BigDecimal.valueOf(ct.getSoLuong())));
+            if (ct.getSanPhamChiTiet() == null) continue;
+            plus.merge(ct.getSanPhamChiTiet().getId(), ct.getSoLuong(), Integer::sum);
         }
 
-        BigDecimal tongGiam = calcDiscount(pgg, tongTien);
-        BigDecimal tongSau = tongTien.subtract(tongGiam).add(nvl(hoaDon.getPhiVanChuyen()));
-        if (tongSau.compareTo(BigDecimal.ZERO) < 0) tongSau = BigDecimal.ZERO;
-
-        hoaDon.setTongTien(tongTien);
-        hoaDon.setTongTienGiam(tongGiam);
-        hoaDon.setTongTienSauGiam(tongSau);
-    }
-
-    private BigDecimal calcDiscount(PhieuGiamGia pgg, BigDecimal tongTien) {
-        if (pgg == null) return BigDecimal.ZERO;
-        if (Boolean.FALSE.equals(pgg.getTrangThai())) return BigDecimal.ZERO;
-
-        Boolean loai = pgg.getLoaiGiam();
-        BigDecimal giam = BigDecimal.ZERO;
-
-        if (Boolean.TRUE.equals(loai) && pgg.getGiaTriPhanTram() != null) {
-            giam = tongTien.multiply(pgg.getGiaTriPhanTram()).divide(BigDecimal.valueOf(100));
-        } else if (Boolean.FALSE.equals(loai) && pgg.getGiaTriTienMat() != null) {
-            giam = pgg.getGiaTriTienMat();
+        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(plus.keySet());
+        for (SanPhamChiTiet spct : spcts) {
+            Integer add = plus.getOrDefault(spct.getId(), 0);
+            Integer current = spct.getSoLuongTon() == null ? 0 : spct.getSoLuongTon();
+            spct.setSoLuongTon(current + add);
         }
+        sanPhamChiTietRepository.saveAll(spcts);
 
-        if (giam.compareTo(tongTien) > 0) giam = tongTien;
-        if (giam.compareTo(BigDecimal.ZERO) < 0) giam = BigDecimal.ZERO;
+        hd.setTrangThaiDon(TrangThaiDonHang.DA_HOAN.getCode());
+        hd.setNgayCapNhat(LocalDateTime.now());
+        hoaDonRepository.save(hd);
 
-        return giam;
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setHoaDon(hd);
+        ls.setHanhDong(TrangThaiDonHang.DA_HOAN.name());
+        ls.setGhiChu(req == null ? null : req.getLyDo());
+        ls.setThoiGian(LocalDateTime.now());
+        ls.setTrangThai(true);
+        lichSuHoaDonRepository.save(ls);
+
+        return buildDetail(hd);
     }
 
-    private HoaDonResponse toResponse(HoaDon hd, List<HoaDonChiTiet> cts) {
-        List<HoaDonResponse.Item> items = cts.stream().map(ct -> {
-            BigDecimal donGia = ct.getSanPhamChiTiet() != null ? ct.getSanPhamChiTiet().getDonGia() : BigDecimal.ZERO;
-            if (donGia == null) donGia = BigDecimal.ZERO;
+    private HoaDonDetailResponse buildDetail(HoaDon hd) {
+        List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(hd.getId());
+
+        List<HoaDonDetailResponse.Item> items = cts.stream().map(ct -> {
+            SanPhamChiTiet spct = ct.getSanPhamChiTiet();
+            BigDecimal donGia = spct != null && spct.getDonGia() != null ? spct.getDonGia() : BigDecimal.ZERO;
             BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(ct.getSoLuong()));
 
-            return HoaDonResponse.Item.builder()
-                    .idSanPhamChiTiet(ct.getSanPhamChiTiet().getId())
+            String maSpct = spct == null ? null : spct.getMaSanPhamChiTiet();
+            String tenSp = (spct != null && spct.getSanPham() != null) ? spct.getSanPham().getTenSanPham() : null;
+            String mau = (spct != null && spct.getMauSac() != null) ? spct.getMauSac().getTen() : null;
+            String size = (spct != null && spct.getKichCo() != null) ? spct.getKichCo().getSoSize() : null;
+
+            String anh = null;
+            if (spct != null) {
+                List<AnhChiTietSanPham> anhs = anhChiTietSanPhamRepository.findAllBySanPhamChiTiet_IdAndTrangThaiTrue(spct.getId());
+                if (anhs != null && !anhs.isEmpty()) anh = anhs.get(0).getTen();
+            }
+
+            return HoaDonDetailResponse.Item.builder()
+                    .idSanPhamChiTiet(spct == null ? null : spct.getId())
+                    .maSanPhamChiTiet(maSpct)
+                    .tenSanPham(tenSp)
+                    .mauSac(mau)
+                    .kichCo(size)
                     .soLuong(ct.getSoLuong())
                     .donGia(donGia)
                     .thanhTien(thanhTien)
+                    .anhDaiDien(anh)
                     .build();
         }).collect(Collectors.toList());
 
-        return HoaDonResponse.builder()
+        TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
+
+        return HoaDonDetailResponse.builder()
                 .id(hd.getId())
                 .maHoaDon(hd.getMaHoaDon())
                 .idKhachHang(hd.getKhachHang() == null ? null : hd.getKhachHang().getId())
                 .idNhanVien(hd.getNhanVien() == null ? null : hd.getNhanVien().getId())
                 .idPhieuGiamGia(hd.getPhieuGiamGia() == null ? null : hd.getPhieuGiamGia().getId())
+                .trangThaiDon(hd.getTrangThaiDon())
+                .tenTrangThaiDon(st.getTen())
                 .loaiDon(hd.getLoaiDon())
                 .phiVanChuyen(hd.getPhiVanChuyen())
                 .tongTien(hd.getTongTien())
@@ -280,20 +260,9 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .ngayTao(hd.getNgayTao())
                 .ngayCapNhat(hd.getNgayCapNhat())
                 .items(items)
+                .lichSuHoaDon(getLichSuHoaDon(hd.getId()))
+                .lichSuThanhToan(getLichSuThanhToan(hd.getId()))
+                .giaoDichThanhToan(getGiaoDichThanhToan(hd.getId()))
                 .build();
-    }
-
-    private String generateMaHoaDon() {
-        String base = "HD" + java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
-                .format(LocalDateTime.now());
-        for (int i = 0; i < 5; i++) {
-            String code = base + String.format("%04d", new Random().nextInt(10000));
-            if (!hoaDonRepository.existsByMaHoaDon(code)) return code;
-        }
-        return base + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-    }
-
-    private BigDecimal nvl(BigDecimal v) {
-        return v == null ? BigDecimal.ZERO : v;
     }
 }

@@ -1,13 +1,9 @@
 package com.vestshop.Repository;
 
 import com.vestshop.Entity.HoaDon;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.*;
+import java.util.Optional;
 
-public interface HoaDonRepository extends JpaRepository<HoaDon, Long> {
-
-    boolean existsByMaHoaDon(String maHoaDon);
-
-    Page<HoaDon> findByTrangThai(Boolean trangThai, Pageable pageable);
+public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecificationExecutor<HoaDon> {
+    Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 }

@@ -1,6 +1,6 @@
 package com.vestshop.Exception;
 
-import com.vestshop.Common.ApiResponse;
+import com.vestshop.common.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
