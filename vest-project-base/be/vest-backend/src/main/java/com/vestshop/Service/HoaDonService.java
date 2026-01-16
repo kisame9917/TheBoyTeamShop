@@ -1,15 +1,39 @@
 package com.vestshop.Service;
 
-import com.vestshop.dto.request.HoaDonCreateRequest;
-import com.vestshop.dto.request.HoaDonUpdateRequest;
-import com.vestshop.dto.response.HoaDonResponse;
+import com.vestshop.dto.request.HoaDonChangeStatusRequest;
+import com.vestshop.dto.request.HoaDonReturnRequest;
+import com.vestshop.dto.response.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
 public interface HoaDonService {
-    HoaDonResponse create(HoaDonCreateRequest req);
-    HoaDonResponse getById(Long id);
-    Page<HoaDonResponse> getPage(Boolean trangThai, Pageable pageable);
-    HoaDonResponse update(Long id, HoaDonUpdateRequest req);
-    void softDelete(Long id);
+
+    Page<HoaDonListResponse> search(
+            String keyword,
+            Integer trangThaiDon,
+            String phanLoai,
+            Boolean loaiDon,
+            LocalDateTime from,
+            LocalDateTime to,
+            BigDecimal minTotal,
+            BigDecimal maxTotal,
+            Boolean hasVoucher,
+            Long idNhanVien,
+            Boolean active,
+            Pageable pageable
+    );
+
+    HoaDonDetailResponse getDetailById(Long id);
+    HoaDonDetailResponse getDetailByMaHoaDon(String maHoaDon);
+
+    List<LichSuHoaDonResponse> getLichSuHoaDon(Long idHoaDon);
+    List<LichSuThanhToanResponse> getLichSuThanhToan(Long idHoaDon);
+    List<GiaoDichThanhToanResponse> getGiaoDichThanhToan(Long idHoaDon);
+
+    HoaDonDetailResponse changeStatus(Long idHoaDon, HoaDonChangeStatusRequest req);
+    HoaDonDetailResponse hoanHang(Long idHoaDon, HoaDonReturnRequest req);
 }

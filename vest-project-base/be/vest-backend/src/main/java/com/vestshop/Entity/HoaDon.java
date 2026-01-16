@@ -42,6 +42,8 @@ public class HoaDon {
 
     @Column(name="phi_van_chuyen", nullable=false, precision=18, scale=2)
     private BigDecimal phiVanChuyen;
+    @Column(name="trang_thai_don", nullable=false)
+    private Integer trangThaiDon;
 
     @Column(name="tong_tien", nullable=false, precision=18, scale=2)
     private BigDecimal tongTien;

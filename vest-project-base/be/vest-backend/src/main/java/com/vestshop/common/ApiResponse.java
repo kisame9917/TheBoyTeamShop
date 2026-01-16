@@ -1,4 +1,4 @@
-package com.vestshop.Common;
+package com.vestshop.common;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;

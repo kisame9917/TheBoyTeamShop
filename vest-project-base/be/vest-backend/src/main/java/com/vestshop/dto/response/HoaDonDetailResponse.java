@@ -6,13 +6,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class HoaDonResponse {
+public class HoaDonDetailResponse {
     private Long id;
     private String maHoaDon;
 
     private Long idKhachHang;
     private Long idNhanVien;
     private Long idPhieuGiamGia;
+
+    private Integer trangThaiDon;
+    private String tenTrangThaiDon;
 
     private Boolean loaiDon;
 
@@ -35,11 +38,23 @@ public class HoaDonResponse {
 
     private List<Item> items;
 
+    private List<LichSuHoaDonResponse> lichSuHoaDon;
+    private List<LichSuThanhToanResponse> lichSuThanhToan;
+    private List<GiaoDichThanhToanResponse> giaoDichThanhToan;
+
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
     public static class Item {
         private Long idSanPhamChiTiet;
+        private String maSanPhamChiTiet;
+
+        private String tenSanPham;
+        private String mauSac;
+        private String kichCo;
+
         private Integer soLuong;
         private BigDecimal donGia;
         private BigDecimal thanhTien;
+
+        private String anhDaiDien;
     }
 }
