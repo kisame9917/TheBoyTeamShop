@@ -5,10 +5,12 @@ import com.vestshop.Repository.PhieuGiamGiaRepository;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
 import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
-import com.vestshop.dto.response.GetPhieuGiamGiaDto;
+import com.vestshop.dto.response.PhieuGiamGiaDetailResponse;
+import com.vestshop.dto.response.PhieuGiamGiaResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -21,23 +23,20 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
 
     @Override
-    public List<GetPhieuGiamGiaDto> getAll() {
+    public List<PhieuGiamGiaResponse> getAll() {
 
-        return repo.findAll().stream().map(
-                phieuGiamGia -> new GetPhieuGiamGiaDto(
+        return repo.findAll().stream().filter(p -> Boolean.TRUE.equals(p.getTrangThai())).map(
+                phieuGiamGia -> new PhieuGiamGiaResponse(
                         phieuGiamGia.getId(),
                         phieuGiamGia.getMaGiamGia(),
                         phieuGiamGia.getTenGiamGia(),
                         phieuGiamGia.getSoLuong(),
-                        phieuGiamGia.getLoaiGiam(),
                         phieuGiamGia.getNgayBatDau(),
                         phieuGiamGia.getNgayKetThuc(),
-                        phieuGiamGia.getMoTa(),
-                        phieuGiamGia.getNgayTao(),
-                        phieuGiamGia.getNgayCapNhat(),
+                        phieuGiamGia.getTrangThai(),
+                        phieuGiamGia.getLoaiGiam(),
                         phieuGiamGia.getGiaTriPhanTram(),
-                        phieuGiamGia.getGiaTriTienMat(),
-                        phieuGiamGia.getTrangThai()
+                        phieuGiamGia.getGiaTriTienMat()
                 )).collect(Collectors.toList());
     }
 
@@ -46,6 +45,26 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
        return repo.findById(id);
     }
 
+    @Override
+    public PhieuGiamGiaDetailResponse detail(Long id) {
+        PhieuGiamGia p = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy PGG id=" + id));
+        return new PhieuGiamGiaDetailResponse(
+                p.getId(),
+                p.getMaGiamGia(),
+                p.getTenGiamGia(),
+                p.getSoLuong(),
+                p.getLoaiGiam(),
+                p.getGiaTriPhanTram(),
+                p.getGiaTriTienMat(),
+                p.getMoTa(),
+                p.getNgayBatDau(),
+                p.getNgayKetThuc(),
+                p.getNgayTao(),
+                p.getNgayCapNhat(),
+                p.getTrangThai()
+        );
+    }
 
 
     @Override
@@ -58,7 +77,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setNgayBatDau(dto.getNgayBatDau());
         pgg.setNgayKetThuc(dto.getNgayKetThuc());
         pgg.setMoTa(dto.getMoTa());
-        pgg.setNgayTao(LocalDateTime.now());
+        pgg.setNgayTao(LocalDate.now());
         pgg.setGiaTriTienMat(dto.getGiaTriTienMat());
         pgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
         pgg.setTrangThai(true);
@@ -78,7 +97,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         updatepgg.setNgayBatDau(dto.getNgayBatDau());
         updatepgg.setNgayKetThuc(dto.getNgayKetThuc());
         updatepgg.setMoTa(dto.getMoTa());
-        updatepgg.setNgayCapNhat(LocalDateTime.now());
+        updatepgg.setNgayCapNhat(LocalDate.now());
         updatepgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
         updatepgg.setGiaTriTienMat(dto.getGiaTriTienMat());
 //        updatepgg.setTrangThai(dto.getTrangThai());
@@ -89,7 +108,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     public void delete(Long id) {
         PhieuGiamGia pgg = repo.findById(id).orElseThrow(()-> new RuntimeException("Khong tim thay id:" +id));
         pgg.setTrangThai(false);
-        pgg.setNgayCapNhat(LocalDateTime.now());
+        pgg.setNgayCapNhat(LocalDate.now());
         repo.save(pgg);
     }
 

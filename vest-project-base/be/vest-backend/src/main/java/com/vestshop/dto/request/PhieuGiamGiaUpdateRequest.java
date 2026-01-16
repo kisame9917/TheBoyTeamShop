@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -16,10 +17,10 @@ public class PhieuGiamGiaUpdateRequest {
     private String tenGiamGia;
     private Integer soLuong;
     private Boolean loaiGiam;
-    private LocalDateTime ngayBatDau;
-    private LocalDateTime ngayKetThuc;
+    private LocalDate ngayBatDau;
+    private LocalDate ngayKetThuc;
     private String moTa;
-    private LocalDateTime ngayCapNhat;
+    private LocalDate ngayCapNhat;
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
     private Boolean trangThai;
