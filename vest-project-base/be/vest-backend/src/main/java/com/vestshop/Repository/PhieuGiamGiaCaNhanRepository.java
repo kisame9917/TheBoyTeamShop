@@ -4,4 +4,5 @@ import com.vestshop.Entity.PhieuGiamGiaCaNhan;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGiaCaNhan, Long> {
+    boolean existsByPhieuGiamGia_Id(Long idPhieuGiamGia);
 }

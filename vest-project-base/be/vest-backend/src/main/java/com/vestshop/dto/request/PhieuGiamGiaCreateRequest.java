@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PhieuGiamGiaCreateRequest {
-    private String maGiamGia;
+
     private String tenGiamGia;
     private Integer soLuong;
     private Boolean loaiGiam;
@@ -23,5 +23,7 @@ public class PhieuGiamGiaCreateRequest {
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
     private Boolean trangThai;
-
+    private BigDecimal donHangToiThieu;
+    private BigDecimal giaTriGiamToiDa;
+    private Boolean loaiPhieu;
 }

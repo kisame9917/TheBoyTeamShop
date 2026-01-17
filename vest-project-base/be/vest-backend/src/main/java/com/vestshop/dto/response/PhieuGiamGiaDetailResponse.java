@@ -30,4 +30,7 @@ public class PhieuGiamGiaDetailResponse {
     private LocalDate ngayCapNhat;
 
     private Boolean trangThai;
+    private BigDecimal donHangToiThieu;
+    private BigDecimal giaTriGiamToiDa;
+    private Boolean loaiPhieu;
 }

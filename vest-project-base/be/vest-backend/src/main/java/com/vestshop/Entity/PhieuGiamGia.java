@@ -62,6 +62,14 @@ public class PhieuGiamGia {
 
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
+    @Column(name = "don_hang_toi_thieu", nullable = false)
+    private BigDecimal donHangToiThieu;
+
+    @Column(name = "gia_tri_giam_toi_da")
+    private BigDecimal giaTriGiamToiDa;
+
+    @Column(name = "loai_phieu", nullable = false)
+    private Boolean loaiPhieu;
 
     @OneToMany(mappedBy = "phieuGiamGia", fetch = FetchType.LAZY)
     @JsonIgnore

@@ -1,6 +1,7 @@
 package com.vestshop.Service.impl;
 
 import com.vestshop.Entity.PhieuGiamGia;
+import com.vestshop.Repository.PhieuGiamGiaCaNhanRepository;
 import com.vestshop.Repository.PhieuGiamGiaRepository;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
@@ -25,19 +26,22 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     @Override
     public List<PhieuGiamGiaResponse> getAll() {
 
-        return repo.findAll().stream().filter(p -> Boolean.TRUE.equals(p.getTrangThai())).map(
-                phieuGiamGia -> new PhieuGiamGiaResponse(
-                        phieuGiamGia.getId(),
-                        phieuGiamGia.getMaGiamGia(),
-                        phieuGiamGia.getTenGiamGia(),
-                        phieuGiamGia.getSoLuong(),
-                        phieuGiamGia.getNgayBatDau(),
-                        phieuGiamGia.getNgayKetThuc(),
-                        phieuGiamGia.getTrangThai(),
-                        phieuGiamGia.getLoaiGiam(),
-                        phieuGiamGia.getGiaTriPhanTram(),
-                        phieuGiamGia.getGiaTriTienMat()
-                )).collect(Collectors.toList());
+        return repo.findAll().stream()
+                .filter(p -> Boolean.TRUE.equals(p.getTrangThai()))
+                .map(p -> new PhieuGiamGiaResponse(
+                        p.getId(),
+                        p.getMaGiamGia(),
+                        p.getTenGiamGia(),
+                        p.getSoLuong(),
+                        p.getNgayBatDau(),
+                        p.getNgayKetThuc(),
+                        p.getTrangThai(),
+                        p.getLoaiGiam(),
+                        p.getGiaTriPhanTram(),
+                        p.getGiaTriTienMat(),
+                        Boolean.TRUE.equals(p.getLoaiPhieu()) ? "CA_NHAN" : "CONG_KHAI"
+                ))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -62,7 +66,10 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 p.getNgayKetThuc(),
                 p.getNgayTao(),
                 p.getNgayCapNhat(),
-                p.getTrangThai()
+                p.getTrangThai(),
+                p.getDonHangToiThieu(),
+                p.getGiaTriGiamToiDa(),
+                p.getLoaiPhieu()
         );
     }
 
@@ -70,7 +77,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     @Override
     public PhieuGiamGia create(PhieuGiamGiaCreateRequest dto) {
         PhieuGiamGia pgg = new PhieuGiamGia();
-        pgg.setMaGiamGia(dto.getMaGiamGia());
+        pgg.setMaGiamGia(generateUniqueMaGiamGia());
         pgg.setTenGiamGia(dto.getTenGiamGia());
         pgg.setSoLuong(dto.getSoLuong());
         pgg.setLoaiGiam(dto.getLoaiGiam());
@@ -78,9 +85,21 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setNgayKetThuc(dto.getNgayKetThuc());
         pgg.setMoTa(dto.getMoTa());
         pgg.setNgayTao(LocalDate.now());
-        pgg.setGiaTriTienMat(dto.getGiaTriTienMat());
-        pgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
         pgg.setTrangThai(true);
+        pgg.setDonHangToiThieu(dto.getDonHangToiThieu());
+        pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
+        if (Boolean.TRUE.equals(dto.getLoaiGiam())) {
+
+            pgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
+            pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
+            pgg.setGiaTriTienMat(null);
+        } else {
+
+            pgg.setGiaTriTienMat(dto.getGiaTriTienMat());
+            pgg.setGiaTriPhanTram(null);
+            pgg.setGiaTriGiamToiDa(null);
+        }
+        pgg.setLoaiPhieu(dto.getLoaiPhieu());
         return repo.save(pgg);
     }
 
@@ -112,5 +131,22 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         repo.save(pgg);
     }
 
+
+
+    private String generateUniqueMaGiamGia() {
+        // ví dụ: VCH-8K2P9A
+        for (int i = 0; i < 50; i++) {
+            String code = "VC" + randomAlphaNum(6);
+            if (!repo.existsByMaGiamGia(code)) return code;
+        }
+        throw new RuntimeException("Không thể tạo mã giảm giá");
+    }
+    private String randomAlphaNum(int len) {
+        final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder(len);
+        java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
+        for (int i = 0; i < len; i++) sb.append(chars.charAt(r.nextInt(chars.length())));
+        return sb.toString();
+    }
 
 }

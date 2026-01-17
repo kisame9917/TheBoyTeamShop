@@ -22,4 +22,5 @@ public class PhieuGiamGiaResponse {
     private Boolean loaiGiam;
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
+    private String loaiPhieu;
 }

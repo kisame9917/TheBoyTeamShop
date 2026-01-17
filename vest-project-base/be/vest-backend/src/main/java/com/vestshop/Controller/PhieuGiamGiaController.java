@@ -1,5 +1,6 @@
 package com.vestshop.Controller;
 
+import com.vestshop.Entity.PhieuGiamGia;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
 import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
@@ -24,8 +25,8 @@ public class PhieuGiamGiaController {
 
     @PostMapping("/create")
     public ResponseEntity<?> create(@RequestBody PhieuGiamGiaCreateRequest pgg){
-        service.create(pgg);
-        return ResponseEntity.ok().build();
+        PhieuGiamGia saved = service.create(pgg);
+        return ResponseEntity.ok(saved.getId());
     }
 
     @PutMapping("/update/{id}")
