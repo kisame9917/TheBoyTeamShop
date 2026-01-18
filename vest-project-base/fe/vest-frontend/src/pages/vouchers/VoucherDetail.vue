@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <!-- top bar -->
     <div class="topbar">
       <h1>Chi tiết phiếu giảm giá</h1>
 
@@ -18,7 +17,7 @@
         <div><b>Tên:</b> {{ d.tenGiamGia ?? '-' }}</div>
 
         <div><b>Loại phiếu:</b> {{ getLoaiPhieuText(d) }}</div>
-        <div><b>Trạng thái hệ thống:</b> {{ d.trangThai ? 'Hoạt động' : 'Đã xoá' }}</div>
+        <div><b>Trạng thái:</b> {{ getBizStatusText(d) }}</div>
 
         <div><b>Loại giảm:</b> {{ d.loaiGiam ? 'Giảm %' : 'Giảm tiền' }}</div>
         <div>
@@ -44,11 +43,50 @@
         <div class="full desc">
           <b>Mô tả:</b> {{ d.moTa || '-' }}
         </div>
+
+        <!-- ✅ DANH SÁCH KHÁCH HÀNG (chỉ khi phiếu cá nhân) -->
+        <div class="full" v-if="isPersonalVoucher">
+          <div class="section-title">
+            <b>Khách hàng nhận phiếu</b>
+          </div>
+
+          <div v-if="loadingKh" class="state">Đang tải danh sách khách hàng...</div>
+          <div v-else-if="errorKh" class="state err">{{ errorKh }}</div>
+
+          <div v-else>
+            <div v-if="khList.length === 0" class="state">
+              Không có khách hàng nào được gán phiếu này.
+            </div>
+
+            <div v-else class="table-wrap">
+              <table class="kh-table">
+                <thead>
+                  <tr>
+                    <th style="width: 70px;">STT</th>
+                    <th>Mã KH</th>
+                    <th>Tên KH</th>
+                    <th>SĐT</th>
+                    <th>Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(k, idx) in khList" :key="k.idKhachHang ?? idx">
+                    <td>{{ idx + 1 }}</td>
+                    <td>{{ k.maKhachHang ?? '-' }}</td>
+                    <td>{{ k.tenKhachHang ?? '-' }}</td>
+                    <td>{{ k.soDienThoai ?? '-' }}</td>
+                    <td>{{ k.email ?? '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="actions">
         <button class="btn btn-secondary" @click="goBack">Đóng</button>
-        <button class="btn btn-primary" @click="goEdit">Sửa</button>
       </div>
     </div>
   </div>
@@ -67,17 +105,19 @@ const loading = ref(false)
 const error = ref("")
 const detail = ref(null)
 
+const loadingKh = ref(false)
+const errorKh = ref("")
+const khList = ref([])
+
 const id = computed(() => Number(route.params.id))
 
 const d = computed(() => {
   const x = detail.value || {}
   return {
     ...x,
-    // normalize snake_case nếu BE trả kiểu đó
     maGiamGia: x.maGiamGia ?? x.ma_giam_gia,
     tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia,
     soLuong: x.soLuong ?? x.so_luong,
-    trangThai: x.trangThai ?? x.trang_thai,
     loaiGiam: x.loaiGiam ?? x.loai_giam,
     giaTriPhanTram: x.giaTriPhanTram ?? x.gia_tri_phan_tram,
     giaTriTienMat: x.giaTriTienMat ?? x.gia_tri_tien_mat,
@@ -92,13 +132,10 @@ const d = computed(() => {
   }
 })
 
+const isPersonalVoucher = computed(() => d.value?.loaiPhieu === true)
+
 function goBack() {
   router.push("/vouchers")
-}
-
-/** ✅ sửa theo router của bạn: { path: 'vouchers/update/:id' } */
-function goEdit() {
-  router.push(`/vouchers/update/${id.value}`)
 }
 
 async function load() {
@@ -111,6 +148,20 @@ async function load() {
     error.value = e?.response?.data?.message || e?.message || "Không tải được chi tiết"
   } finally {
     loading.value = false
+  }
+}
+
+async function loadKhachHangNhanPhieu() {
+  if (!isPersonalVoucher.value) return
+  loadingKh.value = true
+  errorKh.value = ""
+  try {
+    const res = await axios.get(`${API}/${id.value}/khach-hang`)
+    khList.value = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    errorKh.value = e?.response?.data?.message || e?.message || "Không tải được danh sách khách hàng"
+  } finally {
+    loadingKh.value = false
   }
 }
 
@@ -135,22 +186,39 @@ function formatMoney(v) {
   return n.toLocaleString("vi-VN") + " ₫"
 }
 
-/** ✅ DATETIME: dd/MM/yyyy HH:mm (BE: 2026-01-18T18:14:00) */
 function formatDateTime(v) {
   if (!v) return "-"
-  const d = new Date(String(v))
-  if (Number.isNaN(d.getTime())) return String(v)
+  const dt = new Date(String(v))
+  if (Number.isNaN(dt.getTime())) return String(v)
 
-  const dd = String(d.getDate()).padStart(2, "0")
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const yyyy = d.getFullYear()
-  const hh = String(d.getHours()).padStart(2, "0")
-  const mi = String(d.getMinutes()).padStart(2, "0")
+  const dd = String(dt.getDate()).padStart(2, "0")
+  const mm = String(dt.getMonth() + 1).padStart(2, "0")
+  const yyyy = dt.getFullYear()
+  const hh = String(dt.getHours()).padStart(2, "0")
+  const mi = String(dt.getMinutes()).padStart(2, "0")
 
   return `${dd}/${mm}/${yyyy} ${hh}:${mi}`
 }
 
-onMounted(load)
+function toDate(v) {
+  if (!v) return null
+  const dt = new Date(String(v))
+  return Number.isNaN(dt.getTime()) ? null : dt
+}
+function getBizStatusText(v) {
+  const start = toDate(v?.ngayBatDau)
+  const end = toDate(v?.ngayKetThuc)
+  const now = new Date()
+
+  if (start && now < start) return "Sắp diễn ra"
+  if (end && now > end) return "Kết thúc"
+  return "Đang áp dụng"
+}
+
+onMounted(async () => {
+  await load()
+  await loadKhachHangNhanPhieu()
+})
 </script>
 
 <style scoped>
@@ -185,7 +253,9 @@ h1 {
   font-size: 13px;
   color: #374151;
 }
-.err { color: #b91c1c; }
+.err {
+  color: #b91c1c;
+}
 
 .detail-grid {
   display: grid;
@@ -196,8 +266,37 @@ h1 {
   margin-top: 6px;
 }
 
-.detail-grid .full { grid-column: 1 / -1; }
-.desc { white-space: pre-line; }
+.detail-grid .full {
+  grid-column: 1 / -1;
+}
+.desc {
+  white-space: pre-line;
+}
+
+.section-title{
+  margin: 8px 0 8px;
+  font-size: 14px;
+}
+
+.table-wrap{
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.kh-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.kh-table th, .kh-table td{
+  padding: 10px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+.kh-table thead tr{
+  background: #f3f4f6;
+}
 
 .actions {
   display: flex;
@@ -213,13 +312,6 @@ h1 {
   padding: 0 14px;
   font-size: 14px;
   cursor: pointer;
-}
-
-.btn-primary {
-  background: #f97316;
-  border-color: #f97316;
-  color: #fff;
-  font-weight: 700;
 }
 
 .btn-secondary {
