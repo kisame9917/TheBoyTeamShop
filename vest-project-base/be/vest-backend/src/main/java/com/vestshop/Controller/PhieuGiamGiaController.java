@@ -45,4 +45,10 @@ public class PhieuGiamGiaController {
         return ResponseEntity.ok(service.detail(id));
     }
 
+    @PutMapping("/end-pgg/{id}")
+    public ResponseEntity<?> endpgg(@PathVariable("id") Long id) throws Exception{
+        service.endpgg(id);
+        return ResponseEntity.ok().build();
+    }
+
 }

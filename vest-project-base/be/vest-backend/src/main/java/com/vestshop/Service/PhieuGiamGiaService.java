@@ -16,4 +16,6 @@ public interface PhieuGiamGiaService {
     PhieuGiamGia create(PhieuGiamGiaCreateRequest dto);
     PhieuGiamGia update(Long id, PhieuGiamGiaUpdateRequest dto) throws Exception;
     void delete(Long id);
+    void endpgg(Long id) throws Exception;
+
 }

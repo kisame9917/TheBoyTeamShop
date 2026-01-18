@@ -84,7 +84,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setNgayBatDau(dto.getNgayBatDau());
         pgg.setNgayKetThuc(dto.getNgayKetThuc());
         pgg.setMoTa(dto.getMoTa());
-        pgg.setNgayTao(LocalDate.now());
+        pgg.setNgayTao(LocalDateTime.now());
         pgg.setTrangThai(true);
         pgg.setDonHangToiThieu(dto.getDonHangToiThieu());
         pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
@@ -116,9 +116,12 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         updatepgg.setNgayBatDau(dto.getNgayBatDau());
         updatepgg.setNgayKetThuc(dto.getNgayKetThuc());
         updatepgg.setMoTa(dto.getMoTa());
-        updatepgg.setNgayCapNhat(LocalDate.now());
+        updatepgg.setNgayCapNhat(LocalDateTime.now());
         updatepgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
         updatepgg.setGiaTriTienMat(dto.getGiaTriTienMat());
+        updatepgg.setLoaiPhieu(dto.getLoaiPhieu());
+        updatepgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
+        updatepgg.setDonHangToiThieu(dto.getDonHangToiThieu());
 //        updatepgg.setTrangThai(dto.getTrangThai());
         return repo.save(updatepgg);
     }
@@ -127,10 +130,34 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     public void delete(Long id) {
         PhieuGiamGia pgg = repo.findById(id).orElseThrow(()-> new RuntimeException("Khong tim thay id:" +id));
         pgg.setTrangThai(false);
-        pgg.setNgayCapNhat(LocalDate.now());
+        pgg.setNgayCapNhat(LocalDateTime.now());
         repo.save(pgg);
     }
 
+        @Override
+        public void endpgg(Long id) throws Exception {
+            PhieuGiamGia pgg = repo.findById(id)
+                    .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
+
+            // (tùy bạn) chặn nếu chưa đang áp dụng
+            LocalDateTime today = LocalDateTime.now();
+            LocalDateTime start = pgg.getNgayBatDau();
+            LocalDateTime end = pgg.getNgayKetThuc();
+
+            // UPCOMING => không cho kết thúc ngay (bạn có thể bỏ đoạn này nếu muốn)
+            if (start != null && today.isBefore(start)) {
+                throw new Exception("Phiếu đang sắp diễn ra, không thể kết thúc ngay");
+            }
+            // EXPIRED rồi => bỏ qua hoặc báo lỗi
+            if (end != null && today.isAfter(end)) {
+                throw new Exception("Phiếu đã kết thúc");
+            }
+
+            // ✅ Kết thúc ngay: set end = today
+            pgg.setNgayKetThuc(today);
+
+            repo.save(pgg);
+        }
 
 
     private String generateUniqueMaGiamGia() {

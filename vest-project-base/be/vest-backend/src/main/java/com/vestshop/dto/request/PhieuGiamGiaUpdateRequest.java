@@ -13,15 +13,17 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class PhieuGiamGiaUpdateRequest {
     private Long id;
-    private String maGiamGia;
     private String tenGiamGia;
     private Integer soLuong;
     private Boolean loaiGiam;
-    private LocalDate ngayBatDau;
-    private LocalDate ngayKetThuc;
+    private LocalDateTime ngayBatDau;
+    private LocalDateTime ngayKetThuc;
     private String moTa;
-    private LocalDate ngayCapNhat;
+    private LocalDateTime ngayTao;
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
     private Boolean trangThai;
+    private BigDecimal donHangToiThieu;
+    private BigDecimal giaTriGiamToiDa;
+    private Boolean loaiPhieu;
 }

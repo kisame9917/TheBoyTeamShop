@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -16,8 +17,8 @@ public class PhieuGiamGiaResponse {
     private String maGiamGia;
     private String tenGiamGia;
     private Integer soLuong;
-    private LocalDate ngay_bat_dau;
-    private LocalDate ngay_ket_thuc;
+    private LocalDateTime ngay_bat_dau;
+    private LocalDateTime ngay_ket_thuc;
     private Boolean trangThai;
     private Boolean loaiGiam;
     private BigDecimal giaTriPhanTram;

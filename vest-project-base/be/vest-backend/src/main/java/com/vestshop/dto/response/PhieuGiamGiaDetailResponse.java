@@ -23,11 +23,11 @@ public class PhieuGiamGiaDetailResponse {
 
     private String moTa;
 
-    private LocalDate ngayBatDau;
-    private LocalDate ngayKetThuc;
+    private LocalDateTime ngayBatDau;
+    private LocalDateTime ngayKetThuc;
 
-    private LocalDate ngayTao;
-    private LocalDate ngayCapNhat;
+    private LocalDateTime ngayTao;
+    private LocalDateTime ngayCapNhat;
 
     private Boolean trangThai;
     private BigDecimal donHangToiThieu;

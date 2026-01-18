@@ -16,10 +16,10 @@ public class PhieuGiamGiaCreateRequest {
     private String tenGiamGia;
     private Integer soLuong;
     private Boolean loaiGiam;
-    private LocalDate ngayBatDau;
-    private LocalDate ngayKetThuc;
+    private LocalDateTime ngayBatDau;
+    private LocalDateTime ngayKetThuc;
     private String moTa;
-    private LocalDate ngayTao;
+    private LocalDateTime ngayTao;
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
     private Boolean trangThai;

@@ -38,21 +38,21 @@ public class PhieuGiamGia {
 
     @Column(name="ngay_bat_dau")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDate ngayBatDau;
+    private LocalDateTime ngayBatDau;
 
     @Column(name="ngay_ket_thuc")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDate ngayKetThuc;
+    private LocalDateTime ngayKetThuc;
 
     @Column(name="mo_ta", length=500)
     private String moTa;
 
     @Column(name="ngay_tao", nullable=false)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDate ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name="ngay_cap_nhat")
-    private LocalDate ngayCapNhat;
+    private LocalDateTime ngayCapNhat;
 
     @Column(name="gia_tri_phan_tram", precision=5, scale=2)
     private BigDecimal giaTriPhanTram;
