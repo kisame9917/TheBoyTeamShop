@@ -11,13 +11,14 @@
 
     <div class="card">
       <div v-if="loading" class="muted">Đang tải dữ liệu...</div>
+
       <div v-else>
         <div class="form-grid">
           <!-- LEFT -->
           <div class="col">
             <div class="form-group">
               <label>Loại giảm</label>
-              <select class="input" v-model="form.loaiGiam">
+              <select class="input" v-model="form.loaiGiam" :disabled="isEnded">
                 <option :value="true">Giảm %</option>
                 <option :value="false">Giảm tiền (VND)</option>
               </select>
@@ -33,8 +34,9 @@
                   :min="1"
                   :max="form.loaiGiam ? 100 : null"
                   :placeholder="form.loaiGiam ? 'Ví dụ: 20' : 'Ví dụ: 50000'"
+                  :disabled="isEnded"
                 />
-                <span class="suffix">{{ form.loaiGiam ? '%' : 'VND' }}</span>
+                <span class="suffix">{{ form.loaiGiam ? "%" : "VND" }}</span>
               </div>
             </div>
 
@@ -46,6 +48,7 @@
                 v-model.number="form.giaTriGiamToiDa"
                 min="1"
                 placeholder="Ví dụ: 2000000"
+                :disabled="isEnded"
               />
             </div>
 
@@ -55,6 +58,7 @@
                 type="date"
                 class="input input-sm"
                 v-model="form.ngayBatDau"
+                :disabled="isEnded"
               />
             </div>
           </div>
@@ -67,6 +71,7 @@
                 class="input"
                 v-model.trim="form.tenGiamGia"
                 placeholder="Ví dụ: Sale 1/6"
+                :disabled="isEnded"
               />
             </div>
 
@@ -77,6 +82,7 @@
                 class="input"
                 v-model.number="form.soLuong"
                 min="1"
+                :disabled="isEnded"
               />
             </div>
 
@@ -88,6 +94,7 @@
                 v-model.number="form.donHangToiThieu"
                 min="0"
                 placeholder="Ví dụ: 200000"
+                :disabled="isEnded"
               />
             </div>
 
@@ -97,6 +104,7 @@
                 type="date"
                 class="input input-sm"
                 v-model="form.ngayKetThuc"
+                :disabled="isEnded"
               />
             </div>
           </div>
@@ -108,6 +116,7 @@
               class="textarea"
               v-model.trim="form.moTa"
               placeholder="Nhập mô tả..."
+              :disabled="isEnded"
             ></textarea>
           </div>
 
@@ -115,14 +124,99 @@
           <div class="form-group full">
             <label>Loại phiếu</label>
             <div class="radio-group">
+              <!-- Không cho CA_NHAN -> CONG_KHAI -->
               <label class="radio">
-                <input type="radio" value="CONG_KHAI" v-model="form.loaiPhieu" />
+                <input
+                  type="radio"
+                  value="CONG_KHAI"
+                  v-model="form.loaiPhieu"
+                  :disabled="isEnded || lockLoaiPhieu"
+                />
                 <span>Công khai</span>
               </label>
               <label class="radio">
-                <input type="radio" value="CA_NHAN" v-model="form.loaiPhieu" />
+                <input
+                  type="radio"
+                  value="CA_NHAN"
+                  v-model="form.loaiPhieu"
+                  :disabled="isEnded"
+                />
                 <span>Cá nhân</span>
               </label>
+            </div>
+          </div>
+
+          <!-- ✅ KHÁCH HÀNG (chỉ hiện khi cá nhân) -->
+          <div v-if="isCaNhan" class="form-group full">
+            <div class="kh-header">
+              <div>
+                <label style="margin: 0;">Danh sách khách hàng nhận phiếu</label>
+              </div>
+
+              <div class="kh-actions">
+                <input
+                  class="input input-kh"
+                  v-model.trim="khSearch"
+                  placeholder="Tìm theo mã / tên / SĐT / email..."
+                  :disabled="isEnded"
+                />
+                <button
+                  class="btn btn-outline btn-kh"
+                  @click="toggleSelectAll"
+                  :disabled="isEnded || khLoading"
+                >
+                  {{ isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả" }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="khLoading" class="muted" style="margin-top:8px;">
+              Đang tải danh sách khách hàng...
+            </div>
+
+            <div v-else class="kh-table-wrap">
+              <table class="kh-table">
+                <thead>
+                  <tr>
+                    <th class="col-check"></th>
+                    <th class="col-ma">Mã KH</th>
+                    <th class="col-ten">Tên KH</th>
+                    <th class="col-sdt">SĐT</th>
+                    <th class="col-email">Email</th>
+                    <!-- <th class="col-macn">Mã PGG cá nhân</th>
+                    <th class="col-ngaynhan">Ngày nhận</th> -->
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr v-for="kh in filteredKhachHang" :key="kh.id">
+                    <td class="col-check">
+                      <input
+                        type="checkbox"
+                        :checked="selectedKhIds.has(kh.id)"
+                        @change="onToggleKh(kh.id)"
+                        :disabled="isEnded"
+                      />
+                    </td>
+                    <td class="col-ma">{{ kh.maKhachHang || "-" }}</td>
+                    <td class="col-ten text-bold">{{ kh.tenKhachHang || "-" }}</td>
+                    <td class="col-sdt">{{ kh.soDienThoai || "-" }}</td>
+                    <td class="col-email ellipsis" :title="kh.email || ''">
+                      {{ kh.email || "-" }}
+                    </td>
+                    <!-- <td class="col-macn ellipsis" :title="kh.maPhieuGiamGiaCaNhan || ''">{{ kh.maPhieuGiamGiaCaNhan || '-' }}</td>
+                    <td class="col-ngaynhan">{{ formatDateTime(kh.ngayNhan) }}</td> -->
+                  </tr>
+
+                  <tr v-if="filteredKhachHang.length === 0">
+                    <td colspan="5" class="empty">Không có khách hàng phù hợp.</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="kh-footer">
+                <div>Đã chọn: <b>{{ selectedKhIds.size }}</b> khách hàng</div>
+              </div>
             </div>
           </div>
         </div>
@@ -134,9 +228,19 @@
           <button class="btn btn-secondary" @click="goBack" :disabled="saving">
             Hủy
           </button>
-          <button class="btn btn-primary" @click="submit" :disabled="saving">
+
+          <button
+            class="btn btn-primary"
+            @click="submit"
+            :disabled="saving || isEnded"
+            :title="isEnded ? 'Phiếu đã kết thúc, không thể chỉnh sửa' : ''"
+          >
             {{ saving ? "Đang lưu..." : "Cập nhật phiếu giảm giá" }}
           </button>
+        </div>
+
+        <div v-if="isEnded" class="ended-note">
+          Phiếu đã <b>kết thúc</b> nên không thể chỉnh sửa.
         </div>
       </div>
     </div>
@@ -144,7 +248,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from "vue"
+import { ref, watch, computed, onMounted } from "vue"
 import axios from "axios"
 import { useRouter, useRoute } from "vue-router"
 
@@ -152,6 +256,7 @@ const router = useRouter()
 const route = useRoute()
 
 const API = "http://localhost:8080/api/pgg"
+const API_KH = "http://localhost:8080/api/khach-hang"
 
 // ✅ Lấy id từ route: /vouchers/update/:id
 const id = route.params.id
@@ -160,17 +265,38 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref("")
 
+// dùng để khóa đổi loại phiếu từ cá nhân -> công khai
+const originalLoaiPhieuIsCaNhan = ref(false)
+
 const form = ref({
   tenGiamGia: "",
   soLuong: 1,
-  loaiGiam: true, // true = %, false = tiền
+  loaiGiam: true,
   giaTriGiam: 1,
   giaTriGiamToiDa: 0,
   donHangToiThieu: 0,
-  ngayBatDau: "",   // UI date: YYYY-MM-DD
-  ngayKetThuc: "",  // UI date: YYYY-MM-DD
+  ngayBatDau: "", // UI date: YYYY-MM-DD
+  ngayKetThuc: "", // UI date: YYYY-MM-DD
   moTa: "",
   loaiPhieu: "CONG_KHAI" // UI radio
+})
+
+const isCaNhan = computed(() => form.value.loaiPhieu === "CA_NHAN")
+const lockLoaiPhieu = computed(() => originalLoaiPhieuIsCaNhan.value === true)
+
+// ====== DETAIL RAW (để tính trạng thái nghiệp vụ / end) ======
+const detailRaw = ref(null)
+
+// trạng thái nghiệp vụ: kết thúc -> disable form
+function toDate(v) {
+  if (!v) return null
+  const dt = new Date(String(v))
+  return Number.isNaN(dt.getTime()) ? null : dt
+}
+const isEnded = computed(() => {
+  const end = toDate(detailRaw.value?.ngayKetThuc)
+  if (!end) return false
+  return new Date() > end
 })
 
 watch(
@@ -200,12 +326,26 @@ function endOfDay(dateYMD) {
   return `${dateYMD}T23:59:59`
 }
 
+/** dd/MM/yyyy HH:mm */
+function formatDateTime(v) {
+  if (!v) return "-"
+  const dt = new Date(String(v))
+  if (Number.isNaN(dt.getTime())) return String(v)
+  const dd = String(dt.getDate()).padStart(2, "0")
+  const mm = String(dt.getMonth() + 1).padStart(2, "0")
+  const yyyy = dt.getFullYear()
+  const hh = String(dt.getHours()).padStart(2, "0")
+  const mi = String(dt.getMinutes()).padStart(2, "0")
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`
+}
+
 async function fetchDetail() {
   loading.value = true
   error.value = ""
   try {
     const res = await axios.get(`${API}/${id}`)
     const data = res.data || {}
+    detailRaw.value = data
 
     form.value.tenGiamGia = data.tenGiamGia ?? ""
     form.value.soLuong = data.soLuong ?? 1
@@ -219,8 +359,9 @@ async function fetchDetail() {
     form.value.donHangToiThieu = data.donHangToiThieu ?? 0
 
     // backend: true=CA_NHAN, false=CONG_KHAI
-    const isCaNhan = !!data.loaiPhieu
-    form.value.loaiPhieu = isCaNhan ? "CA_NHAN" : "CONG_KHAI"
+    const isCaNhanBE = !!data.loaiPhieu
+    originalLoaiPhieuIsCaNhan.value = isCaNhanBE
+    form.value.loaiPhieu = isCaNhanBE ? "CA_NHAN" : "CONG_KHAI"
 
     if (form.value.loaiGiam) {
       form.value.giaTriGiam = data.giaTriPhanTram ?? 1
@@ -230,13 +371,123 @@ async function fetchDetail() {
       form.value.giaTriGiamToiDa = 0
     }
   } catch (e) {
-    error.value =
-      e?.response?.data?.message || e?.message || "Không tải được dữ liệu"
+    error.value = e?.response?.data?.message || e?.message || "Không tải được dữ liệu"
   } finally {
     loading.value = false
   }
 }
 
+// ====== KHÁCH HÀNG (CÁ NHÂN) ======
+const khLoading = ref(false)
+const khList = ref([]) // danh sách khách hàng hiển thị (merge từ 2 API)
+const selectedKhIds = ref(new Set())
+const khSearch = ref("")
+
+function normText(v) {
+  return String(v ?? "").trim().toLowerCase()
+}
+
+const filteredKhachHang = computed(() => {
+  const q = normText(khSearch.value)
+  if (!q) return khList.value
+
+  return khList.value.filter((kh) => {
+    const s = [kh.maKhachHang, kh.tenKhachHang, kh.soDienThoai, kh.email]
+      .map(normText)
+      .join(" ")
+    return s.includes(q)
+  })
+})
+
+const isAllSelected = computed(() => {
+  const ids = filteredKhachHang.value.map((x) => x.id)
+  if (ids.length === 0) return false
+  return ids.every((id) => selectedKhIds.value.has(id))
+})
+
+function onToggleKh(khId) {
+  const s = new Set(selectedKhIds.value)
+  if (s.has(khId)) s.delete(khId)
+  else s.add(khId)
+  selectedKhIds.value = s
+}
+
+function toggleSelectAll() {
+  const s = new Set(selectedKhIds.value)
+  const ids = filteredKhachHang.value.map((x) => x.id)
+  const all = ids.every((id) => s.has(id))
+  if (all) ids.forEach((id) => s.delete(id))
+  else ids.forEach((id) => s.add(id))
+  selectedKhIds.value = s
+}
+
+async function loadKhachHangForPersonal() {
+  if (!isCaNhan.value) return
+
+  khLoading.value = true
+  try {
+    // 1) danh sách KH toàn hệ thống
+    const all = await axios.get(API_KH)
+    const allKh = Array.isArray(all.data) ? all.data : []
+
+    const khNorm = allKh.map((x) => ({
+      id: x.id,
+      maKhachHang: x.maKhachHang ?? x.ma_khach_hang,
+      tenKhachHang: x.tenKhachHang ?? x.ten_khach_hang,
+      soDienThoai: x.soDienThoai ?? x.so_dien_thoai,
+      email: x.email
+    }))
+
+    // 2) danh sách KH đã nhận phiếu (join)
+    const received = await axios.get(`${API}/${id}/khach-hang`)
+    const ds = Array.isArray(received.data) ? received.data : []
+
+    // ds theo DTO của bạn: PhieuGiamGiaCaNhanResponse
+    // { idKhachHang, maKhachHang, tenKhachHang, sdt, email, maPhieuGiamGiaCaNhan, ngayNhan, daSuDung }
+    const mapByKhId = new Map()
+    ds.forEach((r) => {
+      const khId = r.idKhachHang ?? r.id_khach_hang
+      if (!khId) return
+      mapByKhId.set(khId, {
+        maPhieuGiamGiaCaNhan: r.maPhieuGiamGiaCaNhan ?? r.ma_phieu_giam_gia_ca_nhan,
+        ngayNhan: r.ngayNhan ?? r.ngay_nhan,
+        soDienThoai: r.sdt ?? r.soDienThoai ?? r.so_dien_thoai,
+        email: r.email
+      })
+    })
+
+    // 3) merge hiển thị + set selected
+    const merged = khNorm.map((kh) => {
+      const join = mapByKhId.get(kh.id)
+      return {
+        ...kh,
+        maPhieuGiamGiaCaNhan: join?.maPhieuGiamGiaCaNhan ?? null,
+        ngayNhan: join?.ngayNhan ?? null,
+        soDienThoai: kh.soDienThoai || join?.soDienThoai || null,
+        email: kh.email || join?.email || null
+      }
+    })
+
+    khList.value = merged
+
+    const selected = new Set()
+    mapByKhId.forEach((_, khId) => selected.add(khId))
+    selectedKhIds.value = selected
+  } finally {
+    khLoading.value = false
+  }
+}
+
+watch(isCaNhan, async (v) => {
+  if (v) {
+    await loadKhachHangForPersonal()
+  } else {
+    khList.value = []
+    selectedKhIds.value = new Set()
+  }
+})
+
+// ====== SUBMIT ======
 function validate() {
   if (!form.value.tenGiamGia.trim()) return "Vui lòng nhập tên phiếu"
   if (form.value.soLuong < 1) return "Số lượng phải >= 1"
@@ -247,7 +498,6 @@ function validate() {
     if (form.value.giaTriGiamToiDa <= 0) return "Giảm tối đa phải > 0"
   }
 
-  // so sánh theo YYYY-MM-DD (OK)
   if (
     form.value.ngayBatDau &&
     form.value.ngayKetThuc &&
@@ -255,6 +505,17 @@ function validate() {
   ) {
     return "Ngày kết thúc phải >= ngày bắt đầu"
   }
+
+  // ✅ chặn CA_NHAN -> CONG_KHAI ở FE (BE vẫn cần chặn)
+  if (originalLoaiPhieuIsCaNhan.value === true && form.value.loaiPhieu === "CONG_KHAI") {
+    return "Phiếu cá nhân không thể chuyển về công khai"
+  }
+
+  // ✅ nếu cá nhân phải chọn KH
+  if (form.value.loaiPhieu === "CA_NHAN" && selectedKhIds.value.size === 0) {
+    return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng"
+  }
+
   return ""
 }
 
@@ -269,11 +530,8 @@ async function submit() {
       tenGiamGia: form.value.tenGiamGia,
       soLuong: form.value.soLuong,
       loaiGiam: form.value.loaiGiam,
-
-      // ✅ DateTime chuẩn
       ngayBatDau: startOfDay(form.value.ngayBatDau),
       ngayKetThuc: endOfDay(form.value.ngayKetThuc),
-
       moTa: form.value.moTa,
       donHangToiThieu: form.value.donHangToiThieu,
       loaiPhieu: form.value.loaiPhieu === "CA_NHAN"
@@ -291,17 +549,24 @@ async function submit() {
 
     await axios.put(`${API}/update/${id}`, payload)
 
+    if (form.value.loaiPhieu === "CA_NHAN") {
+      const req = { khachHangIds: Array.from(selectedKhIds.value) }
+      await axios.put(`${API}/${id}/khach-hang`, req)
+    }
+
     alert("Cập nhật phiếu giảm giá thành công")
     goBack()
   } catch (e) {
-    error.value =
-      e?.response?.data?.message || e?.message || "Cập nhật thất bại"
+    error.value = e?.response?.data?.message || e?.message || "Cập nhật thất bại"
   } finally {
     saving.value = false
   }
 }
 
-onMounted(fetchDetail)
+onMounted(async () => {
+  await fetchDetail()
+  if (isCaNhan.value) await loadKhachHangForPersonal()
+})
 </script>
 
 <style scoped>
@@ -327,6 +592,11 @@ onMounted(fetchDetail)
 .muted {
   color: #6b7280;
   font-weight: 600;
+}
+.muted2 {
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 .form-grid {
@@ -369,6 +639,7 @@ onMounted(fetchDetail)
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 0 12px;
+  background: #fff;
 }
 
 .input-sm {
@@ -380,6 +651,7 @@ onMounted(fetchDetail)
   border-radius: 8px;
   border: 1px solid #d1d5db;
   padding: 10px;
+  background: #fff;
 }
 
 .with-suffix {
@@ -410,17 +682,21 @@ onMounted(fetchDetail)
   padding: 0 14px;
   border: 1px solid #d1d5db;
   cursor: pointer;
+  background: #fff;
 }
-
 .btn-primary {
   background: #f97316;
   border-color: #f97316;
   color: #fff;
   font-weight: 700;
 }
-
 .btn-secondary {
   background: #eef2f7;
+}
+.btn-outline {
+  height: 34px;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .error {
@@ -428,4 +704,62 @@ onMounted(fetchDetail)
   color: #b91c1c;
   font-weight: 600;
 }
+
+.ended-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 13px;
+}
+/* ===== KH TABLE (GIỐNG CREATE - KHÔNG CÓ KHOẢNG TRỐNG GIỮA TÊN & SDT) ===== */
+.kh-table-wrap {
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.kh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed; /* ✅ bắt buộc để width cột ăn đúng */
+}
+
+.kh-table thead tr {
+  background: #f3f4f6;
+}
+
+.kh-table th,
+.kh-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ✅ WIDTH CỘT GIỐNG CREATE */
+.col-check { width: 44px; }
+.col-ma    { width: 140px; }
+.col-ten   { width: 320px; }  /* ✅ FIX: đừng để nó auto ăn hết */
+.col-sdt   { width: 160px; }
+.col-email { width: 220px; }
+
+/* nếu muốn email ngắn lại giống create (có ... nhiều hơn) thì đổi 220px -> 160px */
+.text-bold { font-weight: 700; }
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 </style>
