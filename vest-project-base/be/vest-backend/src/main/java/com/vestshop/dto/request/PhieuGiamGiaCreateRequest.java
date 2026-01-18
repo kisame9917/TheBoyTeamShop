@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -26,4 +27,5 @@ public class PhieuGiamGiaCreateRequest {
     private BigDecimal donHangToiThieu;
     private BigDecimal giaTriGiamToiDa;
     private Boolean loaiPhieu;
+    private List<Long> khachHangIds;
 }

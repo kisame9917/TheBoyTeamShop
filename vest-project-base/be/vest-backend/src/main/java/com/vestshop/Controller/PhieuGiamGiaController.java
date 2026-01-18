@@ -1,15 +1,18 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Entity.PhieuGiamGia;
+import com.vestshop.Service.PhieuGiamGiaCaNhanService;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
 import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
+import com.vestshop.dto.request.UpdateKhachHangNhanPhieuRequest;
+import com.vestshop.dto.response.PhieuGiamGiaCaNhanResponse;
 import com.vestshop.dto.response.PhieuGiamGiaDetailResponse;
 import com.vestshop.dto.response.PhieuGiamGiaResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.vestshop.Service.PhieuGiamGiaCaNhanService;
 import java.util.List;
 
 @RestController
@@ -17,6 +20,8 @@ import java.util.List;
 public class PhieuGiamGiaController {
     @Autowired
   private  PhieuGiamGiaService service;
+    @Autowired
+    private PhieuGiamGiaCaNhanService phieuGiamGiaCaNhanService;
 
     @GetMapping
     public List<PhieuGiamGiaResponse> getAll(){
@@ -24,7 +29,7 @@ public class PhieuGiamGiaController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> create(@RequestBody PhieuGiamGiaCreateRequest pgg){
+    public ResponseEntity<?> create(@RequestBody PhieuGiamGiaCreateRequest pgg) throws Exception {
         PhieuGiamGia saved = service.create(pgg);
         return ResponseEntity.ok(saved.getId());
     }
@@ -50,5 +55,18 @@ public class PhieuGiamGiaController {
         service.endpgg(id);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/{id}/khach-hang")
+    public ResponseEntity<?> getKhachHangNhanPhieu(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(phieuGiamGiaCaNhanService.getKhachHangNhanPhieu(id));
+    }
 
+
+
+    @PutMapping("/{id}/khach-hang")
+    public void updateKhachHangNhanPhieu(
+            @PathVariable Long id,
+            @RequestBody UpdateKhachHangNhanPhieuRequest req
+    ) throws Exception {
+        service.updateKhachHangNhanPhieu(id, req);
+    }
 }

@@ -1,11 +1,16 @@
 package com.vestshop.Service.impl;
 
+import com.vestshop.Entity.KhachHang;
 import com.vestshop.Entity.PhieuGiamGia;
+import com.vestshop.Entity.PhieuGiamGiaCaNhan;
+import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Repository.PhieuGiamGiaCaNhanRepository;
 import com.vestshop.Repository.PhieuGiamGiaRepository;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
 import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
+import com.vestshop.dto.request.UpdateKhachHangNhanPhieuRequest;
+import com.vestshop.dto.response.PhieuGiamGiaCaNhanResponse;
 import com.vestshop.dto.response.PhieuGiamGiaDetailResponse;
 import com.vestshop.dto.response.PhieuGiamGiaResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +27,11 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
    @Autowired
     PhieuGiamGiaRepository repo;
 
+    @Autowired
+    KhachHangRepository khrepo;
+
+    @Autowired
+    PhieuGiamGiaCaNhanRepository cnrepo;
 
     @Override
     public List<PhieuGiamGiaResponse> getAll() {
@@ -75,32 +85,71 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
 
     @Override
-    public PhieuGiamGia create(PhieuGiamGiaCreateRequest dto) {
+    public PhieuGiamGia create(PhieuGiamGiaCreateRequest dto) throws Exception {
+
         PhieuGiamGia pgg = new PhieuGiamGia();
         pgg.setMaGiamGia(generateUniqueMaGiamGia());
         pgg.setTenGiamGia(dto.getTenGiamGia());
         pgg.setSoLuong(dto.getSoLuong());
         pgg.setLoaiGiam(dto.getLoaiGiam());
+
+        // DateTime: FE gửi 00:00:00 và 23:59:59 rồi
         pgg.setNgayBatDau(dto.getNgayBatDau());
         pgg.setNgayKetThuc(dto.getNgayKetThuc());
+
         pgg.setMoTa(dto.getMoTa());
         pgg.setNgayTao(LocalDateTime.now());
         pgg.setTrangThai(true);
+
         pgg.setDonHangToiThieu(dto.getDonHangToiThieu());
         pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
-        if (Boolean.TRUE.equals(dto.getLoaiGiam())) {
 
+        if (Boolean.TRUE.equals(dto.getLoaiGiam())) {
+            // giảm %
             pgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
             pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
             pgg.setGiaTriTienMat(null);
         } else {
-
+            // giảm tiền
             pgg.setGiaTriTienMat(dto.getGiaTriTienMat());
             pgg.setGiaTriPhanTram(null);
             pgg.setGiaTriGiamToiDa(null);
         }
+
+        // true = CA_NHAN, false = CONG_KHAI (theo FE bạn đang gửi)
         pgg.setLoaiPhieu(dto.getLoaiPhieu());
-        return repo.save(pgg);
+
+        // ✅ Lưu phiếu trước để có ID
+        PhieuGiamGia saved = repo.save(pgg);
+
+        // ✅ Nếu phiếu cá nhân thì lưu bảng join
+        if (Boolean.TRUE.equals(saved.getLoaiPhieu())) {
+
+            var ids = dto.getKhachHangIds();
+            if (ids == null || ids.isEmpty()) {
+                throw new Exception("Phiếu cá nhân phải chọn ít nhất 1 khách hàng");
+            }
+
+            for (Long khId : ids) {
+                KhachHang kh = khrepo.findById(khId)
+                        .orElseThrow(() -> new Exception("Khách hàng không tồn tại: " + khId));
+
+                PhieuGiamGiaCaNhan ct = new PhieuGiamGiaCaNhan();
+                ct.setKhachHang(kh);
+                ct.setPhieuGiamGia(saved);
+
+                ct.setNgayNhan(LocalDateTime.now());
+                ct.setDaSuDung(false);
+                ct.setTrangThai(true);
+
+                // ✅ tạo mã riêng cho dòng cá nhân
+                ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + saved.getId() + "-" + kh.getId());
+
+                cnrepo.save(ct);
+            }
+        }
+
+        return saved;
     }
 
     @Override
@@ -124,6 +173,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         updatepgg.setDonHangToiThieu(dto.getDonHangToiThieu());
 //        updatepgg.setTrangThai(dto.getTrangThai());
         return repo.save(updatepgg);
+
     }
 
     @Override
@@ -159,11 +209,86 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
             repo.save(pgg);
         }
 
+    @Override
+    public List<PhieuGiamGiaCaNhanResponse> getKhachHangNhanPhieu(Long pggId) {
+        return cnrepo.findDsKhachHangNhanPhieu(pggId);
+    }
+
+    @Override
+    public void updateKhachHangNhanPhieu(Long pggId, UpdateKhachHangNhanPhieuRequest req) throws Exception {
+        PhieuGiamGia pgg = repo.findById(pggId)
+                .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
+
+        if (!Boolean.TRUE.equals(pgg.getLoaiPhieu())) {
+            throw new Exception("Phiếu này không phải phiếu cá nhân");
+        }
+
+        var ids = req.getKhachHangIds();
+        if (ids == null) ids = List.of();
+
+        // Lấy tất cả dòng hiện có (kể cả trangThai=false để xử lý add lại)
+        List<PhieuGiamGiaCaNhan> current = cnrepo.findByPhieuGiamGia_Id(pggId);
+
+        // Map theo khId
+        java.util.Map<Long, PhieuGiamGiaCaNhan> map = new java.util.HashMap<>();
+        for (PhieuGiamGiaCaNhan row : current) {
+            if (row.getKhachHang() != null && row.getKhachHang().getId() != null) {
+                map.put(row.getKhachHang().getId(), row);
+            }
+        }
+
+        java.util.Set<Long> newSet = new java.util.HashSet<>(ids);
+
+        // 1) Xử lý REMOVE (những KH hiện đang active nhưng không còn nằm trong newSet)
+        for (PhieuGiamGiaCaNhan row : current) {
+            Long khId = row.getKhachHang() != null ? row.getKhachHang().getId() : null;
+            if (khId == null) continue;
+
+            boolean isActiveRow = Boolean.TRUE.equals(row.getTrangThai());
+            boolean shouldKeep = newSet.contains(khId);
+
+            if (isActiveRow && !shouldKeep) {
+                if (Boolean.TRUE.equals(row.getDaSuDung())) {
+                    throw new Exception("Không thể bỏ khách hàng id=" + khId + " vì đã sử dụng phiếu");
+                }
+                row.setTrangThai(false); // soft delete
+                cnrepo.save(row);
+            }
+        }
+
+        // 2) Xử lý ADD (những KH mới trong newSet nhưng chưa có active)
+        for (Long khId : newSet) {
+            PhieuGiamGiaCaNhan existed = map.get(khId);
+
+            if (existed != null) {
+                // Nếu đã tồn tại nhưng đang bị tắt -> bật lại
+                if (!Boolean.TRUE.equals(existed.getTrangThai())) {
+                    existed.setTrangThai(true);
+                    cnrepo.save(existed);
+                }
+                continue;
+            }
+
+            KhachHang kh = khrepo.findById(khId)
+                    .orElseThrow(() -> new Exception("Khách hàng không tồn tại: " + khId));
+
+            PhieuGiamGiaCaNhan ct = new PhieuGiamGiaCaNhan();
+            ct.setKhachHang(kh);
+            ct.setPhieuGiamGia(pgg);
+            ct.setNgayNhan(LocalDateTime.now());
+            ct.setDaSuDung(false);
+            ct.setTrangThai(true);
+            ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + pgg.getId() + "-" + kh.getId());
+
+            cnrepo.save(ct);
+        }
+    }
+
 
     private String generateUniqueMaGiamGia() {
         // ví dụ: VCH-8K2P9A
         for (int i = 0; i < 50; i++) {
-            String code = "VC" + randomAlphaNum(6);
+            String code = "VC-" + randomAlphaNum(6);
             if (!repo.existsByMaGiamGia(code)) return code;
         }
         throw new RuntimeException("Không thể tạo mã giảm giá");
