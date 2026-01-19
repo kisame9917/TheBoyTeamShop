@@ -49,13 +49,8 @@
 
           <div class="form-group">
             <label>Ngày bắt đầu</label>
-            <input
-              type="date"
-              class="input input-sm"
-              v-model="form.ngayBatDau"
-            />
+            <input type="date" class="input input-sm" v-model="form.ngayBatDau" />
             <small class="hint" v-if="form.ngayBatDau">
-              Tự gửi: {{ form.ngayBatDau }}T00:00:00
             </small>
           </div>
         </div>
@@ -64,21 +59,12 @@
         <div class="col">
           <div class="form-group">
             <label>Tên phiếu giảm giá</label>
-            <input
-              class="input"
-              v-model.trim="form.tenGiamGia"
-              placeholder="Ví dụ: Sale 1/6"
-            />
+            <input class="input" v-model.trim="form.tenGiamGia" placeholder="Ví dụ: Sale 1/6" />
           </div>
 
           <div class="form-group">
             <label>Số lượng</label>
-            <input
-              type="number"
-              class="input"
-              v-model.number="form.soLuong"
-              min="1"
-            />
+            <input type="number" class="input" v-model.number="form.soLuong" min="1" />
             <small class="hint" v-if="form.loaiPhieu === 'CA_NHAN'">
               Gợi ý: số lượng thường = số khách hàng đã chọn
             </small>
@@ -97,13 +83,8 @@
 
           <div class="form-group">
             <label>Ngày kết thúc</label>
-            <input
-              type="date"
-              class="input input-sm"
-              v-model="form.ngayKetThuc"
-            />
+            <input type="date" class="input input-sm" v-model="form.ngayKetThuc" />
             <small class="hint" v-if="form.ngayKetThuc">
-              Tự gửi: {{ form.ngayKetThuc }}T23:59:59
             </small>
           </div>
         </div>
@@ -111,11 +92,7 @@
         <!-- MÔ TẢ -->
         <div class="form-group full">
           <label>Mô tả</label>
-          <textarea
-            class="textarea"
-            v-model.trim="form.moTa"
-            placeholder="Nhập mô tả..."
-          ></textarea>
+          <textarea class="textarea" v-model.trim="form.moTa" placeholder="Nhập mô tả..."></textarea>
         </div>
 
         <!-- ✅ LOẠI PHIẾU -->
@@ -196,6 +173,36 @@
         </button>
       </div>
     </div>
+
+    <!-- ✅ POPUP (Alert/Confirm) -->
+    <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
+      <div class="modal-card">
+        <h3 class="modal-title">{{ popup.title }}</h3>
+        <p class="modal-desc">{{ popup.message }}</p>
+
+        <div class="modal-actions">
+          <!-- ALERT -->
+          <button
+            v-if="popup.mode === 'alert'"
+            class="btn btn-secondary"
+            type="button"
+            @click="closePopup"
+          >
+            Đóng
+          </button>
+
+          <!-- CONFIRM -->
+          <template v-else>
+            <button class="btn btn-secondary" type="button" :disabled="popup.loading" @click="closePopup">
+              Hủy
+            </button>
+            <button class="btn btn-primary" type="button" :disabled="popup.loading" @click="confirmPopup">
+              {{ popup.loading ? 'Đang xử lý...' : 'Đồng ý' }}
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -210,6 +217,55 @@ const KH_API = "http://localhost:8080/api/khach-hang"
 
 const saving = ref(false)
 const error = ref("")
+
+// ===== Popup state =====
+const popup = ref({
+  open: false,
+  mode: "alert", // 'alert' | 'confirm'
+  title: "Thông báo",
+  message: "",
+  loading: false,
+})
+let popupAction = null // callback khi confirm
+
+function openAlert(message, title = "Thông báo") {
+  popup.value.open = true
+  popup.value.mode = "alert"
+  popup.value.title = title
+  popup.value.message = message || ""
+  popup.value.loading = false
+  popupAction = null
+}
+
+function openConfirm(message, action, title = "Xác nhận") {
+  popup.value.open = true
+  popup.value.mode = "confirm"
+  popup.value.title = title
+  popup.value.message = message || ""
+  popup.value.loading = false
+  popupAction = typeof action === "function" ? action : null
+}
+
+function closePopup() {
+  if (popup.value.loading) return
+  popup.value.open = false
+  popupAction = null
+}
+
+async function confirmPopup() {
+  if (!popupAction) {
+    closePopup()
+    return
+  }
+  popup.value.loading = true
+  try {
+    await popupAction()
+  } finally {
+    popup.value.loading = false
+    popup.value.open = false
+    popupAction = null
+  }
+}
 
 // ===== KH state =====
 const customers = ref([])
@@ -246,10 +302,8 @@ function toggleSelectAll() {
   if (!listIds.length) return
 
   if (isAllSelected.value) {
-    // bỏ chọn toàn bộ trong filtered list
     selectedCustomerIds.value = selectedCustomerIds.value.filter(id => !listIds.includes(id))
   } else {
-    // chọn toàn bộ trong filtered list
     const set = new Set(selectedCustomerIds.value)
     listIds.forEach(id => set.add(id))
     selectedCustomerIds.value = Array.from(set)
@@ -292,7 +346,6 @@ watch(() => form.value.loaiPhieu, async (v) => {
   if (v === "CA_NHAN") {
     if (customers.value.length === 0) await loadCustomers()
   } else {
-    // reset chọn KH
     selectedCustomerIds.value = []
     customerKeyword.value = ""
   }
@@ -322,7 +375,6 @@ function validate() {
     if (form.value.giaTriGiamToiDa <= 0) return "Giảm tối đa phải > 0"
   }
 
-  // so sánh ngày theo chuỗi YYYY-MM-DD ok
   if (form.value.ngayBatDau && form.value.ngayKetThuc && form.value.ngayKetThuc < form.value.ngayBatDau) {
     return "Ngày kết thúc phải >= ngày bắt đầu"
   }
@@ -334,50 +386,63 @@ function validate() {
   return ""
 }
 
-async function submit() {
-  error.value = ""
-  const msg = validate()
-  if (msg) return alert(msg)
+async function doCreate() {
+  // payload
+  const payload = {
+    tenGiamGia: form.value.tenGiamGia,
+    soLuong: form.value.soLuong,
+    loaiGiam: form.value.loaiGiam,
+
+    ngayBatDau: toStartOfDay(form.value.ngayBatDau),
+    ngayKetThuc: toEndOfDay(form.value.ngayKetThuc),
+
+    moTa: form.value.moTa,
+    donHangToiThieu: form.value.donHangToiThieu,
+    loaiPhieu: form.value.loaiPhieu === "CA_NHAN" // backend: true=CA_NHAN
+  }
+
+  if (payload.loaiGiam) {
+    payload.giaTriPhanTram = form.value.giaTriGiam
+    payload.giaTriGiamToiDa = form.value.giaTriGiamToiDa
+    payload.giaTriTienMat = null
+  } else {
+    payload.giaTriTienMat = form.value.giaTriGiam
+    payload.giaTriPhanTram = null
+    payload.giaTriGiamToiDa = null
+  }
+
+  if (payload.loaiPhieu === true) {
+    payload.khachHangIds = [...selectedCustomerIds.value]
+  }
 
   saving.value = true
   try {
-    const payload = {
-      tenGiamGia: form.value.tenGiamGia,
-      soLuong: form.value.soLuong,
-      loaiGiam: form.value.loaiGiam,
-
-      // ✅ gửi datetime (00:00:00 / 23:59:59)
-      ngayBatDau: toStartOfDay(form.value.ngayBatDau),
-      ngayKetThuc: toEndOfDay(form.value.ngayKetThuc),
-
-      moTa: form.value.moTa,
-      donHangToiThieu: form.value.donHangToiThieu,
-      loaiPhieu: form.value.loaiPhieu === "CA_NHAN" // backend: true=CA_NHAN
-    }
-
-    if (payload.loaiGiam) {
-      payload.giaTriPhanTram = form.value.giaTriGiam
-      payload.giaTriGiamToiDa = form.value.giaTriGiamToiDa
-      payload.giaTriTienMat = null
-    } else {
-      payload.giaTriTienMat = form.value.giaTriGiam
-      payload.giaTriPhanTram = null
-      payload.giaTriGiamToiDa = null
-    }
-
-    // ✅ Phiếu cá nhân: gửi danh sách KH
-    if (payload.loaiPhieu === true) {
-      payload.khachHangIds = [...selectedCustomerIds.value]
-    }
-
     await axios.post(`${API}/create`, payload)
-    alert("Tạo phiếu giảm giá thành công")
-    goBack()
+    openAlert("Tạo phiếu giảm giá thành công", "Thành công")
+    // sau khi user đóng popup sẽ quay lại
+    popupAction = () => {}
   } catch (e) {
     error.value = e?.response?.data?.message || e?.message || "Tạo thất bại"
+    openAlert(error.value, "Lỗi")
   } finally {
     saving.value = false
   }
+}
+
+async function submit() {
+  error.value = ""
+  const msg = validate()
+  if (msg) {
+    openAlert(msg, "Thiếu thông tin")
+    return
+  }
+
+  openConfirm("Bạn có chắc muốn tạo phiếu giảm giá này không?", async () => {
+    await doCreate()
+    // nếu tạo xong thành công thì quay về luôn (đỡ thêm bước)
+    // Nếu bạn muốn bắt user bấm "Đóng" rồi mới quay, comment dòng dưới:
+    goBack()
+  })
 }
 </script>
 
@@ -546,4 +611,29 @@ async function submit() {
 }
 
 .err { color: #b91c1c; }
+
+/* ✅ Modal */
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+.modal-card{
+  width: min(440px, calc(100% - 32px));
+  background:#fff;
+  border-radius:14px;
+  padding:18px 18px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.modal-title{ margin:0 0 8px; font-size:18px; font-weight:800; color:#111827; }
+.modal-desc{ margin:0 0 14px; color:#555; line-height:1.4; }
+.modal-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
 </style>

@@ -176,6 +176,21 @@
 
       <p v-if="error" class="error-msg">{{ error }}</p>
     </div>
+
+    <!-- ✅ CONFIRM MODAL -->
+    <div v-if="showConfirm" class="modal-overlay" @click.self="closeConfirm">
+      <div class="modal-card">
+        <h3 class="modal-title">Xác nhận</h3>
+        <p class="modal-desc">{{ confirmText }}</p>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" :disabled="confirmLoading" @click="closeConfirm">Hủy</button>
+          <button class="btn btn-primary" :disabled="confirmLoading" @click="confirmYes">
+            {{ confirmLoading ? 'Đang xử lý...' : 'Đồng ý' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -256,6 +271,39 @@ function isEditDisabled(v) {
 const loading = ref(false)
 const error = ref('')
 const items = ref([])
+
+// ✅ confirm modal state
+const showConfirm = ref(false)
+const confirmText = ref('Bạn chắc chắn chứ?')
+const confirmLoading = ref(false)
+let pendingAction = null
+
+function openConfirm(text, action) {
+  confirmText.value = text || 'Bạn chắc chắn chứ?'
+  pendingAction = typeof action === 'function' ? action : null
+  showConfirm.value = true
+}
+
+function closeConfirm() {
+  if (confirmLoading.value) return
+  showConfirm.value = false
+  pendingAction = null
+}
+
+async function confirmYes() {
+  if (!pendingAction) {
+    showConfirm.value = false
+    return
+  }
+  confirmLoading.value = true
+  try {
+    await pendingAction()
+  } finally {
+    confirmLoading.value = false
+    showConfirm.value = false
+    pendingAction = null
+  }
+}
 
 // filters
 const filters = ref({
@@ -383,7 +431,7 @@ async function reload() {
 /**
  * ✅ SWITCH handler:
  * - Switch ON nghĩa là chưa kết thúc (không làm gì)
- * - Người dùng gạt OFF => gọi /end-pgg/{id}
+ * - Người dùng gạt OFF => mở popup confirm rồi gọi /end-pgg/{id}
  * - Vì API 1 chiều, xong sẽ bị "Ended" nên switch sẽ disabled
  */
 async function onToggleEnd(v, evt) {
@@ -392,27 +440,27 @@ async function onToggleEnd(v, evt) {
   // Nếu user gạt ON (checked=true) thì revert lại (vì backend không có mở lại)
   if (checked) {
     evt.target.checked = !checked
-    alert('Backend hiện chỉ hỗ trợ KẾT THÚC (1 chiều), không bật lại được.')
+    openConfirm(
+      'Backend hiện chỉ hỗ trợ KẾT THÚC (1 chiều), không bật lại được.',
+      null
+    )
     return
   }
 
-  // gạt OFF => kết thúc
-  const ok = confirm('Bạn có chắc muốn kết thúc phiếu giảm giá này ngay?')
-  if (!ok) {
-    // revert UI
-    evt.target.checked = true
-    return
-  }
+  // gạt OFF => hỏi confirm bằng modal
+  // revert UI trước, đợi user bấm "Đồng ý" thì mới end thật
+  evt.target.checked = true
 
-  try {
-    await axios.put(`${API}/end-pgg/${v.id}`)
-    alert('Đã kết thúc phiếu giảm giá')
-    await reload()
-  } catch (e) {
-    // revert UI
-    evt.target.checked = true
-    alert(e?.response?.data?.message || e?.message || 'Không thể kết thúc')
-  }
+  openConfirm('Bạn có chắc muốn kết thúc phiếu giảm giá này ngay?', async () => {
+    try {
+      await axios.put(`${API}/end-pgg/${v.id}`)
+      await reload()
+    } catch (e) {
+      // báo lỗi bằng modal (mở lại)
+      openConfirm(e?.response?.data?.message || e?.message || 'Không thể kết thúc', null)
+      throw e
+    }
+  })
 }
 
 function resetFilters() {
@@ -515,6 +563,13 @@ onMounted(reload)
   cursor: pointer;
 }
 .btn-outline { background: #fff; }
+
+/* ✅ thêm style cho btn-primary dùng trong modal */
+.btn-primary{
+  background: #1f2a44;
+  border-color: #1f2a44;
+  color: #fff;
+}
 
 .table-card { padding: 0 0 12px; }
 .table-header-info { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; }
@@ -623,5 +678,30 @@ onMounted(reload)
 .switch input:disabled + .slider {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* ✅ Modal confirm */
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+.modal-card{
+  width: min(420px, calc(100% - 32px));
+  background:#fff;
+  border-radius:14px;
+  padding:18px 18px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.modal-title{ margin:0 0 8px; font-size:18px; font-weight:700; }
+.modal-desc{ margin:0 0 14px; color:#555; line-height:1.4; }
+.modal-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
 }
 </style>

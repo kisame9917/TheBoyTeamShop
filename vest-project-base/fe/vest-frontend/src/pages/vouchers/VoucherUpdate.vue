@@ -164,6 +164,7 @@
                   class="btn btn-outline btn-kh"
                   @click="toggleSelectAll"
                   :disabled="isEnded || khLoading"
+                  type="button"
                 >
                   {{ isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả" }}
                 </button>
@@ -183,8 +184,6 @@
                     <th class="col-ten">Tên KH</th>
                     <th class="col-sdt">SĐT</th>
                     <th class="col-email">Email</th>
-                    <!-- <th class="col-macn">Mã PGG cá nhân</th>
-                    <th class="col-ngaynhan">Ngày nhận</th> -->
                   </tr>
                 </thead>
 
@@ -204,8 +203,6 @@
                     <td class="col-email ellipsis" :title="kh.email || ''">
                       {{ kh.email || "-" }}
                     </td>
-                    <!-- <td class="col-macn ellipsis" :title="kh.maPhieuGiamGiaCaNhan || ''">{{ kh.maPhieuGiamGiaCaNhan || '-' }}</td>
-                    <td class="col-ngaynhan">{{ formatDateTime(kh.ngayNhan) }}</td> -->
                   </tr>
 
                   <tr v-if="filteredKhachHang.length === 0">
@@ -244,6 +241,36 @@
         </div>
       </div>
     </div>
+
+    <!-- ✅ POPUP (Alert/Confirm) -->
+    <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
+      <div class="modal-card">
+        <h3 class="modal-title">{{ popup.title }}</h3>
+        <p class="modal-desc">{{ popup.message }}</p>
+
+        <div class="modal-actions">
+          <!-- ALERT -->
+          <button
+            v-if="popup.mode === 'alert'"
+            class="btn btn-secondary"
+            type="button"
+            @click="closePopup"
+          >
+            Đóng
+          </button>
+
+          <!-- CONFIRM -->
+          <template v-else>
+            <button class="btn btn-secondary" type="button" :disabled="popup.loading" @click="closePopup">
+              Hủy
+            </button>
+            <button class="btn btn-primary" type="button" :disabled="popup.loading" @click="confirmPopup">
+              {{ popup.loading ? "Đang xử lý..." : "Đồng ý" }}
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -265,6 +292,55 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref("")
 
+// ===== Popup state (giống Create) =====
+const popup = ref({
+  open: false,
+  mode: "alert", // 'alert' | 'confirm'
+  title: "Thông báo",
+  message: "",
+  loading: false,
+})
+let popupAction = null
+
+function openAlert(message, title = "Thông báo") {
+  popup.value.open = true
+  popup.value.mode = "alert"
+  popup.value.title = title
+  popup.value.message = message || ""
+  popup.value.loading = false
+  popupAction = null
+}
+
+function openConfirm(message, action, title = "Xác nhận") {
+  popup.value.open = true
+  popup.value.mode = "confirm"
+  popup.value.title = title
+  popup.value.message = message || ""
+  popup.value.loading = false
+  popupAction = typeof action === "function" ? action : null
+}
+
+function closePopup() {
+  if (popup.value.loading) return
+  popup.value.open = false
+  popupAction = null
+}
+
+async function confirmPopup() {
+  if (!popupAction) {
+    closePopup()
+    return
+  }
+  popup.value.loading = true
+  try {
+    await popupAction()
+  } finally {
+    popup.value.loading = false
+    popup.value.open = false
+    popupAction = null
+  }
+}
+
 // dùng để khóa đổi loại phiếu từ cá nhân -> công khai
 const originalLoaiPhieuIsCaNhan = ref(false)
 
@@ -275,10 +351,10 @@ const form = ref({
   giaTriGiam: 1,
   giaTriGiamToiDa: 0,
   donHangToiThieu: 0,
-  ngayBatDau: "", // UI date: YYYY-MM-DD
-  ngayKetThuc: "", // UI date: YYYY-MM-DD
+  ngayBatDau: "",
+  ngayKetThuc: "",
   moTa: "",
-  loaiPhieu: "CONG_KHAI" // UI radio
+  loaiPhieu: "CONG_KHAI"
 })
 
 const isCaNhan = computed(() => form.value.loaiPhieu === "CA_NHAN")
@@ -326,19 +402,6 @@ function endOfDay(dateYMD) {
   return `${dateYMD}T23:59:59`
 }
 
-/** dd/MM/yyyy HH:mm */
-function formatDateTime(v) {
-  if (!v) return "-"
-  const dt = new Date(String(v))
-  if (Number.isNaN(dt.getTime())) return String(v)
-  const dd = String(dt.getDate()).padStart(2, "0")
-  const mm = String(dt.getMonth() + 1).padStart(2, "0")
-  const yyyy = dt.getFullYear()
-  const hh = String(dt.getHours()).padStart(2, "0")
-  const mi = String(dt.getMinutes()).padStart(2, "0")
-  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`
-}
-
 async function fetchDetail() {
   loading.value = true
   error.value = ""
@@ -351,14 +414,12 @@ async function fetchDetail() {
     form.value.soLuong = data.soLuong ?? 1
     form.value.loaiGiam = !!data.loaiGiam
 
-    // BE trả datetime -> input date chỉ lấy phần ngày
     form.value.ngayBatDau = normalizeDate(data.ngayBatDau)
     form.value.ngayKetThuc = normalizeDate(data.ngayKetThuc)
 
     form.value.moTa = data.moTa ?? ""
     form.value.donHangToiThieu = data.donHangToiThieu ?? 0
 
-    // backend: true=CA_NHAN, false=CONG_KHAI
     const isCaNhanBE = !!data.loaiPhieu
     originalLoaiPhieuIsCaNhan.value = isCaNhanBE
     form.value.loaiPhieu = isCaNhanBE ? "CA_NHAN" : "CONG_KHAI"
@@ -372,6 +433,7 @@ async function fetchDetail() {
     }
   } catch (e) {
     error.value = e?.response?.data?.message || e?.message || "Không tải được dữ liệu"
+    openAlert(error.value, "Lỗi")
   } finally {
     loading.value = false
   }
@@ -379,7 +441,7 @@ async function fetchDetail() {
 
 // ====== KHÁCH HÀNG (CÁ NHÂN) ======
 const khLoading = ref(false)
-const khList = ref([]) // danh sách khách hàng hiển thị (merge từ 2 API)
+const khList = ref([])
 const selectedKhIds = ref(new Set())
 const khSearch = ref("")
 
@@ -426,7 +488,6 @@ async function loadKhachHangForPersonal() {
 
   khLoading.value = true
   try {
-    // 1) danh sách KH toàn hệ thống
     const all = await axios.get(API_KH)
     const allKh = Array.isArray(all.data) ? all.data : []
 
@@ -438,31 +499,23 @@ async function loadKhachHangForPersonal() {
       email: x.email
     }))
 
-    // 2) danh sách KH đã nhận phiếu (join)
     const received = await axios.get(`${API}/${id}/khach-hang`)
     const ds = Array.isArray(received.data) ? received.data : []
 
-    // ds theo DTO của bạn: PhieuGiamGiaCaNhanResponse
-    // { idKhachHang, maKhachHang, tenKhachHang, sdt, email, maPhieuGiamGiaCaNhan, ngayNhan, daSuDung }
     const mapByKhId = new Map()
     ds.forEach((r) => {
       const khId = r.idKhachHang ?? r.id_khach_hang
       if (!khId) return
       mapByKhId.set(khId, {
-        maPhieuGiamGiaCaNhan: r.maPhieuGiamGiaCaNhan ?? r.ma_phieu_giam_gia_ca_nhan,
-        ngayNhan: r.ngayNhan ?? r.ngay_nhan,
         soDienThoai: r.sdt ?? r.soDienThoai ?? r.so_dien_thoai,
         email: r.email
       })
     })
 
-    // 3) merge hiển thị + set selected
     const merged = khNorm.map((kh) => {
       const join = mapByKhId.get(kh.id)
       return {
         ...kh,
-        maPhieuGiamGiaCaNhan: join?.maPhieuGiamGiaCaNhan ?? null,
-        ngayNhan: join?.ngayNhan ?? null,
         soDienThoai: kh.soDienThoai || join?.soDienThoai || null,
         email: kh.email || join?.email || null
       }
@@ -506,12 +559,10 @@ function validate() {
     return "Ngày kết thúc phải >= ngày bắt đầu"
   }
 
-  // ✅ chặn CA_NHAN -> CONG_KHAI ở FE (BE vẫn cần chặn)
   if (originalLoaiPhieuIsCaNhan.value === true && form.value.loaiPhieu === "CONG_KHAI") {
     return "Phiếu cá nhân không thể chuyển về công khai"
   }
 
-  // ✅ nếu cá nhân phải chọn KH
   if (form.value.loaiPhieu === "CA_NHAN" && selectedKhIds.value.size === 0) {
     return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng"
   }
@@ -519,48 +570,58 @@ function validate() {
   return ""
 }
 
+async function doUpdate() {
+  const payload = {
+    tenGiamGia: form.value.tenGiamGia,
+    soLuong: form.value.soLuong,
+    loaiGiam: form.value.loaiGiam,
+    ngayBatDau: startOfDay(form.value.ngayBatDau),
+    ngayKetThuc: endOfDay(form.value.ngayKetThuc),
+    moTa: form.value.moTa,
+    donHangToiThieu: form.value.donHangToiThieu,
+    loaiPhieu: form.value.loaiPhieu === "CA_NHAN"
+  }
+
+  if (payload.loaiGiam) {
+    payload.giaTriPhanTram = form.value.giaTriGiam
+    payload.giaTriGiamToiDa = form.value.giaTriGiamToiDa
+    payload.giaTriTienMat = null
+  } else {
+    payload.giaTriTienMat = form.value.giaTriGiam
+    payload.giaTriPhanTram = null
+    payload.giaTriGiamToiDa = null
+  }
+
+  await axios.put(`${API}/update/${id}`, payload)
+
+  if (form.value.loaiPhieu === "CA_NHAN") {
+    const req = { khachHangIds: Array.from(selectedKhIds.value) }
+    await axios.put(`${API}/${id}/khach-hang`, req)
+  }
+}
+
 async function submit() {
   error.value = ""
   const msg = validate()
-  if (msg) return alert(msg)
-
-  saving.value = true
-  try {
-    const payload = {
-      tenGiamGia: form.value.tenGiamGia,
-      soLuong: form.value.soLuong,
-      loaiGiam: form.value.loaiGiam,
-      ngayBatDau: startOfDay(form.value.ngayBatDau),
-      ngayKetThuc: endOfDay(form.value.ngayKetThuc),
-      moTa: form.value.moTa,
-      donHangToiThieu: form.value.donHangToiThieu,
-      loaiPhieu: form.value.loaiPhieu === "CA_NHAN"
-    }
-
-    if (payload.loaiGiam) {
-      payload.giaTriPhanTram = form.value.giaTriGiam
-      payload.giaTriGiamToiDa = form.value.giaTriGiamToiDa
-      payload.giaTriTienMat = null
-    } else {
-      payload.giaTriTienMat = form.value.giaTriGiam
-      payload.giaTriPhanTram = null
-      payload.giaTriGiamToiDa = null
-    }
-
-    await axios.put(`${API}/update/${id}`, payload)
-
-    if (form.value.loaiPhieu === "CA_NHAN") {
-      const req = { khachHangIds: Array.from(selectedKhIds.value) }
-      await axios.put(`${API}/${id}/khach-hang`, req)
-    }
-
-    alert("Cập nhật phiếu giảm giá thành công")
-    goBack()
-  } catch (e) {
-    error.value = e?.response?.data?.message || e?.message || "Cập nhật thất bại"
-  } finally {
-    saving.value = false
+  if (msg) {
+    openAlert(msg, "Thiếu thông tin")
+    return
   }
+
+  openConfirm("Bạn có chắc muốn cập nhật phiếu giảm giá này không?", async () => {
+    saving.value = true
+    try {
+      await doUpdate()
+      openAlert("Cập nhật phiếu giảm giá thành công", "Thành công")
+      goBack()
+    } catch (e) {
+      error.value = e?.response?.data?.message || e?.message || "Cập nhật thất bại"
+      openAlert(error.value, "Lỗi")
+      throw e
+    } finally {
+      saving.value = false
+    }
+  })
 }
 
 onMounted(async () => {
@@ -714,7 +775,8 @@ onMounted(async () => {
   color: #9a3412;
   font-size: 13px;
 }
-/* ===== KH TABLE (GIỐNG CREATE - KHÔNG CÓ KHOẢNG TRỐNG GIỮA TÊN & SDT) ===== */
+
+/* ===== KH TABLE ===== */
 .kh-table-wrap {
   margin-top: 10px;
   border: 1px solid #e5e7eb;
@@ -727,7 +789,7 @@ onMounted(async () => {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  table-layout: fixed; /* ✅ bắt buộc để width cột ăn đúng */
+  table-layout: fixed;
 }
 
 .kh-table thead tr {
@@ -746,14 +808,12 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
-/* ✅ WIDTH CỘT GIỐNG CREATE */
 .col-check { width: 44px; }
 .col-ma    { width: 140px; }
-.col-ten   { width: 320px; }  /* ✅ FIX: đừng để nó auto ăn hết */
+.col-ten   { width: 320px; }
 .col-sdt   { width: 160px; }
 .col-email { width: 220px; }
 
-/* nếu muốn email ngắn lại giống create (có ... nhiều hơn) thì đổi 220px -> 160px */
 .text-bold { font-weight: 700; }
 
 .ellipsis {
@@ -762,4 +822,28 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+/* ✅ Modal */
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+.modal-card{
+  width: min(440px, calc(100% - 32px));
+  background:#fff;
+  border-radius:14px;
+  padding:18px 18px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.modal-title{ margin:0 0 8px; font-size:18px; font-weight:800; color:#111827; }
+.modal-desc{ margin:0 0 14px; color:#555; line-height:1.4; }
+.modal-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
 </style>
