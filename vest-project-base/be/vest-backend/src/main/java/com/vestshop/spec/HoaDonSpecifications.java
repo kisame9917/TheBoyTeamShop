@@ -6,7 +6,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HoaDonSpecifications {
 
@@ -24,72 +25,58 @@ public class HoaDonSpecifications {
             Boolean active
     ) {
         return (root, query, cb) -> {
-            List<Predicate> ps = new ArrayList<>();
+            List<Predicate> predicates = new ArrayList<>();
 
-            if (keyword != null && !keyword.isBlank()) {
-                String k = "%" + keyword.trim().toLowerCase() + "%";
-                ps.add(cb.or(
-                        cb.like(cb.lower(root.get("maHoaDon")), k),
-                        cb.like(cb.lower(root.get("soDienThoai")), k),
-                        cb.like(cb.lower(root.get("tenKhachHang")), k)
+            // keyword: ma_hoa_don / ten_khach_hang / so_dien_thoai
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String kw = "%" + keyword.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("maHoaDon")), kw),
+                        cb.like(cb.lower(root.get("tenKhachHang")), kw),
+                        cb.like(cb.lower(root.get("soDienThoai")), kw)
                 ));
             }
 
-            if (active != null) {
-                ps.add(cb.equal(root.get("trangThai"), active));
+            if (trangThaiDon != null) {
+                predicates.add(cb.equal(root.get("trangThaiDon"), trangThaiDon));
             }
 
             if (loaiDon != null) {
-                ps.add(cb.equal(root.get("loaiDon"), loaiDon));
+                predicates.add(cb.equal(root.get("loaiDon"), loaiDon));
             }
 
-            if (trangThaiDon != null) {
-                ps.add(cb.equal(root.get("trangThaiDon"), trangThaiDon));
-            }
-
-            if (phanLoai != null && !phanLoai.isBlank()) {
-                Set<Integer> codes = mapPhanLoaiToCodes(phanLoai.trim());
-                if (!codes.isEmpty()) {
-                    ps.add(root.get("trangThaiDon").in(codes));
-                }
-            }
-
+            // ✅ DATE filter: ngayTao >= from && ngayTao < to (to đã = toDate + 1 day 00:00)
             if (from != null) {
-                ps.add(cb.greaterThanOrEqualTo(root.get("ngayTao"), from));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("ngayTao"), from));
             }
             if (to != null) {
-                ps.add(cb.lessThanOrEqualTo(root.get("ngayTao"), to));
+                predicates.add(cb.lessThan(root.get("ngayTao"), to));
             }
 
             if (minTotal != null) {
-                ps.add(cb.greaterThanOrEqualTo(root.get("tongTienSauGiam"), minTotal));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("tongTienSauGiam"), minTotal));
             }
             if (maxTotal != null) {
-                ps.add(cb.lessThanOrEqualTo(root.get("tongTienSauGiam"), maxTotal));
+                predicates.add(cb.lessThanOrEqualTo(root.get("tongTienSauGiam"), maxTotal));
             }
 
             if (hasVoucher != null) {
-                if (hasVoucher) ps.add(cb.isNotNull(root.get("phieuGiamGia")));
-                else ps.add(cb.isNull(root.get("phieuGiamGia")));
+                if (hasVoucher) predicates.add(cb.isNotNull(root.get("phieuGiamGia")));
+                else predicates.add(cb.isNull(root.get("phieuGiamGia")));
             }
 
             if (idNhanVien != null) {
-                ps.add(cb.equal(root.get("nhanVien").get("id"), idNhanVien));
+                predicates.add(cb.equal(root.get("nhanVien").get("id"), idNhanVien));
             }
 
-            return cb.and(ps.toArray(new Predicate[0]));
+            if (active != null) {
+                predicates.add(cb.equal(root.get("trangThai"), active));
+            }
+
+            // phanLoai: bạn tự định nghĩa (ví dụ: ONLINE/OFFLINE)
+            // nếu chưa dùng thì bỏ qua
+
+            return cb.and(predicates.toArray(new Predicate[0]));
         };
-    }
-
-    private static Set<Integer> mapPhanLoaiToCodes(String phanLoai) {
-        String v = phanLoai.toUpperCase(Locale.ROOT);
-
-        if (v.equals("DANG_GIAO")) return Set.of(2);
-        if (v.equals("DA_HOAN_THANH")) return Set.of(4);
-        if (v.equals("CHUA_HOAN_THANH")) return Set.of(0, 1, 2, 3);
-        if (v.equals("DA_HUY")) return Set.of(5);
-        if (v.equals("HOAN_HANG")) return Set.of(6, 7);
-
-        return Set.of();
     }
 }
