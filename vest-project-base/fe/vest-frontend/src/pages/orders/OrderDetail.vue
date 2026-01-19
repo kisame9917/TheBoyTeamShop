@@ -283,7 +283,7 @@
 
           <div class="modal-footer">
             <button type="button" class="btn btn-light" @click="closeConfirmStatusModal">Hủy</button>
-            <button type="button" class="btn btn-primary" @click="confirmChangeStatus">
+            <button type="button" class="btn btn-primary text-dark" @click="confirmChangeStatus">
               Xác nhận
             </button>
           </div>
