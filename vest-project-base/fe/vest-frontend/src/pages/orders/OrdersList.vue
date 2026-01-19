@@ -1,634 +1,685 @@
 <template>
-  <div class="card">
+  <div class="container-fluid py-3">
     <!-- Header -->
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px;">
-      <h2 style="margin:0;">Hóa đơn</h2>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-receipt fs-4"></i>
+        <h5 class="mb-0">Danh sách hóa đơn</h5>
+      </div>
 
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <input
-          v-model="keyword"
-          placeholder="Tìm theo mã hoá đơn / tên KH / SĐT"
-          style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; min-width:320px;"
-          @keyup.enter="fetchOrders(0)"
-        />
-
-        <select
-          v-model="trangThaiDon"
-          style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px;"
-        >
-          <option :value="''">Tất cả trạng thái</option>
-          <option :value="0">Chờ xác nhận</option>
-          <option :value="1">Đang giao</option>
-          <option :value="2">Hoàn thành</option>
-          <option :value="3">Hoàn hàng</option>
-          <option :value="4">Đã huỷ</option>
-        </select>
-
-        <button class="btn btn-dark btn-sm" @click="fetchOrders(0)">Tìm</button>
-        <button class="btn btn-outline-secondary btn-sm" @click="openQr">Quét QR</button>
-        <button class="btn btn-outline-success btn-sm" @click="exportExcelCurrentPage">
-          Xuất Excel (Trang này)
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" @click="openQrModal">
+          <i class="bi bi-qr-code-scan me-1"></i> Quét QR
+        </button>
+        <button class="btn btn-outline-primary btn-sm" @click="exportListExcel">
+          <i class="bi bi-file-earmark-excel me-1"></i> Export trang
         </button>
       </div>
     </div>
 
-    <!-- States -->
-    <div v-if="loading" style="color:#6b7280;">Đang tải...</div>
-    <div v-else-if="error" style="color:#ef4444;">{{ error }}</div>
+    <!-- Filters -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Tìm kiếm</label>
+            <input
+              v-model.trim="filters.keyword"
+              type="text"
+              class="form-control"
+              placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
+              @keyup.enter="applyFilters"
+            />
+          </div>
+
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Trạng thái</label>
+            <select
+              v-model="filters.trangThaiDon"
+              class="form-select"
+              @change="applyFilters"
+            >
+              <option :value="null">Tất cả</option>
+              <option v-for="s in statusOptions" :key="s.code" :value="s.code">
+                {{ s.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Loại hóa đơn</label>
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  id="ld_all"
+                  value=""
+                  v-model="filters.loaiDonMode"
+                  @change="applyFilters"
+                />
+                <label class="form-check-label" for="ld_all">Tất cả</label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  id="ld_tq"
+                  value="taiquay"
+                  v-model="filters.loaiDonMode"
+                  @change="applyFilters"
+                />
+                <label class="form-check-label" for="ld_tq">Tại quầy</label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  id="ld_on"
+                  value="online"
+                  v-model="filters.loaiDonMode"
+                  @change="applyFilters"
+                />
+                <label class="form-check-label" for="ld_on">Online</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Từ ngày</label>
+            <input
+              v-model="filters.fromDate"
+              type="date"
+              class="form-control"
+              @change="applyFilters"
+            />
+          </div>
+
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Đến ngày</label>
+            <input
+              v-model="filters.toDate"
+              type="date"
+              class="form-control"
+              @change="applyFilters"
+            />
+          </div>
+
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Min tổng</label>
+            <input
+              v-model.number="filters.minTotal"
+              type="number"
+              class="form-control"
+              placeholder="VD: 100000"
+              @keyup.enter="applyFilters"
+            />
+          </div>
+
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Max tổng</label>
+            <input
+              v-model.number="filters.maxTotal"
+              type="number"
+              class="form-control"
+              placeholder="VD: 1000000"
+              @keyup.enter="applyFilters"
+            />
+          </div>
+
+          <div class="col-12 d-flex justify-content-end gap-2">
+            <button class="btn btn-light" @click="resetFilters">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+            </button>
+            <button class="btn btn-primary" @click="applyFilters">
+              <i class="bi bi-search me-1"></i> Lọc
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Table -->
-    <div v-else>
-      <table v-if="rows.length" style="width:100%; border-collapse:collapse;">
-        <thead>
-          <tr style="text-align:left; border-bottom:1px solid #e5e7eb;">
-            <th style="padding:10px;">Mã</th>
-            <th style="padding:10px;">Khách hàng</th>
-            <th style="padding:10px;">SĐT</th>
-            <th style="padding:10px;">Loại</th>
-            <th style="padding:10px;">Trạng thái</th>
-            <th style="padding:10px; text-align:right;">Tổng tiền</th>
-            <th style="padding:10px;">Ngày tạo</th>
-            <th style="padding:10px; width:180px;">Hành động</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr v-for="r in rows" :key="r.id" style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px; font-weight:600;">{{ r.maHoaDon }}</td>
-            <td style="padding:10px;">{{ r.tenKhachHang }}</td>
-            <td style="padding:10px;">{{ r.soDienThoai }}</td>
-            <td style="padding:10px;">
-              <span class="badge" :class="r.loaiDon ? 'bg-primary' : 'bg-secondary'">
-                {{ r.loaiDon ? "Online" : "Tại quầy" }}
-              </span>
-            </td>
-            <td style="padding:10px;">
-              <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
-                {{ r.tenTrangThaiDon ?? r.trangThaiDon }}
-              </span>
-            </td>
-            <td style="padding:10px; text-align:right;">{{ formatMoney(r.tongTienSauGiam) }}</td>
-            <td style="padding:10px;">{{ formatDate(r.ngayTao) }}</td>
-            <td style="padding:10px;">
-              <div style="display:flex; gap:8px;">
-                <button class="btn btn-outline-dark btn-sm" @click="openDetail(r)">Chi tiết</button>
-                <button class="btn btn-outline-success btn-sm" @click="exportExcelOne(r)">Excel</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-else style="color:#6b7280;">Chưa có hoá đơn.</div>
-
-      <!-- Pagination -->
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
-        <button
-          :disabled="page <= 0"
-          @click="fetchOrders(page - 1)"
-          class="btn btn-outline-secondary btn-sm"
-        >
-          Prev
-        </button>
-
-        <div style="display:flex; align-items:center; color:#6b7280;">
-          Page {{ page + 1 }} / {{ totalPages || 1 }}
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div v-if="loading" class="text-center py-5">
+          <div class="spinner-border" role="status"></div>
+          <div class="mt-2 text-muted">Đang tải...</div>
         </div>
 
-        <button
-          :disabled="page >= totalPages - 1"
-          @click="fetchOrders(page + 1)"
-          class="btn btn-outline-secondary btn-sm"
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  </div>
+        <div v-else class="table-responsive">
+          <table class="table align-middle table-hover">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 60px">#</th>
+                <th>Mã hóa đơn</th>
+                <th>Khách hàng</th>
+                <th>Số điện thoại</th>
+                <th style="width: 140px">Loại hóa đơn</th>
+                <th style="width: 160px">Tổng tiền</th>
+                <th style="width: 140px">Ngày tạo</th>
+                <th style="width: 160px">Trạng thái</th>
+                <th style="width: 140px" class="text-end">Hành động</th>
+              </tr>
+            </thead>
 
-  <!-- ===================== DETAIL: SUB-PAGE CENTER OVERLAY (2 columns) ===================== -->
-  <div v-if="detailOpen" class="od-overlay" @click.self="closeDetail">
-    <div class="od-panel" @click.stop>
-      <!-- Header đẹp -->
-      <div class="od-header">
-        <div class="od-header-left">
-          <div class="od-subtitle">Chi tiết hóa đơn</div>
-          <div class="od-title-row">
-            <div class="od-title">{{ detailData?.maHoaDon || "-" }}</div>
+            <tbody>
+              <tr v-if="rows.length === 0">
+                <td colspan="9" class="text-center text-muted py-4">
+                  Không có dữ liệu
+                </td>
+              </tr>
 
-            <span v-if="detailData" class="badge" :class="statusBadgeClass(detailData.trangThaiDon)">
-              {{ detailData.tenTrangThaiDon ?? detailData.trangThaiDon }}
-            </span>
+              <tr v-for="(r, idx) in rows" :key="r.id">
+                <td>{{ page.page * page.size + idx + 1 }}</td>
+                <td class="fw-semibold">{{ r.maHoaDon }}</td>
+                <td>{{ r.tenKhachHang || "Khách lẻ" }}</td>
+                <td>{{ r.soDienThoai || "-" }}</td>
+                <td>
+                  <span class="badge text-bg-light border">
+                    {{ r.loaiDon ? "Online" : "Tại quầy" }}
+                  </span>
+                </td>
+                <td class="fw-semibold">
+                  {{ formatCurrency(r.tongTienSauGiam) }}
+                </td>
+                <td>{{ formatDateVN(r.ngayTao) }}</td>
+                <td>
+                  <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
+                    {{ r.tenTrangThaiDon }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button
+                    class="btn btn-outline-primary btn-sm me-2"
+                    @click="goDetail(r.id)"
+                    title="Chi tiết hóa đơn"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button
+                    class="btn btn-outline-success btn-sm"
+                    @click="exportOneExcel(r.id)"
+                    title="Export hóa đơn"
+                  >
+                    <i class="bi bi-file-earmark-excel"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-            <span v-if="detailData" class="badge" :class="detailData.loaiDon ? 'bg-primary' : 'bg-secondary'">
-              {{ detailData.loaiDon ? "Online" : "Tại quầy" }}
-            </span>
+        <!-- Pagination -->
+        <div class="d-flex align-items-center justify-content-between mt-3">
+          <div class="text-muted">
+            Hiển thị {{ rows.length }} / tổng {{ page.totalElements }} bản ghi
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="page.page === 0"
+              @click="setPage(page.page - 1)"
+            >
+              <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <div class="input-group input-group-sm" style="width: 120px">
+              <span class="input-group-text">Trang</span>
+              <input
+                type="number"
+                min="1"
+                :max="page.totalPages || 1"
+                class="form-control"
+                v-model.number="pageInput"
+                @keyup.enter="jumpPage"
+              />
+            </div>
+
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="page.page >= page.totalPages - 1"
+              @click="setPage(page.page + 1)"
+            >
+              <i class="bi bi-chevron-right"></i>
+            </button>
+
+            <select
+              class="form-select form-select-sm"
+              style="width: 140px"
+              v-model.number="page.size"
+              @change="applyFilters"
+            >
+              <option :value="10">10 bản ghi / trang</option>
+              <option :value="20">20 bản ghi / trang</option>
+              <option :value="50">50 bản ghi / trang</option>
+            </select>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="d-flex gap-2">
+    <!-- QR Modal -->
+    <div
+      class="modal fade"
+      id="qrModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="qrModalRef"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h6 class="modal-title">
+              <i class="bi bi-qr-code-scan me-2"></i>Quét QR hóa đơn
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+              @click="stopQr"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-muted small mb-2">
+              Đưa QR vào khung để quét mã hóa đơn.
+            </div>
+            <div id="qr-reader" style="width: 100%"></div>
+
+            <div v-if="qrError" class="alert alert-warning mt-3 mb-0">
+              {{ qrError }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              class="btn btn-light"
+              data-bs-dismiss="modal"
+              @click="stopQr"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index: 9999"
+    >
+      <div
+        class="toast align-items-center text-bg-success border-0"
+        ref="toastRef"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ toastMsg }}
+          </div>
           <button
-            class="btn btn-outline-success btn-sm"
-            :disabled="!detailData"
-            @click="exportExcelDetail(detailData)"
-          >
-            Xuất Excel
-          </button>
-          <button class="btn btn-dark btn-sm" @click="closeDetail">Đóng</button>
-        </div>
-      </div>
-
-      <!-- Body: scroll chỉ trong panel -->
-      <div class="od-body">
-        <div v-if="detailLoading" class="text-muted">Đang tải chi tiết...</div>
-        <div v-else-if="detailError" class="alert alert-danger py-2">{{ detailError }}</div>
-        <div v-else-if="!detailData" class="alert alert-warning py-2">Không có dữ liệu chi tiết.</div>
-
-        <template v-else>
-          <div class="od-grid">
-            <!-- LEFT: Thông tin hóa đơn -->
-            <div class="od-left">
-              <div class="od-card">
-                <div class="od-card-title">Thông tin</div>
-
-                <div class="od-kv">
-                  <div class="od-k">Khách hàng</div>
-                  <div class="od-v fw-semibold">{{ detailData.tenKhachHang || "-" }}</div>
-                </div>
-
-                <div class="od-kv">
-                  <div class="od-k">SĐT</div>
-                  <div class="od-v">{{ detailData.soDienThoai || "-" }}</div>
-                </div>
-
-                <div class="od-kv">
-                  <div class="od-k">Ngày tạo</div>
-                  <div class="od-v">{{ formatDate(detailData.ngayTao) }}</div>
-                </div>
-
-                <div class="od-kv">
-                  <div class="od-k">Tổng tiền</div>
-                  <div class="od-v od-money">{{ formatMoney(detailData.tongTienSauGiam) }}</div>
-                </div>
-
-                <div class="od-kv">
-                  <div class="od-k">Ghi chú</div>
-                  <div class="od-v text-muted">{{ detailData.ghiChu || "-" }}</div>
-                </div>
-              </div>
-
-              <div class="od-card">
-                <div class="od-card-title">Tóm tắt</div>
-
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="text-muted">Số dòng sản phẩm</div>
-                  <div class="fw-semibold">{{ detailItems(detailData).length }}</div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                  <div class="text-muted">Loại đơn</div>
-                  <div class="fw-semibold">{{ detailData.loaiDon ? "Online" : "Tại quầy" }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- RIGHT: Danh sách sản phẩm -->
-            <div class="od-right">
-              <div class="od-card">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="od-card-title mb-0">Danh sách sản phẩm</div>
-                  <div class="text-muted small">{{ detailItems(detailData).length }} dòng</div>
-                </div>
-
-                <div class="table-responsive">
-                  <table class="table table-hover table-bordered align-middle mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th style="width:46%;">Sản phẩm</th>
-                        <th class="text-end" style="width:10%;">SL</th>
-                        <th class="text-end" style="width:16%;">Đơn giá</th>
-                        <th class="text-end" style="width:16%;">Thành tiền</th>
-                        <th style="width:12%;">Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="it in detailItems(detailData)" :key="it.id">
-                        <td>
-                          <div class="fw-semibold">
-                            {{ it.tenSanPham ?? it.sanPham ?? it.tenSanPhamChiTiet ?? "-" }}
-                          </div>
-                          <div class="text-muted small">
-                            {{ it.mauSac ? `Màu: ${it.mauSac}` : "" }}
-                            {{ it.kichCo ? ` • Size: ${it.kichCo}` : "" }}
-                          </div>
-                        </td>
-                        <td class="text-end">{{ it.soLuong ?? it.soLuongMua ?? 0 }}</td>
-                        <td class="text-end">{{ formatMoney(it.donGia ?? it.gia ?? 0) }}</td>
-                        <td class="text-end">
-                          {{
-                            formatMoney(
-                              it.thanhTien ??
-                                (Number(it.soLuong ?? 0) * Number(it.donGia ?? 0))
-                            )
-                          }}
-                        </td>
-                        <td class="text-muted small">{{ it.ghiChu ?? "" }}</td>
-                      </tr>
-
-                      <tr v-if="!detailItems(detailData).length">
-                        <td colspan="5" class="text-center text-muted py-3">Không có sản phẩm</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="od-footer-note text-muted small">
-                Nhấn nền tối để đóng hoặc bấm nút “Đóng”.
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== QR MODAL ===================== -->
-  <div v-if="qrOpen" class="modal fade show d-block" tabindex="-1" @click.self="closeQr">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Quét QR</h5>
-          <button type="button" class="btn-close" @click="closeQr"></button>
-        </div>
-
-        <div class="modal-body">
-          <div v-if="qrError" class="alert alert-danger py-2">{{ qrError }}</div>
-          <div id="qr-reader" style="width:100%;"></div>
-          <div class="text-muted small mt-2">
-            Quét xong sẽ tự điền vào ô tìm kiếm và tự tải danh sách.
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn btn-secondary btn-sm" @click="closeQr">Đóng</button>
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            @click="hideToast"
+          ></button>
         </div>
       </div>
     </div>
   </div>
-  <div v-if="qrOpen" class="modal-backdrop fade show"></div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick, onBeforeUnmount } from "vue";
-import { hoaDonApi } from "../../services/hoaDonApi";
-
+import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 import * as XLSX from "xlsx";
 import { Html5Qrcode } from "html5-qrcode";
+import hoaDonApi from "@/services/hoaDonApi";
 
-/* ===== State ===== */
+// bootstrap modal/toast (không import trực tiếp JS bundle cũng được nếu bạn đã include)
+let bsModal = null;
+let bsToast = null;
+
+const router = useRouter();
+
 const loading = ref(false);
-const error = ref("");
 const rows = ref([]);
 
-const page = ref(0);
-const size = ref(10);
-const totalPages = ref(0);
+const statusOptions = [
+  { code: 0, label: "Chờ xác nhận" },
+  { code: 1, label: "Đang xử lý" },
+  { code: 2, label: "Đang giao" },
+  { code: 3, label: "Đã giao" },
+  { code: 4, label: "Hoàn thành" },
+  { code: 5, label: "Đã huỷ" },
+  { code: 6, label: "Yêu cầu hoàn" },
+  { code: 7, label: "Đã hoàn" },
+];
 
-const keyword = ref("");
-const trangThaiDon = ref(""); // '' = all
-let debounceTimer = null;
-
-/* ===== Auto filter when change status ===== */
-watch(trangThaiDon, () => {
-  fetchOrders(0);
+const filters = reactive({
+  keyword: "",
+  trangThaiDon: null,
+  loaiDonMode: "", // "", "taiquay", "online"
+  fromDate: "", // yyyy-MM-dd (input type=date)
+  toDate: "", // yyyy-MM-dd
+  minTotal: null,
+  maxTotal: null,
 });
 
-/* ===== Auto load when typing keyword (debounce) ===== */
-watch(keyword, () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    fetchOrders(0);
-  }, 300);
+const page = reactive({
+  page: 0,
+  size: 10,
+  totalElements: 0,
+  totalPages: 0,
+  sortBy: "id",
+  sortDir: "desc",
 });
 
-/* ===== Utils ===== */
-function formatMoney(v) {
-  if (v == null) return "";
-  return new Intl.NumberFormat("vi-VN").format(Number(v)) + " ₫";
-}
+const pageInput = ref(1);
 
-function formatDate(date) {
-  if (!date) return "";
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-}
-
-function statusBadgeClass(st) {
-  switch (Number(st)) {
-    case 0: return "bg-warning text-dark";
-    case 1: return "bg-primary";
-    case 2: return "bg-success";
-    case 3: return "bg-info text-dark";
-    case 4: return "bg-danger";
-    default: return "bg-secondary";
+function statusBadgeClass(code) {
+  switch (Number(code)) {
+    case 4:
+      return "text-bg-success";
+    case 3:
+      return "text-bg-primary";
+    case 2:
+      return "text-bg-info";
+    case 1:
+      return "text-bg-warning";
+    case 0:
+      return "text-bg-secondary";
+    case 5:
+      return "text-bg-dark";
+    case 6:
+      return "text-bg-warning";
+    case 7:
+      return "text-bg-secondary";
+    default:
+      return "text-bg-secondary";
   }
 }
 
-/* ===== API ===== */
-async function fetchOrders(p = 0) {
+function formatCurrency(v) {
+  const n = Number(v ?? 0);
+  return n.toLocaleString("vi-VN") + " đ";
+}
+
+function formatDateVN(isoDateTime) {
+  if (!isoDateTime) return "";
+  const d = new Date(isoDateTime);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+async function fetchData() {
   loading.value = true;
-  error.value = "";
   try {
+    const loaiDon =
+      filters.loaiDonMode === "online"
+        ? true
+        : filters.loaiDonMode === "taiquay"
+          ? false
+          : undefined;
+
     const params = {
-      page: p,
-      size: size.value,
-      keyword: keyword.value || undefined,
-      trangThaiDon: trangThaiDon.value === "" ? undefined : Number(trangThaiDon.value),
+      page: page.page,
+      size: page.size,
+      sortBy: page.sortBy,
+      sortDir: page.sortDir,
+      keyword: filters.keyword || undefined,
+      trangThaiDon:
+        filters.trangThaiDon === null || filters.trangThaiDon === undefined
+          ? undefined
+          : filters.trangThaiDon,
+      loaiDon,
+
+      // ✅ gửi DATE đúng chuẩn
+      from: filters.fromDate || undefined,
+      to: filters.toDate || undefined,
+
+      // ✅ ép kiểu số
+      minTotal:
+        filters.minTotal === null ? undefined : Number(filters.minTotal),
+      maxTotal:
+        filters.maxTotal === null ? undefined : Number(filters.maxTotal),
     };
 
     const res = await hoaDonApi.search(params);
+    const p = res.data;
 
-    rows.value = res.data?.content ?? [];
-    page.value = res.data?.number ?? p;
-    totalPages.value = res.data?.totalPages ?? 0;
+    rows.value = p.content || [];
+    page.totalElements = p.totalElements ?? 0;
+    page.totalPages = p.totalPages ?? 0;
+    pageInput.value = page.page + 1;
   } catch (e) {
-    error.value =
-      e?.response?.data?.message ||
-      e?.response?.data ||
-      e?.message ||
-      "Gọi API thất bại";
+    console.error(e);
   } finally {
     loading.value = false;
   }
 }
 
-/* ===================== DETAIL ===================== */
-const detailOpen = ref(false);
-const detailLoading = ref(false);
-const detailError = ref("");
-const detailData = ref(null);
-
-function openDetail(row) {
-  detailOpen.value = true;
-  loadDetail(row?.id);
+function applyFilters() {
+  page.page = 0;
+  fetchData();
 }
 
-function closeDetail() {
-  detailOpen.value = false;
-  detailData.value = null;
-  detailError.value = "";
+function resetFilters() {
+  filters.keyword = "";
+  filters.trangThaiDon = null;
+  filters.loaiDonMode = "";
+  filters.fromDate = "";
+  filters.toDate = "";
+  filters.minTotal = null;
+  filters.maxTotal = null;
+  page.page = 0;
+  fetchData();
 }
 
-function detailItems(d) {
-  // fallback nhiều tên field (tránh rỗng do BE đặt tên khác)
-  return d?.items || d?.hoaDonChiTiet || d?.chiTiet || d?.details || [];
+function setPage(p) {
+  if (p < 0) return;
+  if (page.totalPages && p > page.totalPages - 1) return;
+  page.page = p;
+  fetchData();
 }
 
-async function loadDetail(id) {
-  if (!id) return;
-  detailLoading.value = true;
-  detailError.value = "";
+function jumpPage() {
+  const max = Math.max(1, page.totalPages || 1);
+  const target = Math.min(Math.max(1, pageInput.value || 1), max);
+  page.page = target - 1;
+  fetchData();
+}
+
+function goDetail(id) {
+  router.push({ name: "order-detail", params: { id } });
+}
+
+/** EXCEL **/
+async function exportListExcel() {
+  const data = rows.value.map((r, idx) => ({
+    "#": page.page * page.size + idx + 1,
+    "Mã hóa đơn": r.maHoaDon,
+    "Khách hàng": r.tenKhachHang || "Khách lẻ",
+    SĐT: r.soDienThoai || "",
+    Loại: r.loaiDon ? "Online" : "Tại quầy",
+    "Tổng tiền": Number(r.tongTienSauGiam ?? 0),
+    "Ngày tạo": formatDateVN(r.ngayTao),
+    "Trạng thái": r.tenTrangThaiDon,
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "HoaDon");
+  XLSX.writeFile(wb, `hoa_don_trang_${page.page + 1}.xlsx`);
+}
+
+async function exportOneExcel(id) {
   try {
     const res = await hoaDonApi.detail(id);
-    detailData.value = res.data ?? res;
+    const hd = res.data;
+
+    const info = [
+      { Trường: "Mã hóa đơn", "Giá trị": hd.maHoaDon },
+      { Trường: "Khách hàng", "Giá trị": hd.tenKhachHang || "Khách lẻ" },
+      { Trường: "SĐT", "Giá trị": hd.soDienThoai || "" },
+      { Trường: "Loại", "Giá trị": hd.loaiDon ? "Online" : "Tại quầy" },
+      { Trường: "Trạng thái", "Giá trị": hd.tenTrangThaiDon },
+      { Trường: "Tổng tiền", "Giá trị": Number(hd.tongTien ?? 0) },
+      { Trường: "Giảm", "Giá trị": Number(hd.tongTienGiam ?? 0) },
+      { Trường: "Sau giảm", "Giá trị": Number(hd.tongTienSauGiam ?? 0) },
+      { Trường: "Ngày tạo", "Giá trị": formatDateVN(hd.ngayTao) },
+    ];
+
+    const items = (hd.items || []).map((x, i) => ({
+      "#": i + 1,
+      "Mã SPCT": x.maSanPhamChiTiet,
+      "Sản phẩm": x.tenSanPham,
+      Màu: x.mauSac,
+      Size: x.kichCo,
+      SL: x.soLuong,
+      "Đơn giá": Number(x.donGia ?? 0),
+      "Thành tiền": Number(x.thanhTien ?? 0),
+    }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(info),
+      "ThongTin",
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(items),
+      "ChiTiet",
+    );
+    XLSX.writeFile(wb, `hoa_don_${hd.maHoaDon}.xlsx`);
+    showToast("Export hóa đơn thành công!");
   } catch (e) {
-    detailError.value =
-      e?.response?.data?.message ||
-      e?.response?.data ||
-      e?.message ||
-      "Tải chi tiết thất bại";
-  } finally {
-    detailLoading.value = false;
+    console.error(e);
   }
 }
 
-/* ===================== EXCEL ===================== */
-function exportExcelCurrentPage() {
-  const data = rows.value.map((r) => ({
-    "Mã hóa đơn": r.maHoaDon,
-    "Khách hàng": r.tenKhachHang,
-    "SĐT": r.soDienThoai,
-    "Loại": r.loaiDon ? "Online" : "Tại quầy",
-    "Trạng thái": r.tenTrangThaiDon ?? r.trangThaiDon,
-    "Tổng tiền": r.tongTienSauGiam,
-    "Ngày tạo": formatDate(r.ngayTao),
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "HoaDon");
-  XLSX.writeFile(wb, `hoa-don_trang-${page.value + 1}.xlsx`);
-}
-
-function exportExcelOne(r) {
-  const data = [{
-    "Mã hóa đơn": r.maHoaDon,
-    "Khách hàng": r.tenKhachHang,
-    "SĐT": r.soDienThoai,
-    "Loại": r.loaiDon ? "Online" : "Tại quầy",
-    "Trạng thái": r.tenTrangThaiDon ?? r.trangThaiDon,
-    "Tổng tiền": r.tongTienSauGiam,
-    "Ngày tạo": formatDate(r.ngayTao),
-  }];
-
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "HoaDon");
-  XLSX.writeFile(wb, `hoa-don_${r.maHoaDon || r.id}.xlsx`);
-}
-
-function exportExcelDetail(d) {
-  const wb = XLSX.utils.book_new();
-
-  const s1 = XLSX.utils.json_to_sheet([{
-    "Mã hóa đơn": d.maHoaDon,
-    "Khách hàng": d.tenKhachHang,
-    "SĐT": d.soDienThoai,
-    "Loại": d.loaiDon ? "Online" : "Tại quầy",
-    "Trạng thái": d.tenTrangThaiDon ?? d.trangThaiDon,
-    "Tổng tiền": d.tongTienSauGiam,
-    "Ngày tạo": formatDate(d.ngayTao),
-  }]);
-  XLSX.utils.book_append_sheet(wb, s1, "ThongTin");
-
-  const items = detailItems(d).map((it) => ({
-    "Sản phẩm": it.tenSanPham ?? it.sanPham ?? it.tenSanPhamChiTiet ?? "-",
-    "Số lượng": it.soLuong ?? it.soLuongMua ?? 0,
-    "Đơn giá": it.donGia ?? it.gia ?? 0,
-    "Thành tiền": it.thanhTien ?? (Number(it.soLuong ?? 0) * Number(it.donGia ?? 0)),
-  }));
-  const s2 = XLSX.utils.json_to_sheet(items);
-  XLSX.utils.book_append_sheet(wb, s2, "ChiTiet");
-
-  XLSX.writeFile(wb, `hoa-don_chi-tiet_${d.maHoaDon || d.id}.xlsx`);
-}
-
-/* ===================== QR ===================== */
-const qrOpen = ref(false);
+/** QR **/
+const qrModalRef = ref(null);
+let qr = null;
 const qrError = ref("");
-let qrInstance = null;
 
-async function openQr() {
+function openQrModal() {
+  const modalEl = qrModalRef.value;
+  if (!modalEl) return;
+
+  // bootstrap modal
+  // eslint-disable-next-line no-undef
+  const Modal = window.bootstrap?.Modal;
+  if (Modal) {
+    bsModal = Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+  } else {
+    // fallback: nếu bạn không include bootstrap bundle JS thì mở kiểu basic
+    modalEl.classList.add("show");
+    modalEl.style.display = "block";
+  }
+
+  startQr();
+}
+
+async function startQr() {
   qrError.value = "";
-  qrOpen.value = true;
-  await nextTick();
-
   try {
-    qrInstance = new Html5Qrcode("qr-reader");
-    await qrInstance.start(
-      { facingMode: "environment" },
+    if (!qr) qr = new Html5Qrcode("qr-reader");
+
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras || cameras.length === 0) {
+      qrError.value = "Không tìm thấy camera.";
+      return;
+    }
+
+    await qr.start(
+      { deviceId: { exact: cameras[0].id } },
       { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        keyword.value = decodedText;
-        fetchOrders(0);
-        closeQr();
+      async (decodedText) => {
+        // decodedText thường là maHoaDon
+        await onQrDecoded(decodedText);
       },
-      () => {}
     );
   } catch (e) {
-    qrError.value = e?.message || "Không mở được camera. Hãy cấp quyền camera cho trình duyệt.";
+    console.error(e);
+    qrError.value = "Không mở được camera / quyền camera bị chặn.";
   }
 }
 
-async function closeQr() {
-  qrOpen.value = false;
+async function onQrDecoded(text) {
   try {
-    if (qrInstance) {
-      await qrInstance.stop().catch(() => {});
-      await qrInstance.clear().catch(() => {});
-    }
-  } finally {
-    qrInstance = null;
+    // tắt QR để khỏi quét liên tục
+    await stopQr();
+    const ma = String(text || "").trim();
+    if (!ma) return;
+
+    const res = await hoaDonApi.byMa(ma);
+    const hd = res.data;
+
+    showToast("Quét thành công!");
+    if (bsModal) bsModal.hide();
+    router.push({ name: "order-detail", params: { id: hd.id } });
+  } catch (e) {
+    console.error(e);
+    qrError.value = "Không tìm thấy hóa đơn theo QR.";
   }
 }
 
-onBeforeUnmount(() => {
-  if (qrInstance) {
-    qrInstance.stop?.().catch(() => {});
-    qrInstance.clear?.().catch(() => {});
-    qrInstance = null;
+async function stopQr() {
+  try {
+    if (qr && (await qr.getState()) === 2) {
+      await qr.stop();
+      await qr.clear();
+    }
+  } catch (e) {
+    // ignore
   }
+}
+
+/** Toast **/
+const toastRef = ref(null);
+const toastMsg = ref("");
+
+function showToast(msg) {
+  toastMsg.value = msg;
+  const el = toastRef.value;
+  if (!el) return;
+
+  // eslint-disable-next-line no-undef
+  const Toast = window.bootstrap?.Toast;
+  if (Toast) {
+    bsToast = Toast.getOrCreateInstance(el, { delay: 2000 });
+    bsToast.show();
+  }
+}
+
+function hideToast() {
+  try {
+    bsToast?.hide?.();
+  } catch {}
+}
+
+onMounted(() => {
+  fetchData();
 });
 
-/* ===== Init ===== */
-onMounted(() => fetchOrders(0));
+onBeforeUnmount(() => {
+  stopQr();
+});
 </script>
 
 <style scoped>
-/* overlay đậm hơn chút */
-.od-overlay{
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: rgba(0,0,0,.55); /* đậm hơn */
-  backdrop-filter: blur(8px);
-}
-
-/* panel giữa màn hình */
-.od-panel{
-  width: min(1200px, 96vw);
-  height: min(86vh, 920px);
-  background: rgba(255,255,255,0.96);
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 24px 70px rgba(0,0,0,.35);
-  border: 1px solid rgba(255,255,255,.25);
-}
-
-.od-header{
-  padding: 14px 16px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  background: rgba(255,255,255,.9);
-}
-
-.od-header-left{
-  min-width: 0;
-}
-.od-subtitle{
-  font-size: 12px;
-  color: #6b7280;
-}
-.od-title-row{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.od-title{
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.od-body{
-  height: calc(min(86vh, 920px) - 58px);
-  overflow: auto;
-  padding: 16px;
-}
-
-/* 2 cột */
-.od-grid{
-  display:grid;
-  grid-template-columns: 360px 1fr;
-  gap: 14px;
-}
-
-@media (max-width: 992px){
-  .od-grid{
-    grid-template-columns: 1fr;
-  }
-}
-
-.od-card{
-  background: rgba(255,255,255,0.95);
-  border: 1px solid rgba(0,0,0,.08);
+.card {
   border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 10px 24px rgba(0,0,0,.06);
 }
-
-.od-card-title{
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 10px;
+.table thead th {
+  font-weight: 600;
 }
-
-.od-kv{
-  display:flex;
-  justify-content:space-between;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px dashed rgba(0,0,0,.08);
-}
-.od-kv:last-child{
-  border-bottom: none;
-}
-
-.od-k{
-  color: #6b7280;
-  font-size: 13px;
-}
-.od-v{
-  text-align:right;
-  color: #111827;
-}
-.od-money{
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.od-footer-note{
-  margin-top: 10px;
-  text-align: right;
-}
-</style> 
+</style>
