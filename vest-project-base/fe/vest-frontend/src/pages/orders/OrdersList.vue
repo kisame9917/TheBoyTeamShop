@@ -85,24 +85,62 @@
             </div>
           </div>
 
+          <!-- ✅ Từ ngày (flatpickr popup) -->
           <div class="col-12 col-lg-3">
             <label class="form-label">Từ ngày</label>
-            <input
-              v-model="filters.fromDate"
-              type="date"
-              class="form-control"
-              @change="applyFilters"
-            />
+            <div class="input-group">
+              <input
+                ref="fromPickerRef"
+                type="text"
+                class="form-control"
+                placeholder="dd/mm/yyyy"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="openFromPicker"
+                title="Chọn ngày"
+              >
+                <i class="bi bi-calendar3"></i>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="clearFromDate"
+                title="Xóa"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </div>
 
+          <!-- ✅ Đến ngày (flatpickr popup) -->
           <div class="col-12 col-lg-3">
             <label class="form-label">Đến ngày</label>
-            <input
-              v-model="filters.toDate"
-              type="date"
-              class="form-control"
-              @change="applyFilters"
-            />
+            <div class="input-group">
+              <input
+                ref="toPickerRef"
+                type="text"
+                class="form-control"
+                placeholder="dd/mm/yyyy"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="openToPicker"
+                title="Chọn ngày"
+              >
+                <i class="bi bi-calendar3"></i>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="clearToDate"
+                title="Xóa"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </div>
 
           <div class="col-12 col-lg-3">
@@ -131,7 +169,7 @@
             <button class="btn btn-light" @click="resetFilters">
               <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
             </button>
-            <button class="btn btn-primary" @click="applyFilters">
+            <button class="btn btn-primary text-dark" @click="applyFilters">
               <i class="bi bi-search me-1"></i> Lọc
             </button>
           </div>
@@ -180,9 +218,7 @@
                     {{ r.loaiDon ? "Online" : "Tại quầy" }}
                   </span>
                 </td>
-                <td class="fw-semibold">
-                  {{ formatCurrency(r.tongTienSauGiam) }}
-                </td>
+                <td class="fw-semibold">{{ formatCurrency(r.tongTienSauGiam) }}</td>
                 <td>{{ formatDateVN(r.ngayTao) }}</td>
                 <td>
                   <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
@@ -261,26 +297,14 @@
     </div>
 
     <!-- QR Modal -->
-    <div
-      class="modal fade"
-      id="qrModal"
-      tabindex="-1"
-      aria-hidden="true"
-      ref="qrModalRef"
-    >
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true" ref="qrModalRef">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">
               <i class="bi bi-qr-code-scan me-2"></i>Quét QR hóa đơn
             </h6>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-              @click="stopQr"
-            ></button>
+            <button type="button" class="btn-close" aria-label="Close" @click="closeQrModal"></button>
           </div>
           <div class="modal-body">
             <div class="text-muted small mb-2">
@@ -293,23 +317,14 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button
-              class="btn btn-light"
-              data-bs-dismiss="modal"
-              @click="stopQr"
-            >
-              Đóng
-            </button>
+            <button class="btn btn-light" @click="closeQrModal">Đóng</button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Toast -->
-    <div
-      class="toast-container position-fixed top-0 end-0 p-3"
-      style="z-index: 9999"
-    >
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
       <div
         class="toast align-items-center text-bg-success border-0"
         ref="toastRef"
@@ -318,14 +333,8 @@
         aria-atomic="true"
       >
         <div class="d-flex">
-          <div class="toast-body">
-            {{ toastMsg }}
-          </div>
-          <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            @click="hideToast"
-          ></button>
+          <div class="toast-body">{{ toastMsg }}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="hideToast"></button>
         </div>
       </div>
     </div>
@@ -333,13 +342,18 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import * as XLSX from "xlsx";
 import { Html5Qrcode } from "html5-qrcode";
 import hoaDonApi from "@/services/hoaDonApi";
 
-// bootstrap modal/toast (không import trực tiếp JS bundle cũng được nếu bạn đã include)
+/** ✅ Flatpickr */
+import flatpickr from "flatpickr";
+import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
+import "flatpickr/dist/flatpickr.css";
+
+// bootstrap modal/toast
 let bsModal = null;
 let bsToast = null;
 
@@ -363,8 +377,8 @@ const filters = reactive({
   keyword: "",
   trangThaiDon: null,
   loaiDonMode: "", // "", "taiquay", "online"
-  fromDate: "", // yyyy-MM-dd (input type=date)
-  toDate: "", // yyyy-MM-dd
+  fromDate: "", // ✅ lưu yyyy-MM-dd
+  toDate: "",   // ✅ lưu yyyy-MM-dd
   minTotal: null,
   maxTotal: null,
 });
@@ -382,24 +396,15 @@ const pageInput = ref(1);
 
 function statusBadgeClass(code) {
   switch (Number(code)) {
-    case 4:
-      return "text-bg-success";
-    case 3:
-      return "text-bg-primary";
-    case 2:
-      return "text-bg-info";
-    case 1:
-      return "text-bg-warning";
-    case 0:
-      return "text-bg-secondary";
-    case 5:
-      return "text-bg-dark";
-    case 6:
-      return "text-bg-warning";
-    case 7:
-      return "text-bg-secondary";
-    default:
-      return "text-bg-secondary";
+    case 4: return "text-bg-success";
+    case 3: return "text-bg-primary";
+    case 2: return "text-bg-info";
+    case 1: return "text-bg-warning";
+    case 0: return "text-bg-secondary";
+    case 5: return "text-bg-dark";
+    case 6: return "text-bg-warning";
+    case 7: return "text-bg-secondary";
+    default: return "text-bg-secondary";
   }
 }
 
@@ -417,6 +422,81 @@ function formatDateVN(isoDateTime) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+/** =======================
+ * ✅ Flatpickr: dd/mm/yyyy UI - yyyy-MM-dd data
+ * ======================= */
+const fromPickerRef = ref(null);
+const toPickerRef = ref(null);
+let fpFrom = null;
+let fpTo = null;
+
+function parseYMD(ymd) {
+  if (!ymd) return null;
+  const [y, m, d] = String(ymd).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+function initPickers() {
+  if (fromPickerRef.value && !fpFrom) {
+    fpFrom = flatpickr(fromPickerRef.value, {
+      locale: Vietnamese,
+      dateFormat: "d/m/Y", // hiển thị
+      allowInput: true,
+      defaultDate: parseYMD(filters.fromDate),
+      onChange: (selectedDates) => {
+        const d = selectedDates?.[0] || null;
+        filters.fromDate = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+      },
+    });
+  }
+
+  if (toPickerRef.value && !fpTo) {
+    fpTo = flatpickr(toPickerRef.value, {
+      locale: Vietnamese,
+      dateFormat: "d/m/Y",
+      allowInput: true,
+      defaultDate: parseYMD(filters.toDate),
+      onChange: (selectedDates) => {
+        const d = selectedDates?.[0] || null;
+        filters.toDate = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+      },
+    });
+  }
+}
+
+function openFromPicker() {
+  fpFrom?.open();
+}
+function openToPicker() {
+  fpTo?.open();
+}
+function clearFromDate() {
+  filters.fromDate = "";
+  fpFrom?.clear();
+}
+function clearToDate() {
+  filters.toDate = "";
+  fpTo?.clear();
+}
+
+// (optional) khóa range: from <= to
+watch(
+  () => filters.fromDate,
+  (v) => {
+    if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
+  }
+);
+watch(
+  () => filters.toDate,
+  (v) => {
+    if (fpFrom) fpFrom.set("maxDate", v ? parseYMD(v) : null);
+  }
+);
+
+/** =======================
+ * Data fetch
+ * ======================= */
 async function fetchData() {
   loading.value = true;
   try {
@@ -439,15 +519,12 @@ async function fetchData() {
           : filters.trangThaiDon,
       loaiDon,
 
-      // ✅ gửi DATE đúng chuẩn
+      // ✅ giữ nguyên BE: yyyy-MM-dd
       from: filters.fromDate || undefined,
       to: filters.toDate || undefined,
 
-      // ✅ ép kiểu số
-      minTotal:
-        filters.minTotal === null ? undefined : Number(filters.minTotal),
-      maxTotal:
-        filters.maxTotal === null ? undefined : Number(filters.maxTotal),
+      minTotal: filters.minTotal === null ? undefined : Number(filters.minTotal),
+      maxTotal: filters.maxTotal === null ? undefined : Number(filters.maxTotal),
     };
 
     const res = await hoaDonApi.search(params);
@@ -477,6 +554,12 @@ function resetFilters() {
   filters.toDate = "";
   filters.minTotal = null;
   filters.maxTotal = null;
+
+  fpFrom?.clear();
+  fpTo?.clear();
+  if (fpTo) fpTo.set("minDate", null);
+  if (fpFrom) fpFrom.set("maxDate", null);
+
   page.page = 0;
   fetchData();
 }
@@ -499,7 +582,9 @@ function goDetail(id) {
   router.push({ name: "order-detail", params: { id } });
 }
 
-/** EXCEL **/
+/** =======================
+ * EXCEL
+ * ======================= */
 async function exportListExcel() {
   const data = rows.value.map((r, idx) => ({
     "#": page.page * page.size + idx + 1,
@@ -547,16 +632,8 @@ async function exportOneExcel(id) {
     }));
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(info),
-      "ThongTin",
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(items),
-      "ChiTiet",
-    );
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(info), "ThongTin");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(items), "ChiTiet");
     XLSX.writeFile(wb, `hoa_don_${hd.maHoaDon}.xlsx`);
     showToast("Export hóa đơn thành công!");
   } catch (e) {
@@ -564,7 +641,9 @@ async function exportOneExcel(id) {
   }
 }
 
-/** QR **/
+/** =======================
+ * QR
+ * ======================= */
 const qrModalRef = ref(null);
 let qr = null;
 const qrError = ref("");
@@ -573,19 +652,39 @@ function openQrModal() {
   const modalEl = qrModalRef.value;
   if (!modalEl) return;
 
-  // bootstrap modal
-  // eslint-disable-next-line no-undef
+  document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
+  document.body.classList.remove("modal-open");
+
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
     bsModal = Modal.getOrCreateInstance(modalEl);
     bsModal.show();
   } else {
-    // fallback: nếu bạn không include bootstrap bundle JS thì mở kiểu basic
     modalEl.classList.add("show");
     modalEl.style.display = "block";
   }
 
   startQr();
+}
+
+function closeQrModal() {
+  stopQr();
+
+  const modalEl = qrModalRef.value;
+  if (!modalEl) return;
+
+  if (bsModal) {
+    bsModal.hide();
+    return;
+  }
+
+  modalEl.classList.remove("show");
+  modalEl.style.display = "none";
+  modalEl.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+
+  const backdrop = document.querySelector(".modal-backdrop");
+  if (backdrop) backdrop.remove();
 }
 
 async function startQr() {
@@ -603,9 +702,8 @@ async function startQr() {
       { deviceId: { exact: cameras[0].id } },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
-        // decodedText thường là maHoaDon
         await onQrDecoded(decodedText);
-      },
+      }
     );
   } catch (e) {
     console.error(e);
@@ -615,7 +713,6 @@ async function startQr() {
 
 async function onQrDecoded(text) {
   try {
-    // tắt QR để khỏi quét liên tục
     await stopQr();
     const ma = String(text || "").trim();
     if (!ma) return;
@@ -638,12 +735,14 @@ async function stopQr() {
       await qr.stop();
       await qr.clear();
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
 
-/** Toast **/
+/** =======================
+ * Toast
+ * ======================= */
 const toastRef = ref(null);
 const toastMsg = ref("");
 
@@ -652,7 +751,6 @@ function showToast(msg) {
   const el = toastRef.value;
   if (!el) return;
 
-  // eslint-disable-next-line no-undef
   const Toast = window.bootstrap?.Toast;
   if (Toast) {
     bsToast = Toast.getOrCreateInstance(el, { delay: 2000 });
@@ -661,17 +759,18 @@ function showToast(msg) {
 }
 
 function hideToast() {
-  try {
-    bsToast?.hide?.();
-  } catch {}
+  try { bsToast?.hide?.(); } catch {}
 }
 
 onMounted(() => {
   fetchData();
+  initPickers();
 });
 
 onBeforeUnmount(() => {
   stopQr();
+  try { fpFrom?.destroy(); } catch {}
+  try { fpTo?.destroy(); } catch {}
 });
 </script>
 

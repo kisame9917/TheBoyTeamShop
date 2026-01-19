@@ -36,4 +36,8 @@ export default {
   giaoDich(id) {
     return http.get(`${BASE}/${id}/giao-dich`);
   },
+  returnOrder(id, body) {
+  return http.patch(`/api/hoa-don/${id}/hoan-hang`, body);
+}
+
 };
