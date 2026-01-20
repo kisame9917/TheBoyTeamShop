@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,8 +28,10 @@ public class HoaDonController {
             @RequestParam(required = false) Integer trangThaiDon,
             @RequestParam(required = false) String phanLoai,
             @RequestParam(required = false) Boolean loaiDon,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+
             @RequestParam(required = false) BigDecimal minTotal,
             @RequestParam(required = false) BigDecimal maxTotal,
             @RequestParam(required = false) Boolean hasVoucher,
@@ -39,11 +42,18 @@ public class HoaDonController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        Sort sort = "asc".equalsIgnoreCase(sortDir) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Sort sort = "asc".equalsIgnoreCase(sortDir)
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
+        LocalDateTime fromDT = (from == null) ? null : from.atStartOfDay();
+        LocalDateTime toDT = (to == null) ? null : to.plusDays(1).atStartOfDay();
 
         return ResponseEntity.ok(
-                hoaDonService.search(keyword, trangThaiDon, phanLoai, loaiDon, from, to, minTotal, maxTotal, hasVoucher, idNhanVien, active, pageable)
+                hoaDonService.search(
+                        keyword, trangThaiDon, phanLoai, loaiDon,
+                        fromDT, toDT, minTotal, maxTotal, hasVoucher, idNhanVien, active, pageable
+                )
         );
     }
 

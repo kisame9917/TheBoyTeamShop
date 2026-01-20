@@ -1,17 +1,43 @@
+
 import http from "./http";
 
-export const hoaDonApi = {
-  // OrdersList dùng: hoaDonApi.search(params)
-  // params: { page, size, keyword?, trangThaiDon? }
-  search: (params) => http.get("/api/hoa-don", { params }),
+const BASE = "/api/hoa-don";
 
-  // OrdersList dùng: hoaDonApi.detail(id)
-  detail: (id) => http.get(`/api/hoa-don/${id}`),
+export default {
+  // params: page,size,keyword,trangThaiDon,phanLoai,loaiDon,from,to,minTotal,maxTotal,hasVoucher,idNhanVien,active,sortBy,sortDir
+  search(params) {
+    return http.get(BASE, { params });
+  },
 
-  // QR scan (nếu bạn dùng)
-  byMa: (ma) => http.get(`/api/hoa-don/by-ma/${encodeURIComponent(ma)}`),
+  detail(id) {
+    return http.get(`${BASE}/${id}`);
+  },
 
-  // (nếu bạn dùng nơi khác)
-  changeStatus: (id, body) => http.patch(`/api/hoa-don/${id}/trang-thai`, body),
-  returnOrder: (id, body) => http.patch(`/api/hoa-don/${id}/hoan-hang`, body),
+  byMa(maHoaDon) {
+    return http.get(`${BASE}/by-ma/${encodeURIComponent(maHoaDon)}`);
+  },
+
+  changeStatus(id, body) {
+    return http.patch(`${BASE}/${id}/trang-thai`, body);
+  },
+
+  returnOrder(id, body) {
+    return http.patch(`${BASE}/${id}/hoan-hang`, body);
+  },
+
+  lichSu(id) {
+    return http.get(`${BASE}/${id}/lich-su`);
+  },
+
+  thanhToan(id) {
+    return http.get(`${BASE}/${id}/thanh-toan`);
+  },
+
+  giaoDich(id) {
+    return http.get(`${BASE}/${id}/giao-dich`);
+  },
+  returnOrder(id, body) {
+  return http.patch(`/api/hoa-don/${id}/hoan-hang`, body);
+}
+
 };
