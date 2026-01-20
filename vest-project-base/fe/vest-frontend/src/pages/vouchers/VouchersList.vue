@@ -572,8 +572,35 @@ onMounted(reload)
 }
 
 .table-card { padding: 0 0 12px; }
-.table-header-info { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; }
-.table-header-info h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.table-header-info{
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827 !important; /* ép màu chữ */
+}
+
+.table-header-info h3{
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827 !important; /* ép màu tiêu đề */
+}
+
+.table-sub{
+  font-size: 13px;
+  color: #6b7280 !important; /* ép màu phụ */
+}
+/* Header table: ép nền + ép màu chữ trên từng ô th */
+.table thead th {
+  background: #1f2a44 !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+/* (tuỳ) bỏ đường viền trên header cho gọn */
+.table thead th {
+  border-bottom: 1px solid #1f2a44 !important;
+}
+
 
 .table-responsive { padding: 0 16px 10px; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -637,10 +664,10 @@ onMounted(reload)
   font-weight: 600;
   white-space: nowrap;
 }
-.pill-public { background: #e0f2fe; color: #0369a1; }
-.pill-personal { background: #ede9fe; color: #5b21b6; }
+.pill-public { background: #dcfce7; color: #166534; }
+.pill-personal { background: #fef3c7; color: #92400e; }
 
-/* ===== Switch ===== */
+/* ===== Switch ===== */  
 .switch {
   position: relative;
   display: inline-block;

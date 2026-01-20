@@ -210,15 +210,18 @@
 import { ref, watch, computed } from "vue"
 import axios from "axios"
 import { useRouter } from "vue-router"
+import { useToast } from "@/composables/useToast"
 
+const toast = useToast()
 const router = useRouter()
+
 const API = "http://localhost:8080/api/pgg"
 const KH_API = "http://localhost:8080/api/khach-hang"
 
 const saving = ref(false)
 const error = ref("")
 
-// ===== Popup state =====
+// ===== Confirm popup (giữ confirm như bạn đang có) =====
 const popup = ref({
   open: false,
   mode: "alert", // 'alert' | 'confirm'
@@ -226,16 +229,7 @@ const popup = ref({
   message: "",
   loading: false,
 })
-let popupAction = null // callback khi confirm
-
-function openAlert(message, title = "Thông báo") {
-  popup.value.open = true
-  popup.value.mode = "alert"
-  popup.value.title = title
-  popup.value.message = message || ""
-  popup.value.loading = false
-  popupAction = null
-}
+let popupAction = null
 
 function openConfirm(message, action, title = "Xác nhận") {
   popup.value.open = true
@@ -274,19 +268,19 @@ const customersError = ref("")
 const customerKeyword = ref("")
 const selectedCustomerIds = ref([]) // array of Long
 
-const isAllSelected = computed(() => {
-  const list = filteredCustomers.value
-  if (!list.length) return false
-  return list.every(c => selectedCustomerIds.value.includes(c.id))
-})
-
 const filteredCustomers = computed(() => {
   const kw = customerKeyword.value.trim().toLowerCase()
   if (!kw) return customers.value
-  return customers.value.filter(c => {
+  return customers.value.filter((c) => {
     const s = `${c.maKhachHang ?? c.ma ?? ""} ${c.tenKhachHang ?? c.ten ?? ""} ${c.soDienThoai ?? c.sdt ?? ""} ${c.email ?? ""}`.toLowerCase()
     return s.includes(kw)
   })
+})
+
+const isAllSelected = computed(() => {
+  const list = filteredCustomers.value
+  if (!list.length) return false
+  return list.every((c) => selectedCustomerIds.value.includes(c.id))
 })
 
 function toggleCustomer(id) {
@@ -298,14 +292,14 @@ function toggleCustomer(id) {
 }
 
 function toggleSelectAll() {
-  const listIds = filteredCustomers.value.map(c => c.id)
+  const listIds = filteredCustomers.value.map((c) => c.id)
   if (!listIds.length) return
 
   if (isAllSelected.value) {
-    selectedCustomerIds.value = selectedCustomerIds.value.filter(id => !listIds.includes(id))
+    selectedCustomerIds.value = selectedCustomerIds.value.filter((id) => !listIds.includes(id))
   } else {
     const set = new Set(selectedCustomerIds.value)
-    listIds.forEach(id => set.add(id))
+    listIds.forEach((id) => set.add(id))
     selectedCustomerIds.value = Array.from(set)
   }
 }
@@ -327,29 +321,35 @@ async function loadCustomers() {
 const form = ref({
   tenGiamGia: "",
   soLuong: 1,
-  loaiGiam: true,            // true = %, false = tiền
+  loaiGiam: true, // true = %, false = tiền
   giaTriGiam: 1,
   giaTriGiamToiDa: 0,
   donHangToiThieu: 0,
-  ngayBatDau: "",            // input date: YYYY-MM-DD
-  ngayKetThuc: "",           // input date: YYYY-MM-DD
+  ngayBatDau: "",
+  ngayKetThuc: "",
   moTa: "",
-  loaiPhieu: "CONG_KHAI"     // UI radio
+  loaiPhieu: "CONG_KHAI",
 })
 
-watch(() => form.value.loaiGiam, (isPercent) => {
-  if (!isPercent) form.value.giaTriGiamToiDa = 0
-})
+watch(
+  () => form.value.loaiGiam,
+  (isPercent) => {
+    if (!isPercent) form.value.giaTriGiamToiDa = 0
+  }
+)
 
 // Khi chọn Cá nhân -> load KH
-watch(() => form.value.loaiPhieu, async (v) => {
-  if (v === "CA_NHAN") {
-    if (customers.value.length === 0) await loadCustomers()
-  } else {
-    selectedCustomerIds.value = []
-    customerKeyword.value = ""
+watch(
+  () => form.value.loaiPhieu,
+  async (v) => {
+    if (v === "CA_NHAN") {
+      if (customers.value.length === 0) await loadCustomers()
+    } else {
+      selectedCustomerIds.value = []
+      customerKeyword.value = ""
+    }
   }
-})
+)
 
 function goBack() {
   router.push("/vouchers")
@@ -366,28 +366,73 @@ function toEndOfDay(dateYMD) {
 }
 
 function validate() {
-  if (!form.value.tenGiamGia.trim()) return "Vui lòng nhập tên phiếu"
+  // ===== Helpers =====
+  const isBlank = (v) => !String(v ?? "").trim()
+  const isNum = (v) => typeof v === "number" && !Number.isNaN(v) && Number.isFinite(v)
+
+  // ===== 1) Text bắt buộc =====
+  if (isBlank(form.value.tenGiamGia)) return "Vui lòng nhập tên phiếu giảm giá"
+
+  // ===== 2) Số lượng =====
+  if (!isNum(form.value.soLuong)) return "Số lượng không hợp lệ"
   if (form.value.soLuong < 1) return "Số lượng phải >= 1"
+
+  // ===== 3) Giá trị giảm =====
+  if (!isNum(form.value.giaTriGiam)) return "Giá trị giảm không hợp lệ"
   if (form.value.giaTriGiam < 1) return "Giá trị giảm phải >= 1"
 
+  // Theo loại giảm
   if (form.value.loaiGiam) {
+    // %: 1..100
     if (form.value.giaTriGiam > 100) return "Giảm % tối đa 100"
+
+    // Giảm tối đa (bắt buộc khi giảm %)
+    if (!isNum(form.value.giaTriGiamToiDa)) return "Giảm tối đa không hợp lệ"
     if (form.value.giaTriGiamToiDa <= 0) return "Giảm tối đa phải > 0"
+  } else {
+    // tiền: giaTriGiamToiDa không bắt buộc, nhưng nếu có thì ép về 0 (bạn đang watch rồi)
+    // Có thể thêm check: tiền giảm không vượt đơn tối thiểu (tuỳ nghiệp vụ)
   }
 
-  if (form.value.ngayBatDau && form.value.ngayKetThuc && form.value.ngayKetThuc < form.value.ngayBatDau) {
+  // ===== 4) Đơn hàng tối thiểu =====
+  if (!isNum(form.value.donHangToiThieu)) return "Đơn hàng tối thiểu không hợp lệ"
+  if (form.value.donHangToiThieu < 0) return "Đơn hàng tối thiểu phải >= 0"
+
+  // ===== 5) Ngày bắt đầu / kết thúc =====
+  // Bắt buộc chọn ngày (khuyến nghị để khỏi tạo phiếu không thời hạn)
+  if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu"
+  if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc"
+
+  // so sánh ngày dạng YYYY-MM-DD OK
+  if (form.value.ngayKetThuc < form.value.ngayBatDau) {
     return "Ngày kết thúc phải >= ngày bắt đầu"
   }
 
-  if (form.value.loaiPhieu === "CA_NHAN" && selectedCustomerIds.value.length === 0) {
-    return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng"
+  // ===== 6) Loại phiếu =====
+  if (!["CONG_KHAI", "CA_NHAN"].includes(form.value.loaiPhieu)) {
+    return "Loại phiếu không hợp lệ"
   }
 
+  // Nếu là cá nhân -> phải chọn KH
+  if (form.value.loaiPhieu === "CA_NHAN") {
+    if (!Array.isArray(selectedCustomerIds.value)) return "Danh sách khách hàng không hợp lệ"
+    if (selectedCustomerIds.value.length === 0) return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng"
+  }
+
+  // ===== 7) Mô tả (tuỳ chọn) =====
+  // Không bắt buộc, nhưng có thể giới hạn độ dài
+  if (!isBlank(form.value.moTa) && String(form.value.moTa).length > 500) {
+    return "Mô tả tối đa 500 ký tự"
+  }
+if (!form.value.loaiGiam) { // giảm tiền
+  if (form.value.donHangToiThieu > 0 && form.value.giaTriGiam > form.value.donHangToiThieu) {
+    return "Tiền giảm không được vượt đơn hàng tối thiểu"
+  }
+}
   return ""
 }
 
 async function doCreate() {
-  // payload
   const payload = {
     tenGiamGia: form.value.tenGiamGia,
     soLuong: form.value.soLuong,
@@ -398,7 +443,9 @@ async function doCreate() {
 
     moTa: form.value.moTa,
     donHangToiThieu: form.value.donHangToiThieu,
-    loaiPhieu: form.value.loaiPhieu === "CA_NHAN" // backend: true=CA_NHAN
+
+    // backend: true=CA_NHAN
+    loaiPhieu: form.value.loaiPhieu === "CA_NHAN",
   }
 
   if (payload.loaiGiam) {
@@ -411,40 +458,40 @@ async function doCreate() {
     payload.giaTriGiamToiDa = null
   }
 
+  // Nếu BE nhận luôn list KH trong create
   if (payload.loaiPhieu === true) {
     payload.khachHangIds = [...selectedCustomerIds.value]
   }
 
-  saving.value = true
-  try {
-    await axios.post(`${API}/create`, payload)
-    openAlert("Tạo phiếu giảm giá thành công", "Thành công")
-    // sau khi user đóng popup sẽ quay lại
-    popupAction = () => {}
-  } catch (e) {
-    error.value = e?.response?.data?.message || e?.message || "Tạo thất bại"
-    openAlert(error.value, "Lỗi")
-  } finally {
-    saving.value = false
-  }
+  await axios.post(`${API}/create`, payload)
 }
 
 async function submit() {
   error.value = ""
   const msg = validate()
   if (msg) {
-    openAlert(msg, "Thiếu thông tin")
+    toast.warning(msg)
     return
   }
 
   openConfirm("Bạn có chắc muốn tạo phiếu giảm giá này không?", async () => {
-    await doCreate()
-    // nếu tạo xong thành công thì quay về luôn (đỡ thêm bước)
-    // Nếu bạn muốn bắt user bấm "Đóng" rồi mới quay, comment dòng dưới:
-    goBack()
+    saving.value = true
+    try {
+      await doCreate() // ✅ đợi API xong
+      toast.success("Thêm phiếu giảm giá thành công") // ✅ chỉ hiện khi OK
+      goBack()
+    } catch (e) {
+      const m = e?.response?.data?.message || e?.message || "Tạo thất bại"
+      error.value = m
+      toast.error(m)
+      throw e
+    } finally {
+      saving.value = false
+    }
   })
 }
 </script>
+
 
 <style scoped>
 .page {
@@ -549,15 +596,10 @@ async function submit() {
   cursor: pointer;
 }
 
-.btn-primary {
-  background: #f97316;
-  border-color: #f97316;
-  color: #fff;
-  font-weight: 700;
-}
 
 .btn-secondary {
-  background: #eef2f7;
+  background: #eef2f791;
+  color:#1f2a44
 }
 
 .error {
@@ -636,4 +678,18 @@ async function submit() {
   gap:10px;
   justify-content:flex-end;
 }
+.btn-primary{
+  background: #1f2a44;
+  border-color: #1f2a44;
+  color: #fff;
+  font-weight: 700;
+}
+.btn-primary:hover{
+  filter: brightness(0.95);
+}
+.btn-primary:disabled{
+  opacity: .6;
+  cursor: not-allowed;
+}
+
 </style>

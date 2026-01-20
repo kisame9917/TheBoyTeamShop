@@ -6,7 +6,7 @@
             I'll use a styled text representation. -->
       <div class="tbt-logo">
         <span style="font-size: 32px;"></span>
-        <h1 style="margin:0; font-size: 24px;">Minh Tuấn akacua</h1>
+        <h1 style="margin:0; font-size: 24px;">VestTBTShop</h1>
       </div>
     </div>
 
