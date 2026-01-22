@@ -23,6 +23,15 @@ public class NhanVienServiceImpl implements NhanVienService {
     private final NhanVienRepository nhanVienRepository;
     private final QuyenHanRepository quyenHanRepository;
 
+    // ✅ default ảnh
+    private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
+
+    private String normalizeAvatar(String v) {
+        if (v == null) return DEFAULT_AVATAR;
+        String s = v.trim();
+        return s.isEmpty() ? DEFAULT_AVATAR : s;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<NhanVienResponse> getAll() {
@@ -84,6 +93,9 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .ngayTao(now)
                 .ngayCapNhat(now)
                 .trangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE)
+
+                // ✅ set ảnh đại diện (nếu null/blank => default)
+                .anhDaiDien(normalizeAvatar(request.getAnhDaiDien()))
                 .build();
 
         return mapToResponse(nhanVienRepository.save(nv));
@@ -96,7 +108,8 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên ID: " + id));
 
         // Update role if changed
-        if (request.getQuyenHanId() != null && (nv.getQuyenHan() == null || !request.getQuyenHanId().equals(nv.getQuyenHan().getId()))) {
+        if (request.getQuyenHanId() != null
+                && (nv.getQuyenHan() == null || !request.getQuyenHanId().equals(nv.getQuyenHan().getId()))) {
             QuyenHan quyenHan = quyenHanRepository.findById(request.getQuyenHanId())
                     .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Không tìm thấy quyền hạn ID: " + request.getQuyenHanId()));
             nv.setQuyenHan(quyenHan);
@@ -106,36 +119,28 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (request.getTaiKhoan() != null && !request.getTaiKhoan().equals(nv.getTaiKhoan())) {
             nhanVienRepository.findByTaiKhoan(request.getTaiKhoan())
                     .filter(other -> !other.getId().equals(id))
-                    .ifPresent(other -> {
-                        throw new ApiException(HttpStatus.CONFLICT, "Tài khoản đã tồn tại");
-                    });
+                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "Tài khoản đã tồn tại"); });
             nv.setTaiKhoan(request.getTaiKhoan());
         }
 
         if (request.getEmail() != null && !request.getEmail().equals(nv.getEmail())) {
             nhanVienRepository.findByEmail(request.getEmail())
                     .filter(other -> !other.getId().equals(id))
-                    .ifPresent(other -> {
-                        throw new ApiException(HttpStatus.CONFLICT, "Email đã tồn tại");
-                    });
+                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "Email đã tồn tại"); });
             nv.setEmail(request.getEmail());
         }
 
         if (request.getCccd() != null && !request.getCccd().equals(nv.getCccd())) {
             nhanVienRepository.findByCccd(request.getCccd())
                     .filter(other -> !other.getId().equals(id))
-                    .ifPresent(other -> {
-                        throw new ApiException(HttpStatus.CONFLICT, "CCCD đã tồn tại");
-                    });
+                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "CCCD đã tồn tại"); });
             nv.setCccd(request.getCccd());
         }
 
         if (request.getSoDienThoai() != null && !request.getSoDienThoai().equals(nv.getSoDienThoai())) {
             nhanVienRepository.findBySoDienThoai(request.getSoDienThoai())
                     .filter(other -> !other.getId().equals(id))
-                    .ifPresent(other -> {
-                        throw new ApiException(HttpStatus.CONFLICT, "Số điện thoại đã tồn tại");
-                    });
+                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "Số điện thoại đã tồn tại"); });
             nv.setSoDienThoai(request.getSoDienThoai());
         }
 
@@ -145,13 +150,17 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (request.getDiaChi() != null) nv.setDiaChi(request.getDiaChi());
         if (request.getTrangThai() != null) nv.setTrangThai(request.getTrangThai());
 
+        // ✅ Update ảnh: chỉ cập nhật khi client có gửi field anhDaiDien
+        // - gửi "" => reset về default
+        // - gửi null => giữ nguyên ảnh cũ
+        if (request.getAnhDaiDien() != null) {
+            nv.setAnhDaiDien(normalizeAvatar(request.getAnhDaiDien()));
+        }
+
         // Only update password when provided
         if (request.getMatKhau() != null && !request.getMatKhau().isBlank()) {
             nv.setMatKhau(request.getMatKhau());
         }
-
-        // NOTE: maNhanVien thường không đổi. Nếu muốn cho phép đổi thì hãy bật đoạn dưới.
-        // if (request.getMaNhanVien() != null && !request.getMaNhanVien().equals(nv.getMaNhanVien())) { ... }
 
         nv.setNgayCapNhat(LocalDateTime.now());
         return mapToResponse(nhanVienRepository.save(nv));
@@ -163,7 +172,7 @@ public class NhanVienServiceImpl implements NhanVienService {
         NhanVien nv = nhanVienRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên ID: " + id));
 
-        // Soft delete to avoid FK constraint issues with hóa đơn...
+        // Soft delete
         nv.setTrangThai(Boolean.FALSE);
         nv.setNgayCapNhat(LocalDateTime.now());
         nhanVienRepository.save(nv);
@@ -187,7 +196,20 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .ngayTao(nv.getNgayTao())
                 .ngayCapNhat(nv.getNgayCapNhat())
                 .trangThai(nv.getTrangThai())
+
+                // ✅ trả ảnh ra FE
+                .anhDaiDien(normalizeAvatar(nv.getAnhDaiDien()))
                 .build();
     }
-}
+    @Override
+    @Transactional
+    public NhanVienResponse updateTrangThai(Long id, Boolean trangThai) {
+        NhanVien nv = nhanVienRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên ID: " + id));
 
+        nv.setTrangThai(trangThai);
+        nv.setNgayCapNhat(LocalDateTime.now());
+
+        return mapToResponse(nhanVienRepository.save(nv));
+    }
+}

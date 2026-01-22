@@ -8,7 +8,11 @@ import java.util.List;
 public interface KhachHangService {
     List<KhachHangResponse> getAll();
     KhachHangResponse getById(Long id);
+
     KhachHangResponse create(KhachHangRequest request);
     KhachHangResponse update(Long id, KhachHangRequest request);
-    void delete(Long id);
+
+    KhachHangResponse updateTrangThai(Long id, Boolean trangThai);
+
+    String getNextMaKhachHang(String prefix);
 }
