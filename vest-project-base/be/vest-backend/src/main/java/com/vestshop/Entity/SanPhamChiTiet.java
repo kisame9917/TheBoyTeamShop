@@ -55,6 +55,12 @@ public class SanPhamChiTiet {
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
 
+    @Column(name = "anh_dai_dien")
+    private String anh;
+
+    @Column(name = "chat_lieu")
+    private String chatLieu;
+
     @OneToMany(mappedBy = "sanPhamChiTiet", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<HoaDonChiTiet> hoaDonChiTiets = new ArrayList<>();
