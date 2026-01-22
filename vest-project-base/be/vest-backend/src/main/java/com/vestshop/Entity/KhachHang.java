@@ -27,6 +27,9 @@ public class KhachHang {
     @Column(name="ten_khach_hang", nullable=false, length=255)
     private String tenKhachHang;
 
+    @Column(name = "gioi_tinh")
+    private Boolean gioiTinh;
+
     @Column(name="so_dien_thoai", length=20)
     private String soDienThoai;
 
@@ -47,6 +50,9 @@ public class KhachHang {
 
     @Column(name="email", length=255)
     private String email;
+
+    @Column(name = "anh_dai_dien", length = 500)
+    private String anhDaiDien;
 
     @OneToMany(mappedBy = "khachHang", fetch = FetchType.LAZY)
     @JsonIgnore

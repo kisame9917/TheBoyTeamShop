@@ -31,4 +31,6 @@ public class NhanVienResponse {
     private LocalDateTime ngayTao;
     private LocalDateTime ngayCapNhat;
     private Boolean trangThai;
+
+    private String anhDaiDien;
 }

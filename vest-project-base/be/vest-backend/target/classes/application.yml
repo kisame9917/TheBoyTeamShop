@@ -40,3 +40,5 @@ springdoc:
   swagger-ui:
     path: /swagger
 
+app:
+  upload-dir: D:/2_DATN/vest-project-base/uploads
