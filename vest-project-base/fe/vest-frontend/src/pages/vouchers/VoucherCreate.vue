@@ -66,7 +66,6 @@
             <label>Số lượng</label>
             <input type="number" class="input" v-model.number="form.soLuong" min="1" />
             <small class="hint" v-if="form.loaiPhieu === 'CA_NHAN'">
-              Gợi ý: số lượng thường = số khách hàng đã chọn
             </small>
           </div>
 
