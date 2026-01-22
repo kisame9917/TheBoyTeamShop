@@ -33,5 +33,6 @@ public class SanPhamResponse {
     private LocalDateTime ngayTao;
     private LocalDateTime ngayCapNhat;
 
+    private String moTa;
     private Boolean trangThai;
 }

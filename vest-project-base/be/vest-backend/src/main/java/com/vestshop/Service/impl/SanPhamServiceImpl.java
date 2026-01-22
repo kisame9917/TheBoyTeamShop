@@ -5,6 +5,7 @@ import com.vestshop.Repository.*;
 import com.vestshop.Service.SanPhamService;
 import com.vestshop.dto.request.SanPhamRequest;
 import com.vestshop.dto.response.SanPhamResponse;
+import com.vestshop.dto.request.SanPhamChiTietRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,9 @@ public class SanPhamServiceImpl implements SanPhamService {
     private final XeTaRepository xeTaRepository;
     private final XuatXuRepository xuatXuRepository;
     private final FitRepository fitRepository;
+    private final MauSacRepository mauSacRepository;
+    private final KichCoRepository kichCoRepository;
+    private final SanPhamChiTietRepository sanPhamChiTietRepository;
 
     @Override
     @Transactional
@@ -35,6 +42,57 @@ public class SanPhamServiceImpl implements SanPhamService {
         sanPham.setNgayTao(LocalDateTime.now());
         sanPham.setNgayCapNhat(LocalDateTime.now());
         SanPham saved = sanPhamRepository.save(sanPham);
+
+        List<SanPhamChiTiet> details = new ArrayList<>();
+
+        if (request.getVariants() != null && !request.getVariants().isEmpty()) {
+            for (SanPhamChiTietRequest variantRequest : request.getVariants()) {
+                MauSac mauSac = mauSacRepository.findById(variantRequest.getIdMauSac())
+                        .orElseThrow(() -> new RuntimeException("MauSac not found: " + variantRequest.getIdMauSac()));
+                KichCo kichCo = kichCoRepository.findById(variantRequest.getIdKichCo())
+                        .orElseThrow(() -> new RuntimeException("KichCo not found: " + variantRequest.getIdKichCo()));
+
+                SanPhamChiTiet chiTiet = SanPhamChiTiet.builder()
+                        .sanPham(saved)
+                        .mauSac(mauSac)
+                        .kichCo(kichCo)
+                        .donGia(variantRequest.getDonGia())
+                        .soLuongTon(variantRequest.getSoLuongTon())
+                        .maSanPhamChiTiet(saved.getMaSanPham() + "-" + mauSac.getId() + "-" + kichCo.getId()) // Simple SKU logic
+                        .anh(variantRequest.getAnh())
+                        .chatLieu(variantRequest.getChatLieu())
+                        .trangThai(true)
+                        .ngayTao(LocalDateTime.now())
+                        .ngayCapNhat(LocalDateTime.now())
+                        .build();
+                details.add(chiTiet);
+            }
+        } else if (request.getMauSacId() != null && request.getKichCoId() != null) {
+            // Legacy single variant logic
+            MauSac mauSac = mauSacRepository.findById(request.getMauSacId())
+                    .orElseThrow(() -> new RuntimeException("MauSac not found"));
+            KichCo kichCo = kichCoRepository.findById(request.getKichCoId())
+                    .orElseThrow(() -> new RuntimeException("KichCo not found"));
+
+            SanPhamChiTiet chiTiet = SanPhamChiTiet.builder()
+                    .sanPham(saved)
+                    .mauSac(mauSac)
+                    .kichCo(kichCo)
+                    .donGia(request.getDonGia())
+                    .soLuongTon(request.getSoLuongTon())
+                    .maSanPhamChiTiet(saved.getMaSanPham() + "-" + mauSac.getId() + "-" + kichCo.getId())
+                    .trangThai(true)
+                    .ngayTao(LocalDateTime.now())
+                    .ngayCapNhat(LocalDateTime.now())
+                    .build();
+            details.add(chiTiet);
+        }
+
+        if (!details.isEmpty()) {
+            sanPhamChiTietRepository.saveAll(details);
+            saved.setSanPhamChiTiets(details);
+        }
+
         return mapToResponse(saved);
     }
 
@@ -45,6 +103,7 @@ public class SanPhamServiceImpl implements SanPhamService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SanPhamResponse getById(Long id) {
         SanPham sanPham = sanPhamRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("SanPham not found with id: " + id));
@@ -56,10 +115,10 @@ public class SanPhamServiceImpl implements SanPhamService {
     public SanPhamResponse update(Long id, SanPhamRequest request) {
         SanPham sanPham = sanPhamRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("SanPham not found with id: " + id));
-
+        
         updateEntity(sanPham, request);
         sanPham.setNgayCapNhat(LocalDateTime.now());
-
+        
         SanPham updated = sanPhamRepository.save(sanPham);
         return mapToResponse(updated);
     }
@@ -78,7 +137,9 @@ public class SanPhamServiceImpl implements SanPhamService {
                 .maSanPham(request.getMaSanPham())
                 .tenSanPham(request.getTenSanPham())
                 .trangThai(request.getTrangThai())
-                .chatLieu(chatLieuRepository.findById(request.getChatLieuId()).orElseThrow(() -> new RuntimeException("ChatLieu not found")))
+                .moTa(request.getMoTa())
+                .moTa(request.getMoTa())
+                .chatLieu(getChatLieuOrDefault(request.getChatLieuId()))
                 .loaiSanPham(loaiSanPhamRepository.findById(request.getLoaiSanPhamId()).orElseThrow(() -> new RuntimeException("LoaiSanPham not found")))
                 .thuongHieu(thuongHieuRepository.findById(request.getThuongHieuId()).orElseThrow(() -> new RuntimeException("ThuongHieu not found")))
                 .soKhuy(soKhuyRepository.findById(request.getSoKhuyId()).orElseThrow(() -> new RuntimeException("SoKhuy not found")))
@@ -87,6 +148,7 @@ public class SanPhamServiceImpl implements SanPhamService {
                 .xeTa(xeTaRepository.findById(request.getXeTaId()).orElseThrow(() -> new RuntimeException("XeTa not found")))
                 .xuatXu(xuatXuRepository.findById(request.getXuatXuId()).orElseThrow(() -> new RuntimeException("XuatXu not found")))
                 .fit(fitRepository.findById(request.getFitId()).orElseThrow(() -> new RuntimeException("Fit not found")))
+                .anh(request.getAnh())
                 .build();
     }
 
@@ -94,7 +156,10 @@ public class SanPhamServiceImpl implements SanPhamService {
         sanPham.setMaSanPham(request.getMaSanPham());
         sanPham.setTenSanPham(request.getTenSanPham());
         sanPham.setTrangThai(request.getTrangThai());
-
+        sanPham.setTrangThai(request.getTrangThai());
+        sanPham.setMoTa(request.getMoTa());
+        sanPham.setAnh(request.getAnh());
+        
         if (!sanPham.getChatLieu().getId().equals(request.getChatLieuId())) {
             sanPham.setChatLieu(chatLieuRepository.findById(request.getChatLieuId()).orElseThrow(() -> new RuntimeException("ChatLieu not found")));
         }
@@ -132,7 +197,9 @@ public class SanPhamServiceImpl implements SanPhamService {
                 .ngayTao(sanPham.getNgayTao())
                 .ngayCapNhat(sanPham.getNgayCapNhat())
                 .trangThai(sanPham.getTrangThai())
-                .chatLieuId(sanPham.getChatLieu().getId())
+                .moTa(sanPham.getMoTa())
+                .moTa(sanPham.getMoTa())
+                .chatLieuId(sanPham.getChatLieu() != null ? sanPham.getChatLieu().getId() : null)
                 .loaiSanPhamId(sanPham.getLoaiSanPham().getId())
                 .thuongHieuId(sanPham.getThuongHieu().getId())
                 .soKhuyId(sanPham.getSoKhuy().getId())
@@ -155,6 +222,7 @@ public class SanPhamServiceImpl implements SanPhamService {
             return 0;
         }
         return sanPham.getSanPhamChiTiets().stream()
+                .filter(ct -> ct.getTrangThai() != null && ct.getTrangThai()) // Only count Active variants
                 .mapToInt(com.vestshop.Entity.SanPhamChiTiet::getSoLuongTon)
                 .sum();
     }
@@ -177,5 +245,16 @@ public class SanPhamServiceImpl implements SanPhamService {
                 .map(com.vestshop.Entity.SanPhamChiTiet::getDonGia)
                 .max(java.util.Comparator.naturalOrder())
                 .orElse(java.math.BigDecimal.ZERO);
+    }
+    private ChatLieu getChatLieuOrDefault(Long id) {
+        if (id != null) {
+            return chatLieuRepository.findById(id).orElseGet(this::getDefaultChatLieu);
+        }
+        return getDefaultChatLieu();
+    }
+
+    private ChatLieu getDefaultChatLieu() {
+        return chatLieuRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("He thong can it nhat 1 Chat Lieu de hoat dong (Legacy DB Constraint)."));
     }
 }

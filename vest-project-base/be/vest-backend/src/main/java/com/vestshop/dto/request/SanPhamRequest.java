@@ -10,7 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class SanPhamRequest {
-    @NotNull private Long chatLieuId;
+    private Long chatLieuId;
     @NotNull private Long loaiSanPhamId;
     @NotNull private Long thuongHieuId;
     @NotNull private Long soKhuyId;
@@ -19,6 +19,9 @@ public class SanPhamRequest {
     @NotNull private Long xeTaId;
     @NotNull private Long xuatXuId;
     @NotNull private Long fitId;
+    
+    private String anh;
+    private String chatLieu;
 
     @NotBlank
     @Size(max = 80)
@@ -30,4 +33,13 @@ public class SanPhamRequest {
 
     @NotNull
     private Boolean trangThai;
+
+    private String moTa;
+    // Fields for default SanPhamChiTiet (Optional now)
+    private Long mauSacId;
+    private Long kichCoId;
+    private java.math.BigDecimal donGia;
+    private Integer soLuongTon;
+
+    private java.util.List<SanPhamChiTietRequest> variants;
 }

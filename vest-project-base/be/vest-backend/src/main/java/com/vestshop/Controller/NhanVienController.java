@@ -8,6 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.vestshop.dto.request.NhanVienTrangThaiRequest;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -43,6 +47,21 @@ public class NhanVienController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         nhanVienService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/trang-thai")
+    public ResponseEntity<?> updateTrangThai(
+            @PathVariable Long id,
+            @RequestBody NhanVienTrangThaiRequest req,
+            @RequestHeader(value = "X-ROLE-ID", required = false) String roleId
+    ) {
+        // ✅ chặn quyền
+        if (!"1".equals(roleId)) {
+            return ResponseEntity.status(403).body("Chỉ ADMIN mới được đổi trạng thái");
+        }
+
+        nhanVienService.updateTrangThai(id, req.getTrangThai());
+        return ResponseEntity.ok().build();
     }
 }
 

@@ -68,6 +68,9 @@ public class NhanVien {
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
 
+    @Column(name = "anh_dai_dien", length = 500)
+    private String anhDaiDien;
+
     @OneToMany(mappedBy = "nhanVien", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<HoaDon> hoaDons = new ArrayList<>();

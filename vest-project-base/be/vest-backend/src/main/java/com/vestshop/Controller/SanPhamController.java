@@ -28,22 +28,22 @@ public class SanPhamController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SanPhamResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<SanPhamResponse> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(sanPhamService.getById(id));
     }
 
     @PostMapping
-    public ResponseEntity<SanPhamResponse> create(@RequestBody SanPhamRequest request) {
+    public ResponseEntity<SanPhamResponse> create(@jakarta.validation.Valid @RequestBody SanPhamRequest request) {
         return new ResponseEntity<>(sanPhamService.create(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SanPhamResponse> update(@PathVariable Long id, @RequestBody SanPhamRequest request) {
+    public ResponseEntity<SanPhamResponse> update(@PathVariable("id") Long id, @jakarta.validation.Valid @RequestBody SanPhamRequest request) {
         return ResponseEntity.ok(sanPhamService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         sanPhamService.delete(id);
         return ResponseEntity.noContent().build();
     }

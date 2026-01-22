@@ -1,14 +1,24 @@
-import { createApp } from "vue";
-import { createPinia } from "pinia";
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 
-import App from "./App.vue";
-import router from "./router";
+import App from './App.vue'
+import router from './router'
+import './assets/base.css'
 
-// CSS (giữ cả 2)
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
-import "./assets/base.css"; // hoặc "./assets/base.css" tuỳ bạn đang dùng đường dẫn nào
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import "flatpickr/dist/flatpickr.css";
+import { useAuthStore } from './stores/auth'
 
-createApp(App).use(createPinia()).use(router).mount("#app");
+const app = createApp(App)
+
+// 1) tạo pinia instance
+const pinia = createPinia()
+
+// 2) gắn pinia + router vào app (pinia trước router)
+app.use(pinia)
+app.use(router)
+
+// 3) bây giờ mới được dùng store (truyền pinia cho chắc chắn)
+const auth = useAuthStore(pinia)
+auth.hydrate()
+
+// 4) mount
+app.mount('#app')

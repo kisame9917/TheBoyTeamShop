@@ -11,4 +11,5 @@ public interface NhanVienService {
     NhanVienResponse create(NhanVienRequest request);
     NhanVienResponse update(Long id, NhanVienRequest request);
     void delete(Long id);
+    NhanVienResponse updateTrangThai(Long id, Boolean trangThai);
 }

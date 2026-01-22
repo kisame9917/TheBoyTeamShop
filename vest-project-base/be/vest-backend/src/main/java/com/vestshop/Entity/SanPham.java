@@ -22,7 +22,7 @@ public class SanPham {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="id_chat_lieu", nullable=false)
+    @JoinColumn(name="id_chat_lieu", nullable=true)
     private ChatLieu chatLieu;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -71,6 +71,12 @@ public class SanPham {
 
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
+
+    @Column(name="mo_ta", length = 5000)
+    private String moTa;
+
+    @Column(name="anh_dai_dien")
+    private String anh;
 
     @OneToMany(mappedBy = "sanPham", fetch = FetchType.LAZY)
     @JsonIgnore

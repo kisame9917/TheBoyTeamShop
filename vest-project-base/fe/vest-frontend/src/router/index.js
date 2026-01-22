@@ -1,91 +1,87 @@
-// src/router/index.js
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory } from 'vue-router'
 
-// Layouts
-import DefaultLayout from "../layouts/DefaultLayout.vue";
-import BlankLayout from "../layouts/BlankLayout.vue";
+import DefaultLayout from '../layouts/DefaultLayout.vue'
+import BlankLayout from '../layouts/BlankLayout.vue'
 
-// Pages
-import Dashboard from "../pages/Dashboard.vue";
-import Login from "../pages/auth/Login.vue";
+import Dashboard from '../pages/Dashboard.vue'
+import Login from '../pages/auth/Login.vue'
 
-import ProductsList from "../pages/products/ProductsList.vue";
-import ProductDetail from "../pages/products/ProductDetail.vue";
+import ProductsList from '../pages/products/ProductsList.vue'
+import ProductDetail from '../pages/products/ProductDetail.vue'
+import OrdersList from '../pages/orders/OrdersList.vue'
 
-import OrdersList from "@/pages/orders/OrdersList.vue";
-import OrderDetail from "@/pages/orders/OrderDetail.vue";
 
-import CustomersList from "../pages/customers/CustomersList.vue";
-import StaffList from "../pages/staff/StaffList.vue";
+import CustomersList from '../pages/customers/CustomersList.vue'
+import CustomersForm from '../pages/customers/CustomersForm.vue'
 
-import VouchersList from "../pages/vouchers/VouchersList.vue";
-import VoucherCreate from "../pages/vouchers/VoucherCreate.vue";
-import VoucherDetail from "../pages/vouchers/VoucherDetail.vue";
-import VoucherUpdate from "../pages/vouchers/VoucherUpdate.vue";
+import StaffList from '../pages/staff/StaffList.vue'
+import StaffForm from '../pages/staff/StaffForm.vue'
 
-import PaymentsList from "../pages/payments/PaymentsList.vue";
-import NotFound from "../pages/notfound/NotFound.vue";
+import VouchersList from '../pages/vouchers/VouchersList.vue'
+import VoucherCreate from '../pages/vouchers/VoucherCreate.vue'
+import VoucherDetail from '../pages/vouchers/VoucherDetail.vue'
+import VoucherUpdate from '../pages/vouchers/VoucherUpdate.vue'
 
-import { useAuthStore } from "../stores/auth";
+import PaymentsList from '../pages/payments/PaymentsList.vue'
+import NotFound from '../pages/notfound/NotFound.vue'
+
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
-  // Auth (blank layout)
   {
-    path: "/login",
+    path: '/login',
     component: BlankLayout,
-    children: [{ path: "", name: "login", component: Login }],
+    children: [{ path: '', name: 'login', component: Login }],
   },
-
-  // App (default layout)
   {
-    path: "/",
+    path: '/',
     component: DefaultLayout,
     meta: { requiresAuth: true },
     children: [
-      { path: "", name: "dashboard", component: Dashboard },
+      { path: '', name: 'dashboard', component: Dashboard },
 
-      // Products
-      { path: "products", name: "products", component: ProductsList },
-      { path: "products/:id", name: "product-detail", component: ProductDetail, props: true },
+      { path: 'products', name: 'products', component: ProductsList },
+      { path: 'products/:id', name: 'product-detail', component: ProductDetail, props: true },
 
-      // Orders (GIỮ CẢ 2 ROUTE)
-      { path: "orders", name: "orders", component: OrdersList },
-      { path: "orders/:id", name: "order-detail", component: OrderDetail, props: true },
+      { path: 'orders', name: 'orders', component: OrdersList },
 
-      // Customers / Staff
-      { path: "customers", name: "customers", component: CustomersList },
-      { path: "staff", name: "staff", component: StaffList },
+      // ✅ KHÁCH HÀNG (child path => không có dấu / ở đầu)
+      { path: 'customers', name: 'customer-list', component: CustomersList },
+      { path: 'customers/new', name: 'customer-new', component: CustomersForm },
+      { path: 'customers/:id/edit', name: 'customer-edit', component: CustomersForm, props: true },
 
-      // Vouchers
-      { path: "vouchers", name: "vouchers", component: VouchersList },
-      { path: "vouchers/create", name: "voucher-create", component: VoucherCreate },
-      { path: "vouchers/:id", name: "voucher-detail", component: VoucherDetail, props: true },
-      { path: "vouchers/update/:id", name: "voucher-update", component: VoucherUpdate, props: true },
+      // ===== STAFF =====
+      { path: 'staff', name: 'staff', component: StaffList },
+      { path: 'staff/new', name: 'staff-new', component: StaffForm, meta: { requiresAdmin: true } },
+      { path: 'staff/:id/edit', name: 'staff-edit', component: StaffForm, props: true, meta: { requiresAdmin: true } },
 
-      // Payments
-      { path: "payments", name: "payments", component: PaymentsList },
+      // ===== VOUCHERS =====
+      { path: 'vouchers', name: 'vouchers', component: VouchersList },
+      { path: 'vouchers/create', name: 'voucher-create', component: VoucherCreate },
+      { path: 'vouchers/:id', name: 'voucher-detail', component: VoucherDetail, props: true },
+      { path: 'vouchers/update/:id', name: 'voucher-update', component: VoucherUpdate, props: true },
+
+      // ===== PAYMENTS =====
+      { path: 'payments', name: 'payments', component: PaymentsList },
     ],
   },
-
-  // Not found
-  { path: "/:pathMatch(.*)*", name: "notfound", component: NotFound },
-];
+  { path: '/:pathMatch(.*)*', name: 'notfound', component: NotFound },
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-});
+})
 
 router.beforeEach((to) => {
-  const auth = useAuthStore();
+  const auth = useAuthStore()
 
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return { name: "login" };
-  }
+  if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: 'login' }
+  if (to.name === 'login' && auth.isAuthenticated) return { name: 'dashboard' }
 
-  if (to.name === "login" && auth.isAuthenticated) {
-    return { name: "dashboard" };
-  }
-});
+  if (to.meta.requiresAdmin && !auth.isAdmin) return { name: 'staff' }
 
-export default router;
+  return true
+})
+
+export default router

@@ -1,5 +1,7 @@
 package com.vestshop.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,39 +17,31 @@ import java.time.LocalDate;
 @Builder
 public class NhanVienRequest {
 
-    /** Quyền hạn / vai trò (id_quyen_han) */
     @NotNull
     private Long quyenHanId;
 
-    /** Mã nhân viên (ma_nhan_vien) */
     @NotBlank
     @Size(max = 80)
     private String maNhanVien;
 
-    /** Tên nhân viên (ten_nhan_vien) */
     @NotBlank
     @Size(max = 255)
     private String tenNhanVien;
 
-    /** Số điện thoại (so_dien_thoai) */
     @Size(max = 20)
     private String soDienThoai;
 
-    /** CCCD (cccd) */
     @Size(max = 20)
     private String cccd;
 
-    /** Email (email) */
     @Email
     @Size(max = 255)
     private String email;
 
-    /** Tài khoản (tai_khoan) */
     @NotBlank
     @Size(max = 80)
     private String taiKhoan;
 
-    /** Mật khẩu (mat_khau). Khi update có thể bỏ trống để giữ nguyên. */
     @Size(max = 255)
     private String matKhau;
 
@@ -57,7 +51,9 @@ public class NhanVienRequest {
     @Size(max = 255)
     private String diaChi;
 
-    /** Trạng thái (trang_thai). Null sẽ mặc định true khi tạo mới. */
     private Boolean trangThai;
+
+    @Column(name="anh_dai_dien", length=500)
+    private String anhDaiDien;
 }
 

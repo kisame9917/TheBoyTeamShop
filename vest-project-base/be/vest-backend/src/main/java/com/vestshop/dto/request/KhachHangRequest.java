@@ -1,60 +1,32 @@
 package com.vestshop.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class KhachHangRequest {
 
-    /**
-     * Mã khách hàng (ma_khach_hang)
-     */
-    @NotBlank
-    @Size(max = 80)
+    // maKhachHang: FE có thể gửi/hiển thị nhưng BE sẽ tự sinh khi create
     private String maKhachHang;
 
-    /**
-     * Tên khách hàng (ten_khach_hang)
-     */
-    @NotBlank
-    @Size(max = 255)
     private String tenKhachHang;
-
-    /**
-     * Số điện thoại (so_dien_thoai)
-     */
-    @Size(max = 20)
+    private Boolean gioiTinh; // bit: 1 nam(true), 0 nữ(false)
+    private String email;
     private String soDienThoai;
 
-    /**
-     * Tài khoản đăng nhập (tai_khoan)
-     */
-    @NotBlank
-    @Size(max = 80)
     private String taiKhoan;
-
-    /**
-     * Mật khẩu (mat_khau). Khi update có thể bỏ trống để giữ nguyên.
-     */
-    @Size(max = 255)
     private String matKhau;
 
-    /**
-     * Email (email)
-     */
-    @Email
-    @Size(max = 255)
-    private String email;
+    private Boolean trangThai; // true: hoạt động, false: không hoạt động
+    private String anhDaiDien; // /uploads/khachhang/xxx.jpg
 
-    /**
-     * Trạng thái (trang_thai). Null sẽ mặc định true khi tạo mới.
-     */
-    private Boolean trangThai;
+    // ===== ĐỊA CHỈ MẶC ĐỊNH =====
+    private String tenNguoiNhan;
+    private String sdtNguoiNhan;
+    private String diaChiChiTiet;
+    private String phuongXa;
+    private String quanHuyen;
+    private String tinhThanh;
+    private String quocGia;
 }
-
