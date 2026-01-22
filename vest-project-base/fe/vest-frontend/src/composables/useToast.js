@@ -1,6 +1,7 @@
-<<<<<<< HEAD
+
 // src/composables/useToast.js
 import { reactive } from "vue"
+import { reactive } from "vue";
 
 let _id = 0
 
@@ -34,7 +35,6 @@ export function useToast() {
     remove: removeToast,
     clear: () => (toastState.items.length = 0),
   }
-import { reactive } from "vue";
 
 const state = reactive({
   items: [],
@@ -54,7 +54,5 @@ function show({ message, type = "info", title = "", timeout = 3000 } = {}) {
   return id;
 }
 
-export function useToast() {
-  return { state, show, remove };
->>>>>>> 52a7d844ce596e26aa933864f0ee5613f0390540
+
 }
