@@ -1,5 +1,6 @@
 package com.vestshop.Service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -14,12 +15,12 @@ import java.util.UUID;
 
 @Service
 public class StorageService {
+    private final Path rootLocation;
 
-    private final Path rootLocation = Paths.get("uploads");
-
-    public StorageService() {
+    public StorageService(@Value("${app.upload-dir:uploads}") String uploadDir) {
+        this.rootLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
-            Files.createDirectories(rootLocation);
+            Files.createDirectories(this.rootLocation);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize storage", e);
         }
@@ -27,28 +28,12 @@ public class StorageService {
 
     public String store(MultipartFile file) {
         try {
-            if (file.isEmpty()) {
-                throw new RuntimeException("Failed to store empty file.");
-            }
-            String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            if (file.isEmpty()) throw new RuntimeException("Failed to store empty file.");
+            String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
             Files.copy(file.getInputStream(), this.rootLocation.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
             return filename;
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
-        }
-    }
-
-    public Resource loadAsResource(String filename) {
-        try {
-            Path file = rootLocation.resolve(filename);
-            Resource resource = new UrlResource(file.toUri());
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new RuntimeException("Could not read file: " + filename);
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Could not read file: " + filename, e);
         }
     }
 }

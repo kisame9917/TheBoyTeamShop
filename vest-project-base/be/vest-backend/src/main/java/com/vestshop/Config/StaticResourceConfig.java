@@ -24,6 +24,11 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         // đảm bảo có dấu / ở cuối
         if (!location.endsWith("/")) location = location + "/";
 
+        // ✅ Thêm: serve ảnh sản phẩm theo /images/**
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations(location);
+
+        // ✅ Giữ lại: avatar nhân viên/khách hàng đang dùng /uploads/**
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(location);
     }
