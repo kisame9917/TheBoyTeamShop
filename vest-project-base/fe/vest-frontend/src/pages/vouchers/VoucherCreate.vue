@@ -47,11 +47,36 @@
             />
           </div>
 
+          <!-- ✅ Ngày bắt đầu (flatpickr + icon + clear) -->
           <div class="form-group">
             <label>Ngày bắt đầu</label>
-            <input type="date" class="input input-sm" v-model="form.ngayBatDau" />
-            <small class="hint" v-if="form.ngayBatDau">
-            </small>
+
+            <div class="input-group">
+              <input
+                ref="startPickerRef"
+                type="text"
+                class="form-control"
+                placeholder="dd/mm/yyyy"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="openStartPicker"
+                title="Chọn ngày"
+              >
+                <i class="bi bi-calendar3"></i>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="clearStartDate"
+                title="Xóa"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <small class="hint" v-if="form.ngayBatDau"></small>
           </div>
         </div>
 
@@ -65,8 +90,7 @@
           <div class="form-group">
             <label>Số lượng</label>
             <input type="number" class="input" v-model.number="form.soLuong" min="1" />
-            <small class="hint" v-if="form.loaiPhieu === 'CA_NHAN'">
-            </small>
+            <small class="hint" v-if="form.loaiPhieu === 'CA_NHAN'"></small>
           </div>
 
           <div class="form-group">
@@ -80,11 +104,36 @@
             />
           </div>
 
+          <!-- ✅ Ngày kết thúc (flatpickr + icon + clear) -->
           <div class="form-group">
             <label>Ngày kết thúc</label>
-            <input type="date" class="input input-sm" v-model="form.ngayKetThuc" />
-            <small class="hint" v-if="form.ngayKetThuc">
-            </small>
+
+            <div class="input-group">
+              <input
+                ref="endPickerRef"
+                type="text"
+                class="form-control"
+                placeholder="dd/mm/yyyy"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="openEndPicker"
+                title="Chọn ngày"
+              >
+                <i class="bi bi-calendar3"></i>
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                @click="clearEndDate"
+                title="Xóa"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <small class="hint" v-if="form.ngayKetThuc"></small>
           </div>
         </div>
 
@@ -206,10 +255,15 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue"
+import { ref, watch, computed, onMounted, onBeforeUnmount } from "vue"
 import axios from "axios"
 import { useRouter } from "vue-router"
 import { useToast } from "@/composables/useToast"
+
+/** ✅ flatpickr */
+import flatpickr from "flatpickr"
+import { Vietnamese } from "flatpickr/dist/l10n/vn.js"
+import "flatpickr/dist/flatpickr.css"
 
 const toast = useToast()
 const router = useRouter()
@@ -220,10 +274,10 @@ const KH_API = "http://localhost:8080/api/khach-hang"
 const saving = ref(false)
 const error = ref("")
 
-// ===== Confirm popup (giữ confirm như bạn đang có) =====
+// ===== Confirm popup =====
 const popup = ref({
   open: false,
-  mode: "alert", // 'alert' | 'confirm'
+  mode: "alert",
   title: "Thông báo",
   message: "",
   loading: false,
@@ -265,7 +319,7 @@ const customers = ref([])
 const loadingCustomers = ref(false)
 const customersError = ref("")
 const customerKeyword = ref("")
-const selectedCustomerIds = ref([]) // array of Long
+const selectedCustomerIds = ref([])
 
 const filteredCustomers = computed(() => {
   const kw = customerKeyword.value.trim().toLowerCase()
@@ -320,12 +374,12 @@ async function loadCustomers() {
 const form = ref({
   tenGiamGia: "",
   soLuong: 1,
-  loaiGiam: true, // true = %, false = tiền
+  loaiGiam: true,
   giaTriGiam: 1,
   giaTriGiamToiDa: 0,
   donHangToiThieu: 0,
-  ngayBatDau: "",
-  ngayKetThuc: "",
+  ngayBatDau: "",   // yyyy-MM-dd
+  ngayKetThuc: "",  // yyyy-MM-dd
   moTa: "",
   loaiPhieu: "CONG_KHAI",
 })
@@ -364,70 +418,115 @@ function toEndOfDay(dateYMD) {
   return `${dateYMD}T23:59:59`
 }
 
+/** =======================
+ * ✅ Flatpickr cho Create (giống hóa đơn)
+ * - UI: dd/mm/yyyy
+ * - Data: form.ngayBatDau / form.ngayKetThuc = yyyy-MM-dd
+ * ======================= */
+const startPickerRef = ref(null)
+const endPickerRef = ref(null)
+let fpStart = null
+let fpEnd = null
+
+function parseYMD(ymd) {
+  if (!ymd) return null
+  const [y, m, d] = String(ymd).split("-").map(Number)
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+
+function initPickers() {
+  if (startPickerRef.value && !fpStart) {
+    fpStart = flatpickr(startPickerRef.value, {
+      locale: Vietnamese,
+      dateFormat: "d/m/Y",
+      allowInput: true,
+      defaultDate: parseYMD(form.value.ngayBatDau),
+      onChange: (selectedDates) => {
+        const d = selectedDates?.[0] || null
+        form.value.ngayBatDau = d ? flatpickr.formatDate(d, "Y-m-d") : ""
+
+        // khóa minDate cho end
+        if (fpEnd) fpEnd.set("minDate", d || null)
+      },
+    })
+  }
+
+  if (endPickerRef.value && !fpEnd) {
+    fpEnd = flatpickr(endPickerRef.value, {
+      locale: Vietnamese,
+      dateFormat: "d/m/Y",
+      allowInput: true,
+      defaultDate: parseYMD(form.value.ngayKetThuc),
+      onChange: (selectedDates) => {
+        const d = selectedDates?.[0] || null
+        form.value.ngayKetThuc = d ? flatpickr.formatDate(d, "Y-m-d") : ""
+
+        // khóa maxDate cho start
+        if (fpStart) fpStart.set("maxDate", d || null)
+      },
+    })
+  }
+
+  // set range initial nếu đã có sẵn value
+  if (fpEnd) fpEnd.set("minDate", form.value.ngayBatDau ? parseYMD(form.value.ngayBatDau) : null)
+  if (fpStart) fpStart.set("maxDate", form.value.ngayKetThuc ? parseYMD(form.value.ngayKetThuc) : null)
+}
+
+function openStartPicker() { fpStart?.open() }
+function openEndPicker() { fpEnd?.open() }
+
+function clearStartDate() {
+  form.value.ngayBatDau = ""
+  fpStart?.clear()
+  if (fpEnd) fpEnd.set("minDate", null)
+}
+function clearEndDate() {
+  form.value.ngayKetThuc = ""
+  fpEnd?.clear()
+  if (fpStart) fpStart.set("maxDate", null)
+}
+
 function validate() {
-  // ===== Helpers =====
   const isBlank = (v) => !String(v ?? "").trim()
   const isNum = (v) => typeof v === "number" && !Number.isNaN(v) && Number.isFinite(v)
 
-  // ===== 1) Text bắt buộc =====
   if (isBlank(form.value.tenGiamGia)) return "Vui lòng nhập tên phiếu giảm giá"
 
-  // ===== 2) Số lượng =====
   if (!isNum(form.value.soLuong)) return "Số lượng không hợp lệ"
   if (form.value.soLuong < 1) return "Số lượng phải >= 1"
 
-  // ===== 3) Giá trị giảm =====
   if (!isNum(form.value.giaTriGiam)) return "Giá trị giảm không hợp lệ"
   if (form.value.giaTriGiam < 1) return "Giá trị giảm phải >= 1"
 
-  // Theo loại giảm
   if (form.value.loaiGiam) {
-    // %: 1..100
     if (form.value.giaTriGiam > 100) return "Giảm % tối đa 100"
-
-    // Giảm tối đa (bắt buộc khi giảm %)
     if (!isNum(form.value.giaTriGiamToiDa)) return "Giảm tối đa không hợp lệ"
     if (form.value.giaTriGiamToiDa <= 0) return "Giảm tối đa phải > 0"
-  } else {
-    // tiền: giaTriGiamToiDa không bắt buộc, nhưng nếu có thì ép về 0 (bạn đang watch rồi)
-    // Có thể thêm check: tiền giảm không vượt đơn tối thiểu (tuỳ nghiệp vụ)
   }
 
-  // ===== 4) Đơn hàng tối thiểu =====
   if (!isNum(form.value.donHangToiThieu)) return "Đơn hàng tối thiểu không hợp lệ"
   if (form.value.donHangToiThieu < 0) return "Đơn hàng tối thiểu phải >= 0"
 
-  // ===== 5) Ngày bắt đầu / kết thúc =====
-  // Bắt buộc chọn ngày (khuyến nghị để khỏi tạo phiếu không thời hạn)
   if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu"
   if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc"
+  if (form.value.ngayKetThuc < form.value.ngayBatDau) return "Ngày kết thúc phải >= ngày bắt đầu"
 
-  // so sánh ngày dạng YYYY-MM-DD OK
-  if (form.value.ngayKetThuc < form.value.ngayBatDau) {
-    return "Ngày kết thúc phải >= ngày bắt đầu"
-  }
+  if (!["CONG_KHAI", "CA_NHAN"].includes(form.value.loaiPhieu)) return "Loại phiếu không hợp lệ"
 
-  // ===== 6) Loại phiếu =====
-  if (!["CONG_KHAI", "CA_NHAN"].includes(form.value.loaiPhieu)) {
-    return "Loại phiếu không hợp lệ"
-  }
-
-  // Nếu là cá nhân -> phải chọn KH
   if (form.value.loaiPhieu === "CA_NHAN") {
     if (!Array.isArray(selectedCustomerIds.value)) return "Danh sách khách hàng không hợp lệ"
     if (selectedCustomerIds.value.length === 0) return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng"
   }
 
-  // ===== 7) Mô tả (tuỳ chọn) =====
-  // Không bắt buộc, nhưng có thể giới hạn độ dài
-  if (!isBlank(form.value.moTa) && String(form.value.moTa).length > 500) {
-    return "Mô tả tối đa 500 ký tự"
+  if (!isBlank(form.value.moTa) && String(form.value.moTa).length > 500) return "Mô tả tối đa 500 ký tự"
+
+  if (!form.value.loaiGiam) {
+    if (form.value.donHangToiThieu > 0 && form.value.giaTriGiam > form.value.donHangToiThieu) {
+      return "Tiền giảm không được vượt đơn hàng tối thiểu"
+    }
   }
-if (!form.value.loaiGiam) { // giảm tiền
-  if (form.value.donHangToiThieu > 0 && form.value.giaTriGiam > form.value.donHangToiThieu) {
-    return "Tiền giảm không được vượt đơn hàng tối thiểu"
-  }
-}
+
   return ""
 }
 
@@ -443,7 +542,6 @@ async function doCreate() {
     moTa: form.value.moTa,
     donHangToiThieu: form.value.donHangToiThieu,
 
-    // backend: true=CA_NHAN
     loaiPhieu: form.value.loaiPhieu === "CA_NHAN",
   }
 
@@ -457,7 +555,6 @@ async function doCreate() {
     payload.giaTriGiamToiDa = null
   }
 
-  // Nếu BE nhận luôn list KH trong create
   if (payload.loaiPhieu === true) {
     payload.khachHangIds = [...selectedCustomerIds.value]
   }
@@ -476,8 +573,8 @@ async function submit() {
   openConfirm("Bạn có chắc muốn tạo phiếu giảm giá này không?", async () => {
     saving.value = true
     try {
-      await doCreate() // ✅ đợi API xong
-      toast.success("Thêm phiếu giảm giá thành công") // ✅ chỉ hiện khi OK
+      await doCreate()
+      toast.success("Thêm phiếu giảm giá thành công")
       goBack()
     } catch (e) {
       const m = e?.response?.data?.message || e?.message || "Tạo thất bại"
@@ -489,8 +586,16 @@ async function submit() {
     }
   })
 }
-</script>
 
+onMounted(() => {
+  initPickers()
+})
+
+onBeforeUnmount(() => {
+  try { fpStart?.destroy() } catch {}
+  try { fpEnd?.destroy() } catch {}
+})
+</script>
 
 <style scoped>
 .page {
@@ -595,7 +700,6 @@ async function submit() {
   cursor: pointer;
 }
 
-
 .btn-secondary {
   background: #eef2f791;
   color:#1f2a44
@@ -610,6 +714,24 @@ async function submit() {
   font-size: 12px;
   color: #6b7280;
 }
+
+/* ✅ FIX input-group cho date (để không lệch hàng) */
+.input-group { width: 100%; }
+.input-group .form-control {
+  height: 38px;     /* đồng bộ với .input (38px) */
+  font-size: 13px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
+.input-group .btn {
+  height: 38px;
+  min-width: 42px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.input-group .btn i { font-size: 14px; line-height: 1; }
 
 /* ===== KH table ===== */
 .kh-toolbar {
@@ -690,5 +812,4 @@ async function submit() {
   opacity: .6;
   cursor: not-allowed;
 }
-
 </style>
