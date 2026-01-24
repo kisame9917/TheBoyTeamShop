@@ -54,7 +54,7 @@
           <RouterLink to="/attributes/ve-ao" class="sub-item" active-class="active-blue">Ve áo</RouterLink>
           <RouterLink to="/attributes/xe-ta" class="sub-item" active-class="active-blue">Xẻ tà</RouterLink>
           <RouterLink to="/attributes/xuat-xu" class="sub-item" active-class="active-blue">Xuất xứ</RouterLink>
-          <RouterLink to="/attributes/fit" class="sub-item" active-class="active-blue">Fit</RouterLink>
+          <RouterLink to="/attributes/fit" class="sub-item" active-class="active-blue">Kiểu dáng</RouterLink>
         </div>
       </div>
 

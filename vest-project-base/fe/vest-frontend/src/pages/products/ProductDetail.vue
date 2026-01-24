@@ -109,7 +109,7 @@
 
     <!-- Add Variant Modal (Hidden for now as per design focus on list, but kept for logic) -->
     <div v-if="showAddModal" class="modal-overlay">
-      <div class="modal">
+      <div class="modals">
         <div class="modal-header">
           <h3>Thêm biến thể mới</h3>
           <button class="close-btn" @click="closeModal">×</button>
@@ -150,7 +150,7 @@
 
     <!-- Edit Modal -->
     <div v-if="showEditModal" class="modal-overlay">
-      <div class="modal">
+      <div class="modals">
         <div class="modal-header">
           <h3>Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h3>
           <button class="close-btn" @click="closeEditModal">×</button>
@@ -704,7 +704,7 @@ function formatPrice(val) {
   z-index: 100;
 }
 
-.modal {
+.modals {
   background: white;
   padding: 20px;
   border-radius: 8px;
