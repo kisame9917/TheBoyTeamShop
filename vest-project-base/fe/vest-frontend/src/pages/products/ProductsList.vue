@@ -130,12 +130,20 @@
                   {{ p.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                 </span>
               </td>
-              <td class="text-center">
-                <button class="btn-icon white" @click="goDetail(p.id)" title="Xem chi tiết">
-                  <img :src="eyeIcon" alt="view" style="width: 20px; height: 20px;" />
-                </button>
+              <td class="text-center action-cell">
+  <div class="action-buttons">
+    <button
+      type="button"
+      class="btn btn-outline-primary btn-sm action-btn"
+      @click="goDetail(p.id)"
+      title="Chi tiết"
+    >
+      <i class="bi bi-eye"></i>
+    </button>
+  </div>
+</td>
 
-              </td>
+
             </tr>
             <tr v-if="loading">
               <td colspan="9" class="text-center">Đang tải dữ liệu...</td>
@@ -149,23 +157,43 @@
 
       <!-- Pagination Mockup -->
       <!-- Pagination -->
-      <div class="pagination-section" v-if="totalPages > 0">
-        <button class="page-btn" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">
-          &lt;
-        </button>
+      <div class="paging-bar" v-if="totalPages > 0">
+  <div class="paging-left">
+    Hiển thị {{ items.length }} / tổng {{ totalElements }} bản ghi
+  </div>
 
-        <!-- Simple Paging: List all pages (optimize later if too many) -->
-        <button v-for="page in totalPages" :key="page" class="page-btn" :class="{ active: currentPage === page - 1 }"
-          @click="changePage(page - 1)">
-          {{ page }}
-        </button>
+  <div class="paging-center">
+    <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">
+      <i class="bi bi-chevron-left"></i>
+    </button>
 
-        <button class="page-btn" :disabled="currentPage === totalPages - 1" @click="changePage(currentPage + 1)">
-          &gt;
-        </button>
+    <div class="input-group input-group-sm paging-page">
+      <span class="input-group-text">Trang</span>
+      <input
+        type="number"
+        min="1"
+        :max="totalPages || 1"
+        class="form-control"
+        v-model.number="pageInput"
+        @keyup.enter="jumpPage"
+      />
+    </div>
 
-        <span style="margin-left: 10px;">Trang {{ currentPage + 1 }}/{{ totalPages }}</span>
-      </div>
+    <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages - 1" @click="changePage(currentPage + 1)">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+
+  <div class="paging-right">
+    <select class="form-select form-select-sm paging-size" v-model.number="pageSize" @change="onChangeSize">
+      <option :value="10">10 bản ghi / trang</option>
+      <option :value="20">20 bản ghi / trang</option>
+      <option :value="50">50 bản ghi / trang</option>
+    </select>
+  </div>
+</div>
+
+
 
       <p v-if="error" class="error-msg">{{ error }}</p>
     </div>
@@ -242,6 +270,17 @@ function formatPriceRange(min, max) {
   return `${formatPrice(min)} - ${formatPrice(max)}`;
 }
 
+const pageInput = ref(1)
+function jumpPage() {
+  const max = Math.max(1, totalPages.value || 1)
+  const target = Math.min(Math.max(1, pageInput.value || 1), max)
+  changePage(target - 1)
+}
+
+function onChangeSize() {
+  currentPage.value = 0
+  reload()
+}
 
 
 function validateMinPrice() {
@@ -306,6 +345,8 @@ async function reload() {
     const serverItems = res.content || []
     totalPages.value = res.totalPages || 0
     totalElements.value = res.totalElements || 0
+    pageInput.value = currentPage.value + 1
+
 
     // Client-side filtering applies to the CURRENT PAGE's data if the BE doesn't filter.
     // OR if we want proper search, we must pass params to BE. 
@@ -687,6 +728,91 @@ onMounted(() => {
   /* Hide default track */
   border-radius: 2px;
 }
+.action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* ép nút vuông + giữ border như bootstrap */
+.action-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* QUAN TRỌNG: nếu CSS .btn của bạn đang set border-color/transparent */
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+.action-btn.btn-outline-primary:hover {
+  background-color: rgba(13,110,253,.08) !important;
+}
+.action-btn.btn-outline-success:hover {
+  background-color: rgba(25,135,84,.08) !important;
+}
+
+
+/* nếu border vẫn bị “trong suốt” do CSS cũ */
+.btn-outline-primary.action-btn {
+  border-color: var(--bs-primary) !important;
+  color: var(--bs-primary) !important;
+}
+.btn-outline-success.action-btn {
+  border-color: var(--bs-success) !important;
+  color: var(--bs-success) !important;
+}
+/* ===== FIX pagination bị rớt dọc ===== */
+.paging-bar {
+  margin-top: 18px;
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.paging-left {
+  justify-self: start !important;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.paging-center {
+  justify-self: center !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
+}
+
+.paging-right {
+  justify-self: end !important;
+}
+
+/* ép input-group không bị block/100% */
+.paging-page {
+  width: 120px !important;
+}
+
+.paging-page.input-group,
+.paging-page .input-group-text,
+.paging-page .form-control {
+  display: flex !important;
+}
+
+.paging-size {
+  width: 160px !important;
+}
+
+/* đảm bảo nút không bị kéo full width */
+.paging-center .btn {
+  width: auto !important;
+}
+
 
 /* Firefox fixes if needed, but webkit covers most for this demo */
 </style>
