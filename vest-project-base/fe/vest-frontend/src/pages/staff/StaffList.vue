@@ -1,262 +1,351 @@
 <template>
-  <div class="staff-page">
-    <div class="page-title">
-      <h2>Quản lý nhân viên / Danh sách nhân viên</h2>
-    </div>
-
-    <!-- FILTER -->
-    <div class="card filter-card">
-      <div class="card-header">
-        <span class="collapse-icon">▼</span>
-        <span class="card-title">Bộ lọc tìm kiếm</span>
+  <div class="container-fluid py-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-people fs-4"></i>
+        <h5 class="mb-0">Danh sách nhân viên</h5>
       </div>
 
-      <div class="filter-wrapper">
-        <!-- LEFT -->
-        <div class="filter-left">
-          <div class="form-group f-search">
-            <label>Tìm kiếm</label>
+      <button
+          class="btn btn-primary btn-sm text-white"
+          type="button"
+          @click="goCreate"
+          :disabled="!isAdmin"
+          title="Thêm mới"
+      >
+        <i class="bi bi-plus-lg me-1"></i> Thêm mới
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white d-flex align-items-center gap-2 text-dark fw-semibold">
+        <i class="bi bi-funnel"></i>
+        <span>Bộ lọc tìm kiếm</span>
+      </div>
+
+      <div class="card-body">
+        <div class="row g-3">
+          <!-- keyword -->
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Tìm kiếm</label>
             <input
-                class="form-input"
-                v-model="filters.keyword"
+                v-model.trim="filters.keyword"
+                type="text"
+                class="form-control"
                 placeholder="Tìm theo mã, tên, email, SĐT..."
+                @keyup.enter="applyFilters"
             />
           </div>
 
-          <div class="form-group f-role">
-            <label>Chức vụ</label>
-            <select class="form-input" v-model="filters.role">
+          <!-- role -->
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Chức vụ</label>
+            <select v-model="filters.chucVu" class="form-select" @change="applyFilters">
               <option value="">Tất cả</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="NHAN_VIEN">NHÂN VIÊN</option>
+              <option value="ADMIN">Admin</option>
+              <option value="NHAN_VIEN">Nhân viên</option>
             </select>
           </div>
 
-          <div class="form-group f-email">
-            <label>Email</label>
-            <input class="form-input" v-model="filters.email" placeholder="Email" />
+          <!-- email -->
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Email</label>
+            <input
+                v-model.trim="filters.email"
+                type="text"
+                class="form-control"
+                placeholder="Email"
+                @keyup.enter="applyFilters"
+            />
           </div>
 
-          <div class="form-group f-status">
-            <label>Trạng thái</label>
-            <div class="radio-row">
-              <label class="radio-item">
-                <input type="radio" v-model="filters.status" :value="1" /> Đang làm
-              </label>
-              <label class="radio-item">
-                <input type="radio" v-model="filters.status" :value="0" /> Đã nghỉ
-              </label>
-              <label class="radio-item">
-                <input type="radio" v-model="filters.status" :value="-1" /> Tất cả
-              </label>
+          <!-- phone -->
+          <div class="col-12 col-lg-3">
+            <label class="form-label">SĐT</label>
+            <input
+                v-model.trim="filters.phone"
+                type="text"
+                class="form-control"
+                placeholder="SĐT"
+                @keyup.enter="applyFilters"
+            />
+          </div>
+
+          <!-- ma nv -->
+          <div class="col-12 col-lg-3">
+            <label class="form-label">Mã nhân viên</label>
+            <input
+                v-model.trim="filters.maNhanVien"
+                type="text"
+                class="form-control"
+                placeholder="Mã NV"
+                @keyup.enter="applyFilters"
+            />
+          </div>
+
+          <!-- status -->
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Trạng thái</label>
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="st_all" value="all" v-model="filters.statusMode" />
+                <label class="form-check-label" for="st_all">Tất cả</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="st_work" value="working" v-model="filters.statusMode" />
+                <label class="form-check-label" for="st_work">Đang làm</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="st_off" value="off" v-model="filters.statusMode" />
+                <label class="form-check-label" for="st_off">Đã nghỉ</label>
+              </div>
             </div>
           </div>
 
-          <div class="form-group f-phone">
-            <label>SĐT</label>
-            <input class="form-input" v-model="filters.phone" placeholder="SĐT" />
+          <!-- buttons bottom like orders page -->
+          <div class="col-12 d-flex justify-content-end gap-2">
+            <button class="btn btn-light" type="button" @click="resetFilters">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
+            </button>
+            <button class="btn btn-primary text-white" type="button" @click="applyFilters">
+              <i class="bi bi-search me-1"></i> Lọc
+            </button>
           </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="filter-right">
-          <button class="btn btn-primary" type="button" @click="goCreate" :disabled="!isAdmin">
-            <span class="icon">＋</span> Thêm mới
-          </button>
-          <button class="btn btn-outline" type="button" @click="resetFilters">
-            <span class="icon">⟲</span> Đặt lại
-          </button>
         </div>
       </div>
     </div>
 
-    <!-- TABLE -->
-    <div class="card">
-      <div class="table-header">
-        <div class="total">Tổng số nhân viên {{ filteredList.length }}</div>
-      </div>
+    <!-- Table -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div v-if="loading" class="text-center py-5">
+          <div class="spinner-border" role="status"></div>
+          <div class="mt-2 text-muted">Đang tải...</div>
+        </div>
 
-      <div class="table-wrap">
-        <table class="staff-table">
-          <thead>
-          <tr>
-            <th class="col-stt">STT</th>
-            <th class="col-avatar">Ảnh</th>
-            <th class="col-code">Mã NV</th>
-            <th class="col-name">Họ tên</th>
-            <th class="col-email">Email</th>
-            <th class="col-phone">SĐT</th>
-            <th class="col-address">Địa chỉ</th>
-            <th class="col-role">Chức vụ</th>
-            <th class="col-status">Trạng thái</th>
-            <th class="col-action">Hành động</th>
-          </tr>
-          </thead>
+        <div v-else class="table-narrow">
+          <div class="table-scroll">
 
-          <tbody>
-          <tr v-for="(s, idx) in pagedList" :key="s.id">
-            <td class="ellipsis">{{ pageIndexStart + idx + 1 }}</td>
+            <table class="table align-middle table-hover mb-0">
+            <thead class="table-head-dark">
+            <tr>
+              <th style="width: 60px">#</th>
+              <th style="width: 80px">Ảnh</th>
+              <th style="width: 110px">Mã NV</th>
+              <th style="width: 180px">Họ tên</th>
+              <th style="width: 240px">Email</th>
+              <th style="width: 140px">SĐT</th>
+              <th style="width: 500px">Địa chỉ</th>
+              <th style="width: 130px" class="text-center">Chức vụ</th>
+              <th style="width: 140px" class="text-center">Trạng thái</th>
+              <th style="width: 170px" class="text-center">Hành động</th>
+            </tr>
+            </thead>
 
-            <td class="ellipsis">
-              <div class="avatar-cell">
-                <img
-                    v-if="resolveAvatar(s)"
-                    :src="resolveAvatar(s)"
-                    class="avatar-img"
-                    alt="avatar"
-                    @error="onAvatarError($event, s)"
-                />
-                <div v-else class="avatar-fallback">{{ getInitials(s.tenNhanVien) }}</div>
-              </div>
-            </td>
+            <tbody class="table-body-normal">
+            <tr v-if="paged.length === 0">
+              <td colspan="10" class="text-center text-muted py-4">Không có dữ liệu</td>
+            </tr>
 
-            <td>{{ s.maNhanVien }}</td>
-            <td>{{ s.tenNhanVien }}</td>
-            <td class="ellipsis" :title="s.email || ''">{{ s.email || '-' }}</td>
-            <td>{{ s.soDienThoai || '-' }}</td>
-            <td class="ellipsis" :title="s.diaChi || ''">{{ s.diaChi || '-' }}</td>
+            <tr v-for="(s, idx) in paged" :key="s.id">
+              <td>{{ page.page * page.size + idx + 1 }}</td>
 
-            <td class="center">
-              <span class="badge badge-role">{{ getRoleText(s) }}</span>
-            </td>
-
-            <td class="center">
-                <span :class="['badge', s.trangThai ? 'badge-working' : 'badge-off']">
-                  {{ s.trangThai ? 'Đang làm' : 'Đã nghỉ' }}
-                </span>
-            </td>
-
-            <td class="center">
-              <div class="action-row">
-                <label class="switch" :class="{ 'switch-disabled': !isAdmin }" title="Đổi trạng thái">
-                  <input
-                      type="checkbox"
-                      :checked="!!s.trangThai"
-                      :disabled="!isAdmin"
-                      @click.prevent="confirmToggleStatus(s)"
+              <td>
+                <div class="d-flex align-items-center">
+                  <img
+                      v-if="resolveAvatar(s)"
+                      :src="resolveAvatar(s)"
+                      class="rounded-circle border"
+                      style="width: 40px; height: 40px; object-fit: cover"
+                      alt="avatar"
+                      @error="onAvatarError($event, s)"
                   />
-                  <span class="slider"></span>
-                </label>
+                  <div
+                      v-else
+                      class="rounded-circle border d-flex align-items-center justify-content-center"
+                      style="width: 40px; height: 40px; background: #eef2ff; color: #1d4ed8; font-weight: 700"
+                  >
+                    {{ getInitials(s.tenNhanVien) }}
+                  </div>
+                </div>
+              </td>
 
-                <button class="icon-btn" type="button" title="Xem chi tiết" @click="openDetail(s)">
-                  👁
+              <td>{{ s.maNhanVien || "-" }}</td>
+              <td>{{ s.tenNhanVien || "-" }}</td>
+
+              <td class="text-truncate" style="max-width: 240px" :title="s.email || ''">
+                {{ s.email || "-" }}
+              </td>
+
+              <td>{{ s.soDienThoai || "-" }}</td>
+
+              <td class="addr-cell">
+                <div class="addr-full">
+                  {{ s.diaChi || "-" }}
+                </div>
+              </td>
+
+              <td class="text-center">
+                  <span class="badge text-bg-light border badge-normal">
+                    {{ getRoleText(s) }}
+                  </span>
+              </td>
+
+              <td class="text-center">
+                  <span class="badge fw-normal" :class="s.trangThai ? 'badge-working' : 'badge-off'">
+                    {{ s.trangThai ? "Đang làm" : "Đã nghỉ" }}
+                  </span>
+              </td>
+
+              <td class="text-end">
+                <div class="d-inline-flex align-items-center gap-2">
+                  <!-- Switch (FIX: dùng @change, revert ngay, mở confirm) -->
+                  <div class="form-check form-switch m-0" title="Đổi trạng thái">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        :checked="!!s.trangThai"
+                        :disabled="!isAdmin"
+                        @change="onSwitchAttempt($event, s)"
+                    />
+                  </div>
+
+                  <!-- detail -->
+                  <button class="btn btn-outline-primary btn-sm" type="button" title="Xem chi tiết" @click="goDetail(s.id)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+
+                  <!-- edit -->
+                  <button
+                      class="btn btn-outline-secondary btn-sm"
+                      type="button"
+                      title="Sửa"
+                      @click="goEdit(s.id)"
+                      :disabled="!isAdmin"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+
+          <!-- Pagination (CENTER) -->
+          <div class="row align-items-center mt-3 g-2">
+            <div class="col-12 col-lg-4 text-muted">
+              Hiển thị {{ paged.length }} / tổng {{ filtered.length }} bản ghi
+            </div>
+
+            <div class="col-12 col-lg-4 d-flex justify-content-center">
+              <div class="d-flex align-items-center gap-2">
+                <button
+                    class="btn btn-outline-secondary btn-sm"
+                    :disabled="page.page === 0"
+                    @click="setPage(page.page - 1)"
+                >
+                  <i class="bi bi-chevron-left"></i>
                 </button>
+
+                <div class="input-group input-group-sm" style="width: 140px">
+                  <span class="input-group-text">Trang</span>
+                  <input
+                      type="number"
+                      min="1"
+                      :max="page.totalPages || 1"
+                      class="form-control text-center"
+                      v-model.number="pageInput"
+                      @keyup.enter="jumpPage"
+                  />
+                </div>
 
                 <button
-                    class="icon-btn icon-edit"
-                    type="button"
-                    title="Sửa"
-                    @click="goEdit(s.id)"
-                    :disabled="!isAdmin"
+                    class="btn btn-outline-secondary btn-sm"
+                    :disabled="page.page >= page.totalPages - 1"
+                    @click="setPage(page.page + 1)"
                 >
-                  ✎
+                  <i class="bi bi-chevron-right"></i>
                 </button>
               </div>
-            </td>
-          </tr>
+            </div>
 
-          <tr v-if="!pagedList.length">
-            <td class="empty" colspan="10">Không có dữ liệu</td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination" v-if="pageCount > 1">
-        <button class="p-btn" :disabled="page === 1" @click="page = page - 1">‹</button>
-
-        <button
-            v-for="p in pageCount"
-            :key="p"
-            class="p-btn"
-            :class="{ active: p === page }"
-            @click="page = p"
-        >
-          {{ p }}
-        </button>
-
-        <button class="p-btn" :disabled="page === pageCount" @click="page = page + 1">›</button>
-
-        <div class="page-text">Trang {{ page }}/{{ pageCount }}</div>
+            <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
+              <select class="form-select form-select-sm" style="width: 140px" v-model.number="page.size" @change="applyFilters">
+                <option :value="10">10 / trang</option>
+                <option :value="20">20 / trang</option>
+                <option :value="50">50 / trang</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        </div>
       </div>
     </div>
 
-    <!-- DETAIL MODAL -->
-    <div v-if="detailOpen" class="modal-overlay" @click.self="detailOpen = false">
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title">Chi tiết nhân viên</div>
-          <button class="modal-close" type="button" @click="detailOpen = false">×</button>
-        </div>
+    <!-- Confirm Modal (Bootstrap) -->
+    <div class="modal fade" tabindex="-1" ref="confirmModalRef" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h6 class="modal-title">
+              <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng thái
+            </h6>
+            <button type="button" class="btn-close" aria-label="Close" @click="closeConfirm"></button>
+          </div>
 
-        <div class="modal-body">
-          <div class="detail-top">
-            <div class="detail-avatar">
-              <img
-                  v-if="resolveAvatar(detailData)"
-                  :src="resolveAvatar(detailData)"
-                  class="detail-avatar-img"
-                  alt="avatar"
-                  @error="onAvatarError($event, detailData)"
-              />
-              <div v-else class="detail-avatar-fallback">
-                {{ getInitials(detailData && detailData.tenNhanVien) }}
-              </div>
+          <div class="modal-body">
+            <div v-if="confirmState.staff">
+              Bạn muốn đổi trạng thái nhân viên
+              <b>{{ confirmState.staff.maNhanVien }}</b>
+              từ
+              <span class="badge fw-normal" :class="confirmState.staff.trangThai ? 'badge-working' : 'badge-off'">
+                {{ confirmState.staff.trangThai ? "Đang làm" : "Đã nghỉ" }}
+              </span>
+              sang
+              <span class="badge fw-normal" :class="confirmState.next ? 'badge-working' : 'badge-off'">
+                {{ confirmState.next ? "Đang làm" : "Đã nghỉ" }}
+              </span>
+              ?
             </div>
 
-            <div class="detail-head">
-              <div class="detail-name">{{ (detailData && detailData.tenNhanVien) || '-' }}</div>
-              <div class="detail-badges">
-                <span class="badge badge-role">{{ (detailData && detailData.maNhanVien) || '-' }}</span>
-                <span class="badge badge-role">{{ getRoleText(detailData) }}</span>
-                <span :class="['badge', detailData && detailData.trangThai ? 'badge-working' : 'badge-off']">
-                  {{ detailData && detailData.trangThai ? 'Đang làm' : 'Đã nghỉ' }}
-                </span>
-              </div>
+            <div class="text-muted small mt-2">
+              Hành động này sẽ cập nhật trạng thái nhân viên.
             </div>
           </div>
 
-          <div class="detail-grid">
-            <div class="detail-box">
-              <div class="detail-label">Email</div>
-              <div class="detail-value">{{ (detailData && detailData.email) || '-' }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">SĐT</div>
-              <div class="detail-value">{{ (detailData && detailData.soDienThoai) || '-' }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">CCCD</div>
-              <div class="detail-value">{{ (detailData && detailData.cccd) || '-' }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">Ngày sinh</div>
-              <div class="detail-value">{{ formatDate(detailData && detailData.ngaySinh) }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">Giới tính</div>
-              <div class="detail-value">{{ mapGender(detailData && detailData.gioiTinh) }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">Tài khoản</div>
-              <div class="detail-value">{{ (detailData && detailData.taiKhoan) || '-' }}</div>
-            </div>
-
-            <div class="detail-box col-full">
-              <div class="detail-label">Địa chỉ</div>
-              <div class="detail-value">{{ (detailData && detailData.diaChi) || '-' }}</div>
-            </div>
+          <div class="modal-footer">
+            <button class="btn btn-light" type="button" @click="closeConfirm" :disabled="confirmState.loading">
+              Hủy
+            </button>
+            <button class="btn btn-primary" type="button" @click="confirmChangeStatus" :disabled="confirmState.loading">
+              <span v-if="confirmState.loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+              Xác nhận
+            </button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="modal-footer">
-          <button class="btn btn-ghost" type="button" @click="detailOpen = false">Đóng</button>
+    <!-- Toast (dùng composable useToast.js của bạn) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+      <div
+          v-for="t in toast.state.items"
+          :key="t.id"
+          class="toast show align-items-center border-0 mb-2"
+          :class="toastClass(t.type)"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div class="toast-body">
+            <div v-if="t.title" class="fw-semibold mb-1">{{ t.title }}</div>
+            <div>{{ t.message }}</div>
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
         </div>
       </div>
     </div>
@@ -264,624 +353,367 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import http from '../../services/http'
-import { useAuthStore } from '../../stores/auth'
+import { computed, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import http from "../../services/http";
+import { useAuthStore } from "../../stores/auth";
+import { useToast } from "@/composables/useToast";
 
+const router = useRouter();
+const auth = useAuthStore();
+const toast = useToast();
 
-const auth = useAuthStore()
-const isAdmin = computed(() => !!auth.isAdmin)
-const router = useRouter()
+const isAdmin = computed(() => !!auth.isAdmin);
 
-const list = ref([])
-const page = ref(1)
-const pageSize = 10
+const loading = ref(false);
+const list = ref([]);
 
 const filters = reactive({
-  keyword: '',
-  role: '',
-  email: '',
-  phone: '',
-  status: -1 // -1 = tất cả
-})
+  keyword: "",
+  chucVu: "",
+  email: "",
+  phone: "",
+  maNhanVien: "",
+  statusMode: "all", // all | working | off
+});
 
-watch(
-    () => [filters.keyword, filters.role, filters.email, filters.phone, filters.status],
-    () => {
-      page.value = 1
-    }
-)
+const page = reactive({
+  page: 0,
+  size: 10,
+  totalPages: 1,
+});
+const pageInput = ref(1);
 
 function unwrapList(data) {
-  if (!data) return []
-  if (Array.isArray(data)) return data
-  if (data && Array.isArray(data.result)) return data.result
-  if (data && Array.isArray(data.content)) return data.content
-  return []
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.result)) return data.result;
+  if (Array.isArray(data.content)) return data.content;
+  return [];
 }
 
 function normalizeStaff(x) {
-  x = x || {}
-  const quyenHan = x.quyenHan || {}
+  x = x || {};
+  const quyenHan = x.quyenHan || {};
   return {
     id: x.id,
-    maNhanVien: x.maNhanVien != null ? x.maNhanVien : '',
-    tenNhanVien: x.tenNhanVien != null ? x.tenNhanVien : '',
-    soDienThoai: x.soDienThoai != null ? x.soDienThoai : '',
-    cccd: x.cccd != null ? x.cccd : '',
-    email: x.email != null ? x.email : '',
-    taiKhoan: x.taiKhoan != null ? x.taiKhoan : '',
-    ngaySinh: x.ngaySinh != null ? x.ngaySinh : null,
-    gioiTinh: x.gioiTinh != null ? x.gioiTinh : null,
-    diaChi: x.diaChi != null ? x.diaChi : '',
-    trangThai: x.trangThai != null ? x.trangThai : true,
-    tenQuyenHan:
-        x.tenQuyenHan != null ? x.tenQuyenHan : (quyenHan.tenQuyenHan != null ? quyenHan.tenQuyenHan : ''),
-    quyenHanId: x.quyenHanId != null ? x.quyenHanId : (quyenHan.id != null ? quyenHan.id : null),
-    anhDaiDien: x.anhDaiDien != null ? x.anhDaiDien : (x.anh_dai_dien != null ? x.anh_dai_dien : '')
-  }
+    maNhanVien: x.maNhanVien ?? "",
+    tenNhanVien: x.tenNhanVien ?? "",
+    soDienThoai: x.soDienThoai ?? "",
+    email: x.email ?? "",
+    taiKhoan: x.taiKhoan ?? "",
+    diaChi: x.diaChi ?? "",
+    trangThai: x.trangThai ?? true,
+    tenQuyenHan: x.tenQuyenHan ?? quyenHan.tenQuyenHan ?? "",
+    quyenHanId: x.quyenHanId ?? quyenHan.id ?? null,
+    anhDaiDien: x.anhDaiDien ?? x.anh_dai_dien ?? "",
+  };
 }
 
 function safeStr(v) {
-  return String(v == null ? '' : v).toLowerCase().trim()
+  return String(v == null ? "" : v).toLowerCase().trim();
 }
 
-/** ✅ ROLE HELPERS (CHỈ 1 BỘ - KHÔNG BỊ TRÙNG) */
+/** ROLE (logic giữ nguyên, chỉ đổi text hiển thị) */
 function getRoleCode(s) {
-  if (Number(s?.quyenHanId) === 1) return 'ADMIN'
-  if (Number(s?.quyenHanId) === 2) return 'NHAN_VIEN'
+  const id = Number(s?.quyenHanId ?? s?.quyenHan?.id ?? null);
+  if (id === 1) return "ADMIN";
+  if (id === 2) return "NHAN_VIEN";
 
-  const roleName = String(s?.tenQuyenHan || '').toUpperCase()
-  if (roleName.includes('ADMIN')) return 'ADMIN'
-  return 'NHAN_VIEN'
+  const roleName = String(s?.tenQuyenHan ?? s?.quyenHan?.tenQuyenHan ?? "").toUpperCase();
+  if (roleName.includes("ADMIN")) return "ADMIN";
+  return "NHAN_VIEN";
 }
-
 function getRoleText(s) {
-  return getRoleCode(s) === 'ADMIN' ? 'ADMIN' : 'NHÂN VIÊN'
+  return getRoleCode(s) === "ADMIN" ? "Admin" : "Nhân viên";
 }
 
-function mapGender(v) {
-  if (v === true) return 'Nam'
-  if (v === false) return 'Nữ'
-  return 'Khác'
-}
-
-function formatDate(d) {
-  if (!d) return '-'
-  return String(d).slice(0, 10)
-}
-
-function getInitials(name) {
-  const s = String(name || '').trim()
-  if (!s) return 'NV'
-  const parts = s.split(/\s+/).filter(Boolean)
-  const a = parts[0] ? parts[0][0] : 'N'
-  const b = parts[parts.length - 1] ? parts[parts.length - 1][0] : 'V'
-  return (a + b).toUpperCase()
-}
-
-/** ===== Avatar URL ===== */
-const FALLBACK_BACKEND = 'http://localhost:8080'
-
+/** Avatar */
+const FALLBACK_BACKEND = "http://localhost:8080";
 function getBackendOrigin() {
-  const base = String((http && http.defaults && http.defaults.baseURL) || '').trim()
-  if (base.startsWith('http://') || base.startsWith('https://')) {
+  const base = String((http && http.defaults && http.defaults.baseURL) || "").trim();
+  if (base.startsWith("http://") || base.startsWith("https://")) {
     try {
-      return new URL(base).origin
+      return new URL(base).origin;
     } catch {
-      return FALLBACK_BACKEND
+      return FALLBACK_BACKEND;
     }
   }
-  return FALLBACK_BACKEND
+  return FALLBACK_BACKEND;
 }
-
 function resolveFileUrl(url) {
-  const u = String(url || '').trim()
-  if (!u) return ''
-  if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:image')) return u
-  const origin = getBackendOrigin()
-  return u.startsWith('/') ? origin + u : origin + '/' + u
+  const u = String(url || "").trim();
+  if (!u) return "";
+  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image")) return u;
+  const origin = getBackendOrigin();
+  return u.startsWith("/") ? origin + u : origin + "/" + u;
 }
-
 function resolveAvatar(s) {
-  s = s || {}
-  const url = String(s.anhDaiDien || '').trim()
-  if (!url) return ''
-  return resolveFileUrl(url)
+  const url = String(s?.anhDaiDien || "").trim();
+  if (!url) return "";
+  return resolveFileUrl(url);
 }
-
 function onAvatarError(e, s) {
-  if (s) s.anhDaiDien = ''
-  if (e && e.target) e.target.src = ''
+  if (s) s.anhDaiDien = "";
+  if (e && e.target) e.target.src = "";
+}
+function getInitials(name) {
+  const s = String(name || "").trim();
+  if (!s) return "NV";
+  const parts = s.split(/\s+/).filter(Boolean);
+  const a = parts[0] ? parts[0][0] : "N";
+  const b = parts[parts.length - 1] ? parts[parts.length - 1][0] : "V";
+  return (a + b).toUpperCase();
 }
 
-/** ===== Data ===== */
+/** Fetch */
 async function fetchList() {
-  const res = await http.get('/api/nhan-vien')
-  list.value = unwrapList(res.data).map(normalizeStaff)
+  loading.value = true;
+  try {
+    const res = await http.get("/api/nhan-vien");
+    list.value = unwrapList(res.data).map(normalizeStaff);
+  } catch (e) {
+    console.error(e);
+    toast.error("Không tải được danh sách nhân viên.");
+  } finally {
+    loading.value = false;
+  }
 }
 
-const filteredList = computed(() => {
-  const kw = safeStr(filters.keyword)
-  const email = safeStr(filters.email)
-  const phone = safeStr(filters.phone)
+/** Filter */
+const filtered = computed(() => {
+  const kw = safeStr(filters.keyword);
+  const email = safeStr(filters.email);
+  const phone = safeStr(filters.phone);
+  const ma = safeStr(filters.maNhanVien);
 
   return (list.value || []).filter((s) => {
-    // status
-    if (filters.status !== -1) {
-      if (filters.status === 1 && !s.trangThai) return false
-      if (filters.status === 0 && s.trangThai) return false
+    if (filters.statusMode !== "all") {
+      if (filters.statusMode === "working" && !s.trangThai) return false;
+      if (filters.statusMode === "off" && s.trangThai) return false;
     }
 
-    // role
-    if (filters.role) {
-      const rl = getRoleCode(s) // ADMIN | NHAN_VIEN
-      if (rl !== String(filters.role)) return false
+    if (filters.chucVu) {
+      if (getRoleCode(s) !== filters.chucVu) return false;
     }
 
-    if (email && !safeStr(s.email).includes(email)) return false
-    if (phone && !safeStr(s.soDienThoai).includes(phone)) return false
+    if (email && !safeStr(s.email).includes(email)) return false;
+    if (phone && !safeStr(s.soDienThoai).includes(phone)) return false;
+    if (ma && !safeStr(s.maNhanVien).includes(ma)) return false;
 
     if (kw) {
-      const blob =
-          (String(s.maNhanVien || '') +
-              ' ' +
-              String(s.tenNhanVien || '') +
-              ' ' +
-              String(s.email || '') +
-              ' ' +
-              String(s.soDienThoai || '')).toLowerCase()
-      if (!blob.includes(kw)) return false
+      const blob = (
+          String(s.maNhanVien || "") +
+          " " +
+          String(s.tenNhanVien || "") +
+          " " +
+          String(s.email || "") +
+          " " +
+          String(s.soDienThoai || "")
+      ).toLowerCase();
+      if (!blob.includes(kw)) return false;
     }
 
-    return true
-  })
-})
+    return true;
+  });
+});
 
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredList.value.length / pageSize)))
-const pageIndexStart = computed(() => (page.value - 1) * pageSize)
-const pagedList = computed(() => {
-  const start = pageIndexStart.value
-  return filteredList.value.slice(start, start + pageSize)
-})
+const paged = computed(() => {
+  const start = page.page * page.size;
+  return filtered.value.slice(start, start + page.size);
+});
+
+function recalcPages() {
+  page.totalPages = Math.max(1, Math.ceil(filtered.value.length / page.size));
+  if (page.page > page.totalPages - 1) page.page = page.totalPages - 1;
+  pageInput.value = page.page + 1;
+}
+
+function applyFilters() {
+  page.page = 0;
+  recalcPages();
+}
 
 function resetFilters() {
-  filters.keyword = ''
-  filters.role = ''
-  filters.email = ''
-  filters.phone = ''
-  filters.status = -1
-  page.value = 1
+  filters.keyword = "";
+  filters.chucVu = "";
+  filters.email = "";
+  filters.phone = "";
+  filters.maNhanVien = "";
+  filters.statusMode = "all";
+  page.page = 0;
+  recalcPages();
 }
 
+function setPage(p) {
+  if (p < 0) return;
+  if (p > page.totalPages - 1) return;
+  page.page = p;
+  pageInput.value = page.page + 1;
+}
+
+function jumpPage() {
+  const max = Math.max(1, page.totalPages || 1);
+  const target = Math.min(Math.max(1, pageInput.value || 1), max);
+  page.page = target - 1;
+}
+
+/** Navigation */
 function goCreate() {
-  if (!isAdmin.value) return alert('Chỉ ADMIN mới được thêm mới.')
-  router.push({ name: 'staff-new' })
+  if (!isAdmin.value) return toast.warning("Chỉ ADMIN mới được thêm mới.");
+  if (router.hasRoute("staff-new")) return router.push({ name: "staff-new" });
+  router.push("/staff/new");
 }
-
 function goEdit(id) {
-  if (!isAdmin.value) return alert('Chỉ ADMIN mới được sửa.')
-  router.push({ name: 'staff-edit', params: { id } })
+  if (!isAdmin.value) return toast.warning("Chỉ ADMIN mới được sửa.");
+  if (router.hasRoute("staff-edit")) return router.push({ name: "staff-edit", params: { id } });
+  router.push(`/staff/${id}/edit`);
+}
+function goDetail(id) {
+  const candidates = ["staff-detail", "staff-view", "staff-show"];
+  const found = candidates.find((n) => router.hasRoute(n));
+  if (found) return router.push({ name: found, params: { id } });
+  router.push(`/staff/${id}`);
 }
 
-async function confirmToggleStatus(s) {
-  if (!isAdmin.value) return alert('Chỉ ADMIN mới được đổi trạng thái.')
+/** Confirm Modal */
+const confirmModalRef = ref(null);
+let bsConfirm = null;
 
-  const next = !s.trangThai
-  const txt = next ? 'chuyển sang Đang làm' : 'chuyển sang Đã nghỉ'
-  if (!confirm('Bạn có chắc chắn ' + txt + ' không ?')) return
+const confirmState = reactive({
+  staff: null,
+  next: false,
+  loading: false,
+});
 
-  await http.patch('/api/nhan-vien/' + s.id + '/trang-thai', { trangThai: next })
-  s.trangThai = next
+function openConfirmStatus(staff, nextValue) {
+  if (!isAdmin.value) return toast.warning("Chỉ ADMIN mới được đổi trạng thái.");
 
-  // để không “mất dòng” do filter
-  filters.status = -1
-  page.value = 1
+  confirmState.staff = staff;
+  confirmState.next = !!nextValue;
+  confirmState.loading = false;
+
+  const Modal = window.bootstrap?.Modal;
+  if (Modal && confirmModalRef.value) {
+    bsConfirm = Modal.getOrCreateInstance(confirmModalRef.value);
+    bsConfirm.show();
+    return;
+  }
+
+  // fallback nếu bootstrap js chưa load
+  const ok = window.confirm(
+      `Bạn muốn đổi trạng thái ${staff.maNhanVien} sang ${confirmState.next ? "Đang làm" : "Đã nghỉ"}?`
+  );
+  if (ok) confirmChangeStatus();
 }
 
-/** ===== Detail modal ===== */
-const detailOpen = ref(false)
-const detailData = ref(null)
-
-function openDetail(s) {
-  detailData.value = Object.assign({}, s)
-  detailOpen.value = true
+function closeConfirm() {
+  try {
+    bsConfirm?.hide?.();
+  } catch {}
 }
 
-onMounted(fetchList)
+async function patchStatus(id, next) {
+  await http.patch(`/api/nhan-vien/${id}/trang-thai`, { trangThai: next });
+  const idx = (list.value || []).findIndex((x) => x.id === id);
+  if (idx !== -1) list.value[idx].trangThai = next;
+}
+
+async function confirmChangeStatus() {
+  if (!confirmState.staff) return;
+
+  confirmState.loading = true;
+  try {
+    const id = confirmState.staff.id;
+    const next = confirmState.next;
+
+    await patchStatus(id, next);
+
+    toast.success("Cập nhật trạng thái thành công!");
+    closeConfirm();
+    recalcPages();
+  } catch (e) {
+    console.error(e);
+    toast.error("Cập nhật trạng thái thất bại.");
+  } finally {
+    confirmState.loading = false;
+  }
+}
+
+/** ✅ SWITCH FIX: @change -> revert ngay -> mở confirm */
+function onSwitchAttempt(e, staff) {
+  if (!isAdmin.value) {
+    e.target.checked = !!staff.trangThai;
+    return toast.warning("Chỉ ADMIN mới được đổi trạng thái.");
+  }
+
+  const nextValue = !!e.target.checked;
+  // revert ngay để tránh đổi “ảo” khi chưa confirm
+  e.target.checked = !!staff.trangThai;
+
+  openConfirmStatus(staff, nextValue);
+}
+
+/** Toast classes */
+function toastClass(type) {
+  const t = String(type || "info").toLowerCase();
+  if (t === "success") return "text-bg-success";
+  if (t === "error") return "text-bg-danger";
+  if (t === "warning") return "text-bg-warning";
+  return "text-bg-info";
+}
+
+onMounted(async () => {
+  await fetchList();
+  recalcPages();
+});
 </script>
 
 <style scoped>
-.staff-page { font-size: 15px; }
-
-.page-title h2 {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  font-weight: 700;
+.table-narrow {
+  max-width: 98%;
+  margin: 0 auto;
 }
 
-.card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 14px;
+.table-head-dark th {
+  background: #1f2a3a !important;
+  color: #fff !important;
+  font-weight: 600;
 }
 
-.filter-card .card-header{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:10px;
-}
-.card-title{ font-weight:700; }
-.collapse-icon{ font-size: 12px; opacity: 0.7; }
-
-.filter-wrapper{
-  display:flex;
-  gap: 16px;
-  align-items: stretch;
+.table-body-normal td {
+  font-weight: 400;
+  text-transform: none;
 }
 
-/* layout filter như khoanh đỏ */
-.filter-left{
-  flex: 1;
-  display:grid;
-  grid-template-columns: 2.6fr 1.2fr 1.2fr;
-  gap: 12px;
-  align-items:end;
-}
-.f-search{ grid-column: 1 / 2; }
-.f-role  { grid-column: 2 / 3; }
-.f-email { grid-column: 3 / 4; }
+/* chỉ table mới scroll ngang, không kéo qua paging */
+.table-scroll {
 
-.f-status{ grid-column: 1 / 2; }
-.f-phone { grid-column: 2 / 3; }
-
-.filter-right{
-  width: 140px;
-  display:flex;
-  flex-direction: column;
-  gap: 10px;
-  justify-content: center;
 }
 
-.form-group label{
-  display:block;
-  margin-bottom:6px;
-  font-weight:600;
-}
-.form-input{
-  width:100%;
-  padding:9px 10px;
-  border-radius:6px;
-  border:1px solid #d0d7de;
-  outline:none;
-  font-size:15px;
-  background:#fff;
-  height: 38px;
+/* địa chỉ hiển thị đầy đủ, cho phép xuống dòng */
+.addr-full {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
 }
 
-.radio-row{
-  display:flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.radio-item{
-  display:flex;
-  gap: 6px;
-  align-items:center;
-  font-size: 15px;
+/* optional: nếu muốn địa chỉ rộng hơn khi phóng to */
+.addr-cell {
+  min-width: 320px; /* tăng/giảm tùy ý */
 }
 
-.btn{
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  border: 1px solid #d0d7de;
-  background: #fff;
-  font-size: 14px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  width: 100%;
-}
-.btn-primary{
-  border-color:#1d4ed8;
-  background:#fff;
-}
-.btn-outline{ background:#fff; }
-.btn-ghost{ background:#fff; }
-.icon{ font-size: 16px; line-height: 1; }
-
-@media (max-width: 1100px){
-  .filter-wrapper{ flex-direction: column; }
-  .filter-right{ width: 100%; flex-direction: row; justify-content: flex-end; }
-  .btn{ width: auto; }
-  .filter-left{ grid-template-columns: 1fr 1fr; }
-  .f-email{ grid-column: 1 / 3; }
-  .f-status{ grid-column: 1 / 3; }
+.badge-normal {
+  font-weight: 400;
 }
 
-/* TABLE */
-.table-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
-}
-.total{ font-weight:700; }
-
-.table-wrap{ overflow:auto; }
-
-.staff-table{
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-.staff-table thead th{
-  background:#1f2a3a;
-  color:#fff;
-  font-weight:700;
-  padding:10px 8px;
-  text-align:left;
-  font-size: 14px;
-}
-.staff-table td{
-  border-top:1px solid #eef2f7;
-  padding:10px 8px;
-  vertical-align: middle;
-  color:#374151;
-  text-align:left;
+.badge-working {
+  background: #198754 !important;
+  color: #fff !important;
 }
 
-.staff-table thead th.col-role,
-.staff-table thead th.col-status,
-.staff-table thead th.col-action {
-  text-align: center;
-}
-
-.center{ text-align:center !important; }
-
-.ellipsis{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.col-stt{ width: 50px; }
-.col-avatar{ width: 70px; }
-.col-code{ width: 90px; }
-.col-name{ width: 200px; }
-.col-email{ width: 220px; }
-.col-phone{ width: 120px; }
-.col-address{ width: 420px; }
-.col-role{ width: 120px; }
-.col-status{ width: 120px; }
-.col-action{ width: 160px; }
-
-.avatar-cell{
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-}
-.avatar-img{
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  object-fit: cover;
-  border: 1px solid #e5e7eb;
-}
-.avatar-fallback{
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  background:#eef2ff;
-  border: 1px solid #e5e7eb;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  color:#1d4ed8;
-  font-size: 12px;
-}
-
-.badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-}
-.badge-role{ background:#eef2ff; color:#1d4ed8; }
-.badge-working{ background:#dbeafe; color:#1d4ed8; }
-.badge-off{ background:#e5e7eb; color:#6b7280; }
-
-.action-row{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-}
-
-/* Switch */
-.switch{
-  position:relative;
-  display:inline-block;
-  width:42px;
-  height:22px;
-}
-.switch input{ opacity:0; width:0; height:0; }
-.slider{
-  position:absolute;
-  cursor:pointer;
-  top:0; left:0; right:0; bottom:0;
-  background:#cbd5e1;
-  transition:.2s;
-  border-radius:999px;
-}
-.slider:before{
-  position:absolute;
-  content:"";
-  height:18px; width:18px;
-  left:2px; top:2px;
-  background:white;
-  transition:.2s;
-  border-radius:999px;
-}
-
-.btn:disabled,
-.icon-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.switch-disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.switch input:disabled + .slider {
-  cursor: not-allowed;
-}
-
-.switch input:checked + .slider{ background:#1d4ed8; }
-.switch input:checked + .slider:before{ transform: translateX(20px); }
-
-.icon-btn{
-  border:1px solid #d0d7de;
-  background:#fff;
-  border-radius:6px;
-  width:34px;
-  height:30px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.icon-edit{
-  background:#1f3a8a;
-  color:#fff;
-  border-color:#1f3a8a;
-}
-
-.empty{
-  text-align:center !important;
-  padding: 16px;
-  color:#6b7280;
-}
-
-/* Pagination */
-.pagination{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  margin-top:12px;
-}
-.p-btn{
-  min-width:32px;
-  height:30px;
-  border-radius:6px;
-  border:1px solid #d0d7de;
-  background:#fff;
-  cursor:pointer;
-}
-.p-btn.active{
-  background:#1f2a3a;
-  color:#fff;
-  border-color:#1f2a3a;
-}
-.p-btn:disabled{
-  opacity:0.5;
-  cursor:not-allowed;
-}
-.page-text{ margin-left:10px; opacity:0.7; }
-
-/* MODAL */
-.modal-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.35);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:50;
-}
-.modal{
-  width:min(920px, 95vw);
-  background:#fff;
-  border-radius:12px;
-  border:1px solid #e5e7eb;
-  overflow:hidden;
-  font-size: 15px;
-}
-.modal-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:14px 16px;
-  border-bottom:1px solid #eef2f7;
-}
-.modal-title{ font-weight:800; font-size: 18px; }
-.modal-close{
-  border:none;
-  background:transparent;
-  cursor:pointer;
-  font-size:22px;
-}
-.modal-body{ padding:16px; }
-.modal-footer{
-  padding:14px 16px;
-  border-top:1px solid #eef2f7;
-  display:flex;
-  justify-content:flex-end;
-}
-
-.detail-top{
-  display:flex;
-  gap:14px;
-  align-items:center;
-  margin-bottom:14px;
-}
-.detail-avatar{
-  width:84px;
-  height:84px;
-  border-radius:999px;
-  overflow:hidden;
-  border:1px solid #e5e7eb;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#eef2ff;
-}
-.detail-avatar-img{ width:100%; height:100%; object-fit:cover; }
-.detail-avatar-fallback{ font-weight:800; color:#1d4ed8; }
-.detail-name{ font-size:20px; font-weight:800; margin-bottom:6px; }
-.detail-badges{ display:flex; gap:8px; flex-wrap:wrap; }
-
-.detail-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-.detail-box{
-  border:1px solid #e5e7eb;
-  border-radius:10px;
-  padding:12px;
-}
-.detail-label{ font-weight:600; opacity:0.7; margin-bottom:6px; }
-.detail-value{ font-weight:400; color:#111827; }
-.col-full{ grid-column: span 2; }
-
-@media (max-width: 860px){
-  .detail-grid{ grid-template-columns:1fr; }
-  .col-full{ grid-column: span 1; }
+.badge-off {
+  background: #e5e7eb !important;
+  color: #6b7280 !important;
 }
 </style>
