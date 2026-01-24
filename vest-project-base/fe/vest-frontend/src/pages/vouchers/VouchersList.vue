@@ -17,9 +17,8 @@
       </div>
     </div>
 
-    <!-- Filters (GIỐNG HÓA ĐƠN: header collapse màu xanh) -->
+    <!-- Filters -->
     <div class="card shadow-sm mb-3 filter-card">
-      <!-- Header (click để thu gọn/mở rộng) -->
       <div
         class="filter-header d-flex align-items-center justify-content-between"
         data-bs-toggle="collapse"
@@ -36,11 +35,9 @@
         <small class="filter-hint">Nhấn để thu gọn/mở rộng</small>
       </div>
 
-      <!-- Body -->
       <div id="filterBody" class="collapse show">
         <div class="card-body filter-body">
           <div class="row g-3">
-            <!-- keyword -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Tìm kiếm</label>
               <input
@@ -53,7 +50,6 @@
               />
             </div>
 
-            <!-- loai giam -->
             <div class="col-12 col-lg-3">
               <label class="form-label">Loại giảm</label>
               <select v-model="filters.loai" class="form-select" @change="applyFilters">
@@ -63,7 +59,6 @@
               </select>
             </div>
 
-            <!-- biz status -->
             <div class="col-12 col-lg-3">
               <label class="form-label">Trạng thái</label>
               <select v-model="filters.bizStatus" class="form-select" @change="applyFilters">
@@ -74,7 +69,6 @@
               </select>
             </div>
 
-            <!-- ✅ Loại phiếu (RADIO) -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Loại phiếu</label>
               <div class="d-flex align-items-center gap-3 mt-2 flex-wrap">
@@ -116,7 +110,6 @@
               </div>
             </div>
 
-            <!-- From date -->
             <div class="col-12 col-lg-3">
               <label class="form-label">Từ ngày</label>
               <div class="input-group">
@@ -130,7 +123,6 @@
               </div>
             </div>
 
-            <!-- To date -->
             <div class="col-12 col-lg-3">
               <label class="form-label">Đến ngày</label>
               <div class="input-group">
@@ -144,7 +136,6 @@
               </div>
             </div>
 
-            <!-- actions -->
             <div class="col-12 d-flex justify-content-end gap-2">
               <button class="btn btn-light" @click="resetFilters">
                 <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
@@ -194,7 +185,6 @@
 
                 <td class="fw-semibold">{{ v.tenGiamGia }}</td>
 
-                <!-- ✅ MÀU LOẠI PHIẾU (pill như cũ) -->
                 <td>
                   <span class="pill" :class="isPersonal(v) ? 'pill-personal' : 'pill-public'">
                     {{ isPersonal(v) ? "Cá nhân" : "Công khai" }}
@@ -206,7 +196,6 @@
                 <td>{{ formatDate(v.ngayBatDau) }}</td>
                 <td>{{ formatDate(v.ngayKetThuc) }}</td>
 
-                <!-- ✅ TRẠNG THÁI CÓ MÀU -->
                 <td>
                   <span class="badge" :class="bizBadgeClass(getBizStatusText(v))">
                     {{ getBizStatusText(v) }}
@@ -227,7 +216,7 @@
                     <i class="bi bi-pencil-square"></i>
                   </button>
 
-                  <!-- Switch (FE-only) -->
+                  <!-- ✅ Switch: gọi BE start/end thật -->
                   <label
                     class="switch"
                     :title="
@@ -238,7 +227,12 @@
                           : 'Bật để bắt đầu áp dụng ngay'
                     "
                   >
-                    <input type="checkbox" :checked="isActive(v)" :disabled="isEnded(v)" @change="onToggleBiz(v, $event)" />
+                    <input
+                      type="checkbox"
+                      :checked="isActive(v)"
+                      :disabled="isEnded(v) || togglingIds.has(v.id)"
+                      @change="onToggleBiz(v, $event)"
+                    />
                     <span class="slider"></span>
                   </label>
                 </td>
@@ -247,14 +241,12 @@
           </table>
         </div>
 
-        <!-- ✅ Pagination giống hóa đơn (Trang + prev/next + page size) -->
+        <!-- Pagination -->
         <div class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2" v-if="totalPages > 0">
-          <!-- Left -->
           <div class="text-muted flex-grow-1">
             Hiển thị {{ pagedItems.length }} / tổng {{ totalElements }} bản ghi
           </div>
 
-          <!-- Center -->
           <div class="d-flex align-items-center gap-2 justify-content-center flex-grow-1">
             <button class="btn btn-outline-secondary btn-sm" :disabled="page.page === 0" @click="setPage(page.page - 1)">
               <i class="bi bi-chevron-left"></i>
@@ -272,16 +264,11 @@
               />
             </div>
 
-            <button
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="page.page >= totalPages - 1"
-              @click="setPage(page.page + 1)"
-            >
+            <button class="btn btn-outline-secondary btn-sm" :disabled="page.page >= totalPages - 1" @click="setPage(page.page + 1)">
               <i class="bi bi-chevron-right"></i>
             </button>
           </div>
 
-          <!-- Right -->
           <div class="d-flex justify-content-md-end flex-grow-1">
             <select class="form-select form-select-sm" style="width: 180px" v-model.number="page.size" @change="onChangeSize">
               <option :value="10">10 bản ghi / trang</option>
@@ -297,7 +284,7 @@
       </div>
     </div>
 
-    <!-- ✅ CONFIRM MODAL -->
+    <!-- Confirm modal -->
     <div v-if="showConfirm" class="modal-overlay" @click.self="closeConfirm">
       <div class="modal-card">
         <h3 class="modal-title">Xác nhận</h3>
@@ -319,8 +306,8 @@ import { ref, reactive, computed, onMounted, watch, onBeforeUnmount, nextTick } 
 import axios from "axios";
 import { useRouter, useRoute } from "vue-router";
 import * as XLSX from "xlsx";
-import { useToast } from "@/composables/useToast"; 
-/** ✅ flatpickr */
+import { useToast } from "@/composables/useToast";
+
 import flatpickr from "flatpickr";
 import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
 import "flatpickr/dist/flatpickr.css";
@@ -328,6 +315,7 @@ import "flatpickr/dist/flatpickr.css";
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
+
 const API = "http://localhost:8080/api/pgg";
 const getAllPhieuGiamGia = async () => (await axios.get(API)).data;
 
@@ -335,6 +323,9 @@ const getAllPhieuGiamGia = async () => (await axios.get(API)).data;
 const loading = ref(false);
 const error = ref("");
 const items = ref([]);
+
+// ✅ đang xử lý switch theo id (tránh bấm spam)
+const togglingIds = ref(new Set());
 
 // ===== Confirm modal =====
 const showConfirm = ref(false);
@@ -370,21 +361,18 @@ async function confirmYes() {
 // ===== Filters =====
 const filters = reactive({
   keyword: "",
-  loai: "", // PERCENT | MONEY | ""
-  bizStatus: "", // UPCOMING | ACTIVE | EXPIRED | ""
-  loaiPhieu: "", // "" | "CONG_KHAI" | "CA_NHAN"
-  from: "", // yyyy-MM-dd
-  to: "", // yyyy-MM-dd
+  loai: "",
+  bizStatus: "",
+  loaiPhieu: "",
+  from: "",
+  to: "",
 });
 
-// ===== Pagination (GIỐNG HÓA ĐƠN) =====
-const page = reactive({
-  page: 0, // 0-based
-  size: 10,
-});
+// ===== Pagination =====
+const page = reactive({ page: 0, size: 10 });
 const pageInput = ref(1);
 
-// ===== Query sync: GIỮ FILTER khi đi detail/sửa rồi quay lại =====
+// ===== Query sync =====
 let applyingQuery = false;
 
 function buildListQuery() {
@@ -422,12 +410,10 @@ function restoreFromQuery(q = route.query) {
   page.size = Number.isFinite(s) ? s : 10;
   pageInput.value = page.page + 1;
 
-  nextTick(() => {
-    applyingQuery = false;
-  });
+  nextTick(() => (applyingQuery = false));
 }
 
-// browser back/forward
+// back/forward
 watch(
   () => route.query,
   (q) => {
@@ -440,15 +426,11 @@ watch(
   }
 );
 
-// =======================
-// Auto search (debounce)
-// =======================
+// debounce
 let autoTimer = null;
 function autoApplyFilters(delay = 450) {
   clearTimeout(autoTimer);
-  autoTimer = setTimeout(() => {
-    applyFilters();
-  }, delay);
+  autoTimer = setTimeout(() => applyFilters(), delay);
 }
 
 function applyFilters() {
@@ -457,14 +439,13 @@ function applyFilters() {
   syncQueryToUrl();
 }
 
-// đổi size giống hóa đơn: reset về trang 1
 function onChangeSize() {
   page.page = 0;
   pageInput.value = 1;
   syncQueryToUrl();
 }
 
-// ===== Navigation: luôn mang query hiện tại =====
+// navigation
 function goCreate() {
   router.push({ path: "/vouchers/create", query: buildListQuery() });
 }
@@ -500,7 +481,7 @@ function dateFromYMD(ymd, endOfDay = false) {
   return d;
 }
 
-// ===== Biz status =====
+// ===== Biz status (tính theo date) =====
 function getBizStatusText(v) {
   const start = toDate(v.ngayBatDau);
   const end = toDate(v.ngayKetThuc);
@@ -520,7 +501,6 @@ function isUpcoming(v) {
   return getBizStatusText(v) === "Sắp diễn ra";
 }
 
-// ✅ Badge màu
 function bizBadgeClass(text) {
   if (text === "Đang áp dụng") return "badge-success";
   if (text === "Sắp diễn ra") return "badge-warning";
@@ -539,22 +519,18 @@ function isPersonal(v) {
   return String(lp || "").toUpperCase() === "CA_NHAN";
 }
 
-// ===== normalize BE fields =====
+// ===== normalize =====
 function normalizeRow(x) {
   return {
     ...x,
     id: x.id,
-
     loaiPhieu: x.loaiPhieu ?? x.loai_phieu ?? "CONG_KHAI",
     ngayBatDau: x.ngayBatDau ?? x.ngay_bat_dau ?? null,
     ngayKetThuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
     ngayTao: x.ngayTao ?? x.ngay_tao ?? null,
-
     maGiamGia: x.maGiamGia ?? x.ma_giam_gia ?? x.ma ?? null,
     tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia ?? null,
-
     trangThai: x.trangThai ?? x.trang_thai ?? true,
-
     loaiGiam: x.loaiGiam ?? x.loai_giam ?? true,
     giaTriPhanTram: x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? null,
     giaTriTienMat: x.giaTriTienMat ?? x.gia_tri_tien_mat ?? null,
@@ -562,7 +538,7 @@ function normalizeRow(x) {
   };
 }
 
-// ===== Filtering FE =====
+// ===== Filtering =====
 const filteredItems = computed(() => {
   const kw = String(filters.keyword || "").trim().toLowerCase();
   const loai = String(filters.loai || "");
@@ -574,33 +550,26 @@ const filteredItems = computed(() => {
 
   return (items.value || [])
     .filter((v) => v.trangThai === true)
-
     .filter((v) => {
       if (!kw) return true;
       const ma = String(v.maGiamGia ?? "").toLowerCase();
       const ten = String(v.tenGiamGia ?? "").toLowerCase();
       return ma.includes(kw) || ten.includes(kw);
     })
-
     .filter((v) => {
       if (!loai) return true;
       if (loai === "PERCENT") return v.loaiGiam === true;
       if (loai === "MONEY") return v.loaiGiam === false;
       return true;
     })
-
-    // ✅ lọc loại phiếu theo radio
     .filter((v) => {
       if (!lp) return true;
-
       const isCaNhan = v?.loaiPhieu === true || String(v?.loaiPhieu || "").toUpperCase() === "CA_NHAN";
       const isCongKhai = v?.loaiPhieu === false || String(v?.loaiPhieu || "").toUpperCase() === "CONG_KHAI";
-
       if (lp === "CA_NHAN") return isCaNhan;
       if (lp === "CONG_KHAI") return isCongKhai;
       return true;
     })
-
     .filter((v) => {
       const fromD = dateFromYMD(from, false);
       const toD = dateFromYMD(to, true);
@@ -611,13 +580,10 @@ const filteredItems = computed(() => {
 
       if (fromD && !start) return false;
       if (toD && !end) return false;
-
       if (fromD && start < fromD) return false;
       if (toD && end > toD) return false;
-
       return true;
     })
-
     .filter((v) => {
       if (!biz) return true;
       const start = toDate(v.ngayBatDau);
@@ -680,59 +646,83 @@ function renderGiaTriGiamRow(v) {
   return formatMoney(money);
 }
 
-// ===== Switch FE-only =====
-function patchFieldLocal(v, patch) {
-  const idx = (items.value || []).findIndex((x) => x.id === v.id);
-  if (idx !== -1) items.value[idx] = { ...items.value[idx], ...patch };
-  Object.assign(v, patch);
+// ===== ✅ Switch: gọi BE thật =====
+async function apiStartNow(id) {
+  await axios.put(`${API}/start/${id}`);
 }
-function startNowLocal(v) {
-  const nowIso = new Date().toISOString();
-  patchFieldLocal(v, { ngayBatDau: nowIso });
+async function apiEndNow(id) {
+  await axios.put(`${API}/end-pgg/${id}`);
 }
-function endNowLocal(v) {
-  const nowIso = new Date().toISOString();
-  patchFieldLocal(v, { ngayKetThuc: nowIso });
-}
+
 async function onToggleBiz(v, evt) {
   const checked = evt?.target?.checked === true;
-
-  const wasActive = isActive(v);
-  const wasUpcoming = isUpcoming(v);
-
   const label = `${v?.maGiamGia || ""}${v?.tenGiamGia ? " - " + v.tenGiamGia : ""}`;
 
-  // gạt BẬT
-  if (checked) {
-    if (wasUpcoming) {
-      evt.target.checked = false;
-
-      openConfirm("Bạn có chắc muốn BẮT ĐẦU áp dụng phiếu này ngay không?", async () => {
-        startNowLocal(v); 
-        toast.success(`✅ Đã bắt đầu áp dụng mã phiếu giảm giá: ${label}`);
-      });
-      return;
-    }
-
-    evt.target.checked = true;
-    toast.success(`✅ Đã mở mã phiếu giảm giá:  ${label}`);
+  // chặn spam
+  if (togglingIds.value.has(v.id)) {
+    evt.target.checked = isActive(v);
     return;
   }
 
-  // gạt TẮT
-  if (!checked) {
-    if (wasActive) {
-      evt.target.checked = true;
+  const doWithLock = async (fn) => {
+    togglingIds.value.add(v.id);
+    try {
+      await fn();
+    } finally {
+      togglingIds.value.delete(v.id);
+    }
+  };
 
-      openConfirm("Bạn có chắc muốn KẾT THÚC phiếu giảm giá này ngay?", async () => {
-        endNowLocal(v);
-        toast.info(`✅ Đã kết thúc mã giảm giá:  ${label}`);
+  // ===== BẬT (start ngay) =====
+  if (checked) {
+    // nếu đang UPCOMING -> confirm "bắt đầu ngay"
+    if (isUpcoming(v)) {
+      // revert UI chờ confirm
+      evt.target.checked = false;
+
+      openConfirm("Bạn có chắc muốn BẮT ĐẦU áp dụng phiếu này ngay không?", async () => {
+        await doWithLock(async () => {
+          await apiStartNow(v.id);
+          await reload(); // ✅ reload để không bị reset nữa
+        });
+        toast.success(`✅ Đã bắt đầu áp dụng: ${label}`);
       });
       return;
     }
 
-    evt.target.checked = false;
-    toast.info(`✅ Đã tắt ${label}`);
+    // nếu không upcoming, vẫn cho start ngay (tuỳ business)
+    // revert UI chờ kết quả
+    evt.target.checked = isActive(v);
+
+    openConfirm("Bạn có chắc muốn BẬT (bắt đầu áp dụng ngay) phiếu này không?", async () => {
+      await doWithLock(async () => {
+        await apiStartNow(v.id);
+        await reload();
+      });
+      toast.success(`✅ Đã bật: ${label}`);
+    });
+    return;
+  }
+
+  // ===== TẮT (end ngay) =====
+  if (!checked) {
+    // chỉ cho end ngay khi đang active
+    if (isActive(v)) {
+      evt.target.checked = true;
+
+      openConfirm("Bạn có chắc muốn KẾT THÚC phiếu giảm giá này ngay?", async () => {
+        await doWithLock(async () => {
+          await apiEndNow(v.id);
+          await reload(); // ✅ reload để đồng bộ
+        });
+        toast.info(`⛔ Đã kết thúc: ${label}`);
+      });
+      return;
+    }
+
+    // nếu không active, chỉ giữ đúng trạng thái
+    evt.target.checked = isActive(v);
+    toast.info(`ℹ️ Phiếu không ở trạng thái "Đang áp dụng"`);
   }
 }
 
@@ -796,7 +786,6 @@ function clearToDate() {
   applyFilters();
 }
 
-// khóa range giống hóa đơn
 watch(
   () => filters.from,
   (v) => {
@@ -844,7 +833,7 @@ async function reload() {
   }
 }
 
-// ===== Export Excel (XLSX) - TRANG HIỆN TẠI =====
+// ===== Export Excel =====
 function exportExcel() {
   const data = pagedItems.value.map((v, idx) => ({
     "#": page.page * page.size + idx + 1,
@@ -899,11 +888,10 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-/* ✅ BẢNG “BÌNH THƯỜNG”: bỏ bo tròn của khung bảng */
 .table-wrap {
   border: 1px solid #dee2e6;
-  border-radius: 0; /* <-- bỏ tròn */
-  overflow: auto; /* vẫn scroll ngang nếu cần */
+  border-radius: 0;
+  overflow: auto;
 }
 
 .thead-dark-custom th {
@@ -917,7 +905,7 @@ onBeforeUnmount(() => {
   border-color: #e9ecef;
 }
 
-/* ===== Filter giống hóa đơn ===== */
+/* ===== Filter ===== */
 .filter-card {
   border-radius: 14px;
   overflow: hidden;
@@ -953,7 +941,6 @@ onBeforeUnmount(() => {
   transition: transform 0.2s ease;
 }
 
-/* Icon xoay khi collapse đóng */
 .filter-header[aria-expanded="false"] .filter-icon {
   transform: rotate(-90deg);
 }
@@ -979,7 +966,7 @@ onBeforeUnmount(() => {
   vertical-align: bottom;
 }
 
-/* ✅ Pill LOẠI PHIẾU (màu như cũ) */
+/* pill */
 .pill {
   display: inline-block;
   padding: 4px 10px;
@@ -997,7 +984,7 @@ onBeforeUnmount(() => {
   color: #92400e;
 }
 
-/* ✅ Badge màu trạng thái */
+/* badge */
 .badge-success {
   background: #dcfce7;
   color: #166534;
@@ -1011,7 +998,7 @@ onBeforeUnmount(() => {
   color: #374151;
 }
 
-/* ✅ Modal confirm */
+/* modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1044,7 +1031,7 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
 }
 
-/* ===== Switch ===== */
+/* switch */
 .switch {
   position: relative;
   display: inline-block;
