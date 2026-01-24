@@ -153,11 +153,11 @@
   </aside>
 </template>
 
-<script setup>
-import { reactive, watch } from "vue";
-import { useRoute } from "vue-router";
+<script setup>import { reactive, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
+const router = useRouter();
 
 const openGroups = reactive({
   products: false,
@@ -169,172 +169,52 @@ function closeAllGroups() {
   Object.keys(openGroups).forEach((k) => (openGroups[k] = false));
 }
 
-function toggleGroup(key) {
+// route mặc định khi bấm vào group
+const groupDefaultRoute = {
+  products: "/products",
+  attributes: "/attributes/thuong-hieu",
+  accounts: "/staff",
+};
+
+async function toggleGroup(key) {
   const isOpening = !openGroups[key];
+
   closeAllGroups();
   openGroups[key] = isOpening;
+
+  // QUAN TRỌNG: nếu đang mở group => chuyển route sang group đó
+  if (isOpening) {
+    const target = groupDefaultRoute[key];
+    if (target && route.path !== target) {
+      await router.push(target);
+    }
+  }
 }
 
 /** Mở đúng group theo route hiện tại */
 function syncGroupsWithRoute() {
   closeAllGroups();
-
   const p = route.path;
 
-  if (p.startsWith("/products") || p.startsWith("/variants")) {
-    openGroups.products = true;
-    return;
-  }
-
-  if (p.startsWith("/attributes")) {
-    openGroups.attributes = true;
-    return;
-  }
-
-  if (p.startsWith("/staff") || p.startsWith("/customers")) {
-    openGroups.accounts = true;
-    return;
-  }
-
-  // Các route khác (Trang chủ, Orders, Vouchers...) => đóng hết
+  if (p.startsWith("/products") || p.startsWith("/variants")) openGroups.products = true;
+  else if (p.startsWith("/attributes")) openGroups.attributes = true;
+  else if (p.startsWith("/staff") || p.startsWith("/customers")) openGroups.accounts = true;
 }
 
-watch(
-  () => route.path,
-  () => syncGroupsWithRoute(),
-  { immediate: true }
-);
+watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 
 </script>
-
 <style scoped>
-/* ===== Layout ===== */
-.sidebar {
-  width: 270px;
-  height: 100%;
-  overflow-y: auto;
+/* ===== Sidebar ===== */
+.sidebar{
+  position: sticky;
+  top: 0;                 /* dính lên trên */
+  height: 100vh;          /* cao full màn hình */
+  overflow-y: auto;       /* menu dài thì sidebar tự cuộn */
 }
 
-/* ===== Common link style ===== */
-.nav-link-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  color: #475569;
-  text-decoration: none;
-  transition: background-color .18s ease, color .18s ease, transform .06s ease;
-  margin: 4px 6px;
-  font-size: 14.5px;
-  line-height: 1;
-  user-select: none;
-  border: 1px solid transparent;
-  background: transparent;
-}
 
-.nav-link-item:hover {
-  background: rgba(31, 42, 68, 0.08);
-  color: #1f2a44;
-  border-color: rgba(31, 42, 68, 0.10);
-}
-
-.nav-link-item:active {
-  transform: translateY(1px);
-}
-
-.nav-link-item.is-static {
-  cursor: default;
-  opacity: 0.85;
-}
-
-/* ===== Active ===== */
-.nav-link-item.active {
-  background: #2954b8;
-  color: #fff;
-  border-color: rgba(255,255,255,0.12);
-}
-
-.nav-link-item.active:hover {
-  background: #182038;
-  color: #fff;
-}
-
-/* ===== Icon sizing ===== */
-.icon {
-  font-size: 18px;
-  width: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.95;
-}
-
-.label {
-  flex: 1;
-  font-weight: 600;
-}
-
-/* ===== Group caret ===== */
-.caret {
-  font-size: 12px;
-  opacity: 0.85;
-  transition: transform .18s ease;
-}
-.caret.rotate {
-  transform: rotate(180deg);
-}
-
-/* ===== Sub menu ===== */
-.sub-wrap {
-  margin: 2px 6px 8px 6px;
-  padding-left: 6px;
-  border-left: 2px solid rgba(31, 42, 68, 0.12);
-}
-
-.sub-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  margin: 3px 0 3px 10px;
-  border-radius: 12px;
-  color: #64748b;
-  text-decoration: none;
-  font-size: 13.5px;
-  transition: background-color .18s ease, color .18s ease;
-}
-
-.sub-link:hover {
-  background: rgba(31, 42, 68, 0.08);
-  color: #2566fd;
-}
-
-.sub-icon {
-  font-size: 14px;
-  width: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.9;
-}
-
-.sub-link.active-sub {
-  background: rgba(31, 42, 68, 0.12);
-  color: #1f2a44;
-  font-weight: 700;
-}
-
-/* ===== Better scrollbar (optional) ===== */
-.sidebar::-webkit-scrollbar {
-  width: 10px;
-}
-.sidebar::-webkit-scrollbar-thumb {
-  background: rgba(2, 6, 23, 0.15);
-  border-radius: 999px;
-  border: 3px solid #fff;
-}
-
+/* ===== Menu item (cha) ===== */
 .nav-link-item{
   width: 100%;
   box-sizing: border-box;
@@ -347,40 +227,150 @@ watch(
   padding: 0 12px;
 
   border-radius: 12px;
-  margin: 4px 6px;
+  margin: 6px 8px;
 
   border: 1px solid transparent;
   background: transparent;
+
   color:#475569;
   text-decoration:none;
+  user-select:none;
 
-  transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .06s ease;
 }
 
-/* CHỈ 1 kiểu cho hover + focus */
+.nav-link-item.is-static{
+  cursor: default;
+  opacity: .85;
+}
+
+/* Hover/focus (cha) */
 .nav-link-item:is(:hover, :focus-visible){
-  background: rgba(31, 42, 68, 0.07);
-  color: #1f2a44;
-  border-color: rgba(31, 42, 68, 0.12);
-  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.08);
+  background: rgba(41,84,184,0.08);
+  color:#1f2a44;
+  border-color: rgba(41,84,184,0.18);
+  box-shadow: 0 8px 18px rgba(2,6,23,0.08);
   outline: 0;
 }
 
-/* Active full-width */
+.nav-link-item:active{
+  transform: translateY(1px);
+}
+
+/* Active (cha) */
 .nav-link-item.active{
   background:#2954b8;
   color:#fff;
-  border-color: rgba(255,255,255,0.14);
-  box-shadow: 0 10px 24px rgba(41, 84, 184, 0.22);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 10px 24px rgba(41,84,184,0.22);
 }
 
-/* Khi active thì hover/focus vẫn giữ “active”, không bị đổi màu */
 .nav-link-item.active:is(:hover, :focus-visible){
   background:#2954b8;
   color:#fff;
-  border-color: rgba(255,255,255,0.18);
-  box-shadow: 0 10px 24px rgba(41, 84, 184, 0.22);
+  border-color: rgba(255,255,255,0.20);
+  box-shadow: 0 10px 24px rgba(41,84,184,0.22);
 }
 
+/* Icon */
+.icon{
+  font-size: 18px;
+  width: 22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  opacity: .95;
+  color: inherit;
+}
 
+.label{
+  flex:1;
+  font-weight: 600;
+}
+
+/* Caret */
+.caret{
+  font-size: 12px;
+  opacity: .85;
+  transition: transform .18s ease, opacity .18s ease;
+}
+.caret.rotate{ transform: rotate(180deg); }
+
+/* ===== Sub menu ===== */
+.sub-wrap{
+  margin: 2px 8px 10px 14px;
+  padding: 8px 0 6px 12px;
+  border-left: 2px solid rgba(41,84,184,0.14);
+}
+
+/* Sub link (con) */
+.sub-link{
+  width: 100%;
+  box-sizing: border-box;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  height: 38px;
+  padding: 0 12px;
+
+  margin: 4px 0;
+  border-radius: 12px;
+
+  color:#64748b;
+  text-decoration:none;
+  font-size: 13.5px;
+
+  border: 1px solid transparent;
+  background: transparent;
+
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.sub-link:hover{
+  background: rgba(41,84,184,0.08);          /* ✅ đồng bộ hover */
+  color:#1f2a44;
+  border-color: rgba(41,84,184,0.16);
+}
+
+.sub-icon{
+  font-size: 14px;
+  width: 18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  opacity: .9;
+  color: inherit;
+}
+
+/* Active sub (con) */
+.sub-link.active-sub{
+  background: rgba(41,84,184,0.12);          /* ✅ active nhạt */
+  color:#2954b8;                             /* ✅ chữ xanh đậm cùng tông */
+  font-weight: 700;
+  border-color: rgba(41,84,184,0.22);
+  position: relative;
+}
+
+/* indicator cho sub active */
+.sub-link.active-sub::before{
+  content:"";
+  position:absolute;
+  left:-10px;
+  top:50%;
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  transform: translateY(-50%);
+  background:#2954b8;
+}
+
+/* ===== Scrollbar ===== */
+.sidebar::-webkit-scrollbar{ width: 10px; }
+.sidebar::-webkit-scrollbar-thumb{
+  background: rgba(2, 6, 23, 0.15);
+  border-radius: 999px;
+  border: 3px solid #fff;
+}
 </style>
