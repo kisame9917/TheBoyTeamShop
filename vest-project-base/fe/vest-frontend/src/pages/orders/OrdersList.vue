@@ -18,160 +18,186 @@
     </div>
 
     <!-- Filters -->
-    <div class="card shadow-sm mb-3">
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-12 col-lg-6">
-            <label class="form-label">Tìm kiếm</label>
-            <input
-              v-model.trim="filters.keyword"
-              type="text"
-              class="form-control"
-              placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
-              @keyup.enter="applyFilters"
-            />
-          </div>
+    <div class="card shadow-sm mb-3 filter-card">
+      <!-- Header (click để thu gọn/mở rộng) -->
+      <div
+        class="filter-header d-flex align-items-center justify-content-between"
+        data-bs-toggle="collapse"
+        data-bs-target="#filterBody"
+        role="button"
+        aria-expanded="true"
+        aria-controls="filterBody"
+      >
+        <div class="d-flex align-items-center gap-2">
+          <span class="filter-icon">▼</span>
+          <span class="filter-title">Bộ lọc tìm kiếm</span>
+        </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Trạng thái</label>
-            <select
-              v-model="filters.trangThaiDon"
-              class="form-select"
-              @change="applyFilters"
-            >
-              <option :value="null">Tất cả</option>
-              <option v-for="s in statusOptions" :key="s.code" :value="s.code">
-                {{ s.label }}
-              </option>
-            </select>
-          </div>
+        <small class="filter-hint">Nhấn để thu gọn/mở rộng</small>
+      </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Loại hóa đơn</label>
-            <div class="d-flex align-items-center gap-3 mt-2">
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="radio"
-                  id="ld_all"
-                  value=""
-                  v-model="filters.loaiDonMode"
-                  @change="applyFilters"
-                />
-                <label class="form-check-label" for="ld_all">Tất cả</label>
-              </div>
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="radio"
-                  id="ld_tq"
-                  value="taiquay"
-                  v-model="filters.loaiDonMode"
-                  @change="applyFilters"
-                />
-                <label class="form-check-label" for="ld_tq">Tại quầy</label>
-              </div>
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="radio"
-                  id="ld_on"
-                  value="online"
-                  v-model="filters.loaiDonMode"
-                  @change="applyFilters"
-                />
-                <label class="form-check-label" for="ld_on">Online</label>
-              </div>
-            </div>
-          </div>
-
-          <!-- ✅ Từ ngày (flatpickr popup) -->
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Từ ngày</label>
-            <div class="input-group">
+      <!-- Body -->
+      <div id="filterBody" class="collapse show">
+        <div class="card-body filter-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">
+              <label class="form-label">Tìm kiếm</label>
               <input
-                ref="fromPickerRef"
+                v-model.trim="filters.keyword"
                 type="text"
                 class="form-control"
-                placeholder="dd/mm/yyyy"
+                placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
+                @input="autoApplyFilters()"
+                @keyup.enter="applyFilters"
               />
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="openFromPicker"
-                title="Chọn ngày"
-              >
-                <i class="bi bi-calendar3"></i>
-              </button>
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="clearFromDate"
-                title="Xóa"
-              >
-                <i class="bi bi-x-lg"></i>
-              </button>
             </div>
-          </div>
 
-          <!-- ✅ Đến ngày (flatpickr popup) -->
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Đến ngày</label>
-            <div class="input-group">
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Trạng thái</label>
+              <select
+                v-model="filters.trangThaiDon"
+                class="form-select"
+                @change="applyFilters"
+              >
+                <option :value="null">Tất cả</option>
+                <option
+                  v-for="s in statusOptions"
+                  :key="s.code"
+                  :value="s.code"
+                >
+                  {{ s.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Loại hóa đơn</label>
+              <div class="d-flex align-items-center gap-3 mt-2 flex-wrap">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    id="ld_all"
+                    value=""
+                    v-model="filters.loaiDonMode"
+                    @change="applyFilters"
+                  />
+                  <label class="form-check-label" for="ld_all">Tất cả</label>
+                </div>
+
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    id="ld_tq"
+                    value="taiquay"
+                    v-model="filters.loaiDonMode"
+                    @change="applyFilters"
+                  />
+                  <label class="form-check-label" for="ld_tq">Tại quầy</label>
+                </div>
+
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    id="ld_on"
+                    value="online"
+                    v-model="filters.loaiDonMode"
+                    @change="applyFilters"
+                  />
+                  <label class="form-check-label" for="ld_on">Online</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ Từ ngày -->
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Từ ngày</label>
+              <div class="input-group">
+                <input
+                  ref="fromPickerRef"
+                  type="text"
+                  class="form-control"
+                  placeholder="dd/mm/yyyy"
+                />
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="openFromPicker"
+                  title="Chọn ngày"
+                >
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="clearFromDate"
+                  title="Xóa"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- ✅ Đến ngày -->
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Đến ngày</label>
+              <div class="input-group">
+                <input
+                  ref="toPickerRef"
+                  type="text"
+                  class="form-control"
+                  placeholder="dd/mm/yyyy"
+                />
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="openToPicker"
+                  title="Chọn ngày"
+                >
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="clearToDate"
+                  title="Xóa"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Min tổng</label>
               <input
-                ref="toPickerRef"
-                type="text"
+                v-model.number="filters.minTotal"
+                type="number"
                 class="form-control"
-                placeholder="dd/mm/yyyy"
+                placeholder="VD: 100000"
+                @input="autoApplyFilters()"
+                @keyup.enter="applyFilters"
               />
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="openToPicker"
-                title="Chọn ngày"
-              >
-                <i class="bi bi-calendar3"></i>
-              </button>
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="clearToDate"
-                title="Xóa"
-              >
-                <i class="bi bi-x-lg"></i>
+            </div>
+
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Max tổng</label>
+              <input
+                v-model.number="filters.maxTotal"
+                type="number"
+                class="form-control"
+                placeholder="VD: 1000000"
+                @input="autoApplyFilters()"
+                @keyup.enter="applyFilters"
+              />
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <button class="btn btn-light" @click="resetFilters">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
               </button>
             </div>
-          </div>
-
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Min tổng</label>
-            <input
-              v-model.number="filters.minTotal"
-              type="number"
-              class="form-control"
-              placeholder="VD: 100000"
-              @keyup.enter="applyFilters"
-            />
-          </div>
-
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Max tổng</label>
-            <input
-              v-model.number="filters.maxTotal"
-              type="number"
-              class="form-control"
-              placeholder="VD: 1000000"
-              @keyup.enter="applyFilters"
-            />
-          </div>
-
-          <div class="col-12 d-flex justify-content-end gap-2">
-            <button class="btn btn-light" @click="resetFilters">
-              <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
-            </button>
-            <button class="btn btn-primary text-dark" @click="applyFilters">
-              <i class="bi bi-search me-1"></i> Lọc
-            </button>
           </div>
         </div>
       </div>
@@ -185,12 +211,12 @@
           <div class="mt-2 text-muted">Đang tải...</div>
         </div>
 
-        <div v-else class="table-responsive">
-          <table class="table align-middle table-hover">
-            <thead class="table-light">
+        <div v-else class="table-responsive table-wrap">
+          <table class="table align-middle mb-0">
+            <thead class="thead-dark-custom">
               <tr>
-                <th style="width: 60px">#</th>
-                <th>Mã hóa đơn</th>
+                <th style="width: 60px">STT</th>
+                <th class="col-ma">Mã hóa đơn</th>
                 <th>Khách hàng</th>
                 <th>Số điện thoại</th>
                 <th style="width: 140px">Loại hóa đơn</th>
@@ -210,7 +236,10 @@
 
               <tr v-for="(r, idx) in rows" :key="r.id">
                 <td>{{ page.page * page.size + idx + 1 }}</td>
-                <td class="fw-semibold">{{ r.maHoaDon }}</td>
+                <td class="fw-semibold col-ma">
+  <span class="ma-ellipsis" :title="r.maHoaDon">{{ r.maHoaDon }}</span>
+</td>
+
                 <td>{{ r.tenKhachHang || "Khách lẻ" }}</td>
                 <td>{{ r.soDienThoai || "-" }}</td>
                 <td>
@@ -218,7 +247,9 @@
                     {{ r.loaiDon ? "Online" : "Tại quầy" }}
                   </span>
                 </td>
-                <td class="fw-semibold">{{ formatCurrency(r.tongTienSauGiam) }}</td>
+                <td class="fw-semibold">
+                  {{ formatCurrency(r.tongTienSauGiam) }}
+                </td>
                 <td>{{ formatDateVN(r.ngayTao) }}</td>
                 <td>
                   <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
@@ -247,12 +278,19 @@
         </div>
 
         <!-- Pagination -->
-        <div class="d-flex align-items-center justify-content-between mt-3">
-          <div class="text-muted">
+        <!-- Pagination -->
+        <div
+          class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2"
+        >
+          <!-- Left -->
+          <div class="text-muted flex-grow-1">
             Hiển thị {{ rows.length }} / tổng {{ page.totalElements }} bản ghi
           </div>
 
-          <div class="d-flex align-items-center gap-2">
+          <!-- Center -->
+          <div
+            class="d-flex align-items-center gap-2 justify-content-center flex-grow-1"
+          >
             <button
               class="btn btn-outline-secondary btn-sm"
               :disabled="page.page === 0"
@@ -261,7 +299,7 @@
               <i class="bi bi-chevron-left"></i>
             </button>
 
-            <div class="input-group input-group-sm" style="width: 120px">
+            <div class="input-group input-group-sm" style="width: 100px">
               <span class="input-group-text">Trang</span>
               <input
                 type="number"
@@ -280,10 +318,13 @@
             >
               <i class="bi bi-chevron-right"></i>
             </button>
+          </div>
 
+          <!-- Right -->
+          <div class="d-flex justify-content-md-end flex-grow-1">
             <select
               class="form-select form-select-sm"
-              style="width: 140px"
+              style="width: 160px"
               v-model.number="page.size"
               @change="applyFilters"
             >
@@ -297,14 +338,25 @@
     </div>
 
     <!-- QR Modal -->
-    <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true" ref="qrModalRef">
+    <div
+      class="modal fade"
+      id="qrModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="qrModalRef"
+    >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">
               <i class="bi bi-qr-code-scan me-2"></i>Quét QR hóa đơn
             </h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closeQrModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeQrModal"
+            ></button>
           </div>
           <div class="modal-body">
             <div class="text-muted small mb-2">
@@ -324,7 +376,10 @@
     </div>
 
     <!-- Toast -->
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index: 9999"
+    >
       <div
         class="toast align-items-center text-bg-success border-0"
         ref="toastRef"
@@ -334,7 +389,11 @@
       >
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="hideToast"></button>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            @click="hideToast"
+          ></button>
         </div>
       </div>
     </div>
@@ -378,7 +437,7 @@ const filters = reactive({
   trangThaiDon: null,
   loaiDonMode: "", // "", "taiquay", "online"
   fromDate: "", // ✅ lưu yyyy-MM-dd
-  toDate: "",   // ✅ lưu yyyy-MM-dd
+  toDate: "", // ✅ lưu yyyy-MM-dd
   minTotal: null,
   maxTotal: null,
 });
@@ -393,18 +452,37 @@ const page = reactive({
 });
 
 const pageInput = ref(1);
+// =======================
+// Auto search (debounce) - GIỮ NGUYÊN LOGIC CŨ
+// =======================
+let autoTimer = null;
+function autoApplyFilters(delay = 450) {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    applyFilters(); // vẫn gọi applyFilters() như cũ
+  }, delay);
+}
 
 function statusBadgeClass(code) {
   switch (Number(code)) {
-    case 4: return "text-bg-success";
-    case 3: return "text-bg-primary";
-    case 2: return "text-bg-info";
-    case 1: return "text-bg-warning";
-    case 0: return "text-bg-secondary";
-    case 5: return "text-bg-dark";
-    case 6: return "text-bg-warning";
-    case 7: return "text-bg-secondary";
-    default: return "text-bg-secondary";
+    case 4:
+      return "text-bg-success";
+    case 3:
+      return "text-bg-primary";
+    case 2:
+      return "text-bg-info";
+    case 1:
+      return "text-bg-warning";
+    case 0:
+      return "text-bg-secondary";
+    case 5:
+      return "text-bg-dark";
+    case 6:
+      return "text-bg-warning";
+    case 7:
+      return "text-bg-secondary";
+    default:
+      return "text-bg-secondary";
   }
 }
 
@@ -447,6 +525,7 @@ function initPickers() {
       onChange: (selectedDates) => {
         const d = selectedDates?.[0] || null;
         filters.fromDate = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+        autoApplyFilters();
       },
     });
   }
@@ -460,6 +539,7 @@ function initPickers() {
       onChange: (selectedDates) => {
         const d = selectedDates?.[0] || null;
         filters.toDate = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+        autoApplyFilters();
       },
     });
   }
@@ -474,10 +554,12 @@ function openToPicker() {
 function clearFromDate() {
   filters.fromDate = "";
   fpFrom?.clear();
+  autoApplyFilters();
 }
 function clearToDate() {
   filters.toDate = "";
   fpTo?.clear();
+  autoApplyFilters();
 }
 
 // (optional) khóa range: from <= to
@@ -485,13 +567,13 @@ watch(
   () => filters.fromDate,
   (v) => {
     if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
-  }
+  },
 );
 watch(
   () => filters.toDate,
   (v) => {
     if (fpFrom) fpFrom.set("maxDate", v ? parseYMD(v) : null);
-  }
+  },
 );
 
 /** =======================
@@ -523,8 +605,10 @@ async function fetchData() {
       from: filters.fromDate || undefined,
       to: filters.toDate || undefined,
 
-      minTotal: filters.minTotal === null ? undefined : Number(filters.minTotal),
-      maxTotal: filters.maxTotal === null ? undefined : Number(filters.maxTotal),
+      minTotal:
+        filters.minTotal === null ? undefined : Number(filters.minTotal),
+      maxTotal:
+        filters.maxTotal === null ? undefined : Number(filters.maxTotal),
     };
 
     const res = await hoaDonApi.search(params);
@@ -632,8 +716,16 @@ async function exportOneExcel(id) {
     }));
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(info), "ThongTin");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(items), "ChiTiet");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(info),
+      "ThongTin",
+    );
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(items),
+      "ChiTiet",
+    );
     XLSX.writeFile(wb, `hoa_don_${hd.maHoaDon}.xlsx`);
     showToast("Export hóa đơn thành công!");
   } catch (e) {
@@ -703,7 +795,7 @@ async function startQr() {
       { fps: 10, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
         await onQrDecoded(decodedText);
-      }
+      },
     );
   } catch (e) {
     console.error(e);
@@ -759,7 +851,9 @@ function showToast(msg) {
 }
 
 function hideToast() {
-  try { bsToast?.hide?.(); } catch {}
+  try {
+    bsToast?.hide?.();
+  } catch {}
 }
 
 onMounted(() => {
@@ -769,8 +863,12 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopQr();
-  try { fpFrom?.destroy(); } catch {}
-  try { fpTo?.destroy(); } catch {}
+  try {
+    fpFrom?.destroy();
+  } catch {}
+  try {
+    fpTo?.destroy();
+  } catch {}
 });
 </script>
 
@@ -781,4 +879,89 @@ onBeforeUnmount(() => {
 .table thead th {
   font-weight: 600;
 }
+.thead-dark-custom th {
+  background-color: #1f2a44 !important;
+  color: #fff !important;
+}
+.table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden; /* để bo góc ăn cả thead */
+}
+
+/* header màu #1f2a44 */
+.thead-dark-custom th {
+  background-color: #1f2a44 !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* (tuỳ chọn) đường kẻ trong bảng nhìn gọn */
+.table td,
+.table th {
+  border-color: #e9ecef;
+}
+
+.filter-card {
+  border-radius: 14px;
+  overflow: hidden; /* bo góc ăn cả header */
+  border: 1px solid #e9ecef;
+}
+
+.filter-header {
+  background: #1f2a44;
+  color: #fff;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.filter-title {
+  font-weight: 700;
+}
+
+.filter-hint {
+  opacity: 0.75;
+}
+
+.filter-icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+/* Icon xoay khi collapse đóng */
+.filter-header[aria-expanded="false"] .filter-icon {
+  transform: rotate(-90deg);
+}
+
+.filter-body {
+  background: #f8fafc; /* nền nhẹ */
+}
+
+.filter-card .form-label {
+  font-weight: 600;
+}
+
+.filter-card .form-control,
+.filter-card .form-select {
+  border-radius: 10px;
+}
+.ellipsis{
+  display: inline-block;
+  max-width: 120px;      /* chỉnh rộng/hẹp tuỳ bạn */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
 </style>

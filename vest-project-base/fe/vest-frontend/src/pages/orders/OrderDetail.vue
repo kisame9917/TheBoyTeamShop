@@ -8,7 +8,11 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          @click="goBack"
+        >
           <i class="bi bi-arrow-left me-1"></i> Quay lại
         </button>
       </div>
@@ -37,16 +41,29 @@
     <!-- Actions -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <button type="button" class="btn btn-primary btn-sm" :disabled="!canConfirmDeliver" @click="confirmDeliver">
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          :disabled="!canConfirmDeliver"
+          @click="confirmDeliver"
+        >
           Xác nhận đã giao hàng
         </button>
       </div>
 
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="openHistoryModal">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          @click="openHistoryModal"
+        >
           Chi tiết
         </button>
-        <button type="button" class="btn btn-outline-success btn-sm" @click="openPrintModal">
+        <button
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          @click="openPrintModal"
+        >
           Xuất hóa đơn
         </button>
       </div>
@@ -56,7 +73,10 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center justify-content-between">
-          <h6 class="mb-0">Thông tin đơn hàng - {{ hd?.loaiDon ? "Đơn hàng Online" : "Đơn hàng Tại quầy" }}</h6>
+          <h6 class="mb-0">
+            Thông tin đơn hàng -
+            {{ hd?.loaiDon ? "Đơn hàng Online" : "Đơn hàng Tại quầy" }}
+          </h6>
           <span class="badge" :class="statusBadgeClass(hd?.trangThaiDon)">
             {{ hd?.tenTrangThaiDon || "-" }}
           </span>
@@ -84,13 +104,30 @@
           </div>
 
           <div class="col-12 col-lg-6">
-            <div class="mb-2"><span class="text-muted">SĐT người nhận:</span> {{ hd?.soDienThoai || "-" }}</div>
-            <div class="mb-2"><span class="text-muted">Địa chỉ người nhận:</span> {{ hd?.diaChiKhachHang || "-" }}</div>
-            <div class="mb-2"><span class="text-muted">Email:</span> {{ hd?.emailKhachHang || "-" }}</div>
+            <div class="mb-2">
+              <span class="text-muted">SĐT người nhận:</span>
+              {{ hd?.soDienThoai || "-" }}
+            </div>
+            <div class="mb-2">
+              <span class="text-muted">Địa chỉ người nhận:</span>
+              {{ hd?.diaChiKhachHang || "-" }}
+            </div>
+            <div class="mb-2">
+              <span class="text-muted">Email:</span>
+              {{ hd?.emailKhachHang || "-" }}
+            </div>
 
             <div class="d-flex align-items-center gap-2 mt-3">
-              <select class="form-select form-select-sm" style="max-width: 260px" v-model.number="changeStatusCode">
-                <option v-for="s in statusOptions" :key="s.code" :value="s.code">
+              <select
+                class="form-select form-select-sm"
+                style="max-width: 260px"
+                v-model.number="changeStatusCode"
+              >
+                <option
+                  v-for="s in statusOptions"
+                  :key="s.code"
+                  :value="s.code"
+                >
                   {{ s.label }}
                 </option>
               </select>
@@ -98,7 +135,7 @@
               <!-- ✅ ĐỔI: bấm cập nhật sẽ mở popup confirm -->
               <button
                 type="button"
-                class="btn btn-outline-primary btn-sm"
+                class="btn btn-outline-primary  btn-sm"
                 :disabled="!hd"
                 @click="openConfirmStatusModal"
               >
@@ -116,15 +153,21 @@
           </div>
           <div class="col-12 col-lg-3">
             <div class="text-muted small">Giảm</div>
-            <div class="fw-semibold">{{ formatCurrency(hd?.tongTienGiam) }}</div>
+            <div class="fw-semibold">
+              {{ formatCurrency(hd?.tongTienGiam) }}
+            </div>
           </div>
           <div class="col-12 col-lg-3">
             <div class="text-muted small">Phí vận chuyển</div>
-            <div class="fw-semibold">{{ formatCurrency(hd?.phiVanChuyen) }}</div>
+            <div class="fw-semibold">
+              {{ formatCurrency(hd?.phiVanChuyen) }}
+            </div>
           </div>
           <div class="col-12 col-lg-3">
             <div class="text-muted small">Tổng sau giảm</div>
-            <div class="fw-semibold">{{ formatCurrency(hd?.tongTienSauGiam) }}</div>
+            <div class="fw-semibold">
+              {{ formatCurrency(hd?.tongTienSauGiam) }}
+            </div>
           </div>
         </div>
       </div>
@@ -134,9 +177,9 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h6 class="mb-3">Lịch sử thanh toán</h6>
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead class="table-light">
+        <div class="table-responsive table-wrap">
+          <table class="table align-middle mb-0">
+            <thead class="thead-dark-custom">
               <tr>
                 <th style="width: 140px">Số tiền</th>
                 <th style="width: 180px">Thời gian</th>
@@ -147,9 +190,11 @@
             </thead>
             <tbody>
               <tr v-if="(hd?.lichSuThanhToan || []).length === 0">
-                <td colspan="5" class="text-center text-muted py-4">Chưa có thanh toán</td>
+                <td colspan="5" class="text-center text-muted py-4">
+                  Chưa có thanh toán
+                </td>
               </tr>
-              <tr v-for="p in (hd?.lichSuThanhToan || [])" :key="p.id">
+              <tr v-for="p in hd?.lichSuThanhToan || []" :key="p.id">
                 <td class="fw-semibold">{{ formatCurrency(p.soTien) }}</td>
                 <td>{{ formatDateTimeVN(p.ngayThanhToan) }}</td>
                 <td>{{ p.maGiaoDich || "-" }}</td>
@@ -166,11 +211,11 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <h6 class="mb-3">Sản phẩm</h6>
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead class="table-light">
+        <div class="table-responsive table-wrap">
+          <table class="table align-middle mb-0">
+            <thead class="thead-dark-custom">
               <tr>
-                <th style="width: 60px">#</th>
+                <th style="width: 60px">STT</th>
                 <th style="width: 110px">Ảnh</th>
                 <th>Sản phẩm</th>
                 <th style="width: 120px">Số lượng</th>
@@ -179,9 +224,11 @@
             </thead>
             <tbody>
               <tr v-if="(hd?.items || []).length === 0">
-                <td colspan="5" class="text-center text-muted py-4">Không có sản phẩm</td>
+                <td colspan="5" class="text-center text-muted py-4">
+                  Không có sản phẩm
+                </td>
               </tr>
-              <tr v-for="(it, idx) in (hd?.items || [])" :key="idx">
+              <tr v-for="(it, idx) in hd?.items || []" :key="idx">
                 <td>{{ idx + 1 }}</td>
                 <td>
                   <div class="img-box">
@@ -193,12 +240,18 @@
                   <div class="fw-semibold">{{ it.tenSanPham || "-" }}</div>
                   <div class="text-muted small">
                     {{ it.mauSac || "-" }} - {{ it.kichCo || "-" }}
-                    <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
+                    <span v-if="it.maSanPhamChiTiet">
+                      • {{ it.maSanPhamChiTiet }}</span
+                    >
                   </div>
-                  <div class="text-danger fw-semibold mt-1">{{ formatCurrency(it.donGia) }}</div>
+                  <div class="text-danger fw-semibold mt-1">
+                    {{ formatCurrency(it.donGia) }}
+                  </div>
                 </td>
                 <td>{{ it.soLuong }}</td>
-                <td class="fw-semibold text-danger">{{ formatCurrency(it.thanhTien) }}</td>
+                <td class="fw-semibold text-danger">
+                  {{ formatCurrency(it.thanhTien) }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -207,12 +260,23 @@
     </div>
 
     <!-- History modal -->
-    <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true" ref="historyModalRef">
+    <div
+      class="modal fade"
+      id="historyModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="historyModalRef"
+    >
       <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">Chi tiết lịch sử</h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closeHistoryModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeHistoryModal"
+            ></button>
           </div>
 
           <div class="modal-body">
@@ -228,10 +292,12 @@
                 </thead>
                 <tbody>
                   <tr v-if="(hd?.lichSuHoaDon || []).length === 0">
-                    <td colspan="4" class="text-center text-muted py-4">Chưa có lịch sử</td>
+                    <td colspan="4" class="text-center text-muted py-4">
+                      Chưa có lịch sử
+                    </td>
                   </tr>
 
-                  <tr v-for="h in (hd?.lichSuHoaDon || [])" :key="h.id">
+                  <tr v-for="h in hd?.lichSuHoaDon || []" :key="h.id">
                     <td>
                       <span class="badge text-bg-light border">
                         {{ mapHistoryToStatusLabel(h.hanhDong) }}
@@ -247,22 +313,46 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" @click="closeHistoryModal">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="closeHistoryModal">OK</button>
+            <button
+              type="button"
+              class="btn btn-light"
+              @click="closeHistoryModal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="closeHistoryModal"
+            >
+              OK
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- ✅ Confirm Change Status Modal -->
-    <div class="modal fade" id="confirmStatusModal" tabindex="-1" aria-hidden="true" ref="confirmStatusModalRef">
+    <div
+      class="modal fade"
+      id="confirmStatusModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="confirmStatusModalRef"
+    >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">
-              <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng thái
+              <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng
+              thái
             </h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closeConfirmStatusModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeConfirmStatusModal"
+            ></button>
           </div>
 
           <div class="modal-body">
@@ -270,9 +360,13 @@
               Bạn muốn đổi trạng thái hóa đơn
               <b>{{ hd?.maHoaDon }}</b>
               từ
-              <span class="badge bg-secondary">{{ hd?.tenTrangThaiDon || "-" }}</span>
+              <span class="badge bg-secondary">{{
+                hd?.tenTrangThaiDon || "-"
+              }}</span>
               sang
-              <span class="badge bg-primary">{{ statusLabel(changeStatusCode) }}</span>
+              <span class="badge bg-primary">{{
+                statusLabel(changeStatusCode)
+              }}</span>
               ?
             </div>
 
@@ -282,8 +376,18 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" @click="closeConfirmStatusModal">Hủy</button>
-            <button type="button" class="btn btn-primary text-dark" @click="confirmChangeStatus">
+            <button
+              type="button"
+              class="btn btn-light"
+              @click="closeConfirmStatusModal"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary text-dark"
+              @click="confirmChangeStatus"
+            >
               Xác nhận
             </button>
           </div>
@@ -292,18 +396,31 @@
     </div>
 
     <!-- Print modal (thermal receipt) -->
-    <div class="modal fade" id="printModal" tabindex="-1" aria-hidden="true" ref="printModalRef">
+    <div
+      class="modal fade"
+      id="printModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="printModalRef"
+    >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">Xem trước hóa đơn (in nhiệt)</h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closePrintModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closePrintModal"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div ref="printAreaRef" class="receipt">
               <div class="center bold big">VEST SHOP</div>
-              <div class="center">37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy</div>
+              <div class="center">
+                37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy
+              </div>
               <div class="center">Hà Nội, Việt Nam</div>
               <div class="center">Hotline: 0968038313</div>
               <div class="hr"></div>
@@ -331,17 +448,23 @@
                 <div class="w-price bold right">Tiền</div>
               </div>
 
-              <div v-for="(it, idx) in (hd?.items || [])" :key="idx" class="item">
+              <div v-for="(it, idx) in hd?.items || []" :key="idx" class="item">
                 <div class="w-name">
                   <div class="bold">{{ it.tenSanPham || "-" }}</div>
                   <div class="muted small">
                     {{ it.mauSac || "-" }} / {{ it.kichCo || "-" }}
-                    <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
+                    <span v-if="it.maSanPhamChiTiet">
+                      • {{ it.maSanPhamChiTiet }}</span
+                    >
                   </div>
-                  <div class="small">ĐG: {{ formatMoneyNumber(it.donGia) }} đ</div>
+                  <div class="small">
+                    ĐG: {{ formatMoneyNumber(it.donGia) }} đ
+                  </div>
                 </div>
                 <div class="w-qty right">{{ it.soLuong ?? 0 }}</div>
-                <div class="w-price right">{{ formatMoneyNumber(it.thanhTien) }} đ</div>
+                <div class="w-price right">
+                  {{ formatMoneyNumber(it.thanhTien) }} đ
+                </div>
               </div>
 
               <div class="hr"></div>
@@ -352,25 +475,33 @@
               </div>
               <div class="row2">
                 <div>Giảm giá</div>
-                <div class="right">{{ formatMoneyNumber(hd?.tongTienGiam) }} đ</div>
+                <div class="right">
+                  {{ formatMoneyNumber(hd?.tongTienGiam) }} đ
+                </div>
               </div>
               <div class="row2">
                 <div>Phí vận chuyển</div>
-                <div class="right">{{ formatMoneyNumber(hd?.phiVanChuyen) }} đ</div>
+                <div class="right">
+                  {{ formatMoneyNumber(hd?.phiVanChuyen) }} đ
+                </div>
               </div>
 
               <div class="hr"></div>
 
               <div class="row2 bold">
                 <div>TỔNG THANH TOÁN</div>
-                <div class="right">{{ formatMoneyNumber(hd?.tongTienSauGiam) }} đ</div>
+                <div class="right">
+                  {{ formatMoneyNumber(hd?.tongTienSauGiam) }} đ
+                </div>
               </div>
 
               <div class="hr"></div>
 
               <div class="center mt8">
                 <img v-if="qrDataUrl" :src="qrDataUrl" class="qr" alt="qr" />
-                <div class="small muted mt2">Quét để tra cứu: {{ hd?.maHoaDon }}</div>
+                <div class="small muted mt2">
+                  Quét để tra cứu: {{ hd?.maHoaDon }}
+                </div>
               </div>
 
               <div class="center mt10">Cảm ơn quý khách!</div>
@@ -378,8 +509,18 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" @click="closePrintModal">Đóng</button>
-            <button type="button" class="btn btn-warning text-dark" @click="printInvoice">
+            <button
+              type="button"
+              class="btn btn-light"
+              @click="closePrintModal"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              class="btn btn-warning text-dark"
+              @click="printInvoice"
+            >
               In / Lưu PDF
             </button>
           </div>
@@ -388,7 +529,10 @@
     </div>
 
     <!-- Toast -->
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index: 9999"
+    >
       <div
         class="toast align-items-center text-bg-success border-0"
         ref="toastRef"
@@ -398,7 +542,11 @@
       >
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="hideToast"></button>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            @click="hideToast"
+          ></button>
         </div>
       </div>
     </div>
@@ -463,7 +611,9 @@ const stepper = computed(() => {
   }));
 });
 
-const canConfirmDeliver = computed(() => Number(hd.value?.trangThaiDon ?? -1) === 2);
+const canConfirmDeliver = computed(
+  () => Number(hd.value?.trangThaiDon ?? -1) === 2,
+);
 
 function isStepActive(code) {
   const st = Number(hd.value?.trangThaiDon ?? 0);
@@ -472,15 +622,24 @@ function isStepActive(code) {
 
 function statusBadgeClass(code) {
   switch (Number(code)) {
-    case 4: return "text-bg-success";
-    case 3: return "text-bg-primary";
-    case 2: return "text-bg-info";
-    case 1: return "text-bg-warning";
-    case 0: return "text-bg-secondary";
-    case 5: return "text-bg-dark";
-    case 6: return "text-bg-warning";
-    case 7: return "text-bg-secondary";
-    default: return "text-bg-secondary";
+    case 4:
+      return "text-bg-success";
+    case 3:
+      return "text-bg-primary";
+    case 2:
+      return "text-bg-info";
+    case 1:
+      return "text-bg-warning";
+    case 0:
+      return "text-bg-secondary";
+    case 5:
+      return "text-bg-dark";
+    case 6:
+      return "text-bg-warning";
+    case 7:
+      return "text-bg-secondary";
+    default:
+      return "text-bg-secondary";
   }
 }
 
@@ -527,7 +686,10 @@ function goBack() {
 }
 
 async function confirmDeliver() {
-  await hoaDonApi.changeStatus(props.id, { trangThaiDon: 3, ghiChu: "Xác nhận đã giao hàng" });
+  await hoaDonApi.changeStatus(props.id, {
+    trangThaiDon: 3,
+    ghiChu: "Xác nhận đã giao hàng",
+  });
   await fetchDetail();
   showToast("Cập nhật trạng thái thành công!");
 }
@@ -555,7 +717,10 @@ function openConfirmStatusModal() {
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsConfirmStatusModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsConfirmStatusModal = Modal.getOrCreateInstance(el, {
+      backdrop: true,
+      keyboard: true,
+    });
     bsConfirmStatusModal.show();
   } else {
     el.classList.add("show");
@@ -611,7 +776,10 @@ function openHistoryModal() {
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsHistoryModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsHistoryModal = Modal.getOrCreateInstance(el, {
+      backdrop: true,
+      keyboard: true,
+    });
     bsHistoryModal.show();
   } else {
     el.classList.add("show");
@@ -665,14 +833,20 @@ const qrDataUrl = ref("");
 async function openPrintModal() {
   if (!hd.value) return;
 
-  qrDataUrl.value = await QRCode.toDataURL(String(hd.value.maHoaDon || ""), { margin: 1, width: 220 });
+  qrDataUrl.value = await QRCode.toDataURL(String(hd.value.maHoaDon || ""), {
+    margin: 1,
+    width: 220,
+  });
 
   const el = printModalRef.value;
   if (!el) return;
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsPrintModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsPrintModal = Modal.getOrCreateInstance(el, {
+      backdrop: true,
+      keyboard: true,
+    });
     bsPrintModal.show();
   } else {
     el.classList.add("show");
@@ -765,7 +939,9 @@ function showToast(msg) {
 }
 
 function hideToast() {
-  try { bsToast?.hide?.(); } catch {}
+  try {
+    bsToast?.hide?.();
+  } catch {}
 }
 
 onMounted(() => {
@@ -834,21 +1010,82 @@ onMounted(() => {
   font-family: Arial, sans-serif;
   font-size: 12px;
 }
-.receipt .center { text-align: center; }
-.receipt .right { text-align: right; }
-.receipt .bold { font-weight: 700; }
-.receipt .big { font-size: 16px; }
-.receipt .small { font-size: 11px; }
-.receipt .muted { color: #555; }
-.receipt .hr { border-top: 1px dashed #000; margin: 6px 0; }
-.receipt .row2 { display: flex; justify-content: space-between; gap: 10px; }
-.receipt .mt2 { margin-top: 2px; }
-.receipt .mt6 { margin-top: 6px; }
-.receipt .mt8 { margin-top: 8px; }
-.receipt .mt10 { margin-top: 10px; }
-.receipt .items-head, .receipt .item { display: flex; gap: 6px; }
-.receipt .w-name { flex: 1; }
-.receipt .w-qty { width: 10mm; }
-.receipt .w-price { width: 22mm; }
-.receipt .qr { width: 28mm; height: 28mm; }
+.receipt .center {
+  text-align: center;
+}
+.receipt .right {
+  text-align: right;
+}
+.receipt .bold {
+  font-weight: 700;
+}
+.receipt .big {
+  font-size: 16px;
+}
+.receipt .small {
+  font-size: 11px;
+}
+.receipt .muted {
+  color: #555;
+}
+.receipt .hr {
+  border-top: 1px dashed #000;
+  margin: 6px 0;
+}
+.receipt .row2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.receipt .mt2 {
+  margin-top: 2px;
+}
+.receipt .mt6 {
+  margin-top: 6px;
+}
+.receipt .mt8 {
+  margin-top: 8px;
+}
+.receipt .mt10 {
+  margin-top: 10px;
+}
+.receipt .items-head,
+.receipt .item {
+  display: flex;
+  gap: 6px;
+}
+.receipt .w-name {
+  flex: 1;
+}
+.receipt .w-qty {
+  width: 10mm;
+}
+.receipt .w-price {
+  width: 22mm;
+}
+.receipt .qr {
+  width: 28mm;
+  height: 28mm;
+}
+.thead-dark-custom th {
+  background-color: #1f2a44 !important;
+  color: #fff !important;
+}
+.table-wrap{
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden; /* để bo góc ăn cả thead */
+}
+
+/* header màu #1f2a44 */
+.thead-dark-custom th{
+  background-color: #1f2a44 !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+/* (tuỳ chọn) đường kẻ trong bảng nhìn gọn */
+.table td, .table th{
+  border-color: #e9ecef;
+}
 </style>
