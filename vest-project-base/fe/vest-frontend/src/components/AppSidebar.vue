@@ -1,19 +1,14 @@
 <template>
   <aside class="sidebar d-flex flex-column bg-white border-end">
     <!-- Logo -->
-<div class="p-3 border-bottom text-center logo-wrap">
-  <div class="brand-card mx-auto">
-    <div class="brand-logo">
-      <img src="../images/logo.jpg" alt="Logo" />
+    <div class="p-3 border-bottom text-center">
+      <img
+        src="../images/logo.jpg"
+        alt="Logo"
+        class="img-fluid"
+        style="height: 120px; object-fit: contain;"
+      />
     </div>
-
-    <div class="brand-text">
-      <div class="brand-name">TheBoyTeam</div>
-      
-    </div>
-  </div>
-</div>
-
 
     <!-- Nav -->
     <nav class="p-2 flex-grow-1">
@@ -159,253 +154,233 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
+import { useRoute } from "vue-router";
+
+const route = useRoute();
 
 const openGroups = reactive({
-  products: true,
+  products: false,
   attributes: false,
   accounts: false,
 });
 
-function toggleGroup(key) {
-  openGroups[key] = !openGroups[key];
+function closeAllGroups() {
+  Object.keys(openGroups).forEach((k) => (openGroups[k] = false));
 }
+
+function toggleGroup(key) {
+  const isOpening = !openGroups[key];
+  closeAllGroups();
+  openGroups[key] = isOpening;
+}
+
+/** Mở đúng group theo route hiện tại */
+function syncGroupsWithRoute() {
+  closeAllGroups();
+
+  const p = route.path;
+
+  if (p.startsWith("/products") || p.startsWith("/variants")) {
+    openGroups.products = true;
+    return;
+  }
+
+  if (p.startsWith("/attributes")) {
+    openGroups.attributes = true;
+    return;
+  }
+
+  if (p.startsWith("/staff") || p.startsWith("/customers")) {
+    openGroups.accounts = true;
+    return;
+  }
+
+  // Các route khác (Trang chủ, Orders, Vouchers...) => đóng hết
+}
+
+watch(
+  () => route.path,
+  () => syncGroupsWithRoute(),
+  { immediate: true }
+);
+
 </script>
+
 <style scoped>
 /* ===== Layout ===== */
-.sidebar{
+.sidebar {
   width: 270px;
   height: 100%;
   overflow-y: auto;
-  background: #fff;
 }
 
 /* ===== Common link style ===== */
-.nav-link-item{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:10px 12px;
-  border-radius:14px;
-  color:#475569;
-  text-decoration:none;
-  margin:6px 8px;
-  font-size:14.5px;
-  line-height:1;
-  user-select:none;
-
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(2,6,23,0.06);
-
-  transition:
-    background-color .18s ease,
-    border-color .18s ease,
-    box-shadow .18s ease,
-    transform .06s ease,
-    color .18s ease;
+.nav-link-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #475569;
+  text-decoration: none;
+  transition: background-color .18s ease, color .18s ease, transform .06s ease;
+  margin: 4px 6px;
+  font-size: 14.5px;
+  line-height: 1;
+  user-select: none;
+  border: 1px solid transparent;
+  background: transparent;
 }
 
-.nav-link-item:hover{
-  background: rgba(31,42,68,0.06);
-  color:#1f2a44;
-  border-color: rgba(31,42,68,0.14);
-  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+.nav-link-item:hover {
+  background: rgba(31, 42, 68, 0.08);
+  color: #1f2a44;
+  border-color: rgba(31, 42, 68, 0.10);
 }
 
-.nav-link-item:active{
+.nav-link-item:active {
   transform: translateY(1px);
 }
 
-.nav-link-item.is-static{
+.nav-link-item.is-static {
   cursor: default;
-  opacity: .85;
+  opacity: 0.85;
 }
 
-/* ===== Active (nhạt hơn) ===== */
-.nav-link-item.active{
-  background: rgba(31,42,68,0.10);
-  color:#1f2a44;
-  border-color: rgba(31,42,68,0.22);
-  box-shadow: inset 0 0 0 1px rgba(31,42,68,0.10);
+/* ===== Active ===== */
+.nav-link-item.active {
+  background: #2954b8;
+  color: #fff;
+  border-color: rgba(255,255,255,0.12);
 }
 
-.nav-link-item.active:hover{
-  background: rgba(31,42,68,0.12);
-  border-color: rgba(31,42,68,0.26);
+.nav-link-item.active:hover {
+  background: #182038;
+  color: #fff;
 }
 
 /* ===== Icon sizing ===== */
-.icon{
-  font-size:18px;
-  width:22px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  opacity:.95;
-  color: inherit;
+.icon {
+  font-size: 18px;
+  width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.95;
 }
 
-.label{
-  flex:1;
-  font-weight:650;
+.label {
+  flex: 1;
+  font-weight: 600;
 }
 
 /* ===== Group caret ===== */
-.caret{
-  font-size:12px;
-  opacity:.70;
-  transition: transform .18s ease, opacity .18s ease;
+.caret {
+  font-size: 12px;
+  opacity: 0.85;
+  transition: transform .18s ease;
 }
-.nav-link-item:hover .caret{ opacity: .95; }
-.caret.rotate{ transform: rotate(180deg); }
+.caret.rotate {
+  transform: rotate(180deg);
+}
 
 /* ===== Sub menu ===== */
-.nav-group{ margin-top: 2px; }
-
-.sub-wrap{
-  margin: 2px 12px 10px 18px;
-  padding: 8px 0 6px 10px;
-  border-left: 2px solid rgba(31,42,68,0.10);
-  position: relative;
+.sub-wrap {
+  margin: 2px 6px 8px 6px;
+  padding-left: 6px;
+  border-left: 2px solid rgba(31, 42, 68, 0.12);
 }
 
-.sub-link{
+.sub-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin: 3px 0 3px 10px;
+  border-radius: 12px;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 13.5px;
+  transition: background-color .18s ease, color .18s ease;
+}
+
+.sub-link:hover {
+  background: rgba(31, 42, 68, 0.08);
+  color: #2566fd;
+}
+
+.sub-icon {
+  font-size: 14px;
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+.sub-link.active-sub {
+  background: rgba(31, 42, 68, 0.12);
+  color: #1f2a44;
+  font-weight: 700;
+}
+
+/* ===== Better scrollbar (optional) ===== */
+.sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(2, 6, 23, 0.15);
+  border-radius: 999px;
+  border: 3px solid #fff;
+}
+
+.nav-link-item{
+  width: 100%;
+  box-sizing: border-box;
+
   display:flex;
   align-items:center;
-  gap:10px;
-  padding:8px 12px;
-  margin:4px 0;
-  border-radius:12px;
-  color:#64748b;
-  text-decoration:none;
-  font-size:13.5px;
+  gap:12px;
+
+  height: 44px;
+  padding: 0 12px;
+
+  border-radius: 12px;
+  margin: 4px 6px;
 
   border: 1px solid transparent;
   background: transparent;
+  color:#475569;
+  text-decoration:none;
 
-  transition:
-    background-color .18s ease,
-    border-color .18s ease,
-    box-shadow .18s ease,
-    color .18s ease;
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 
-.sub-link:hover{
-  background: rgba(31,42,68,0.06);
-  color:#1f2a44;
-  border-color: rgba(31,42,68,0.12);
-  box-shadow: 0 6px 16px rgba(2,6,23,0.05);
-}
-
-.sub-icon{
-  font-size:14px;
-  width:18px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  opacity:.9;
-}
-
-/* Active sub nhấn nhẹ + có chấm indicator */
-.sub-link.active-sub{
-  background: rgba(31,42,68,0.10);
-  color:#1f2a44;
-  font-weight:750;
-  border-color: rgba(31,42,68,0.18);
-  position: relative;
-}
-
-.sub-link.active-sub::before{
-  content:"";
-  position:absolute;
-  left:-10px;
-  top:50%;
-  width:6px;
-  height:6px;
-  border-radius:999px;
-  transform: translateY(-50%);
-  background: rgba(31,42,68,0.55);
-}
-
-/* ===== Scrollbar (optional) ===== */
-.sidebar::-webkit-scrollbar{ width:10px; }
-.sidebar::-webkit-scrollbar-thumb{
-  background: rgba(2,6,23,0.14);
-  border-radius:999px;
-  border:3px solid #fff;
-}.logo-wrap{
-  background: linear-gradient(180deg, rgba(31,42,68,0.06), rgba(255,255,255,0));
-}
-
-.brand-card{
-  width: 100%;
-  max-width: 210px;
-  padding: 14px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(2,6,23,0.06);
-  background: rgba(255,255,255,0.85);
-  box-shadow: 0 10px 26px rgba(2,6,23,0.06);
-}
-
-.brand-logo{
-  width: 96px;
-  height: 96px;
-  border-radius: 18px;
-  overflow: hidden;
-  margin: 0 auto 10px;
-  background: #fff;
-  border: 1px solid rgba(2,6,23,0.08);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.brand-logo img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* nếu muốn giữ nguyên không crop: đổi thành contain */
-}
-
-.brand-text{
-  line-height: 1.1;
-}
-
-.brand-name{
-  font-weight: 800;
-  font-size: 18px;
+/* CHỈ 1 kiểu cho hover + focus */
+.nav-link-item:is(:hover, :focus-visible){
+  background: rgba(31, 42, 68, 0.07);
   color: #1f2a44;
-  letter-spacing: 0.2px;
+  border-color: rgba(31, 42, 68, 0.12);
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.08);
+  outline: 0;
 }
 
-.brand-sub{
-  margin-top: 6px;
-  font-size: 12px;
-  color: #64748b;
-}
-.sidebar{
-  width: 270px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border-right: 1px solid rgba(2,6,23,0.08);
-  overflow: hidden; /* ✅ không cho aside clip shadow của logo */
+/* Active full-width */
+.nav-link-item.active{
+  background:#2954b8;
+  color:#fff;
+  border-color: rgba(255,255,255,0.14);
+  box-shadow: 0 10px 24px rgba(41, 84, 184, 0.22);
 }
 
-/* ✅ CHỈ MENU MỚI SCROLL */
-.sidebar-nav{
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: visible; /* để shadow/outline không bị cắt ngang */
-  padding: 8px;
+/* Khi active thì hover/focus vẫn giữ “active”, không bị đổi màu */
+.nav-link-item.active:is(:hover, :focus-visible){
+  background:#2954b8;
+  color:#fff;
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 10px 24px rgba(41, 84, 184, 0.22);
 }
-.logo-wrap{
-  padding: 18px 16px; /* ✅ tăng padding để bóng có chỗ */
-  overflow: visible;  /* ✅ chắc chắn */
-}
-.brand-card{
-  box-shadow: 0 14px 30px rgba(2,6,23,0.10);
-}
- 
+
+
 </style>
