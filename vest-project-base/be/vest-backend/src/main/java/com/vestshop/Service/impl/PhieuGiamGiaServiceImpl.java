@@ -183,8 +183,38 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setNgayCapNhat(LocalDateTime.now());
         repo.save(pgg);
     }
+    @Override
+    public void startpgg(Long id) throws Exception{
+        PhieuGiamGia pgg = repo.findById(id)
+                .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
 
-        @Override
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = pgg.getNgayBatDau();
+        LocalDateTime end = pgg.getNgayKetThuc();
+
+        // nếu đã kết thúc rồi thì không cho start
+        if (end != null && now.isAfter(end)) {
+            throw new Exception("Phiếu đã kết thúc");
+        }
+
+        // nếu đã đang áp dụng rồi thì thôi
+        if (start != null && (now.isEqual(start) || now.isAfter(start)) && (end == null || now.isBefore(end) || now.isEqual(end))) {
+            return;
+        }
+
+        // ✅ bắt đầu ngay
+        pgg.setNgayBatDau(now);
+
+        // (tuỳ bạn) nếu end < now (do dữ liệu bẩn) thì set end = now + 1 phút
+        if (end != null && end.isBefore(now)) {
+            pgg.setNgayKetThuc(now.plusMinutes(1));
+        }
+
+        repo.save(pgg);
+    }
+
+
+    @Override
         public void endpgg(Long id) throws Exception {
             PhieuGiamGia pgg = repo.findById(id)
                     .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
