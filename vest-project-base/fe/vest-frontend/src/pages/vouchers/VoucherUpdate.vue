@@ -3,7 +3,6 @@
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-ticket-perforated fs-4"></i>
         <h5 class="mb-0">Cập nhật phiếu giảm giá</h5>
       </div>
 
@@ -60,7 +59,7 @@
                 />
               </div>
 
-              <!-- ✅ Ngày bắt đầu (flatpickr) -->
+              <!-- Ngày bắt đầu -->
               <div class="mt-3">
                 <label class="form-label">Ngày bắt đầu</label>
                 <div class="input-group date-group">
@@ -127,7 +126,7 @@
                 />
               </div>
 
-              <!-- ✅ Ngày kết thúc (flatpickr) -->
+              <!-- Ngày kết thúc -->
               <div class="mt-3">
                 <label class="form-label">Ngày kết thúc</label>
                 <div class="input-group date-group">
@@ -201,9 +200,6 @@
                   <label class="form-check-label" for="lp_canhan">Cá nhân</label>
                 </div>
               </div>
-
-              <div v-if="loaiPhieuLocked && !isEnded" class="text-muted small mt-1">
-              </div>
             </div>
 
             <!-- KHÁCH HÀNG (CÁ NHÂN) -->
@@ -242,43 +238,42 @@
                     Đang tải danh sách khách hàng...
                   </div>
 
-                  <div v-else class="table-responsive mt-3">
-                    <table class="table table-hover align-middle">
-                      <thead class="table-light">
-                        <tr>
-                          <th style="width: 44px;"></th>
-                          <th style="width: 140px;">Mã KH</th>
-                          <th>Tên KH</th>
-                          <th style="width: 160px;">SĐT</th>
-                          <th style="width: 240px;">Email</th>
-                        </tr>
-                      </thead>
+                  <!-- ✅ THAY TABLE => GRID BOX (đỡ bị “xa”) -->
+                  <div v-else class="kh-box mt-3">
+                    <div class="kh-head">
+                      <div class="kh-col kh-check"></div>
+                      <div class="kh-col kh-ma">Mã KH</div>
+                      <div class="kh-col kh-ten">Tên KH</div>
+                      <div class="kh-col kh-sdt">SĐT</div>
+                      <div class="kh-col kh-email">Email</div>
+                    </div>
 
-                      <tbody>
-                        <tr v-for="kh in filteredKhachHang" :key="kh.id">
-                          <td>
-                            <input
-                              type="checkbox"
-                              class="form-check-input"
-                              :checked="selectedKhIds.has(kh.id)"
-                              @change="onToggleKh(kh.id)"
-                              :disabled="isEnded"
-                            />
-                          </td>
-                          <td>{{ kh.maKhachHang || "-" }}</td>
-                          <td class="fw-semibold">{{ kh.tenKhachHang || "-" }}</td>
-                          <td>{{ kh.soDienThoai || "-" }}</td>
-                          <td class="ellipsis" :title="kh.email || ''">{{ kh.email || "-" }}</td>
-                        </tr>
+                    <div class="kh-body">
+                      <div v-if="filteredKhachHang.length === 0" class="kh-empty">
+                        Không có khách hàng phù hợp.
+                      </div>
 
-                        <tr v-if="filteredKhachHang.length === 0">
-                          <td colspan="5" class="text-center text-muted py-4">
-                            Không có khách hàng phù hợp.
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                      <div v-else class="kh-row" v-for="kh in filteredKhachHang" :key="kh.id">
+                        <div class="kh-col kh-check">
+                          <input
+                            type="checkbox"
+                            class="form-check-input"
+                            :checked="selectedKhIds.has(kh.id)"
+                            @change="onToggleKh(kh.id)"
+                            :disabled="isEnded"
+                          />
+                        </div>
+
+                        <div class="kh-col kh-ma">{{ kh.maKhachHang || "-" }}</div>
+                        <div class="kh-col kh-ten fw-semibold">{{ kh.tenKhachHang || "-" }}</div>
+                        <div class="kh-col kh-sdt">{{ kh.soDienThoai || "-" }}</div>
+                        <div class="kh-col kh-email">
+                          <span class="kh-ellipsis" :title="kh.email || ''">{{ kh.email || "-" }}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                  <!-- /kh-box -->
                 </div>
               </div>
             </div>
@@ -294,15 +289,14 @@
                 Hủy
               </button>
 
-             <button
-  class="btn btn-confirm"
-  @click="submit"
-  :disabled="saving || isEnded"
-  :title="isEnded ? 'Phiếu đã kết thúc, không thể chỉnh sửa' : ''"
->
-  {{ saving ? "Đang lưu..." : "Cập nhật phiếu giảm giá" }}
-</button>
-
+              <button
+                class="btn btn-confirm"
+                @click="submit"
+                :disabled="saving || isEnded"
+                :title="isEnded ? 'Phiếu đã kết thúc, không thể chỉnh sửa' : ''"
+              >
+                {{ saving ? "Đang lưu..." : "Cập nhật phiếu giảm giá" }}
+              </button>
             </div>
 
             <div class="col-12" v-if="isEnded">
@@ -341,7 +335,6 @@
               Hủy
             </button>
 
-            <!-- ✅ NÚT CONFIRM GIỮ MÀU CŨ -->
             <button
               class="btn btn-confirm btn-sm"
               type="button"
@@ -489,7 +482,7 @@ function endOfDay(dateYMD) {
   return `${dateYMD}T23:59:59`;
 }
 
-// ===== Flatpickr (dd/mm/yyyy UI - yyyy-MM-dd data) =====
+// ===== Flatpickr =====
 const fromInput = ref(null);
 const toInput = ref(null);
 let fpFrom = null;
@@ -572,7 +565,7 @@ async function fetchDetail() {
   }
 }
 
-// ===== KHÁCH HÀNG (CÁ NHÂN) =====
+// ===== KHÁCH HÀNG =====
 const khLoading = ref(false);
 const khList = ref([]);
 const selectedKhIds = ref(new Set());
@@ -587,9 +580,7 @@ const filteredKhachHang = computed(() => {
   if (!q) return khList.value;
 
   return khList.value.filter((kh) => {
-    const s = [kh.maKhachHang, kh.tenKhachHang, kh.soDienThoai, kh.email]
-      .map(normText)
-      .join(" ");
+    const s = [kh.maKhachHang, kh.tenKhachHang, kh.soDienThoai, kh.email].map(normText).join(" ");
     return s.includes(q);
   });
 });
@@ -607,10 +598,11 @@ function onToggleKh(khId) {
   selectedKhIds.value = s;
 }
 
+// ✅ y hệt update trước: select all chỉ trên list đang filter
 function toggleSelectAll() {
   const s = new Set(selectedKhIds.value);
   const ids = filteredKhachHang.value.map((x) => x.id);
-  const all = ids.every((id) => s.has(id));
+  const all = ids.length > 0 && ids.every((id) => s.has(id));
   if (all) ids.forEach((id) => s.delete(id));
   else ids.forEach((id) => s.add(id));
   selectedKhIds.value = s;
@@ -761,8 +753,6 @@ async function submit() {
 
 onMounted(async () => {
   await fetchDetail();
-
-  // ✅ đợi DOM render (vì đang dùng v-if="loading")
   await nextTick();
   initPickers();
 
@@ -796,15 +786,17 @@ onBeforeUnmount(() => {
   border-radius: 0 8px 8px 0 !important;
 }
 
-/* ellipsis email */
-.ellipsis {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* ✅ nút confirm màu cũ */
+.btn-confirm{
+  background: #1f2a44;
+  border-color: #1f2a44;
+  color: #fff;
+  font-weight: 700;
 }
+.btn-confirm:hover{ filter: brightness(0.95); }
+.btn-confirm:disabled{ opacity: .6; cursor: not-allowed; }
 
-/* simple modal */
+/* ===== Modal ===== */
 .modal-overlay{
   position: fixed;
   inset: 0;
@@ -822,19 +814,59 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 30px rgba(0,0,0,.15);
 }
 
-/* ✅ nút confirm màu cũ */
-.btn-confirm{
-  background: #1f2a44;
-  border-color: #1f2a44;
-  color: #fff;
-  font-weight: 700;
-}
-.btn-confirm:hover{
-  filter: brightness(0.95);
-}
-.btn-confirm:disabled{
-  opacity: .6;
-  cursor: not-allowed;
+/* =========================
+   ✅ KH BOX (GRID) - đẹp, cách đều
+   (không dùng .table để tránh base.css)
+   ========================= */
+.kh-box{
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
 }
 
+/* header */
+.kh-head{
+  display: grid;
+  grid-template-columns: 44px 140px 1.6fr 160px 2fr;
+  padding: 10px 12px;
+  background: #1f2a44;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* body scroll */
+.kh-body{
+  max-height: 360px;
+  overflow: auto;
+}
+
+/* row */
+.kh-row{
+  display: grid;
+  grid-template-columns: 44px 140px 1.6fr 160px 2fr;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+}
+.kh-row:hover{ background: #f8fafc; }
+
+.kh-col{ min-width: 0; }
+.kh-ellipsis{
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kh-empty{
+  padding: 16px 12px;
+  text-align: center;
+  color: #6b7280;
+  font-weight: 600;
+}
 </style>
