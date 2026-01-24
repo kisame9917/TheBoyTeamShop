@@ -32,29 +32,38 @@
           <div class="filter-grid">
             <div class="form-group">
               <label>Loại sản phẩm</label>
-              <select v-model="filters.loai" class="form-input">
-                <option value="">Loại sản phẩm</option>
-                <!-- TODO: Fetch Type Options -->
+              <select v-model="filters.loai" class="form-input" @change="reload">
+                <option value="">-- Chọn Loại sản phẩm --</option>
+                <option v-for="item in attributes.loaiSanPham" :key="item.id" :value="item.id">{{ item.ten }}</option>
               </select>
             </div>
             <div class="form-group">
               <label>Số lượng</label>
-              <select v-model="filters.soLuong" class="form-input">
-                <option value="">Số lượng</option>
+              <select v-model="filters.soLuong" class="form-input" @change="reload">
+                <option value="">-- Chọn Số lượng --</option>
+                <option value="1">Dưới 10</option>
+                <option value="2">10 - 100</option>
+                <option value="3">Trên 100</option>
               </select>
             </div>
             <div class="form-group">
               <label>Thương hiệu</label>
-              <select v-model="filters.thuongHieu" class="form-input">
-                <option value="">Thương hiệu</option>
-                <!-- TODO: Fetch Brand Options -->
+              <select v-model="filters.thuongHieu" class="form-input" @change="reload">
+                <option value="">-- Chọn Thương hiệu --</option>
+                <option v-for="item in attributes.thuongHieu" :key="item.id" :value="item.id">{{ item.ten }}</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Khoảng giá</label>
-              <select v-model="filters.khoangGia" class="form-input">
-                <option value="">Khoảng giá</option>
-              </select>
+            <div class="form-group price-range-group">
+              <label>Khoảng giá: <span class="price-display">{{ formatPrice(filters.priceMin) }} - {{
+                formatPrice(filters.priceMax) }}</span></label>
+              <div class="range-slider">
+                <div class="slider-track"></div>
+                <div class="slider-range" :style="rangeStyle"></div>
+                <input type="range" min="0" max="100000000" step="100000" v-model.number="filters.priceMin"
+                  @input="validateMinPrice" @change="reload">
+                <input type="range" min="0" max="100000000" step="100000" v-model.number="filters.priceMax"
+                  @input="validateMaxPrice" @change="reload">
+              </div>
             </div>
           </div>
         </div>
@@ -106,9 +115,10 @@
                 </span>
               </td>
               <td class="text-center">
-                <button class="btn-icon" @click="goDetail(p.id)">
-                  👁️
+                <button class="btn-icon white" @click="goDetail(p.id)" title="Xem chi tiết">
+                  <img :src="eyeIcon" alt="view" style="width: 20px; height: 20px;" />
                 </button>
+
               </td>
             </tr>
             <tr v-if="loading">
@@ -147,9 +157,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listSanPham } from '../../services/sanPhamApi'
+import attributeService from '../../services/attributeService'
+import eyeIcon from '../../images/eye.svg'
 
 const router = useRouter()
 const items = ref([])
@@ -168,7 +180,13 @@ const filters = reactive({
   loai: '',
   thuongHieu: '',
   soLuong: '',
-  khoangGia: ''
+  priceMin: 0,
+  priceMax: 100000000
+})
+
+const attributes = reactive({
+  loaiSanPham: [],
+  thuongHieu: []
 })
 
 function goDetail(id) {
@@ -176,14 +194,27 @@ function goDetail(id) {
 }
 
 function createProduct() {
-  // TODO: Navigate to create page
-  alert('Chức năng thêm mới chưa implement route');
+  router.push('/products/add')
 }
 
 function formatPrice(val) {
   if (!val) return '0 đ';
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 }
+
+const rangeStyle = computed(() => {
+  const min = filters.priceMin;
+  const max = filters.priceMax;
+  const rangeMax = 100000000;
+
+  const percentMin = (min / rangeMax) * 100;
+  const percentMax = (max / rangeMax) * 100;
+
+  return {
+    left: percentMin + '%',
+    width: (percentMax - percentMin) + '%'
+  };
+})
 
 function formatPriceRange(min, max) {
   if (min === max) {
@@ -192,18 +223,49 @@ function formatPriceRange(min, max) {
   return `${formatPrice(min)} - ${formatPrice(max)}`;
 }
 
+
+
+function validateMinPrice() {
+  if (filters.priceMin > filters.priceMax) {
+    filters.priceMin = filters.priceMax
+  }
+}
+
+function validateMaxPrice() {
+  if (filters.priceMax < filters.priceMin) {
+    filters.priceMax = filters.priceMin
+  }
+}
 function resetFilters() {
   filters.keyword = '';
   filters.status = '';
   filters.loai = '';
   filters.thuongHieu = '';
+  filters.soLuong = '';
+  filters.priceMin = 0;
+  filters.priceMax = 100000000;
   reload();
 }
 
-function changePage(page) {
-  if (page >= 0 && page < totalPages.value) {
-    currentPage.value = page
+
+
+function changePage(p) {
+  if (p >= 0 && p < totalPages.value) {
+    currentPage.value = p
     reload()
+  }
+}
+
+async function loadAttributes() {
+  try {
+    const [resLoai, resTH] = await Promise.all([
+      attributeService.getAllList('loai-san-pham'),
+      attributeService.getAllList('thuong-hieu')
+    ])
+    attributes.loaiSanPham = resLoai.data
+    attributes.thuongHieu = resTH.data
+  } catch (e) {
+    console.error("Failed to load attributes", e)
   }
 }
 
@@ -236,7 +298,22 @@ async function reload() {
 
       const matchesStatus = filters.status === '' || String(item.trangThai) === filters.status;
 
-      return matchesKeyword && matchesStatus;
+      const matchesLoai = !filters.loai || item.loaiSanPhamId == filters.loai;
+      const matchesThuongHieu = !filters.thuongHieu || item.thuongHieuId == filters.thuongHieu;
+
+      let matchesSoLuong = true;
+      if (filters.soLuong) {
+        const sl = item.soLuongTon || 0;
+        if (filters.soLuong === '1') matchesSoLuong = sl < 10;
+        else if (filters.soLuong === '2') matchesSoLuong = sl >= 10 && sl <= 100;
+        else if (filters.soLuong === '3') matchesSoLuong = sl > 100;
+      }
+
+      let matchesGia = true;
+      const price = item.giaMin || 0;
+      matchesGia = price >= filters.priceMin && price <= filters.priceMax;
+
+      return matchesKeyword && matchesStatus && matchesLoai && matchesThuongHieu && matchesSoLuong && matchesGia;
     });
 
   } catch (e) {
@@ -247,7 +324,10 @@ async function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  loadAttributes()
+  reload()
+})
 </script>
 
 <style scoped>
@@ -440,6 +520,29 @@ onMounted(reload)
   background: #1e40af;
 }
 
+.btn-icon.blue {
+  background: #3b82f6;
+}
+
+.btn-icon.blue:hover {
+  background: #2563eb;
+}
+
+.btn-icon.red {
+  background: #ef4444;
+}
+
+.btn-icon.red:hover {
+  background: #dc2626;
+}
+
+.btn-icon.white {
+  background: transparent;
+  padding: 0;
+  width: auto;
+  height: auto;
+}
+
 .pagination-section {
   margin-top: 20px;
   display: flex;
@@ -485,5 +588,84 @@ onMounted(reload)
   margin-top: 10px;
   text-align: center;
 }
+
+/* Range Slider Styles */
+.price-range-group {
+  width: 100%;
+}
+
+.price-display {
+  font-weight: bold;
+  color: #059669;
+  /* Green text to match */
+  margin-left: 5px;
+}
+
+.range-slider {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  /* Thin track */
+  margin-top: 15px;
+  /* Space for thumbs */
+  background: #e5e7eb;
+  /* Gray background track */
+  border-radius: 2px;
+}
+
+/* The visual colored bar between thumbs */
+.slider-range {
+  position: absolute;
+  height: 100%;
+  background-color: #059669;
+  /* Green active color */
+  border-radius: 2px;
+  z-index: 1;
+}
+
+.range-slider input[type=range] {
+  position: absolute;
+  width: 100%;
+  pointer-events: none;
+  appearance: none;
+  /* ✅ thêm dòng này */
+  -webkit-appearance: none;
+  z-index: 2;
+  height: 5px;
+  top: -1px;
+  /* Align with track */
+  background: transparent;
+  left: 0;
+}
+
+.range-slider input[type=range]::-webkit-slider-thumb {
+  pointer-events: all;
+  width: 18px;
+  height: 18px;
+  -webkit-appearance: none;
+  background-color: white;
+  border: 2px solid #059669;
+  /* Green border */
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -7px;
+  /* center thumb */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s;
+}
+
+.range-slider input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.range-slider input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: transparent;
+  /* Hide default track */
+  border-radius: 2px;
+}
+
+/* Firefox fixes if needed, but webkit covers most for this demo */
 </style>
-<!-- Filter Section -->
