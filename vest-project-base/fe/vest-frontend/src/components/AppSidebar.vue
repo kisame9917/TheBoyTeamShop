@@ -407,5 +407,5 @@ function toggleGroup(key) {
 .brand-card{
   box-shadow: 0 14px 30px rgba(2,6,23,0.10);
 }
-
+ 
 </style>

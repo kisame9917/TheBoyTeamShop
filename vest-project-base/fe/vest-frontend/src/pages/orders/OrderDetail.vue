@@ -1083,7 +1083,6 @@ onMounted(() => {
   color: #fff !important;
   border-color: rgba(255,255,255,0.15) !important;
 }
-
 /* (tuỳ chọn) đường kẻ trong bảng nhìn gọn */
 .table td, .table th{
   border-color: #e9ecef;

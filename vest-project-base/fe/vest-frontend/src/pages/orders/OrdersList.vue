@@ -962,6 +962,13 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: bottom;
+}.ellipsis{
+  display: inline-block;
+  max-width: 120px;      /* chỉnh rộng/hẹp tuỳ bạn */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
 }
 
 </style>
