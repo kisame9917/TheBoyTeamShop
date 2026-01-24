@@ -9,7 +9,7 @@ import Login from '../pages/auth/Login.vue'
 import ProductsList from '../pages/products/ProductsList.vue'
 import ProductDetail from '../pages/products/ProductDetail.vue'
 import OrdersList from '../pages/orders/OrdersList.vue'
-
+import OrderDetail from '../pages/orders/OrderDetail.vue'
 
 import CustomersList from '../pages/customers/CustomersList.vue'
 import CustomersForm from '../pages/customers/CustomersForm.vue'
@@ -44,24 +44,21 @@ const routes = [
       { path: 'products/:id', name: 'product-detail', component: ProductDetail, props: true },
 
       { path: 'orders', name: 'orders', component: OrdersList },
+      { path: 'orders/:id', name: 'order-detail', component: OrderDetail, props: true },
 
-      // ✅ KHÁCH HÀNG (child path => không có dấu / ở đầu)
       { path: 'customers', name: 'customer-list', component: CustomersList },
       { path: 'customers/new', name: 'customer-new', component: CustomersForm },
       { path: 'customers/:id/edit', name: 'customer-edit', component: CustomersForm, props: true },
 
-      // ===== STAFF =====
       { path: 'staff', name: 'staff', component: StaffList },
       { path: 'staff/new', name: 'staff-new', component: StaffForm, meta: { requiresAdmin: true } },
       { path: 'staff/:id/edit', name: 'staff-edit', component: StaffForm, props: true, meta: { requiresAdmin: true } },
 
-      // ===== VOUCHERS =====
       { path: 'vouchers', name: 'vouchers', component: VouchersList },
       { path: 'vouchers/create', name: 'voucher-create', component: VoucherCreate },
       { path: 'vouchers/:id', name: 'voucher-detail', component: VoucherDetail, props: true },
       { path: 'vouchers/update/:id', name: 'voucher-update', component: VoucherUpdate, props: true },
 
-      // ===== PAYMENTS =====
       { path: 'payments', name: 'payments', component: PaymentsList },
     ],
   },
