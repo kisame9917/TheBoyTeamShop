@@ -13,9 +13,11 @@ import OrderDetail from '../pages/orders/OrderDetail.vue'
 
 import CustomersList from '../pages/customers/CustomersList.vue'
 import CustomersForm from '../pages/customers/CustomersForm.vue'
+import CustomerDetail from "@/pages/customers/CustomerDetail.vue";
 
 import StaffList from '../pages/staff/StaffList.vue'
 import StaffForm from '../pages/staff/StaffForm.vue'
+import StaffDetail from '../pages/staff/StaffDetail.vue'
 
 import VouchersList from '../pages/vouchers/VouchersList.vue'
 import VoucherCreate from '../pages/vouchers/VoucherCreate.vue'
@@ -58,10 +60,12 @@ const routes = [
       { path: 'customers', name: 'customer-list', component: CustomersList },
       { path: 'customers/new', name: 'customer-new', component: CustomersForm },
       { path: 'customers/:id/edit', name: 'customer-edit', component: CustomersForm, props: true },
+      { path: "/customers/:id", name: "customer-detail", component: CustomerDetail, props: true,},
 
       { path: 'staff', name: 'staff', component: StaffList },
       { path: 'staff/new', name: 'staff-new', component: StaffForm, meta: { requiresAdmin: true } },
       { path: 'staff/:id/edit', name: 'staff-edit', component: StaffForm, props: true, meta: { requiresAdmin: true } },
+      { path: 'staff/:id', name: 'staff-detail', component: StaffDetail, props: true },
 
       { path: 'vouchers', name: 'vouchers', component: VouchersList },
       { path: 'vouchers/create', name: 'voucher-create', component: VoucherCreate },
