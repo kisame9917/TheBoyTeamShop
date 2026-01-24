@@ -5,20 +5,21 @@ import App from './App.vue'
 import router from './router'
 import './assets/base.css'
 
+// ✅ thêm bootstrap
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap-icons/font/bootstrap-icons.css'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+
 import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
 
-// 1) tạo pinia instance
 const pinia = createPinia()
 
-// 2) gắn pinia + router vào app (pinia trước router)
 app.use(pinia)
 app.use(router)
 
-// 3) bây giờ mới được dùng store (truyền pinia cho chắc chắn)
 const auth = useAuthStore(pinia)
 auth.hydrate()
 
-// 4) mount
 app.mount('#app')

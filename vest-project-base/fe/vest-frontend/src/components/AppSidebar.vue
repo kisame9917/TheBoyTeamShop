@@ -1,12 +1,8 @@
 <template>
   <aside class="sidebar">
     <div class="logo-section">
-      <!-- Placeholder for TBT Logo, using text for now or simple SVG if possible. 
-            The user sent an image, but I can't extract the logo file from it easily without a separate tool.
-            I'll use a styled text representation. -->
       <div class="tbt-logo">
-        <span style="font-size: 32px;"></span>
-        <h1 style="margin:0; font-size: 24px;">VestTBTShop</h1>
+        <img src="../images/logo.jpg" alt="Logo" style="height: 120px; object-fit: contain;" />
       </div>
     </div>
 
@@ -36,7 +32,7 @@
         </div>
         <div class="nav-sub" v-if="openGroups.products">
           <RouterLink to="/products" class="sub-item" active-class="active-blue">Danh sách sản phẩm</RouterLink>
-          <div class="sub-item">Danh sách biến thể</div>
+          <RouterLink to="/variants" class="sub-item" active-class="active-blue">Danh sách biến thể</RouterLink>
         </div>
       </div>
 
@@ -47,11 +43,18 @@
           <span class="arrow">▼</span>
         </div>
         <div class="nav-sub" v-if="openGroups.attributes">
-          <div class="sub-item">Số khuy</div>
-          <div class="sub-item">Thương hiệu</div>
-          <div class="sub-item">Kiểu túi</div>
-          <div class="sub-item">Ve áo</div>
-          <div class="sub-item">Xuất xứ</div>
+          <RouterLink to="/attributes/thuong-hieu" class="sub-item" active-class="active-blue">Thương hiệu</RouterLink>
+          <RouterLink to="/attributes/chat-lieu" class="sub-item" active-class="active-blue">Chất liệu</RouterLink>
+          <RouterLink to="/attributes/kich-co" class="sub-item" active-class="active-blue">Kích cỡ</RouterLink>
+          <RouterLink to="/attributes/mau-sac" class="sub-item" active-class="active-blue">Màu sắc</RouterLink>
+          <RouterLink to="/attributes/loai-san-pham" class="sub-item" active-class="active-blue">Loại sản phẩm
+          </RouterLink>
+          <RouterLink to="/attributes/so-khuy" class="sub-item" active-class="active-blue">Số khuy</RouterLink>
+          <RouterLink to="/attributes/kieu-tui" class="sub-item" active-class="active-blue">Kiểu túi</RouterLink>
+          <RouterLink to="/attributes/ve-ao" class="sub-item" active-class="active-blue">Ve áo</RouterLink>
+          <RouterLink to="/attributes/xe-ta" class="sub-item" active-class="active-blue">Xẻ tà</RouterLink>
+          <RouterLink to="/attributes/xuat-xu" class="sub-item" active-class="active-blue">Xuất xứ</RouterLink>
+          <RouterLink to="/attributes/fit" class="sub-item" active-class="active-blue">Fit</RouterLink>
         </div>
       </div>
 
@@ -102,7 +105,8 @@ function toggleGroup(key) {
   border-right: 1px solid #eee;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  /* Fill parent */
   overflow-y: auto;
 }
 
