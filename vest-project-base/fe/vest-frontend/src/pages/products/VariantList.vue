@@ -83,7 +83,15 @@
               <td>
                 <div class="action-buttons">
                   <button class="btn-icon blue" @click="openEditModal(v)">✏️</button>
-                  <button class="btn-icon status-toggle" @click="toggleStatus(v)" title="Đổi trạng thái">🔄</button>
+                 <label class="switch" title="Đổi trạng thái">
+  <input
+    type="checkbox"
+    :checked="!!v.trangThai"
+    @change="toggleStatus(v)"
+  />
+  <span class="slider"></span>
+</label>
+
                 </div>
               </td>
             </tr>
@@ -270,29 +278,50 @@ function editVariant(v) {
   error("Chức năng đang phát triển: " + v.maSanPhamChiTiet)
 }
 
+const togglingIds = ref(new Set())
+
 async function toggleStatus(variant) {
-  // Confirm removed
+  if (!variant?.id) return
+
+  // chống bấm liên tục -> tránh toast chồng + tránh gọi API 2 lần
+  if (togglingIds.value.has(variant.id)) return
+  togglingIds.value.add(variant.id)
+
+  const old = variant.trangThai
+  const next = !old
+
+  // mượt: đổi UI ngay
+  variant.trangThai = next
+
   try {
-    const updatedVariant = { ...variant, trangThai: !variant.trangThai }
     await updateDetail(variant.id, {
-      // Explicitly map fields if needed, or spread object if backend allows partial/full
-      idSanPham: updatedVariant.idSanPham,
-      idKichCo: updatedVariant.idKichCo,
-      idMauSac: updatedVariant.idMauSac,
-      soLuongTon: updatedVariant.soLuongTon,
-      donGia: updatedVariant.donGia,
-      ghiChu: updatedVariant.ghiChu,
-      trangThai: updatedVariant.trangThai,
-      anh: updatedVariant.anh
+      idSanPham: variant.idSanPham,
+      idKichCo: variant.idKichCo,
+      idMauSac: variant.idMauSac,
+      soLuongTon: variant.soLuongTon,
+      donGia: variant.donGia,
+      ghiChu: variant.ghiChu,
+      trangThai: next,
+      anh: variant.anh
     })
-    loadData()
-    const statusText = updatedVariant.trangThai ? 'Hoạt động' : 'Ngừng hoạt động'
-    success(`Đã đổi trạng thái "${variant.maSanPhamChiTiet || 'Biến thể'}" thành ${statusText}`)
+
+    // reload để đồng bộ dữ liệu phân trang
+    await loadData()
+
+    // toast giống ảnh
+    const statusText = next ? 'Còn hàng' : 'Hết hàng'
+    success(`Đã đổi trạng thái biến thể thành ${statusText}`)
   } catch (e) {
     console.error(e)
-    error("Lỗi cập nhật trạng thái")
+    // rollback nếu lỗi
+    variant.trangThai = old
+    error('Lỗi cập nhật trạng thái')
+  } finally {
+    togglingIds.value.delete(variant.id)
   }
 }
+
+
 
 function formatPrice(val) {
   if (!val) return '0 đ';
@@ -671,4 +700,53 @@ function closeEditModal() {
   padding: 2px 4px;
   border-radius: 4px;
 }
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: #d1d5db;
+  transition: 0.2s;
+  border-radius: 999px;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.switch input:checked + .slider {
+  background: #2563eb;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* cho switch gọn cùng icon */
+.action-buttons .switch {
+  margin-left: 6px;
+  transform: translateY(2px);
+}
+
 </style>

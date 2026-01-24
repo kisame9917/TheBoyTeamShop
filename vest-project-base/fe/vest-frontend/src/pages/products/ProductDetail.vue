@@ -89,8 +89,16 @@
                 <td>
                   <div class="action-buttons">
                     <button class="btn-icon blue" @click="editVariant(variant)">✏️</button>
-                    <button class="btn-icon status-toggle" @click="toggleStatus(variant)"
-                      title="Đổi trạng thái">🔄</button>
+                    <label class="switch" title="Đổi trạng thái">
+  <input
+    type="checkbox"
+    :checked="!!variant.trangThai"
+    @change="toggleStatus(variant)"
+  />
+  <span class="slider"></span>
+</label>
+
+
                   </div>
                 </td>
               </tr>
@@ -241,6 +249,8 @@ const newVariant = reactive({
   ghiChu: '',
   trangThai: true
 })
+
+
 
 // Mock color mapping
 function getColorCode(colorName) {
@@ -423,7 +433,7 @@ async function toggleStatus(variant) {
       anh: updatedVariant.anh
     })
     await loadVariants()
-    const statusText = updatedVariant.trangThai ? 'Hoạt động' : 'Ngừng hoạt động'
+    const statusText = updatedVariant.trangThai ? 'Còn hàng' : 'Hết hàng'
     success(`Đã đổi trạng thái biến thể thành ${statusText}`)
   } catch (e) {
     console.error(e)
@@ -747,4 +757,52 @@ function formatPrice(val) {
   padding: 2px 4px;
   border-radius: 4px;
 }
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: #d1d5db;
+  transition: 0.2s;
+  border-radius: 999px;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.switch input:checked + .slider {
+  background: #2563eb; /* xanh khi true */
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* cho switch nằm gọn trong action-buttons */
+.action-buttons .switch {
+  margin-left: 6px;
+}
+
 </style>

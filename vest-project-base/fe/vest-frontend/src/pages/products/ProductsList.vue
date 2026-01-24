@@ -59,10 +59,26 @@
               <div class="range-slider">
                 <div class="slider-track"></div>
                 <div class="slider-range" :style="rangeStyle"></div>
-                <input type="range" min="0" max="100000000" step="100000" v-model.number="filters.priceMin"
-                  @input="validateMinPrice" @change="reload">
-                <input type="range" min="0" max="100000000" step="100000" v-model.number="filters.priceMax"
-                  @input="validateMaxPrice" @change="reload">
+                <input
+  type="range"
+  min="0"
+  :max="priceMaxDb"
+  step="100000"
+  v-model.number="filters.priceMin"
+  @input="validateMinPrice"
+  @change="reload"
+/>
+
+<input
+  type="range"
+  min="0"
+  :max="priceMaxDb"
+  step="100000"
+  v-model.number="filters.priceMax"
+  @input="validateMaxPrice"
+  @change="reload"
+/>
+
               </div>
             </div>
           </div>
@@ -201,20 +217,23 @@ function formatPrice(val) {
   if (!val) return '0 đ';
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 }
+const priceMaxDb = ref(100000000) // tạm default, sẽ set lại từ DB
+
 
 const rangeStyle = computed(() => {
-  const min = filters.priceMin;
-  const max = filters.priceMax;
-  const rangeMax = 100000000;
+  const min = filters.priceMin
+  const max = filters.priceMax
+  const rangeMax = priceMaxDb.value || 1
 
-  const percentMin = (min / rangeMax) * 100;
-  const percentMax = (max / rangeMax) * 100;
+  const percentMin = (min / rangeMax) * 100
+  const percentMax = (max / rangeMax) * 100
 
   return {
     left: percentMin + '%',
     width: (percentMax - percentMin) + '%'
-  };
+  }
 })
+
 
 function formatPriceRange(min, max) {
   if (min === max) {
@@ -237,15 +256,16 @@ function validateMaxPrice() {
   }
 }
 function resetFilters() {
-  filters.keyword = '';
-  filters.status = '';
-  filters.loai = '';
-  filters.thuongHieu = '';
-  filters.soLuong = '';
-  filters.priceMin = 0;
-  filters.priceMax = 100000000;
-  reload();
+  filters.keyword = ''
+  filters.status = ''
+  filters.loai = ''
+  filters.thuongHieu = ''
+  filters.soLuong = ''
+  filters.priceMin = 0
+  filters.priceMax = priceMaxDb.value
+  reload()
 }
+
 
 
 
@@ -312,6 +332,7 @@ async function reload() {
       let matchesGia = true;
       const price = item.giaMin || 0;
       matchesGia = price >= filters.priceMin && price <= filters.priceMax;
+      
 
       return matchesKeyword && matchesStatus && matchesLoai && matchesThuongHieu && matchesSoLuong && matchesGia;
     });

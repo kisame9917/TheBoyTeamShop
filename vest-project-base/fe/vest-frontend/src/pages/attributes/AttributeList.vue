@@ -37,7 +37,15 @@
             </td>
             <td>
               <button class="btn-icon edit" @click="openModal('edit', item)">✏️</button>
-              <button class="btn-icon status-toggle" @click="toggleStatus(item)" title="Đổi trạng thái">🔄</button>
+              <label class="switch" title="Đổi trạng thái">
+  <input
+    type="checkbox"
+    :checked="!!item.trangThai"
+    @change="toggleStatus(item)"
+  />
+  <span class="switch-slider"></span>
+</label>
+
             </td>
           </tr>
         </tbody>
@@ -224,23 +232,43 @@ async function submitForm() {
   }
 }
 
-async function toggleStatus(item) {
-  try {
-    const updatedItem = { ...item, trangThai: !item.trangThai }
+const togglingIds = ref(new Set())
 
-    // Handle special mapping for KichCo (Size) if needed
+async function toggleStatus(item) {
+  if (!item?.id) return
+
+  if (togglingIds.value.has(item.id)) return
+  togglingIds.value.add(item.id)
+
+  const old = item.trangThai
+  const next = !old
+
+  // mượt: đổi UI ngay
+  item.trangThai = next
+
+  try {
+    const updatedItem = { ...item, trangThai: next }
+
+    // map size nếu là kich-co
     if (type.value === 'kich-co') {
       updatedItem.soSize = updatedItem.ten
     }
 
     await attributeService.update(type.value, item.id, updatedItem)
-    fetchData()
-    success(`Đã đổi trạng thái "${item.ten}" thành ${updatedItem.trangThai ? 'Hoạt động' : 'Ngừng hoạt động'}`)
+
+    // reload lại để đồng bộ
+    await fetchData()
+
+    success(`Đã đổi trạng thái "${item.ten}" thành ${next ? 'Hoạt động' : 'Ngừng hoạt động'}`)
   } catch (err) {
+    item.trangThai = old
     const msg = err.response?.data?.message || err.message
     error('Không thể cập nhật trạng thái: ' + msg)
+  } finally {
+    togglingIds.value.delete(item.id)
   }
 }
+
 </script>
 
 <style scoped>
@@ -387,4 +415,55 @@ th {
   background: #f5f5f5;
   color: #333;
 }
+.action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: #d1d5db;
+  transition: 0.2s;
+  border-radius: 999px;
+}
+
+.switch-slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+/* ✅ xanh dương khi bật */
+.switch input:checked + .switch-slider {
+  background: #2563eb;
+}
+
+.switch input:checked + .switch-slider:before {
+  transform: translateX(22px);
+}
+
 </style>
