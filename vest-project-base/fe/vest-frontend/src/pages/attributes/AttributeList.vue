@@ -46,7 +46,7 @@
 
     <!-- Modal -->
     <div v-if="showModal" class="modal-overlay">
-      <div class="modal">
+      <div class="modals">
         <h3>{{ modalMode === 'create' ? 'Thêm' : 'Cập nhật' }} {{ title }}</h3>
         <form @submit.prevent="submitForm">
 
@@ -349,7 +349,7 @@ th {
   z-index: 1000;
 }
 
-.modal {
+.modals {
   background: white;
   padding: 24px;
   border-radius: 8px;

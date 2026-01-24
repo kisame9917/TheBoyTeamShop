@@ -110,7 +110,7 @@
     </div>
     <!-- Edit Modal -->
     <div v-if="showEditModal" class="modal-overlay">
-      <div class="modal">
+      <div class="modals">
         <div class="modal-header">
           <h3>Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h3>
           <button class="close-btn" @click="closeEditModal">×</button>
@@ -614,27 +614,28 @@ function closeEditModal() {
 
 /* Modal Styles */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+    position: fixed;
+  inset: 0; /* top/right/bottom/left = 0 */
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 9999;
 }
 
-.modal {
-  background: white;
+.modals {
+  background: #fff;
   padding: 20px;
   border-radius: 8px;
   width: 500px;
   max-width: 90%;
+  max-height: 90vh;
+  overflow: auto;
+  position: relative;
+  z-index: 10000;
 }
 
-.modal-header {
+.modals-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
@@ -656,7 +657,7 @@ function closeEditModal() {
   flex: 1;
 }
 
-.modal-footer {
+.modals-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
