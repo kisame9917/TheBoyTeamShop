@@ -10,4 +10,17 @@ export async function listSanPham(page = 0, size = 10) {
 export async function createSanPham(payload) {
   const res = await http.post('/api/san-pham', payload)
   return res.data?.data
+  
+
 }
+
+export async function updateSanPham(id, payload) {
+  const res = await http.put(`/api/san-pham/${id}`, payload)
+  return res.data
+}
+
+export async function deleteSanPham(id) {
+  const res = await http.delete(`/api/san-pham/${id}`)
+  return res.data
+}
+

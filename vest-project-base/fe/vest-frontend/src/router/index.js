@@ -39,9 +39,18 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'dashboard', component: Dashboard },
-
-      { path: 'products', name: 'products', component: ProductsList },
-      { path: 'products/:id', name: 'product-detail', component: ProductDetail, props: true },
+            { path: 'products', name: 'products', component: ProductsList },
+            { path: 'products/add', name: 'product-add', component: () => import('../pages/products/ProductAdd.vue') },
+            { path: 'products/edit/:id', name: 'product-edit', component: () => import('../pages/products/ProductAdd.vue'), props: true },
+            { path: 'products/:id', name: 'product-detail', component: ProductDetail, props: true },
+            { path: 'variants', name: 'variants-list', component: () => import('../pages/products/VariantList.vue') },
+            {
+              path: 'attributes/:type',
+              name: 'attributes',
+              component: () => import('../pages/attributes/AttributeList.vue'),
+              meta: { requiresAuth: true },
+              props: true
+            },
 
       { path: 'orders', name: 'orders', component: OrdersList },
       { path: 'orders/:id', name: 'order-detail', component: OrderDetail, props: true },
