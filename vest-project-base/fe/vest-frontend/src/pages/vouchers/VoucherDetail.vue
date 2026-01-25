@@ -135,7 +135,7 @@ const d = computed(() => {
 const isPersonalVoucher = computed(() => d.value?.loaiPhieu === true)
 
 function goBack() {
-  router.push("/vouchers")
+  router.push({ path: "/vouchers", query: route.query })
 }
 
 async function load() {
