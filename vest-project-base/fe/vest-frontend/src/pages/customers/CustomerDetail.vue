@@ -3,17 +3,21 @@
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-person-vcard fs-4"></i>
-        <h5 class="mb-0">Chi tiết khách hàng</h5>
+        <i class="bi bi-person-vcard fs-5"></i>
+        <h6 class="mb-0 fw-semibold">Quản lý khách hàng / Chi tiết</h6>
       </div>
 
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-secondary btn-sm" type="button" @click="goBack">
-          <i class="bi bi-arrow-left me-1"></i> Quay lại
+          <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
         </button>
 
-        <button class="btn btn-outline-warning btn-sm" type="button" @click="goEdit">
+        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goEdit">
           <i class="bi bi-pencil-square me-1"></i> Sửa
+        </button>
+
+        <button class="btn btn-primary btn-sm text-white" type="button" @click="openConfirmToggle">
+          <i class="bi bi-toggle-on me-1"></i> Đổi trạng thái
         </button>
       </div>
     </div>
@@ -26,78 +30,82 @@
         </div>
 
         <div v-else>
-          <!-- ===== TOP like modal ===== -->
-          <div class="detail-top">
-            <div class="detail-avatar">
+          <!-- Avatar center -->
+          <div class="d-flex flex-column align-items-center mb-4">
+            <div class="avatar-center">
               <img
                   v-if="resolveAvatar(customer)"
                   :src="resolveAvatar(customer)"
-                  class="detail-avatar-img"
+                  class="avatar-img"
                   alt="avatar"
                   @error="onAvatarError($event, customer)"
               />
-              <div v-else class="detail-avatar-fallback">
-                {{ getInitials(customer && customer.tenKhachHang) }}
+              <div v-else class="avatar-fallback">
+                {{ getInitials(customer?.tenKhachHang) }}
               </div>
             </div>
 
-            <div class="detail-head">
-              <div class="detail-name">{{ (customer && customer.tenKhachHang) || "-" }}</div>
-
-              <div class="detail-badges">
-                <span class="badge badge-role">{{ (customer && customer.maKhachHang) || "-" }}</span>
-                <span class="badge badge-role">{{ genderText(customer && customer.gioiTinh) }}</span>
-                <span :class="['badge', customer && customer.trangThai ? 'badge-active' : 'badge-inactive']">
-                  {{ customer && customer.trangThai ? "Hoạt động" : "Không hoạt động" }}
-                </span>
-              </div>
+            <div class="mt-2 fw-bold fs-5 text-center">
+              {{ customer?.tenKhachHang || "-" }}
             </div>
 
-            <div class="ms-auto d-flex align-items-center gap-2">
-              <label class="switch" title="Đổi trạng thái">
-                <input
-                    type="checkbox"
-                    :checked="!!customer?.trangThai"
-                    @click.prevent="openConfirmToggle"
-                />
-                <span class="slider"></span>
-              </label>
+            <div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
+              <span class="badge text-bg-light border">{{ customer?.maKhachHang || "-" }}</span>
+              <span class="badge text-bg-light border">{{ genderText(customer?.gioiTinh) }}</span>
+              <span class="badge" :class="customer?.trangThai ? 'text-bg-success' : 'text-bg-secondary'">
+                {{ customer?.trangThai ? "Hoạt động" : "Không hoạt động" }}
+              </span>
             </div>
           </div>
 
-          <!-- ===== GRID like modal ===== -->
-          <div class="detail-grid">
-            <div class="detail-box">
-              <div class="detail-label">Email</div>
-              <div class="detail-value">{{ (customer && customer.email) || "-" }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">SĐT</div>
-              <div class="detail-value">{{ (customer && customer.soDienThoai) || "-" }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">Tài khoản</div>
-              <div class="detail-value">{{ (customer && customer.taiKhoan) || "-" }}</div>
-            </div>
-
-            <div class="detail-box col-full">
-              <div class="detail-label">Địa chỉ</div>
-              <div class="detail-value">{{ (customer && customer.diaChi) || "-" }}</div>
-            </div>
-
-            <div class="detail-box">
-              <div class="detail-label">Người nhận</div>
-              <div class="detail-value">
-                {{ (customer && customer.diaChiMacDinh && customer.diaChiMacDinh.tenNguoiNhan) || "-" }}
+          <!-- Info grid -->
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ customer?.email || "-" }}</div>
               </div>
             </div>
 
-            <div class="detail-box">
-              <div class="detail-label">SĐT người nhận</div>
-              <div class="detail-value">
-                {{ (customer && customer.diaChiMacDinh && customer.diaChiMacDinh.soDienThoai) || "-" }}
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="info-label">SĐT</div>
+                <div class="info-value">{{ customer?.soDienThoai || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="info-label">Tài khoản</div>
+                <div class="info-value">{{ customer?.taiKhoan || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="info-label">Giới tính</div>
+                <div class="info-value">{{ genderText(customer?.gioiTinh) }}</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="info-box">
+                <div class="info-label">Địa chỉ</div>
+                <div class="info-value">{{ customer?.diaChi || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="info-label">Người nhận</div>
+                <div class="info-value">{{ customer?.diaChiMacDinh?.tenNguoiNhan || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="info-label">SĐT người nhận</div>
+                <div class="info-value">{{ customer?.diaChiMacDinh?.soDienThoai || "-" }}</div>
               </div>
             </div>
           </div>
@@ -110,9 +118,7 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h6 class="modal-title">
-              <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng thái
-            </h6>
+            <h6 class="modal-title">Xác nhận</h6>
             <button type="button" class="btn-close" aria-label="Close" @click="closeConfirmModal"></button>
           </div>
 
@@ -122,9 +128,7 @@
 
           <div class="modal-footer">
             <button class="btn btn-light" type="button" @click="closeConfirmModal">Hủy</button>
-            <button class="btn btn-primary text-white" type="button" @click="confirmToggleStatus">
-              Xác nhận
-            </button>
+            <button class="btn btn-agree" type="button" @click="confirmToggleStatus">Đồng ý</button>
           </div>
         </div>
       </div>
@@ -136,14 +140,34 @@
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import http from "../../services/http";
+import { useToast } from "@/composables/useToast";
 
 const route = useRoute();
 const router = useRouter();
+const toast = useToast();
 
 const loading = ref(false);
 const customer = ref(null);
 
-/** ===== Normalizer (giữ đúng schema như list/modal) ===== */
+function goBack() {
+  // ưu tiên back nếu có history, fallback về list
+  if (window.history.length > 1) {
+    router.back();
+    return;
+  }
+  try {
+    if (router?.hasRoute && router.hasRoute("customer")) {
+      router.push({ name: "customer" });
+      return;
+    }
+  } catch {}
+  router.push("/customers");
+}
+
+function goEdit() {
+  router.push({ name: "customer-edit", params: { id: route.params.id } });
+}
+
 function normalizeCustomer(x) {
   x = x || {};
   return {
@@ -167,16 +191,18 @@ async function fetchDetail() {
     const id = route.params.id;
     const res = await http.get("/api/khach-hang/" + id);
     customer.value = normalizeCustomer(res.data);
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Có lỗi xảy ra";
+    toast.error(msg);
   } finally {
     loading.value = false;
   }
 }
 
-/** ===== UI helpers ===== */
 function genderText(v) {
   if (v === true) return "Nam";
   if (v === false) return "Nữ";
-  return "-";
+  return "Khác";
 }
 
 function getInitials(name) {
@@ -222,15 +248,6 @@ function onAvatarError(e, c) {
   if (e && e.target) e.target.src = "";
 }
 
-/** ===== Routing ===== */
-function goBack() {
-  router.push({ name: "customer" });
-}
-
-function goEdit() {
-  router.push({ name: "customer-edit", params: { id: route.params.id } });
-}
-
 /** ===== Confirm modal (Bootstrap) ===== */
 const confirmModalRef = ref(null);
 let bsModal = null;
@@ -263,10 +280,8 @@ function closeConfirmModal() {
 
   modalEl.classList.remove("show");
   modalEl.style.display = "none";
-  modalEl.setAttribute("aria-hidden", "true");
   document.body.classList.remove("modal-open");
-  const backdrop = document.querySelector(".modal-backdrop");
-  if (backdrop) backdrop.remove();
+  document.querySelector(".modal-backdrop")?.remove();
 }
 
 async function confirmToggleStatus() {
@@ -277,6 +292,11 @@ async function confirmToggleStatus() {
     const next = !c.trangThai;
     await http.patch("/api/khach-hang/" + c.id + "/trang-thai", { trangThai: next });
     c.trangThai = next;
+
+    toast.success("Đổi trạng thái thành công!");
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Có lỗi xảy ra";
+    toast.error(msg);
   } finally {
     closeConfirmModal();
   }
@@ -290,136 +310,57 @@ onMounted(fetchDetail);
   border-radius: 14px;
 }
 
-/* ===== Like your old modal style ===== */
-.detail-top {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.detail-avatar {
-  width: 64px;
-  height: 64px;
+.avatar-center {
+  width: 86px;
+  height: 86px;
   border-radius: 999px;
-  overflow: hidden;
   border: 1px solid #e5e7eb;
+  overflow: hidden;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef2ff;
 }
-.detail-avatar-img {
+.avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.detail-avatar-fallback {
-  font-weight: 800;
-  color: #1d4ed8;
-}
-
-.detail-name {
-  font-size: 20px;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.detail-badges {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-}
-.badge-role {
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
   background: #eef2ff;
   color: #1d4ed8;
-}
-.badge-active {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-.badge-inactive {
-  background: #e5e7eb;
-  color: #6b7280;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.detail-box {
+.info-box {
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fff;
 }
-.detail-label {
+.info-label {
+  color: #6b7280;
   font-weight: 600;
-  opacity: 0.7;
+  font-size: 13px;
   margin-bottom: 6px;
 }
-.detail-value {
-  font-weight: 400;
+.info-value {
+  font-weight: 500;
   color: #111827;
-}
-.col-full {
-  grid-column: span 2;
+  word-break: break-word;
 }
 
-@media (max-width: 860px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-  .col-full {
-    grid-column: span 1;
-  }
+.btn-agree {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff !important;
 }
-
-/* Switch */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 42px;
-  height: 22px;
-}
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background: #cbd5e1;
-  transition: 0.2s;
-  border-radius: 999px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 2px;
-  top: 2px;
-  background: white;
-  transition: 0.2s;
-  border-radius: 999px;
-}
-.switch input:checked + .slider {
-  background: #1d4ed8;
-}
-.switch input:checked + .slider:before {
-  transform: translateX(20px);
+.btn-agree:hover {
+  filter: brightness(0.95);
 }
 </style>

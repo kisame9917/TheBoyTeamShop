@@ -125,10 +125,10 @@
           <div class="mt-2 text-muted">Đang tải...</div>
         </div>
 
-        <div v-else class="table-narrow">
+        <div v-else class="table-responsive">
           <div class="table-scroll">
 
-            <table class="table align-middle table-hover mb-0">
+            <table class="table align-middle table-hover">
             <thead class="table-head-dark">
             <tr>
               <th style="width: 60px">#</th>
