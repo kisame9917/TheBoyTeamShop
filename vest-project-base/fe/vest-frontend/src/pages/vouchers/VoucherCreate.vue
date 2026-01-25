@@ -217,33 +217,46 @@
       </div>
     </div>
 
-    <!-- ✅ POPUP (Confirm) -->
-    <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
-      <div class="modal-card">
-        <h6 class="mb-2">{{ popup.title }}</h6>
-        <div class="text-muted mb-3">{{ popup.message }}</div>
+   <!-- ✅ POPUP (Confirm) -->
+<teleport to="body">
+  <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
+    <div class="modal-card">
+      <h6 class="mb-2">{{ popup.title }}</h6>
+      <div class="text-muted mb-3">{{ popup.message }}</div>
 
-        <div class="d-flex justify-content-end gap-2">
+      <div class="d-flex justify-content-end gap-2">
+        <button
+          v-if="popup.mode === 'alert'"
+          class="btn btn-outline-secondary btn-sm"
+          type="button"
+          @click="closePopup"
+        >
+          Đóng
+        </button>
+
+        <template v-else>
           <button
-            v-if="popup.mode === 'alert'"
             class="btn btn-outline-secondary btn-sm"
             type="button"
+            :disabled="popup.loading"
             @click="closePopup"
           >
-            Đóng
+            Hủy
           </button>
-
-          <template v-else>
-            <button class="btn btn-outline-secondary btn-sm" type="button" :disabled="popup.loading" @click="closePopup">
-              Hủy
-            </button>
-            <button class="btn btn-confirm btn-sm" type="button" :disabled="popup.loading" @click="confirmPopup">
-              {{ popup.loading ? "Đang xử lý..." : "Đồng ý" }}
-            </button>
-          </template>
-        </div>
+          <button
+            class="btn btn-confirm btn-sm"
+            type="button"
+            :disabled="popup.loading"
+            @click="confirmPopup"
+          >
+            {{ popup.loading ? "Đang xử lý..." : "Đồng ý" }}
+          </button>
+        </template>
       </div>
     </div>
+  </div>
+</teleport>
+
   </div>
 </template>
 
@@ -656,4 +669,23 @@ onBeforeUnmount(() => {
   color: #6b7280;
   font-weight: 600;
 }
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 999999; /* ✅ luôn nổi trên mọi thứ */
+}
+
+.modal-card{
+  width: min(520px, 96vw);
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.25);
+}
+
 </style>
