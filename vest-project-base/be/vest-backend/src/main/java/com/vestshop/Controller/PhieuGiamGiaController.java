@@ -49,7 +49,11 @@ public class PhieuGiamGiaController {
     public ResponseEntity<PhieuGiamGiaDetailResponse> detail(@PathVariable("id") Long id) {
         return ResponseEntity.ok(service.detail(id));
     }
-
+    @PutMapping("/start/{id}")
+    public ResponseEntity<?> startNow(@PathVariable Long id) throws Exception {
+        service.startpgg(id);
+        return ResponseEntity.ok().build();
+    }
     @PutMapping("/end-pgg/{id}")
     public ResponseEntity<?> endpgg(@PathVariable("id") Long id) throws Exception{
         service.endpgg(id);

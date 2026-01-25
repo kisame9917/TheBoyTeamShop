@@ -7,20 +7,27 @@
         <h5 class="mb-0">Quản lý khách hàng / Danh sách khách hàng</h5>
       </div>
 
-      <button class="btn btn-primary btn-sm text-white" type="button" @click="goCreate">
-        <i class="bi bi-plus-lg me-1"></i> Thêm mới
-      </button>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-primary btn-sm text-white" type="button" @click="goCreate">
+          <i class="bi bi-plus-lg me-1"></i> Thêm mới
+        </button>
+      </div>
     </div>
 
     <!-- Filters -->
     <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white d-flex align-items-center gap-2 text-dark fw-semibold">
+        <i class="bi bi-funnel"></i>
+        <span>Bộ lọc tìm kiếm</span>
+      </div>
       <div class="card-body">
         <div class="row g-3">
           <div class="col-12 col-lg-6">
             <label class="form-label">Tìm kiếm</label>
             <input
+                v-model.trim="filters.keyword"
+                type="text"
                 class="form-control"
-                v-model="filters.keyword"
                 placeholder="Tìm theo mã, tên, email, SĐT, tài khoản..."
                 @keyup.enter="applyFilters"
             />
@@ -28,49 +35,71 @@
 
           <div class="col-12 col-lg-3">
             <label class="form-label">Email</label>
-            <input class="form-control" v-model="filters.email" placeholder="Email" @keyup.enter="applyFilters" />
+            <input
+                v-model.trim="filters.email"
+                type="text"
+                class="form-control"
+                placeholder="Email"
+                @keyup.enter="applyFilters"
+            />
           </div>
 
           <div class="col-12 col-lg-3">
             <label class="form-label">Số điện thoại</label>
-            <input class="form-control" v-model="filters.phone" placeholder="SĐT" @keyup.enter="applyFilters" />
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <label class="form-label">Trạng thái hiển thị</label>
-            <div class="d-flex flex-wrap gap-3 mt-2">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" id="st_on" v-model="filters.status" :value="1" />
-                <label class="form-check-label" for="st_on">Hoạt động</label>
-              </div>
-
-              <div class="form-check">
-                <input class="form-check-input" type="radio" id="st_off" v-model="filters.status" :value="0" />
-                <label class="form-check-label" for="st_off">Không hoạt động</label>
-              </div>
-
-              <div class="form-check">
-                <input class="form-check-input" type="radio" id="st_all" v-model="filters.status" :value="-1" />
-                <label class="form-check-label" for="st_all">Tất cả</label>
-              </div>
-            </div>
+            <input
+                v-model.trim="filters.phone"
+                type="text"
+                class="form-control"
+                placeholder="SĐT"
+                @keyup.enter="applyFilters"
+            />
           </div>
 
           <div class="col-12 col-lg-3">
             <label class="form-label">Mã khách hàng</label>
-            <input class="form-control" v-model="filters.ma" placeholder="Mã KH" @keyup.enter="applyFilters" />
+            <input
+                v-model.trim="filters.ma"
+                type="text"
+                class="form-control"
+                placeholder="Mã KH"
+                @keyup.enter="applyFilters"
+            />
           </div>
 
-          <div class="col-12 col-lg-3">
-            <label class="form-label">Tài khoản</label>
-            <input class="form-control" v-model="filters.taiKhoan" placeholder="Tài khoản" @keyup.enter="applyFilters" />
+<!--          <div class="col-12 col-lg-3">-->
+<!--            <label class="form-label">Tài khoản</label>-->
+<!--            <input-->
+<!--                v-model.trim="filters.taiKhoan"-->
+<!--                type="text"-->
+<!--                class="form-control"-->
+<!--                placeholder="Tài khoản"-->
+<!--                @keyup.enter="applyFilters"-->
+<!--            />-->
+<!--          </div>-->
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Trạng thái hiển thị</label>
+            <div class="d-flex align-items-center gap-3 mt-2 flex-wrap">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="st_active" :value="1" v-model="filters.status" />
+                <label class="form-check-label" for="st_active">Hoạt động</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="st_inactive" :value="0" v-model="filters.status" />
+                <label class="form-check-label" for="st_inactive">Không hoạt động</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="st_all" :value="-1" v-model="filters.status" />
+                <label class="form-check-label" for="st_all">Tất cả</label>
+              </div>
+            </div>
           </div>
 
           <div class="col-12 d-flex justify-content-end gap-2">
             <button class="btn btn-light" type="button" @click="resetFilters">
               <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
             </button>
-            <button class="btn btn-primary btn-sm text-white" type="button" @click="applyFilters">
+            <button class="btn btn-primary text-white" type="button" @click="applyFilters">
               <i class="bi bi-search me-1"></i> Lọc
             </button>
           </div>
@@ -88,31 +117,30 @@
 
         <div v-else class="table-responsive">
           <table class="table align-middle table-hover">
-            <thead class="table-head-dark">
+            <thead>
             <tr>
               <th style="width: 60px">#</th>
               <th style="width: 80px">Ảnh</th>
-              <th style="width: 110px">Mã KH</th>
-              <th style="width: 180px">Họ tên</th>
-              <th style="width: 120px" class="text-center">Giới tính</th>
-              <th style="width: 240px">Email</th>
-              <th style="width: 140px">SĐT</th>
-              <th style="width: 500px">Địa chỉ</th>
-              <th style="width: 140px" class="text-center">Trạng thái</th>
-              <th style="width: 170px" class="text-center">Hành động</th>
+              <th style="width: 120px">Mã KH</th>
+              <th>Họ tên</th>
+              <th style="width: 140px">Email</th>
+              <th style="width: 120px">SĐT</th>
+              <th>Địa chỉ</th>
+              <th style="width: 140px">Trạng thái</th>
+              <th style="width: 160px">Hành động</th>
             </tr>
             </thead>
 
             <tbody>
             <tr v-if="pagedList.length === 0">
-              <td colspan="10" class="text-center text-muted py-4">Không có dữ liệu</td>
+              <td colspan="9" class="text-center text-muted py-4">Không có dữ liệu</td>
             </tr>
 
             <tr v-for="(c, idx) in pagedList" :key="c.id">
               <td>{{ page.page * page.size + idx + 1 }}</td>
 
               <td>
-                <div class="d-flex align-items-center">
+                <div class="avatar-cell">
                   <img
                       v-if="resolveAvatar(c)"
                       :src="resolveAvatar(c)"
@@ -120,44 +148,40 @@
                       alt="avatar"
                       @error="onAvatarError($event, c)"
                   />
-                  <div v-else class="avatar-fallback">
-                    {{ getInitials(c.tenKhachHang) }}
-                  </div>
+                  <div v-else class="avatar-fallback">{{ getInitials(c.tenKhachHang) }}</div>
                 </div>
               </td>
 
               <td class="fw-semibold">{{ c.maKhachHang }}</td>
               <td>{{ c.tenKhachHang }}</td>
-              <td class="text-center">{{ genderText(c.gioiTinh) }}</td>
-
-              <td class="text-truncate" :title="c.email || ''" style="max-width: 260px">
+              <td class="text-truncate" style="max-width: 220px" :title="c.email || ''">
                 {{ c.email || "-" }}
               </td>
-
               <td>{{ c.soDienThoai || "-" }}</td>
-
-              <td class="text-truncate" :title="c.diaChi || ''" style="max-width: 420px">
+              <td class="text-truncate" style="max-width: 360px" :title="c.diaChi || ''">
                 {{ c.diaChi || "-" }}
               </td>
 
-              <td class="text-center">
-                  <span class="badge" :class="c.trangThai ? 'text-bg-primary' : 'text-bg-secondary'">
+              <td>
+                  <span class="badge" :class="c.trangThai ? 'text-bg-success' : 'text-bg-secondary'">
                     {{ c.trangThai ? "Hoạt động" : "Không hoạt động" }}
                   </span>
               </td>
 
               <td class="text-end">
-                <div class="d-inline-flex align-items-center gap-2">
-                  <!-- Switch đổi trạng thái -->
-                  <label class="switch" title="Đổi trạng thái">
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                  <!-- Switch trạng thái (giống nhân viên) -->
+                  <div class="form-check form-switch m-0">
                     <input
+                        class="form-check-input"
                         type="checkbox"
                         :checked="!!c.trangThai"
                         @click.prevent="confirmToggleStatus(c)"
+                        title="Đổi trạng thái"
                     />
-                    <span class="slider"></span>
-                  </label>
+                  </div>
 
+                  <!-- Xem chi tiết -->
                   <button
                       class="btn btn-outline-primary btn-sm"
                       type="button"
@@ -167,13 +191,14 @@
                     <i class="bi bi-eye"></i>
                   </button>
 
+                  <!-- Sửa -->
                   <button
-                      class="btn btn-outline-warning btn-sm"
+                      class="btn btn-outline-secondary btn-sm"
                       type="button"
                       title="Sửa"
                       @click="goEdit(c.id)"
                   >
-                    <i class="bi bi-pencil-square"></i>
+                    <i class="bi bi-pencil"></i>
                   </button>
                 </div>
               </td>
@@ -182,13 +207,13 @@
           </table>
         </div>
 
-        <!-- Pagination kiểu StaffList -->
-        <div class="d-flex align-items-center justify-content-between mt-3">
-          <div class="text-muted">
+        <!-- Pagination (đã căn giữa) -->
+        <div class="d-flex align-items-center mt-3">
+          <div class="text-muted flex-grow-1">
             Hiển thị {{ pagedList.length }} / tổng {{ filteredList.length }} bản ghi
           </div>
 
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center justify-content-center gap-2 flex-grow-1">
             <button
                 class="btn btn-outline-secondary btn-sm"
                 :disabled="page.page === 0"
@@ -216,17 +241,35 @@
             >
               <i class="bi bi-chevron-right"></i>
             </button>
+          </div>
 
-            <select
-                class="form-select form-select-sm"
-                style="width: 160px"
-                v-model.number="page.size"
-                @change="applyFilters"
-            >
+          <div class="d-flex justify-content-end flex-grow-1">
+            <select class="form-select form-select-sm" style="width: 160px" v-model.number="page.size" @change="applyFilters">
               <option :value="10">10 bản ghi / trang</option>
               <option :value="20">20 bản ghi / trang</option>
               <option :value="50">50 bản ghi / trang</option>
             </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" ref="confirmModalRef">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h6 class="modal-title">{{ confirmTitle }}</h6>
+            <button type="button" class="btn-close" aria-label="Close" @click="closeConfirm"></button>
+          </div>
+
+          <div class="modal-body">
+            {{ confirmMessage }}
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-light" type="button" @click="closeConfirm">Hủy</button>
+            <button class="btn btn-agree" type="button" @click="onConfirmOk">Đồng ý</button>
           </div>
         </div>
       </div>
@@ -238,8 +281,10 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import http from "../../services/http";
+import { useToast } from "@/composables/useToast";
 
 const router = useRouter();
+const toast = useToast();
 
 const loading = ref(false);
 const list = ref([]);
@@ -253,9 +298,8 @@ const filters = reactive({
   status: -1, // -1 tất cả, 1 active, 0 inactive
 });
 
-// paging giống StaffList: 0-based
 const page = reactive({
-  page: 0,
+  page: 0, // 0-based
   size: 10,
 });
 const pageInput = ref(1);
@@ -282,7 +326,7 @@ function normalizeCustomer(x) {
     id: x.id,
     maKhachHang: x.maKhachHang ?? x.ma_khach_hang ?? "",
     tenKhachHang: x.tenKhachHang ?? x.ten_khach_hang ?? "",
-    gioiTinh: x.gioiTinh ?? x.gioi_tinh ?? null, // true/false/null
+    gioiTinh: x.gioiTinh ?? x.gioi_tinh ?? null,
     email: x.email ?? "",
     soDienThoai: x.soDienThoai ?? x.so_dien_thoai ?? "",
     taiKhoan: x.taiKhoan ?? x.tai_khoan ?? "",
@@ -297,19 +341,84 @@ function safeStr(v) {
   return String(v == null ? "" : v).toLowerCase().trim();
 }
 
-function genderText(v) {
-  if (v === true) return "Nam";
-  if (v === false) return "Nữ";
-  return "-";
+const filteredList = computed(() => {
+  const kw = safeStr(filters.keyword);
+  const email = safeStr(filters.email);
+  const phone = safeStr(filters.phone);
+  const ma = safeStr(filters.ma);
+  const acc = safeStr(filters.taiKhoan);
+
+  return (list.value || []).filter((c) => {
+    if (filters.status !== -1) {
+      if (filters.status === 1 && !c.trangThai) return false;
+      if (filters.status === 0 && c.trangThai) return false;
+    }
+
+    if (email && !safeStr(c.email).includes(email)) return false;
+    if (phone && !safeStr(c.soDienThoai).includes(phone)) return false;
+    if (ma && !safeStr(c.maKhachHang).includes(ma)) return false;
+    if (acc && !safeStr(c.taiKhoan).includes(acc)) return false;
+
+    if (kw) {
+      const blob =
+          (String(c.maKhachHang || "") +
+              " " +
+              String(c.tenKhachHang || "") +
+              " " +
+              String(c.email || "") +
+              " " +
+              String(c.soDienThoai || "") +
+              " " +
+              String(c.taiKhoan || "")).toLowerCase();
+      if (!blob.includes(kw)) return false;
+    }
+    return true;
+  });
+});
+
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredList.value.length / page.size)));
+const pagedList = computed(() => {
+  const start = page.page * page.size;
+  return filteredList.value.slice(start, start + page.size);
+});
+
+function applyFilters() {
+  page.page = 0;
+  pageInput.value = 1;
 }
 
-function getInitials(name) {
-  const s = String(name || "").trim();
-  if (!s) return "KH";
-  const parts = s.split(/\s+/).filter(Boolean);
-  const a = parts[0] ? parts[0][0] : "K";
-  const b = parts[parts.length - 1] ? parts[parts.length - 1][0] : "H";
-  return (a + b).toUpperCase();
+function resetFilters() {
+  filters.keyword = "";
+  filters.email = "";
+  filters.phone = "";
+  filters.ma = "";
+  filters.taiKhoan = "";
+  filters.status = -1;
+  page.page = 0;
+  pageInput.value = 1;
+}
+
+function setPage(p) {
+  if (p < 0) return;
+  if (p > pageCount.value - 1) return;
+  page.page = p;
+  pageInput.value = page.page + 1;
+}
+
+function jumpPage() {
+  const max = Math.max(1, pageCount.value || 1);
+  const target = Math.min(Math.max(1, pageInput.value || 1), max);
+  page.page = target - 1;
+}
+
+function goCreate() {
+  router.push({ name: "customer-new" });
+}
+function goEdit(id) {
+  router.push({ name: "customer-edit", params: { id } });
+}
+function goDetail(id) {
+  router.push({ name: "customer-detail", params: { id } });
 }
 
 /** ===== Avatar URL ===== */
@@ -346,115 +455,102 @@ function onAvatarError(e, c) {
   if (e && e.target) e.target.src = "";
 }
 
+function getInitials(name) {
+  const s = String(name || "").trim();
+  if (!s) return "KH";
+  const parts = s.split(/\s+/).filter(Boolean);
+  const a = parts[0] ? parts[0][0] : "K";
+  const b = parts[parts.length - 1] ? parts[parts.length - 1][0] : "H";
+  return (a + b).toUpperCase();
+}
+
 /** ===== Data ===== */
 async function fetchList() {
   loading.value = true;
   try {
     const res = await http.get("/api/khach-hang");
     list.value = unwrapList(res.data).map(normalizeCustomer);
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || "Có lỗi xảy ra";
+    toast.error(msg);
   } finally {
     loading.value = false;
   }
 }
 
-const filteredList = computed(() => {
-  const kw = safeStr(filters.keyword);
-  const email = safeStr(filters.email);
-  const phone = safeStr(filters.phone);
-  const ma = safeStr(filters.ma);
-  const acc = safeStr(filters.taiKhoan);
+/** ===== Confirm Modal (Bootstrap) ===== */
+const confirmModalRef = ref(null);
+const confirmTitle = ref("Xác nhận");
+const confirmMessage = ref("");
+let bsConfirm = null;
+let _confirmOk = null;
 
-  return (list.value || []).filter((c) => {
-    // status
-    if (filters.status !== -1) {
-      if (filters.status === 1 && !c.trangThai) return false;
-      if (filters.status === 0 && c.trangThai) return false;
-    }
+function openConfirm({ title = "Xác nhận", message = "", onOk = null } = {}) {
+  confirmTitle.value = title;
+  confirmMessage.value = message;
+  _confirmOk = onOk;
 
-    if (email && !safeStr(c.email).includes(email)) return false;
-    if (phone && !safeStr(c.soDienThoai).includes(phone)) return false;
-    if (ma && !safeStr(c.maKhachHang).includes(ma)) return false;
-    if (acc && !safeStr(c.taiKhoan).includes(acc)) return false;
+  const modalEl = confirmModalRef.value;
+  if (!modalEl) return;
 
-    if (kw) {
-      const blob =
-          (String(c.maKhachHang || "") +
-              " " +
-              String(c.tenKhachHang || "") +
-              " " +
-              String(c.email || "") +
-              " " +
-              String(c.soDienThoai || "") +
-              " " +
-              String(c.taiKhoan || "")).toLowerCase();
-      if (!blob.includes(kw)) return false;
-    }
+  document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
+  document.body.classList.remove("modal-open");
 
-    return true;
-  });
-});
-
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredList.value.length / (page.size || 10))));
-
-const pagedList = computed(() => {
-  const start = page.page * (page.size || 10);
-  return filteredList.value.slice(start, start + (page.size || 10));
-});
-
-function applyFilters() {
-  page.page = 0;
-  pageInput.value = 1;
+  const Modal = window.bootstrap?.Modal;
+  if (Modal) {
+    bsConfirm = Modal.getOrCreateInstance(modalEl);
+    bsConfirm.show();
+  } else {
+    modalEl.classList.add("show");
+    modalEl.style.display = "block";
+  }
 }
 
-function resetFilters() {
-  filters.keyword = "";
-  filters.email = "";
-  filters.phone = "";
-  filters.ma = "";
-  filters.taiKhoan = "";
-  filters.status = -1;
-  page.page = 0;
-  pageInput.value = 1;
+function closeConfirm() {
+  const modalEl = confirmModalRef.value;
+  if (!modalEl) return;
+
+  if (bsConfirm) {
+    bsConfirm.hide();
+    return;
+  }
+  modalEl.classList.remove("show");
+  modalEl.style.display = "none";
+  document.body.classList.remove("modal-open");
+  document.querySelector(".modal-backdrop")?.remove();
 }
 
-function setPage(p) {
-  const max = Math.max(1, pageCount.value);
-  if (p < 0) return;
-  if (p > max - 1) return;
-  page.page = p;
-  pageInput.value = page.page + 1;
+async function onConfirmOk() {
+  try {
+    if (typeof _confirmOk === "function") await _confirmOk();
+  } finally {
+    closeConfirm();
+  }
 }
 
-function jumpPage() {
-  const max = Math.max(1, pageCount.value);
-  const target = Math.min(Math.max(1, pageInput.value || 1), max);
-  page.page = target - 1;
-}
-
-/** ===== Routing ===== */
-function goCreate() {
-  router.push({ name: "customer-new" });
-}
-function goEdit(id) {
-  router.push({ name: "customer-edit", params: { id } });
-}
-function goDetail(id) {
-  // ✅ bạn tạo trang detail giống StaffDetail
-  router.push({ name: "customer-detail", params: { id } });
-}
-
-/** ===== Toggle status ===== */
-async function confirmToggleStatus(c) {
+function confirmToggleStatus(c) {
   const next = !c.trangThai;
   const txt = next ? "chuyển sang Hoạt động" : "chuyển sang Không hoạt động";
-  if (!confirm("Bạn có chắc chắn " + txt + " không?")) return;
 
-  await http.patch("/api/khach-hang/" + c.id + "/trang-thai", { trangThai: next });
-  c.trangThai = next;
+  openConfirm({
+    title: "Xác nhận",
+    message: "Bạn có chắc muốn " + txt + " không?",
+    onOk: async () => {
+      try {
+        await http.patch("/api/khach-hang/" + c.id + "/trang-thai", { trangThai: next });
+        c.trangThai = next;
+        // để không “mất dòng” do filter
+        filters.status = -1;
+        page.page = 0;
+        pageInput.value = 1;
 
-  // để không “mất dòng” do filter
-  filters.status = -1;
-  applyFilters();
+        toast.success("Đổi trạng thái thành công!");
+      } catch (e) {
+        const msg = e?.response?.data?.message || e?.message || "Có lỗi xảy ra";
+        toast.error(msg);
+      }
+    },
+  });
 }
 
 onMounted(fetchList);
@@ -464,74 +560,48 @@ onMounted(fetchList);
 .card {
   border-radius: 14px;
 }
+
+/* Table head giống staff (màu tối) */
 .table thead th {
-  font-weight: 600;
+  background: #1f2a3a;
+  color: #fff;
+  font-weight: 700;
+  border-color: #1f2a3a;
 }
 
-/* Avatar */
+.avatar-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
 .avatar-img {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   object-fit: cover;
   border: 1px solid #e5e7eb;
 }
 .avatar-fallback {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   background: #eef2ff;
   border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
   color: #1d4ed8;
   font-size: 12px;
 }
 
-.table-head-dark th {
-  background: #1f2a3a !important;
+/* Agree button color */
+.btn-agree {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
   color: #fff !important;
-  font-weight: 600;
 }
-
-
-/* Switch (giữ nguyên UX như bạn) */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 42px;
-  height: 22px;
-}
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background: #cbd5e1;
-  transition: 0.2s;
-  border-radius: 999px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 2px;
-  top: 2px;
-  background: white;
-  transition: 0.2s;
-  border-radius: 999px;
-}
-.switch input:checked + .slider {
-  background: #1d4ed8;
-}
-.switch input:checked + .slider:before {
-  transform: translateX(20px);
+.btn-agree:hover {
+  filter: brightness(0.95);
 }
 </style>
