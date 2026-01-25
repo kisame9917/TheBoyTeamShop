@@ -1,7 +1,7 @@
 <template>
   <div class="product-detail-page">
+    <!-- Header -->
     <div class="header-section">
-      <!-- Breadcrumb or Title -->
       <div class="header-left">
         <h2>Danh sách biến thể sản phẩm</h2>
       </div>
@@ -10,348 +10,440 @@
       </div>
     </div>
 
-    <div v-if="loading" class="text-center">Đang tải dữ liệu...</div>
+    <div v-if="loading" class="text-center py-4">Đang tải dữ liệu...</div>
 
     <div v-else-if="product" class="content-wrapper">
-
-      <!-- Filter Section -->
+      <!-- Filter -->
       <div class="card filter-card">
         <div class="filter-row">
           <div class="form-group search-group">
             <label>Tìm kiếm biến thể</label>
-            <input type="text" v-model="filters.keyword" class="form-input" placeholder="Tìm mã, màu, kích cỡ...">
+            <input
+              type="text"
+              v-model.trim="filters.keyword"
+              class="form-input"
+              placeholder="Tìm mã, màu, kích cỡ..."
+              @keyup.enter="applyFilters"
+            />
           </div>
 
           <div class="form-group select-group">
             <label>Màu sắc</label>
-            <select v-model="filters.color" class="form-input">
+            <select v-model="filters.color" class="form-input" @change="applyFilters">
               <option value="">Tất cả màu</option>
-              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.ten">{{ c.ten }}</option>
+              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.ten">
+                {{ c.ten }}
+              </option>
             </select>
           </div>
 
           <div class="form-group select-group">
             <label>Kích cỡ</label>
-            <select v-model="filters.size" class="form-input">
+            <select v-model="filters.size" class="form-input" @change="applyFilters">
               <option value="">Tất cả kích cỡ</option>
-              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.soSize">{{ s.soSize }}</option>
+              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.soSize">
+                {{ s.soSize }}
+              </option>
             </select>
           </div>
 
           <div class="action-group">
             <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
-            <button class="btn btn-warning">📷 Quét QR</button>
-            <button class="btn btn-primary" @click="goToGlobalList">Hiển thị đầy đủ biến thể</button>
+            <button class="btn btn-warning" type="button">📷 Quét QR</button>
+            <button class="btn btn-primary" type="button" @click="goToGlobalList">
+              Hiển thị đầy đủ biến thể
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Variants Table -->
+      <!-- Table -->
       <div class="card table-card">
         <div class="table-responsive">
           <table class="table">
             <thead>
               <tr>
-                <th>STT</th>
-                <th>Mã sản phẩm chi tiết</th>
-                <th>Ảnh</th>
-                <th>Tên sản phẩm</th>
-                <th>Màu sắc</th>
-                <th>Kích cỡ</th>
-                <th>Số lượng tồn</th>
-                <th>Giá bán</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
+                <th class="col-stt">STT</th>
+                <th class="col-ma">Mã sản phẩm chi tiết</th>
+                <th class="col-anh">Ảnh</th>
+                <th class="col-ten">Tên sản phẩm</th>
+                <th class="col-mau">Màu sắc</th>
+                <th class="col-size">Kích cỡ</th>
+                <th class="col-sl text-center">Số lượng tồn</th>
+                <th class="col-gia text-center">Giá bán</th>
+                <th class="col-tt text-center">Trạng thái</th>
+                <th class="col-action text-center">Hành động</th>
               </tr>
             </thead>
+
             <tbody>
-              <tr v-for="(variant, index) in filteredVariants" :key="variant.id">
-                <td>{{ index + 1 }}</td>
-                <td>{{ variant.maSanPhamChiTiet }}</td>
-                <td>
-                  <img v-if="variant.anh" :src="'http://localhost:8080' + variant.anh"
-                    style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;" />
+              <tr v-for="(variant, index) in pagedVariants" :key="variant.id">
+                <td class="text-center">
+                  {{ currentPage * pageSize + index + 1 }}
+                </td>
+
+                <td class="text-center">{{ variant.maSanPhamChiTiet }}</td>
+
+                <td class="text-center">
+                  <img
+                    v-if="variant.anh"
+                    :src="'http://localhost:8080' + variant.anh"
+                    class="variant-img"
+                    alt="Ảnh biến thể"
+                  />
                   <span v-else class="no-img">No Img</span>
                 </td>
-                <td style="font-weight: 500;">{{ product.tenSanPham }}</td>
-                <td>
+
+                <td class="text-bold">{{ product.tenSanPham }}</td>
+
+                <td class="text-center">
                   <span class="color-dot" :style="{ backgroundColor: getColorCode(variant.tenMauSac) }"></span>
                   {{ variant.tenMauSac }}
                 </td>
-                <td>{{ variant.tenKichCo }}</td>
+
+                <td class="text-center">{{ variant.tenKichCo }}</td>
+
                 <td class="text-center">{{ variant.soLuongTon }}</td>
-                <td class="text-highlight">{{ formatPrice(variant.donGia) }}</td>
-                <td class="status-cell">
-                  <span :class="['badge', variant.trangThai ? 'badge-success' : 'badge-danger']">
+
+                <td class="text-center text-highlight">{{ formatPrice(variant.donGia) }}</td>
+
+                <td class="text-center">
+                  <span class="badge-pill" :class="variant.trangThai ? 'badge-success' : 'badge-danger'">
                     {{ variant.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                   </span>
                 </td>
-                <td>
+
+                <td class="text-center action-cell">
                   <div class="action-buttons">
-                    <button class="btn-icon blue" @click="editVariant(variant)">✏️</button>
+                    <button class="btn-icon blue" type="button" @click="openEditModal(variant)" title="Sửa">
+                      ✏️
+                    </button>
+
                     <label class="switch" title="Đổi trạng thái">
-  <input
-    type="checkbox"
-    :checked="!!variant.trangThai"
-    @change="toggleStatus(variant)"
-  />
-  <span class="slider"></span>
-</label>
-
-
+                      <input
+                        type="checkbox"
+                        :checked="!!variant.trangThai"
+                        @change="toggleStatus(variant)"
+                      />
+                      <span class="slider"></span>
+                    </label>
                   </div>
                 </td>
               </tr>
-              <tr v-if="filteredVariants.length === 0">
-                <td colspan="10" class="text-center">Không tìm thấy biến thể nào.</td>
+
+              <tr v-if="!pagedVariants.length">
+                <td colspan="10" class="text-center py-4">Không tìm thấy biến thể nào.</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination (giống trang sản phẩm) -->
+        <div class="paging-bar" v-if="totalPages > 0">
+          <div class="paging-left">
+            Hiển thị {{ pagedVariants.length }} / tổng {{ totalElements }} bản ghi
+          </div>
+
+          <div class="paging-center">
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="currentPage === 0"
+              @click="setPage(currentPage - 1)"
+              type="button"
+            >
+              <span aria-hidden="true">‹</span>
+            </button>
+
+            <div class="input-group input-group-sm paging-page">
+              <span class="input-group-text">Trang</span>
+              <input
+                type="number"
+                min="1"
+                :max="totalPages || 1"
+                class="form-control"
+                v-model.number="pageInput"
+                @keyup.enter="jumpPage"
+              />
+            </div>
+
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="currentPage >= totalPages - 1"
+              @click="setPage(currentPage + 1)"
+              type="button"
+            >
+              <span aria-hidden="true">›</span>
+            </button>
+          </div>
+
+          <div class="paging-right">
+            <select class="form-select form-select-sm paging-size" v-model.number="pageSize" @change="onChangeSize">
+              <option :value="10">10 bản ghi / trang</option>
+              <option :value="20">20 bản ghi / trang</option>
+              <option :value="50">50 bản ghi / trang</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
 
     <div v-else class="text-center error-text">
-      {{ globalError || 'Không tìm thấy sản phẩm' }}
+      {{ globalError || "Không tìm thấy sản phẩm" }}
     </div>
 
-    <!-- Add Variant Modal (Hidden for now as per design focus on list, but kept for logic) -->
-    <div v-if="showAddModal" class="modal-overlay">
-      <div class="modals">
-        <div class="modal-header">
-          <h3>Thêm biến thể mới</h3>
-          <button class="close-btn" @click="closeModal">×</button>
-        </div>
-        <div class="modal-body">
-          <!-- Simplified for brevity, reusing logic -->
-          <div class="form-group">
-            <label>Kích cỡ</label>
-            <select v-model="newVariant.idKichCo" class="form-input">
-              <option value="">-- Chọn Size --</option>
-              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">{{ s.soSize }}</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Màu sắc</label>
-            <select v-model="newVariant.idMauSac" class="form-input">
-              <option value="">-- Chọn Màu --</option>
-              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">{{ c.ten }}</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <div class="form-group half">
-              <label>Số lượng</label>
-              <input type="number" v-model="newVariant.soLuongTon" class="form-input" min="0">
-            </div>
-            <div class="form-group half">
-              <label>Đơn giá</label>
-              <input type="number" v-model="newVariant.donGia" class="form-input" min="0">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal">Hủy</button>
-          <button class="btn btn-primary" @click="submitVariant">Lưu</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Modal -->
+    <!-- Edit Modal (giữ logic của bạn) -->
     <div v-if="showEditModal" class="modal-overlay">
       <div class="modals">
         <div class="modal-header">
           <h3>Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h3>
           <button class="close-btn" @click="closeEditModal">×</button>
         </div>
+
         <div class="modal-body">
           <div class="form-group">
             <label>Kích cỡ</label>
             <select v-model="editingVariant.idKichCo" class="form-input">
-              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">{{ s.soSize }}</option>
+              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
+                {{ s.soSize }}
+              </option>
             </select>
           </div>
+
           <div class="form-group">
             <label>Màu sắc</label>
             <select v-model="editingVariant.idMauSac" class="form-input">
-              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">{{ c.ten }}</option>
+              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
+                {{ c.ten }}
+              </option>
             </select>
           </div>
+
           <div class="form-row">
             <div class="form-group half">
               <label>Số lượng</label>
-              <input type="number" v-model="editingVariant.soLuongTon" class="form-input" min="0">
+              <input type="number" v-model.number="editingVariant.soLuongTon" class="form-input" min="0" />
             </div>
             <div class="form-group half">
               <label>Đơn giá</label>
-              <input type="number" v-model="editingVariant.donGia" class="form-input" min="0">
+              <input type="number" v-model.number="editingVariant.donGia" class="form-input" min="0" />
             </div>
           </div>
+
           <div class="form-group">
             <label>Trạng thái</label>
-            <div class="radio-group" style="display:flex; gap:15px; margin-top:5px;">
-              <label><input type="radio" :value="true" v-model="editingVariant.trangThai"> Còn hàng</label>
-              <label><input type="radio" :value="false" v-model="editingVariant.trangThai"> Hết hàng</label>
+            <div class="radio-group">
+              <label><input type="radio" :value="true" v-model="editingVariant.trangThai" /> Còn hàng</label>
+              <label><input type="radio" :value="false" v-model="editingVariant.trangThai" /> Hết hàng</label>
             </div>
           </div>
+
           <div class="form-group">
             <label>Ảnh biến thể</label>
-            <input type="file" @change="handleFileUpload" class="form-input" accept="image/*">
-            <div v-if="editingVariant.anh" style="margin-top: 10px;">
-              <img :src="'http://localhost:8080' + editingVariant.anh" alt="Preview"
-                style="max-width: 200px; max-height: 200px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="file" @change="handleFileUpload" class="form-input" accept="image/*" />
+            <div v-if="editingVariant.anh" class="mt-2">
+              <img :src="'http://localhost:8080' + editingVariant.anh" class="variant-img preview" alt="Preview" />
             </div>
           </div>
         </div>
+
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeEditModal">Hủy</button>
           <button class="btn btn-primary" @click="submitEdit">Lưu thay đổi</button>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import attributeService from '../../services/attributeService'
-import { getByProductId, createDetail, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
-import { useToast } from '../../composables/useToast'
+import { ref, onMounted, reactive, computed } from "vue";
+import { useRouter } from "vue-router";
+import attributeService from "../../services/attributeService";
+import { getByProductId, updateDetail, uploadImage } from "../../services/sanPhamChiTietApi";
+import { useToast } from "../../composables/useToast";
 
-const { success, error } = useToast()
+const { success, error } = useToast();
 
-const props = defineProps(['id'])
-const router = useRouter()
-const product = ref(null)
-const variants = ref([])
-const loading = ref(false)
-const showAddModal = ref(false)
-const globalError = ref('')
+const props = defineProps(["id"]);
+const router = useRouter();
+
+const product = ref(null);
+const variants = ref([]);
+const loading = ref(false);
+const globalError = ref("");
 
 const attributes = reactive({
   kichCo: [],
-  mauSac: []
-})
+  mauSac: [],
+});
 
 const filters = reactive({
-  keyword: '',
-  color: '',
-  size: ''
-})
+  keyword: "",
+  color: "",
+  size: "",
+});
 
-const newVariant = reactive({
-  idSanPham: props.id,
-  idKichCo: '',
-  idMauSac: '',
-  soLuongTon: 10,
-  donGia: 0,
-  ghiChu: '',
-  trangThai: true
-})
-
-
-
-// Mock color mapping
-function getColorCode(colorName) {
-  if (!colorName) return '#ccc';
-  const map = {
-    'Xanh dương': 'blue',
-    'Đỏ': 'red',
-    'Trắng': 'white',
-    'Đen': 'black',
-    'Vàng': 'yellow'
-  };
-  return map[colorName] || '#ccc'; // Default gray
-}
-
+/* ===== Pagination giống sản phẩm ===== */
+const currentPage = ref(0);
+const pageSize = ref(10);
+const totalPages = ref(0);
+const totalElements = ref(0);
+const pageInput = ref(1);
 
 const filteredVariants = computed(() => {
-  return variants.value.filter(v => {
-    const matchKeyword = !filters.keyword ||
-      v.maSanPhamChiTiet.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      v.tenMauSac.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      v.tenKichCo.toLowerCase().includes(filters.keyword.toLowerCase());
+  const kw = (filters.keyword || "").toLowerCase().trim();
+
+  return (variants.value || []).filter((v) => {
+    const matchKeyword =
+      !kw ||
+      (v.maSanPhamChiTiet || "").toLowerCase().includes(kw) ||
+      (v.tenMauSac || "").toLowerCase().includes(kw) ||
+      (v.tenKichCo || "").toLowerCase().includes(kw);
 
     const matchColor = !filters.color || v.tenMauSac === filters.color;
-    const matchSize = !filters.size || v.tenKichCo === filters.size; // Assuming simple string match
+    const matchSize = !filters.size || String(v.tenKichCo) === String(filters.size);
 
     return matchKeyword && matchColor && matchSize;
-  })
-})
+  });
+});
 
-onMounted(getData)
+const pagedVariants = computed(() => {
+  const start = currentPage.value * pageSize.value;
+  return filteredVariants.value.slice(start, start + pageSize.value);
+});
+
+function recomputePaging() {
+  totalElements.value = filteredVariants.value.length;
+  totalPages.value = Math.max(1, Math.ceil(totalElements.value / pageSize.value));
+
+  // giữ currentPage không vượt
+  if (currentPage.value > totalPages.value - 1) currentPage.value = totalPages.value - 1;
+
+  pageInput.value = currentPage.value + 1;
+}
+
+function applyFilters() {
+  currentPage.value = 0;
+  recomputePaging();
+}
+
+function onChangeSize() {
+  currentPage.value = 0;
+  recomputePaging();
+}
+
+function setPage(p) {
+  if (p < 0) return;
+  if (p > totalPages.value - 1) return;
+  currentPage.value = p;
+  pageInput.value = currentPage.value + 1;
+}
+
+function jumpPage() {
+  const max = Math.max(1, totalPages.value || 1);
+  const target = Math.min(Math.max(1, pageInput.value || 1), max);
+  setPage(target - 1);
+}
+
+function resetFilters() {
+  filters.keyword = "";
+  filters.color = "";
+  filters.size = "";
+  applyFilters();
+}
+
+function goBack() {
+  router.push("/products");
+}
+
+function goToGlobalList() {
+  router.push("/variants");
+}
+
+/* ===== load data ===== */
+onMounted(getData);
 
 async function getData() {
-  loading.value = true
+  loading.value = true;
   try {
-    const resProd = await attributeService.getById('san-pham', props.id)
-    product.value = resProd.data
+    const resProd = await attributeService.getById("san-pham", props.id);
+    product.value = resProd.data;
 
-    await loadVariants()
+    await loadVariants();
 
-    const resSize = await attributeService.getAllList('kich-co')
-    attributes.kichCo = resSize.data
-    const resColor = await attributeService.getAllList('mau-sac')
-    attributes.mauSac = resColor.data
+    const [resSize, resColor] = await Promise.all([
+      attributeService.getAllList("kich-co"),
+      attributeService.getAllList("mau-sac"),
+    ]);
 
+    attributes.kichCo = resSize.data || [];
+    attributes.mauSac = resColor.data || [];
+
+    recomputePaging();
   } catch (e) {
-    console.error("Load failed", e)
-    globalError.value = 'Lỗi tải dữ liệu'
+    console.error(e);
+    globalError.value = "Lỗi tải dữ liệu";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadVariants() {
-  const res = await getByProductId(props.id)
-  variants.value = res.data
+  const res = await getByProductId(props.id);
+  variants.value = res.data || [];
 }
 
-function goBack() {
-  router.push('/products')
-}
-
-function resetFilters() {
-  filters.keyword = '';
-  filters.color = '';
-  filters.size = '';
-}
-
-function goToGlobalList() {
-  router.push('/variants');
-}
-
-// Edit Modal State
-const showEditModal = ref(false)
+/* ===== edit modal + upload ===== */
+const showEditModal = ref(false);
 const editingVariant = reactive({
   id: null,
   idSanPham: null,
-  idKichCo: '',
-  idMauSac: '',
+  idKichCo: "",
+  idMauSac: "",
   soLuongTon: 0,
   donGia: 0,
-  ghiChu: '',
+  ghiChu: "",
   trangThai: true,
-  anh: '',
-  maSanPhamChiTiet: ''
-})
+  anh: "",
+  maSanPhamChiTiet: "",
+});
+
+function openEditModal(v) {
+  editingVariant.id = v.id;
+  editingVariant.idSanPham = v.idSanPham;
+  editingVariant.maSanPhamChiTiet = v.maSanPhamChiTiet;
+
+  editingVariant.idKichCo = v.idKichCo;
+  editingVariant.idMauSac = v.idMauSac;
+  editingVariant.soLuongTon = v.soLuongTon;
+  editingVariant.donGia = v.donGia;
+  editingVariant.trangThai = v.trangThai;
+  editingVariant.anh = v.anh;
+
+  showEditModal.value = true;
+}
+
+function closeEditModal() {
+  showEditModal.value = false;
+}
 
 async function handleFileUpload(event) {
-  const file = event.target.files[0];
+  const file = event.target.files?.[0];
   if (!file) return;
+
   try {
     const res = await uploadImage(file);
     editingVariant.anh = res.data.url;
-    alert("Upload ảnh thành công!");
+    success("Upload ảnh thành công!");
   } catch (e) {
     console.error(e);
-    alert("Lỗi upload ảnh");
+    error("Lỗi upload ảnh");
   }
 }
 
 async function submitEdit() {
-  if (!editingVariant.id) return
+  if (!editingVariant.id) return;
+
   try {
     await updateDetail(editingVariant.id, {
       idSanPham: editingVariant.idSanPham,
@@ -361,105 +453,77 @@ async function submitEdit() {
       donGia: editingVariant.donGia,
       ghiChu: editingVariant.ghiChu,
       trangThai: editingVariant.trangThai,
-      anh: editingVariant.anh
-    })
-    alert("Cập nhật thành công")
-    showEditModal.value = false
-    await loadVariants()
+      anh: editingVariant.anh,
+    });
+
+    success("Cập nhật thành công");
+    showEditModal.value = false;
+    await loadVariants();
+    recomputePaging();
   } catch (e) {
-    console.error(e)
-    alert("Cập nhật thất bại")
-  }
-}
-
-function openEditModal(v) {
-  editingVariant.id = v.id
-  editingVariant.idSanPham = v.idSanPham
-  editingVariant.maSanPhamChiTiet = v.maSanPhamChiTiet
-
-  // Find IDs based on names (reverse lookup) or if API provided IDs use them.
-  // The current getAll response includes IDs (idKichCo, idMauSac).
-  editingVariant.idKichCo = v.idKichCo
-  editingVariant.idMauSac = v.idMauSac
-  editingVariant.soLuongTon = v.soLuongTon
-  editingVariant.donGia = v.donGia
-  editingVariant.trangThai = v.trangThai
-  editingVariant.anh = v.anh
-
-  showEditModal.value = true
-}
-
-function closeEditModal() {
-  showEditModal.value = false
-}
-
-function editVariant(variant) {
-  openEditModal(variant)
-}
-
-function closeModal() {
-  showAddModal.value = false
-  newVariant.idKichCo = ''
-  newVariant.idMauSac = ''
-}
-
-async function submitVariant() {
-  if (!newVariant.idKichCo || !newVariant.idMauSac) {
-    alert("Vui lòng chọn đủ thông tin");
-    return;
-  }
-  try {
-    await createDetail({ ...newVariant, idSanPham: props.id })
-    alert("Thêm thành công")
-    closeModal()
-    await loadVariants()
-  } catch (e) {
-    alert("Lỗi thêm biến thể")
+    console.error(e);
+    error("Cập nhật thất bại");
   }
 }
 
 async function toggleStatus(variant) {
   try {
-    const updatedVariant = { ...variant, trangThai: !variant.trangThai }
+    const next = !variant.trangThai;
+
     await updateDetail(variant.id, {
-      ...updatedVariant,
-      idSanPham: updatedVariant.idSanPham,
-      idKichCo: updatedVariant.idKichCo,
-      idMauSac: updatedVariant.idMauSac,
-      soLuongTon: updatedVariant.soLuongTon,
-      donGia: updatedVariant.donGia,
-      ghiChu: updatedVariant.ghiChu,
-      trangThai: updatedVariant.trangThai,
-      anh: updatedVariant.anh
-    })
-    await loadVariants()
-    const statusText = updatedVariant.trangThai ? 'Còn hàng' : 'Hết hàng'
-    success(`Đã đổi trạng thái biến thể thành ${statusText}`)
+      idSanPham: variant.idSanPham,
+      idKichCo: variant.idKichCo,
+      idMauSac: variant.idMauSac,
+      soLuongTon: variant.soLuongTon,
+      donGia: variant.donGia,
+      ghiChu: variant.ghiChu,
+      trangThai: next,
+      anh: variant.anh,
+    });
+
+    await loadVariants();
+    recomputePaging();
+    success(`Đã đổi trạng thái biến thể thành ${next ? "Còn hàng" : "Hết hàng"}`);
   } catch (e) {
-    console.error(e)
-    error("Lỗi cập nhật trạng thái")
+    console.error(e);
+    error("Lỗi cập nhật trạng thái");
   }
 }
 
+/* ===== helpers ===== */
 function formatPrice(val) {
-  if (!val) return '0 đ';
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  const n = Number(val ?? 0);
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+}
+
+function getColorCode(colorName) {
+  if (!colorName) return "#ccc";
+  const map = {
+    "Xanh dương": "blue",
+    "Đỏ": "red",
+    "Trắng": "white",
+    "Đen": "black",
+    "Vàng": "yellow",
+    "Xanh navy": "#0f172a",
+  };
+  return map[colorName] || "#ccc";
 }
 </script>
 
 <style scoped>
+/* ===== page ===== */
 .product-detail-page {
   padding: 20px;
   background-color: #f3f4f6;
   min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .header-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .header-section h2 {
@@ -470,14 +534,15 @@ function formatPrice(val) {
 }
 
 .card {
-  background: white;
+  background: #fff;
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
-/* Filter Styles */
+/* ===== filter ===== */
 .filter-row {
   display: flex;
   gap: 15px;
@@ -492,19 +557,19 @@ function formatPrice(val) {
 
 .search-group {
   flex: 2;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .select-group {
   flex: 1;
-  min-width: 150px;
+  min-width: 160px;
 }
 
 .action-group {
   display: flex;
   gap: 10px;
   padding-bottom: 2px;
-  /* align with inputs */
+  flex-wrap: wrap;
 }
 
 .form-group label {
@@ -523,7 +588,10 @@ function formatPrice(val) {
   box-sizing: border-box;
 }
 
-.btn {
+/* ===== button (không phá bootstrap outline) ===== */
+.btn-secondary,
+.btn-primary,
+.btn-warning {
   padding: 8px 16px;
   border-radius: 6px;
   font-weight: 600;
@@ -537,75 +605,54 @@ function formatPrice(val) {
   background: #e5e7eb;
   color: #374151;
 }
-
 .btn-secondary:hover {
   background: #d1d5db;
 }
 
 .btn-primary {
   background: #2563eb;
-  color: white;
+  color: #fff;
 }
-
 .btn-primary:hover {
   background: #1d4ed8;
 }
 
 .btn-warning {
   background: #f59e0b;
-  color: white;
+  color: #fff;
 }
 
-/* Table Styles */
+/* ===== table ===== */
 .table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
 
-.table th {
-  background: #fef3c7;
-  /* Light yellow/beige header like screenshot */
-  color: #1f2937;
+.table thead th {
+  background: #1e293b;   /* ✅ xanh đen */
+  color: #fff;
   padding: 12px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .table td {
   padding: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
   vertical-align: middle;
   color: #4b5563;
 }
 
-.img-placeholder {
-  width: 50px;
-  height: 50px;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.img-placeholder img {
-  max-width: 100%;
-  max-height: 100%;
-}
-
-.color-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid #e5e7eb;
-  margin-right: 5px;
-}
-
 .text-center {
+  text-align: center !important;
+}
+
+.text-bold {
+  font-weight: 600;
+  color: #111827;
   text-align: center;
 }
 
@@ -614,162 +661,96 @@ function formatPrice(val) {
   font-weight: 600;
 }
 
-.status-cell {
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
-  /* chống xuống dòng ở cell */
-}
-
-/* badge riêng, không phụ thuộc .badge */
-.status-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  padding: 6px 12px;
-  min-width: 90px;
-  /* ✅ giúp “Còn hàng” không bị bó */
-  border-radius: 6px;
-
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-}
-
-/* màu */
-.status-badge.is-success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-badge.is-danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.badge {
-  padding: 4px 8px;
+/* ảnh */
+.variant-img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
   border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  border: 1px solid #eee;
+}
+.variant-img.preview {
+  width: 200px;
+  height: 200px;
 }
 
+.no-img {
+  font-size: 0.75rem;
+  color: #999;
+  background: #eee;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* màu dot */
+.color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  margin-right: 6px;
+  transform: translateY(1px);
+}
+
+/* badge pill giống sản phẩm */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .badge-success {
   background: #d1fae5;
   color: #065f46;
 }
-
 .badge-danger {
   background: #fee2e2;
   color: #991b1b;
 }
 
+/* ===== action ===== */
+.action-cell {
+  white-space: nowrap;
+}
 .action-buttons {
-  display: flex;
-  gap: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .btn-icon {
   width: 32px;
   height: 32px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  color: white;
+  color: #fff;
 }
-
 .btn-icon.blue {
   background: #3b82f6;
 }
 
-.btn-icon.red {
-  background: #ef4444;
-}
-
-.btn-icon.status-toggle {
-  background: #f59e0b;
-  /* Orange for state change */
-}
-
-.btn-icon.status-toggle:hover {
-  background: #d97706;
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modals {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 15px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-.form-row {
-  display: flex;
-  gap: 10px;
-}
-
-.half {
-  flex: 1;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.no-img {
-  font-size: 0.7rem;
-  color: #999;
-  background: #eee;
-  padding: 2px 4px;
-  border-radius: 4px;
-}
+/* switch */
 .switch {
   position: relative;
   display: inline-block;
   width: 44px;
   height: 22px;
 }
-
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-
 .slider {
   position: absolute;
   inset: 0;
@@ -778,7 +759,6 @@ function formatPrice(val) {
   transition: 0.2s;
   border-radius: 999px;
 }
-
 .slider:before {
   content: "";
   position: absolute;
@@ -789,20 +769,112 @@ function formatPrice(val) {
   background: #fff;
   transition: 0.2s;
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
-
 .switch input:checked + .slider {
-  background: #2563eb; /* xanh khi true */
+  background: #2563eb;
 }
-
 .switch input:checked + .slider:before {
   transform: translateX(22px);
 }
 
-/* cho switch nằm gọn trong action-buttons */
-.action-buttons .switch {
-  margin-left: 6px;
+/* ===== pagination giống sản phẩm ===== */
+.paging-bar {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
 }
 
+.paging-left {
+  justify-self: start;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.paging-center {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.paging-right {
+  justify-self: end;
+}
+
+.paging-page {
+  width: 120px;
+}
+
+.paging-size {
+  width: 160px;
+}
+
+/* ✅ đảm bảo mũi tên có border (bootstrap outline) */
+.paging-center .btn.btn-outline-secondary {
+  border: 1px solid #d1d5db !important;
+  background: #fff !important;
+  color: #374151 !important;
+}
+.paging-center .btn.btn-outline-secondary:hover:not(:disabled) {
+  background: #f3f4f6 !important;
+  border-color: #9ca3af !important;
+}
+.paging-center .btn.btn-outline-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modals {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow: auto;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+.half {
+  flex: 1;
+}
+.radio-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
 </style>
