@@ -2,9 +2,7 @@
   <div class="attribute-page">
     <!-- Header -->
     <div class="header-section">
-      <div class="header-left">
-        <h2>Quản lý Sản phẩm / {{ title }}</h2>
-      </div>
+      <h2>Quản lý Sản phẩm / {{ title }}</h2>
     </div>
 
     <!-- Filter / Actions -->
@@ -55,23 +53,26 @@
               <td class="text-center">{{ startIndex + index + 1 }}</td>
               <td class="text-center">{{ item.ma }}</td>
               <td>{{ displayName(item) }}</td>
+
               <td class="text-center">
                 <span :class="['badge', item.trangThai ? 'badge-success' : 'badge-danger']">
                   {{ item.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
                 </span>
               </td>
+
               <td class="text-center">
                 <div class="action-cell">
                   <button class="btn-icon blue" type="button" @click="openModal('edit', item)" title="Sửa">
                     ✏️
                   </button>
 
+                  <!-- Switch: popup confirm giữa màn hình -->
                   <label class="switch" title="Đổi trạng thái">
                     <input
                       type="checkbox"
                       :checked="!!item.trangThai"
-                      :disabled="togglingIds.has(item.id)"
-                      @change="toggleStatus(item)"
+                      :disabled="isToggling(item.id)"
+                      @click.prevent="confirmToggleStatus(item)"
                     />
                     <span class="slider"></span>
                   </label>
@@ -82,16 +83,15 @@
         </table>
       </div>
 
-      <!-- Pagination (giống style trang sản phẩm/biến thể) -->
+      <!-- Pagination -->
       <div class="pager" v-if="!loading && filteredItems.length > 0">
         <div class="pager-left">
           Hiển thị {{ pagedItems.length }} / tổng {{ filteredItems.length }} bản ghi
         </div>
 
         <div class="pager-center">
-          <button class="page-btn" :disabled="currentPage === 1" @click="goPage(currentPage - 1)">
-            ‹
-          </button>
+          <button class="page-btn" :disabled="currentPage === 1" @click="goPage(currentPage - 1)">‹</button>
+
           <span class="page-label">Trang</span>
           <input
             class="page-input"
@@ -103,9 +103,8 @@
             @blur="applyPageInput"
           />
           <span class="page-total">/ {{ totalPages }}</span>
-          <button class="page-btn" :disabled="currentPage === totalPages" @click="goPage(currentPage + 1)">
-            ›
-          </button>
+
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="goPage(currentPage + 1)">›</button>
         </div>
 
         <div class="pager-right">
@@ -119,7 +118,7 @@
       </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal Create/Edit -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modals">
         <div class="modal-header">
@@ -127,14 +126,19 @@
           <button class="close-btn" type="button" @click="closeModal">×</button>
         </div>
 
-        <form @submit.prevent="submitForm" class="modal-body">
+        <form class="modal-body" @submit.prevent="submitForm">
           <div class="form-group">
-            <label class="required">{{ type === 'kich-co' ? 'Kích cỡ' : 'Tên' }}</label>
+            <label class="required">Mã</label>
+            <input v-model="form.ma" class="form-input" type="text" disabled />
+          </div>
+
+          <div class="form-group">
+            <label class="required">{{ isSize ? 'Kích cỡ' : 'Tên' }}</label>
             <input
               v-model="form.ten"
               class="form-input"
-              :type="type === 'kich-co' ? 'number' : 'text'"
-              :min="type === 'kich-co' ? 0 : undefined"
+              :type="isSize ? 'number' : 'text'"
+              :min="isSize ? 0 : undefined"
               required
             />
           </div>
@@ -146,11 +150,30 @@
         </form>
       </div>
     </div>
+
+    <!-- Confirm Popup (giữa màn hình) -->
+    <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
+      <div class="confirm-modal">
+        <div class="confirm-header">
+          <h3>Xác nhận</h3>
+          <button class="close-btn" type="button" @click="confirmCancel">×</button>
+        </div>
+
+        <div class="confirm-body">
+          <p>{{ confirmState.message }}</p>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" type="button" @click="confirmCancel">Hủy</button>
+          <button class="btn btn-primary" type="button" @click="confirmOk">OK</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import attributeService from '../../services/attributeService'
 import { useToast } from '../../composables/useToast'
@@ -158,6 +181,9 @@ import { useToast } from '../../composables/useToast'
 const { success, error } = useToast()
 const route = useRoute()
 
+/* =======================
+ * Type / Title
+ * ======================= */
 const type = computed(() => String(route.params.type || ''))
 const TITLES = {
   'thuong-hieu': 'Thương hiệu',
@@ -173,12 +199,73 @@ const TITLES = {
   'fit': 'Fit'
 }
 const title = computed(() => TITLES[type.value] || 'Thuộc tính')
+const isSize = computed(() => type.value === 'kich-co')
 
+/* =======================
+ * Prefix mã tự tăng
+ * (màu sắc = MS01..)
+ * ======================= */
+const CODE_PREFIX = {
+  'mau-sac': 'MS',
+  'thuong-hieu': 'TH',
+  'chat-lieu': 'CL',
+  'kich-co': 'KC',
+  'loai-san-pham': 'LSP',
+  'so-khuy': 'SK',
+  'kieu-tui': 'KT',
+  've-ao': 'VA',
+  'xe-ta': 'XT',
+  'xuat-xu': 'XX',
+  'fit': 'FIT'
+}
+
+/* =======================
+ * State
+ * ======================= */
 const items = ref([])
 const loading = ref(false)
 const searchQuery = ref('')
 
-/* ===== Pagination ===== */
+/* =======================
+ * Helpers
+ * ======================= */
+function displayName(item) {
+  if (!item) return ''
+  // API kích cỡ thường có soSize
+  return isSize.value ? (item.soSize ?? item.ten ?? '') : (item.ten ?? '')
+}
+
+function pad2(n) {
+  return n < 10 ? `0${n}` : String(n)
+}
+
+function genNextCode() {
+  const prefix = (CODE_PREFIX[type.value] || 'TT').toUpperCase()
+
+  const nums = (items.value || [])
+    .map(i => String(i.ma || '').toUpperCase())
+    .map(ma => {
+      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`)) // chỉ lấy đúng PREFIX + số
+      return m ? Number(m[1]) : null
+    })
+    .filter(n => Number.isFinite(n))
+
+  let next = (nums.length ? Math.max(...nums) : 0) + 1
+  let code = `${prefix}${pad2(next)}`
+
+  while (
+    items.value.some(i => String(i.ma || '').toUpperCase() === code.toUpperCase() && i.id !== form.id)
+  ) {
+    next++
+    code = `${prefix}${pad2(next)}`
+  }
+
+  return code
+}
+
+/* =======================
+ * Pagination
+ * ======================= */
 const currentPage = ref(1)
 const pageSize = ref(10)
 const pageInput = ref(1)
@@ -186,7 +273,7 @@ const pageInput = ref(1)
 const filteredItems = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return items.value
-  return items.value.filter((i) => {
+  return items.value.filter(i => {
     const name = String(displayName(i) || '').toLowerCase()
     const code = String(i.ma || '').toLowerCase()
     return name.includes(q) || code.includes(q)
@@ -217,69 +304,14 @@ watch([searchQuery, pageSize, type], () => {
   pageInput.value = 1
 })
 
-/* ===== Modal ===== */
-const showModal = ref(false)
-const modalMode = ref('create') // create | edit
-const form = reactive({ id: null, ma: '', ten: '', trangThai: true })
-
-function openModal(mode, item = null) {
-  modalMode.value = mode
-  if (mode === 'edit' && item) {
-    form.id = item.id
-    form.ma = item.ma
-    form.trangThai = !!item.trangThai
-    form.ten = String(displayName(item) ?? '')
-  } else {
-    form.id = null
-    form.ma = ''
-    form.ten = ''
-    form.trangThai = true
-  }
-  showModal.value = true
-}
-function closeModal() {
-  showModal.value = false
-}
-
-/* ===== Helpers ===== */
-function displayName(item) {
-  if (!item) return ''
-  // API size thường là soSize
-  if (type.value === 'kich-co') return item.ten ?? item.soSize ?? ''
-  return item.ten ?? ''
-}
-
-function removeVietnameseTones(str) {
-  return String(str || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-}
-
-function genCodeFromName(name) {
-  let code = removeVietnameseTones(name).trim()
-  code = code.replace(/\s+/g, '_').toUpperCase()
-  code = code.replace(/[^A-Z0-9_]/g, '')
-  // unique
-  let unique = code || 'CODE'
-  let c = 1
-  while (items.value.some((i) => i.ma === unique && i.id !== form.id)) {
-    unique = `${code}_${c++}`
-  }
-  return unique
-}
-
-/* ===== CRUD ===== */
+/* =======================
+ * Fetch
+ * ======================= */
 async function fetchData() {
   loading.value = true
   try {
     const res = await attributeService.getAllList(type.value)
-    // chuẩn hoá để hiển thị: kích cỡ dùng soSize => ten
-    items.value = (res.data || []).map((it) => {
-      if (type.value === 'kich-co') return { ...it, ten: it.ten ?? it.soSize }
-      return it
-    })
+    items.value = Array.isArray(res.data) ? res.data : []
   } catch (e) {
     console.error(e)
     error('Không thể tải dữ liệu')
@@ -291,23 +323,66 @@ async function fetchData() {
 onMounted(fetchData)
 watch(type, fetchData)
 
-/* ===== Submit ===== */
-async function submitForm() {
-  const name = String(form.ten ?? '').trim()
-  if (!name) return
+/* =======================
+ * Modal Create/Edit
+ * ======================= */
+const showModal = ref(false)
+const modalMode = ref('create') // create | edit
+const form = reactive({ id: null, ma: '', ten: '', trangThai: true })
 
-  // check trùng tên
-  const dup = items.value.find(
-    (i) => String(displayName(i)).trim().toLowerCase() === name.toLowerCase() && i.id !== form.id
-  )
-  if (dup) return error(`Đã tồn tại "${name}"`)
+function openModal(mode, item = null) {
+  modalMode.value = mode
+
+  if (mode === 'edit' && item) {
+    form.id = item.id
+    form.ma = item.ma
+    form.trangThai = !!item.trangThai
+    form.ten = String(displayName(item) ?? '')
+  } else {
+    form.id = null
+    form.trangThai = true
+    form.ten = ''
+    form.ma = genNextCode() // ✅ auto mã tăng
+  }
+
+  showModal.value = true
+}
+
+function closeModal() {
+  showModal.value = false
+}
+
+/* =======================
+ * Submit
+ * ======================= */
+async function submitForm() {
+  const tenRaw = String(form.ten ?? '').trim()
+  if (!tenRaw) return
+
+  // Kích cỡ: ép number
+  let soSizeNum = undefined
+  if (isSize.value) {
+    soSizeNum = Number(tenRaw)
+    if (!Number.isFinite(soSizeNum) || soSizeNum <= 0) {
+      return error('Kích cỡ phải là số > 0')
+    }
+  }
+
+  // Check trùng
+  const dup = items.value.find(i => {
+    if (i.id === form.id) return false
+    const a = String(displayName(i)).trim().toLowerCase()
+    const b = String(isSize.value ? soSizeNum : tenRaw).trim().toLowerCase()
+    return a === b
+  })
+  if (dup) return error(`Đã tồn tại "${tenRaw}"`)
 
   const payload = {
     id: form.id,
-    ten: type.value === 'kich-co' ? undefined : name,
-    soSize: type.value === 'kich-co' ? name : undefined,
-    ma: form.ma || genCodeFromName(name),
-    trangThai: form.trangThai
+    ma: form.ma || genNextCode(), // ✅ không sinh theo tên
+    trangThai: form.trangThai,
+    ten: isSize.value ? undefined : tenRaw,
+    soSize: isSize.value ? soSizeNum : undefined
   }
 
   try {
@@ -327,25 +402,77 @@ async function submitForm() {
   }
 }
 
-/* ===== Toggle status ===== */
-const togglingIds = ref(new Set())
+/* =======================
+ * Confirm Popup (center)
+ * ======================= */
+const confirmState = reactive({
+  open: false,
+  message: '',
+  resolve: null
+})
 
-async function toggleStatus(item) {
+function openConfirm(message) {
+  confirmState.open = true
+  confirmState.message = message
+  return new Promise((res) => {
+    confirmState.resolve = res
+  })
+}
+
+function confirmOk() {
+  confirmState.open = false
+  confirmState.resolve?.(true)
+  confirmState.resolve = null
+}
+
+function confirmCancel() {
+  confirmState.open = false
+  confirmState.resolve?.(false)
+  confirmState.resolve = null
+}
+
+/* =======================
+ * Toggle status
+ * ======================= */
+const togglingIds = reactive(new Set())
+
+function isToggling(id) {
+  return togglingIds.has(id)
+}
+
+async function confirmToggleStatus(item) {
   if (!item?.id) return
-  if (togglingIds.value.has(item.id)) return
-  togglingIds.value.add(item.id)
+  if (togglingIds.has(item.id)) return
+
+  const next = !item.trangThai
+  const ok = await openConfirm(
+    `Bạn có chắc muốn đổi trạng thái "${displayName(item)}" thành ${next ? 'Hoạt động' : 'Ngừng hoạt động'} không?`
+  )
+  if (!ok) return
+
+  await toggleStatus(item, next)
+}
+
+async function toggleStatus(item, forcedNext) {
+  if (!item?.id) return
+  if (togglingIds.has(item.id)) return
+
+  togglingIds.add(item.id)
 
   const old = !!item.trangThai
-  const next = !old
+  const next = typeof forcedNext === 'boolean' ? forcedNext : !old
+
+  // optimistic UI
   item.trangThai = next
 
   try {
     const payload = {
       ...item,
       trangThai: next,
-      ten: type.value === 'kich-co' ? undefined : displayName(item),
-      soSize: type.value === 'kich-co' ? displayName(item) : undefined
+      ten: isSize.value ? undefined : displayName(item),
+      soSize: isSize.value ? Number(displayName(item)) : undefined
     }
+
     await attributeService.update(type.value, item.id, payload)
     await fetchData()
     success(`Đã đổi trạng thái "${displayName(item)}" thành ${next ? 'Hoạt động' : 'Ngừng hoạt động'}`)
@@ -355,13 +482,14 @@ async function toggleStatus(item) {
     const msg = e?.response?.data?.message || e?.message || 'Không thể cập nhật trạng thái'
     error(msg)
   } finally {
-    togglingIds.value.delete(item.id)
+    togglingIds.delete(item.id)
   }
 }
 
-/* ===== Excel stub ===== */
+/* =======================
+ * Excel stub
+ * ======================= */
 function exportExcel() {
-  // TODO: nếu bạn có API export thì gọi ở đây
   success('Chức năng xuất Excel sẽ bổ sung sau')
 }
 </script>
@@ -376,7 +504,6 @@ function exportExcel() {
 
 .header-section {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
@@ -466,7 +593,6 @@ function exportExcel() {
 }
 .text-center { text-align: center; }
 
-/* badge */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -480,7 +606,6 @@ function exportExcel() {
 .badge-success { background: #d1fae5; color: #065f46; }
 .badge-danger { background: #fee2e2; color: #991b1b; }
 
-/* action cell (không lệch) */
 .action-cell {
   display: inline-flex;
   align-items: center;
@@ -488,7 +613,6 @@ function exportExcel() {
   gap: 10px;
 }
 
-/* icon button */
 .btn-icon {
   width: 32px;
   height: 32px;
@@ -629,5 +753,51 @@ function exportExcel() {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 14px;
+}
+
+/* confirm popup */
+.confirm-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.confirm-modal{
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.confirm-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+.confirm-header h3{
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+.confirm-body{
+  padding: 16px;
+  color: #374151;
+}
+.confirm-body p{
+  margin: 0;
+  line-height: 1.5;
+}
+.confirm-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 16px 16px;
 }
 </style>
