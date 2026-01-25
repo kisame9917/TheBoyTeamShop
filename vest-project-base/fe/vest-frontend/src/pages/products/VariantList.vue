@@ -46,41 +46,41 @@
         <table class="table">
           <thead>
             <tr>
-              <th>STT</th>
-              <th>Ảnh</th>
-              <th>Mã sản phẩm chi tiết</th>
-              <th>Tên sản phẩm</th>
-              <th>Màu sắc</th>
-              <th>Kích cỡ</th>
-              <th>Số lượng tồn</th>
-              <th>Giá bán</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
+              <th class="text-center">STT</th>
+              <th class="text-center">Ảnh</th>
+              <th class="text-center">Mã sản phẩm chi tiết</th>
+              <th class="text-center">Tên sản phẩm</th>
+              <th class="text-center">Màu sắc</th>
+              <th class="text-center">Kích cỡ</th>
+              <th class="text-center">Số lượng tồn</th>
+              <th class="text-center">Giá bán</th>
+              <th class="text-center">Trạng thái</th>
+              <th class="text-center">Hành động</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(v, index) in filteredItems" :key="v.id">
-              <td>{{ (currentPage * pageSize) + index + 1 }}</td>
-              <td>
+            <tr  v-for="(v, index) in filteredItems" :key="v.id">
+              <td class="text-center">{{ (currentPage * pageSize) + index + 1 }}</td>
+              <td class="text-center">
                 <img v-if="v.anh" :src="'http://localhost:8080' + v.anh"
                   style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;" />
                 <span v-else class="no-img">No Img</span>
               </td>
-              <td>{{ v.maSanPhamChiTiet }}</td>
+              <td class="text-center">{{ v.maSanPhamChiTiet }}</td>
               <td class="text-bold">{{ v.tenSanPham }}</td>
-              <td>
+              <td class="text-center">
                 <span class="color-dot" :style="{ backgroundColor: getColorCode(v.tenMauSac) }"></span>
                 {{ v.tenMauSac }}
               </td>
-              <td>{{ v.tenKichCo }}</td>
+              <td class="text-center">{{ v.tenKichCo }}</td>
               <td class="text-center">{{ v.soLuongTon }}</td>
               <td class="text-highlight">{{ formatPrice(v.donGia) }}</td>
-              <td>
+              <td class="text-center">
                 <span :class="['badge', v.trangThai ? 'badge-success' : 'badge-danger']">
                   {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                 </span>
               </td>
-              <td>
+              <td class="text-center">
                 <div class="action-buttons">
                   <button class="btn-icon blue" @click="openEditModal(v)">✏️</button>
                  <label class="switch" title="Đổi trạng thái">
@@ -106,15 +106,57 @@
       </div>
 
       <!-- Pagination -->
-      <div class="pagination-section" v-if="totalPages > 0">
-        <button class="page-btn" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">
-          &lt;
-        </button>
-        <span style="margin: 0 10px;">Trang {{ currentPage + 1 }} / {{ totalPages }}</span>
-        <button class="page-btn" :disabled="currentPage === totalPages - 1" @click="changePage(currentPage + 1)">
-          &gt;
-        </button>
-      </div>
+     <!-- Pagination giống danh sách sản phẩm -->
+<div class="paging-bar" v-if="totalPages > 0">
+  <div class="paging-left">
+    Hiển thị {{ filteredItems.length }} / tổng {{ totalElements }} bản ghi
+  </div>
+
+  <div class="paging-center">
+    <button
+      type="button"
+      class="btn btn-outline-secondary btn-sm"
+      :disabled="currentPage === 0"
+      @click="changePage(currentPage - 1)"
+    >
+      <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <div class="input-group input-group-sm paging-page">
+      <span class="input-group-text">Trang</span>
+      <input
+        type="number"
+        min="1"
+        :max="totalPages || 1"
+        class="form-control"
+        v-model.number="pageInput"
+        @keyup.enter="jumpPage"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-outline-secondary btn-sm"
+      :disabled="currentPage >= totalPages - 1"
+      @click="changePage(currentPage + 1)"
+    >
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+
+  <div class="paging-right">
+    <select
+      class="form-select form-select-sm paging-size"
+      v-model.number="pageSize"
+      @change="onChangeSize"
+    >
+      <option :value="10">10 bản ghi / trang</option>
+      <option :value="20">20 bản ghi / trang</option>
+      <option :value="50">50 bản ghi / trang</option>
+    </select>
+  </div>
+</div>
+
     </div>
     <!-- Edit Modal -->
     <div v-if="showEditModal" class="modal-overlay">
@@ -248,12 +290,15 @@ async function loadData() {
     const res = await getAllDetails(currentPage.value, pageSize.value)
     items.value = res.data.content
     totalPages.value = res.data.totalPages
+    totalElements.value = res.data.totalElements || 0
+    pageInput.value = currentPage.value + 1
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
   }
 }
+
 
 function changePage(page) {
   if (page >= 0 && page < totalPages.value) {
@@ -277,6 +322,20 @@ function goBack() {
 function editVariant(v) {
   error("Chức năng đang phát triển: " + v.maSanPhamChiTiet)
 }
+const totalElements = ref(0)
+const pageInput = ref(1)
+
+function jumpPage() {
+  const max = Math.max(1, totalPages.value || 1)
+  const target = Math.min(Math.max(1, pageInput.value || 1), max)
+  changePage(target - 1)
+}
+
+function onChangeSize() {
+  currentPage.value = 0
+  loadData()
+}
+
 
 const togglingIds = ref(new Set())
 
@@ -529,8 +588,8 @@ function closeEditModal() {
 }
 
 .table th {
-  background: #fef3c7;
-  color: #1f2937;
+  background: #1e293b;   /* xanh đen như bên sản phẩm */
+  color: #fff; 
   padding: 12px;
   text-align: left;
   font-weight: 600;
@@ -560,11 +619,13 @@ function closeEditModal() {
 .text-highlight {
   color: #047857;
   font-weight: 600;
+  text-align: center;
 }
 
 .text-bold {
   font-weight: 500;
   color: #111827;
+  text-align: center;
 }
 
 .badge {
@@ -588,6 +649,8 @@ function closeEditModal() {
 .action-buttons {
   display: flex;
   gap: 5px;
+  justify-content: center; /* ✅ canh giữa ngang */
+  align-items: center;    
 }
 
 .btn-icon {
@@ -748,5 +811,38 @@ function closeEditModal() {
   margin-left: 6px;
   transform: translateY(2px);
 }
+/* ===== Pagination giống danh sách sản phẩm ===== */
+.paging-bar {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
 
+.paging-left {
+  justify-self: start;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.paging-center {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.paging-right {
+  justify-self: end;
+}
+
+.paging-page {
+  width: 120px;
+}
+
+.paging-size {
+  width: 160px;
+}
 </style>

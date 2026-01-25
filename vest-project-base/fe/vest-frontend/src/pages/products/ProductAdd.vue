@@ -1027,11 +1027,11 @@ function getColorCode(name) {
   color: white;
 }
 .btn-orange {
-  background: #f97316;
+  background: #1e40af;
   color: white;
 }
 .btn-orange:hover {
-  background: #ea580c;
+  background: #1e40af;
 }
 .btn-orange:disabled {
   background: #fed7aa;
@@ -1044,7 +1044,7 @@ function getColorCode(name) {
 }
 
 .section-header-bar {
-  background: linear-gradient(to right, #ea580c, #c2410c);
+  background: linear-gradient(to right, #1e40af, #1e40af);
   padding: 10px 20px;
   border-radius: 6px 6px 0 0;
   display: flex;
@@ -1074,7 +1074,7 @@ function getColorCode(name) {
 .btn-outline-danger {
   border: 1px solid #fecaca;
   background: #fee2e2;
-  color: #ef4444;
+  color: #1e40af;
   margin-left: 10px;
   display: inline-flex;
   align-items: center;
@@ -1101,7 +1101,7 @@ function getColorCode(name) {
 }
 .group-title {
   font-weight: 600;
-  color: #9a3412;
+  color: #1e40af;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1213,7 +1213,7 @@ function getColorCode(name) {
 }
 
 .btn-remove-block {
-  background: #ef4444;
+  background: #1e40af;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1227,7 +1227,7 @@ function getColorCode(name) {
   line-height: 1;
 }
 .btn-remove-block:hover {
-  background: #dc2626;
+  background: #1e40af;
 }
 .mt-2 {
   margin-top: 10px;
@@ -1259,13 +1259,13 @@ function getColorCode(name) {
   min-height: 80px;
 }
 .attr-item:hover {
-  border-color: #fdba74;
+  border-color: #1e40af;
   background: #fff7ed;
 }
 .attr-item.selected {
-  border-color: #ea580c;
+  border-color: #1e40af;
   background: #ffedd5;
-  box-shadow: 0 0 0 1px #ea580c;
+  box-shadow: 0 0 0 1px #1e40af;
 }
 .attr-color-preview {
   width: 30px;
@@ -1374,4 +1374,4 @@ function getColorCode(name) {
   border-top: 1px solid #e5e7eb;
   margin-top: 20px;
 }
-</style>
+</style> 
