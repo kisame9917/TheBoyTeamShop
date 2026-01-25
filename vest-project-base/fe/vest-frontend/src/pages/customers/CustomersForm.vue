@@ -131,7 +131,7 @@
 
           <div class="form-group">
             <label>Địa chỉ chi tiết</label>
-            <input class="form-input" v-model="form.diaChiChiTiet" placeholder="VD: 12 Cửa Đông" />
+            <input class="form-input" v-model="form.diaChiChiTiet" placeholder="VD: 12 Cầu Giấy" />
           </div>
         </div>
 
@@ -613,7 +613,8 @@ onBeforeUnmount(() => {
   gap:10px;
   margin-top: 14px;
 }
-
+.modal-header { border-bottom: 0 !important; }
+.modal-footer { border-top: 0 !important; }
 .btn{
   height: 38px;
   padding: 0 14px;

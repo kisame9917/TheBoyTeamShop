@@ -49,7 +49,7 @@
           </div>
 
           <div class="small text-muted mt-2" v-if="avatarNameText">{{ avatarNameText }}</div>
-          <div class="small text-muted">PNG, JPG, JPEG - tối đa 5MB.</div>
+          <div class="small text-muted">PNG, JPG, JPEG - tối đa {{ MAX_AVATAR_MB }}MB.</div>
         </div>
 
         <form @submit.prevent="submit">
@@ -205,6 +205,42 @@
         </form>
       </div>
     </div>
+
+    <!-- ✅ Confirm popup (KHÔNG dùng window.confirm) -->
+    <div v-if="showConfirm" class="modal-overlay" @click.self="closeConfirm">
+      <div class="modal-card">
+        <h3 class="modal-title">Xác nhận</h3>
+        <p class="modal-desc">{{ confirmText }}</p>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" :disabled="confirmLoading" @click="closeConfirm">Hủy</button>
+          <button class="btn btn-confirm-primary" :disabled="confirmLoading" @click="confirmYes">
+            {{ confirmLoading ? "Đang xử lý..." : "Đồng ý" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Toast -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+      <div
+          v-for="t in toast.state.items"
+          :key="t.id"
+          class="toast show align-items-center border-0 mb-2"
+          :class="toastClass(t.type)"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div class="toast-body">
+            <div v-if="t.title" class="fw-semibold mb-1">{{ t.title }}</div>
+            <div>{{ t.message }}</div>
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -213,6 +249,11 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import http from '../../services/http'
 import { useAuthStore } from '../../stores/auth'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
+
+const MAX_AVATAR_MB = 5
 
 const auth = useAuthStore()
 const isAdmin = computed(() => !!auth.isAdmin)
@@ -221,19 +262,49 @@ const ROLE_TO_ID = { ADMIN: 1, NHAN_VIEN: 2 }
 const route = useRoute()
 const router = useRouter()
 
-const isEdit = computed(function () {
-  return !!route.params.id
-})
+const isEdit = computed(() => !!route.params.id)
 
 const saving = ref(false)
 const err = ref('')
 const uploading = ref(false)
+
+/** ===== Confirm popup state ===== */
+const showConfirm = ref(false)
+const confirmText = ref('Bạn chắc chắn chứ?')
+const confirmLoading = ref(false)
+let pendingAction = null
+
+function openConfirm(text, action) {
+  confirmText.value = text || 'Bạn chắc chắn chứ?'
+  pendingAction = typeof action === 'function' ? action : null
+  showConfirm.value = true
+}
+function closeConfirm() {
+  if (confirmLoading.value) return
+  showConfirm.value = false
+  pendingAction = null
+}
+async function confirmYes() {
+  if (!pendingAction) {
+    showConfirm.value = false
+    return
+  }
+  confirmLoading.value = true
+  try {
+    await pendingAction()
+  } finally {
+    confirmLoading.value = false
+    showConfirm.value = false
+    pendingAction = null
+  }
+}
 
 /** ===== Form ===== */
 const form = reactive({
   id: null,
   maNhanVien: '',
   quyenHanKey: 'NHAN_VIEN',
+  quyenHanId: null, // ✅ lưu lại role id nếu BE trả về
   tenNhanVien: '',
   soDienThoai: '',
   cccd: '',
@@ -244,7 +315,7 @@ const form = reactive({
   gioiTinh: null,
   diaChi: '',
   trangThai: true,
-  anhDaiDien: '' // url lưu DB: "/uploads/nhanvien/xxx.jpg"
+  anhDaiDien: ''
 })
 
 /** ===== Avatar ===== */
@@ -253,21 +324,21 @@ const avatarPreview = ref('')
 const localBlobUrl = ref('')
 const avatarFileMeta = ref('')
 
-const avatarNameText = computed(function () {
+const avatarNameText = computed(() => {
   if (avatarFileMeta.value) return avatarFileMeta.value
-  var url = String(form.anhDaiDien || '').trim()
+  const url = String(form.anhDaiDien || '').trim()
   if (!url) return ''
-  var clean = url.split('?')[0]
-  var parts = clean.split('/')
+  const clean = url.split('?')[0]
+  const parts = clean.split('/')
   return parts[parts.length - 1] || ''
 })
 
 function triggerPickFile() {
-  if (fileInput.value) fileInput.value.click()
+  fileInput.value?.click()
 }
 
 function revokeLocalBlob() {
-  if (localBlobUrl.value && String(localBlobUrl.value).indexOf('blob:') === 0) {
+  if (localBlobUrl.value && String(localBlobUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(localBlobUrl.value)
   }
   localBlobUrl.value = ''
@@ -277,28 +348,27 @@ function clearAvatar() {
   revokeLocalBlob()
   avatarPreview.value = ''
   avatarFileMeta.value = ''
-  form.anhDaiDien = '' // gửi "" => service normalize về default
+  form.anhDaiDien = ''
   if (fileInput.value) fileInput.value.value = ''
+  toast.info('Đã xóa ảnh đại diện.')
 }
 
 function onAvatarImgError() {
-  // nếu ảnh server lỗi, fallback về blob local (nếu có)
   if (localBlobUrl.value) avatarPreview.value = localBlobUrl.value
   else avatarPreview.value = ''
 }
 
 /** ===== Resolve URL /uploads ===== */
-var FALLBACK_BACKEND = 'http://localhost:8080'
+const FALLBACK_BACKEND = 'http://localhost:8080'
 
 function getBackendOrigin() {
-  var base = ''
-  if (http && http.defaults && http.defaults.baseURL) base = String(http.defaults.baseURL).trim()
+  let base = ''
+  if (http?.defaults?.baseURL) base = String(http.defaults.baseURL).trim()
 
-  if (base.indexOf('http://') === 0 || base.indexOf('https://') === 0) {
+  if (base.startsWith('http://') || base.startsWith('https://')) {
     try {
-      var u = new URL(base)
-      return u.origin
-    } catch (e) {
+      return new URL(base).origin
+    } catch {
       return FALLBACK_BACKEND
     }
   }
@@ -306,59 +376,48 @@ function getBackendOrigin() {
 }
 
 function resolveFileUrl(url) {
-  var u = String(url || '').trim()
+  const u = String(url || '').trim()
   if (!u) return ''
-  if (u.indexOf('http://') === 0 || u.indexOf('https://') === 0 || u.indexOf('data:image') === 0) return u
-  var origin = getBackendOrigin()
-  if (u[0] === '/') return origin + u
-  return origin + '/' + u
+  if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:image')) return u
+  const origin = getBackendOrigin()
+  return u.startsWith('/') ? origin + u : origin + '/' + u
 }
 
 async function uploadNhanVienAvatar(file) {
-  var fd = new FormData()
+  const fd = new FormData()
   fd.append('file', file)
-  var res = await http.post('/api/upload/nhan-vien-avatar', fd, {
+  const res = await http.post('/api/upload/nhan-vien-avatar', fd, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
-  var url = res && res.data ? res.data.url : ''
+  const url = res?.data?.url || ''
   if (!url) throw new Error('Upload thành công nhưng không nhận được url')
   return String(url)
 }
 
 async function onAvatarFileChange(e) {
-  var files = e && e.target ? e.target.files : null
-  var file = files && files.length ? files[0] : null
+  const file = e?.target?.files?.[0]
   if (!file) return
 
-  // validate
-  var okType = (file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg')
-  if (!okType) {
-    alert('Chỉ chấp nhận PNG, JPG, JPEG')
-    return
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    alert('Tối đa 5MB')
-    return
-  }
+  const okType = (file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg')
+  if (!okType) return toast.warning('Chỉ chấp nhận PNG, JPG, JPEG.')
 
-  // preview local trước
+  const maxBytes = MAX_AVATAR_MB * 1024 * 1024
+  if (file.size > maxBytes) return toast.warning(`Ảnh tối đa ${MAX_AVATAR_MB}MB.`)
+
   revokeLocalBlob()
   localBlobUrl.value = URL.createObjectURL(file)
   avatarPreview.value = localBlobUrl.value
-  avatarFileMeta.value = file.name + ' • ' + (file.size / 1024 / 1024).toFixed(1) + ' MB'
+  avatarFileMeta.value = `${file.name} • ${(file.size / 1024 / 1024).toFixed(1)} MB`
 
   uploading.value = true
   try {
-    var url = await uploadNhanVienAvatar(file) // "/uploads/nhanvien/xxx.jpg"
+    const url = await uploadNhanVienAvatar(file)
     form.anhDaiDien = url
-
-    // preview server + chống cache
     avatarPreview.value = resolveFileUrl(url) + '?t=' + Date.now()
+    toast.success('Upload ảnh thành công!')
   } catch (ex) {
-    var msg = ''
-    if (ex && ex.response && ex.response.data && ex.response.data.message) msg = ex.response.data.message
-    else msg = ex && ex.message ? ex.message : 'Upload thất bại'
-    alert(msg)
+    const msg = ex?.response?.data?.message || ex?.message || 'Upload thất bại'
+    toast.error(msg)
     // giữ preview local
   } finally {
     uploading.value = false
@@ -378,20 +437,20 @@ const addr = reactive({
 })
 
 async function fetchProvinces() {
-  var r = await fetch('https://provinces.open-api.vn/api/p/')
+  const r = await fetch('https://provinces.open-api.vn/api/p/')
   provinces.value = await r.json()
 }
 
 async function fetchDistricts(provinceCode) {
-  var r = await fetch('https://provinces.open-api.vn/api/p/' + provinceCode + '?depth=2')
-  var data = await r.json()
-  districts.value = data && data.districts ? data.districts : []
+  const r = await fetch('https://provinces.open-api.vn/api/p/' + provinceCode + '?depth=2')
+  const data = await r.json()
+  districts.value = data?.districts || []
 }
 
 async function fetchWards(districtCode) {
-  var r = await fetch('https://provinces.open-api.vn/api/d/' + districtCode + '?depth=2')
-  var data = await r.json()
-  wards.value = data && data.wards ? data.wards : []
+  const r = await fetch('https://provinces.open-api.vn/api/d/' + districtCode + '?depth=2')
+  const data = await r.json()
+  wards.value = data?.wards || []
 }
 
 async function onProvinceChange() {
@@ -409,25 +468,15 @@ async function onDistrictChange() {
 }
 
 function buildDiaChi() {
-  var p = null
-  var d = null
-  var w = null
+  const p = provinces.value.find(x => String(x.code) === String(addr.provinceCode))
+  const d = districts.value.find(x => String(x.code) === String(addr.districtCode))
+  const w = wards.value.find(x => String(x.code) === String(addr.wardCode))
 
-  for (var i = 0; i < provinces.value.length; i++) {
-    if (String(provinces.value[i].code) === String(addr.provinceCode)) { p = provinces.value[i]; break }
-  }
-  for (var j = 0; j < districts.value.length; j++) {
-    if (String(districts.value[j].code) === String(addr.districtCode)) { d = districts.value[j]; break }
-  }
-  for (var k = 0; k < wards.value.length; k++) {
-    if (String(wards.value[k].code) === String(addr.wardCode)) { w = wards.value[k]; break }
-  }
-
-  var parts = []
-  if (addr.detail && String(addr.detail).trim()) parts.push(String(addr.detail).trim())
-  if (w && w.name) parts.push(w.name)
-  if (d && d.name) parts.push(d.name)
-  if (p && p.name) parts.push(p.name)
+  const parts = []
+  if (addr.detail?.trim()) parts.push(addr.detail.trim())
+  if (w?.name) parts.push(w.name)
+  if (d?.name) parts.push(d.name)
+  if (p?.name) parts.push(p.name)
   return parts.join(', ')
 }
 
@@ -443,21 +492,18 @@ function normalizeText(s) {
 }
 
 async function prefillAddressFromDiaChi(diaChi) {
-  var parts = String(diaChi || '').split(',').map(function (x) { return String(x).trim() }).filter(Boolean)
+  const parts = String(diaChi || '').split(',').map(x => String(x).trim()).filter(Boolean)
   if (parts.length < 4) {
     addr.detail = parts[0] || ''
     return
   }
 
-  var provinceName = parts[parts.length - 1]
-  var districtName = parts[parts.length - 2]
-  var wardName = parts[parts.length - 3]
-  var detail = parts.slice(0, parts.length - 3).join(', ')
+  const provinceName = parts[parts.length - 1]
+  const districtName = parts[parts.length - 2]
+  const wardName = parts[parts.length - 3]
+  const detail = parts.slice(0, parts.length - 3).join(', ')
 
-  var p = null
-  for (var i = 0; i < provinces.value.length; i++) {
-    if (normalizeText(provinces.value[i].name) === normalizeText(provinceName)) { p = provinces.value[i]; break }
-  }
+  const p = provinces.value.find(x => normalizeText(x.name) === normalizeText(provinceName))
   if (!p) {
     addr.detail = detail || parts[0] || ''
     return
@@ -466,10 +512,7 @@ async function prefillAddressFromDiaChi(diaChi) {
   addr.provinceCode = String(p.code)
   await fetchDistricts(addr.provinceCode)
 
-  var d = null
-  for (var j = 0; j < districts.value.length; j++) {
-    if (normalizeText(districts.value[j].name) === normalizeText(districtName)) { d = districts.value[j]; break }
-  }
+  const d = districts.value.find(x => normalizeText(x.name) === normalizeText(districtName))
   if (!d) {
     addr.detail = detail
     return
@@ -478,10 +521,7 @@ async function prefillAddressFromDiaChi(diaChi) {
   addr.districtCode = String(d.code)
   await fetchWards(addr.districtCode)
 
-  var w = null
-  for (var k = 0; k < wards.value.length; k++) {
-    if (normalizeText(wards.value[k].name) === normalizeText(wardName)) { w = wards.value[k]; break }
-  }
+  const w = wards.value.find(x => normalizeText(x.name) === normalizeText(wardName))
   if (w) addr.wardCode = String(w.code)
 
   addr.detail = detail
@@ -491,98 +531,104 @@ async function prefillAddressFromDiaChi(diaChi) {
 function unwrapList(data) {
   if (!data) return []
   if (Array.isArray(data)) return data
-  if (data.result && Array.isArray(data.result)) return data.result
-  if (data.content && Array.isArray(data.content)) return data.content
+  if (Array.isArray(data.result)) return data.result
+  if (Array.isArray(data.content)) return data.content
   return []
 }
-
 function unwrapObj(data) {
   if (!data) return null
   if (data.result && typeof data.result === 'object') return data.result
   return data
 }
-
 function safeStr(v) {
   return String(v == null ? '' : v).toLowerCase().trim()
 }
 
+/** ✅ normalize: bổ sung quyenHanId để fix đúng role ADMIN khi edit */
 function normalizeStaff(x) {
   x = x || {}
-  var tenQH = ''
-  if (x.tenQuyenHan) tenQH = x.tenQuyenHan
-  else if (x.quyenHan && x.quyenHan.tenQuyenHan) tenQH = x.quyenHan.tenQuyenHan
+  const qh = x.quyenHan || {}
+  const quyenHanId = x.quyenHanId ?? qh.id ?? null
+  const tenQuyenHan = x.tenQuyenHan ?? qh.tenQuyenHan ?? ''
 
   return {
-    id: x.id != null ? x.id : null,
-    maNhanVien: x.maNhanVien != null ? x.maNhanVien : '',
-    tenNhanVien: x.tenNhanVien != null ? x.tenNhanVien : '',
-    soDienThoai: x.soDienThoai != null ? x.soDienThoai : '',
-    cccd: x.cccd != null ? x.cccd : '',
-    email: x.email != null ? x.email : '',
-    taiKhoan: x.taiKhoan != null ? x.taiKhoan : '',
-    ngaySinh: x.ngaySinh != null ? x.ngaySinh : null,
+    id: x.id ?? null,
+    maNhanVien: x.maNhanVien ?? '',
+    tenNhanVien: x.tenNhanVien ?? '',
+    soDienThoai: x.soDienThoai ?? '',
+    cccd: x.cccd ?? '',
+    email: x.email ?? '',
+    taiKhoan: x.taiKhoan ?? '',
+    ngaySinh: x.ngaySinh ?? null,
     gioiTinh: (x.gioiTinh === true || x.gioiTinh === false) ? x.gioiTinh : null,
-    diaChi: x.diaChi != null ? x.diaChi : '',
+    diaChi: x.diaChi ?? '',
     trangThai: (x.trangThai === true || x.trangThai === false) ? x.trangThai : true,
-    tenQuyenHan: tenQH,
-    anhDaiDien: x.anhDaiDien ? x.anhDaiDien : (x.anh_dai_dien ? x.anh_dai_dien : '')
+    quyenHanId,
+    tenQuyenHan,
+    anhDaiDien: x.anhDaiDien ?? x.anh_dai_dien ?? ''
   }
+}
+
+function roleKeyFromStaff(s) {
+  const id = Number(s?.quyenHanId ?? null)
+  if (id === 1) return 'ADMIN'
+  if (id === 2) return 'NHAN_VIEN'
+  const name = String(s?.tenQuyenHan || '').toUpperCase()
+  return name.includes('ADMIN') ? 'ADMIN' : 'NHAN_VIEN'
 }
 
 async function apiGetAllStaff() {
-  var res = await http.get('/api/nhan-vien')
-  return unwrapList(res ? res.data : null)
+  const res = await http.get('/api/nhan-vien')
+  return unwrapList(res?.data)
 }
-
 async function apiGetStaffById(id) {
-  var res = await http.get('/api/nhan-vien/' + id)
-  return unwrapObj(res ? res.data : null)
+  const res = await http.get('/api/nhan-vien/' + id)
+  return unwrapObj(res?.data)
 }
 
 function generateNextCode(all) {
-  var maxN = 0
-  for (var i = 0; i < (all || []).length; i++) {
-    var s = normalizeStaff(all[i])
-    var m = String(s.maNhanVien || '').match(/^NV(\d+)$/i)
+  let maxN = 0
+  for (const it of (all || [])) {
+    const s = normalizeStaff(it)
+    const m = String(s.maNhanVien || '').match(/^NV(\d+)$/i)
     if (m) {
-      var n = parseInt(m[1], 10)
-      if (!isNaN(n)) maxN = Math.max(maxN, n)
+      const n = parseInt(m[1], 10)
+      if (!Number.isNaN(n)) maxN = Math.max(maxN, n)
     }
   }
-  var next = maxN + 1
-  return 'NV' + String(next).padStart(3, '0')
+  return 'NV' + String(maxN + 1).padStart(3, '0')
 }
 
 function isDigitsOnly(v) {
-  var s = String(v == null ? '' : v).trim()
+  const s = String(v ?? '').trim()
   return s.length > 0 && /^\d+$/.test(s)
 }
 
 function isAtLeast18(dateStr) {
   if (!dateStr) return false
-  var dob = new Date(dateStr)
-  if (isNaN(dob.getTime())) return false
-  var today = new Date()
-  var limit = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
+  const dob = new Date(dateStr)
+  if (Number.isNaN(dob.getTime())) return false
+  const today = new Date()
+  const limit = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
   return dob <= limit
 }
 
 async function validateDuplicates(all) {
-  var excludeId = isEdit.value ? Number(route.params.id) : null
+  const excludeId = isEdit.value ? Number(route.params.id) : null
 
-  var username = safeStr(form.taiKhoan)
+  const username = safeStr(form.taiKhoan)
   if (username) {
-    for (var i = 0; i < (all || []).length; i++) {
-      var s = normalizeStaff(all[i])
+    for (const it of (all || [])) {
+      const s = normalizeStaff(it)
       if (s.id !== excludeId && safeStr(s.taiKhoan) === username) return 'Tài khoản đã tồn tại'
     }
   }
 
-  var cccd = String(form.cccd == null ? '' : form.cccd).trim()
+  const cccd = String(form.cccd ?? '').trim()
   if (cccd) {
-    for (var j = 0; j < (all || []).length; j++) {
-      var s2 = normalizeStaff(all[j])
-      if (s2.id !== excludeId && String(s2.cccd == null ? '' : s2.cccd).trim() === cccd) return 'CCCD đã tồn tại'
+    for (const it of (all || [])) {
+      const s = normalizeStaff(it)
+      if (s.id !== excludeId && String(s.cccd ?? '').trim() === cccd) return 'CCCD đã tồn tại'
     }
   }
 
@@ -614,7 +660,7 @@ function goBack() {
 /** ===== Load ===== */
 async function loadData() {
   await fetchProvinces()
-  var all = await apiGetAllStaff()
+  const all = await apiGetAllStaff()
 
   if (!isEdit.value) {
     form.maNhanVien = generateNextCode(all)
@@ -622,25 +668,21 @@ async function loadData() {
     return
   }
 
-  var id = route.params.id
-  var detail = null
+  const id = route.params.id
+  let detail = null
+
   try {
     detail = await apiGetStaffById(id)
-  } catch (e) {
+  } catch {
     detail = null
   }
 
   // fallback nếu apiGetById fail
-  var found = null
   if (!detail) {
-    for (var i = 0; i < all.length; i++) {
-      var tmp = normalizeStaff(all[i])
-      if (String(tmp.id) === String(id)) { found = all[i]; break }
-    }
-    detail = found
+    detail = all.find(x => String(normalizeStaff(x).id) === String(id)) || null
   }
 
-  var s = normalizeStaff(detail || {})
+  const s = normalizeStaff(detail || {})
 
   form.id = s.id
   form.maNhanVien = s.maNhanVien
@@ -655,15 +697,15 @@ async function loadData() {
   form.diaChi = s.diaChi || ''
   form.trangThai = (s.trangThai === true || s.trangThai === false) ? s.trangThai : true
 
-  var roleName = String(s.tenQuyenHan || '').toUpperCase()
-  form.quyenHanKey = roleName.indexOf('ADMIN') >= 0 ? 'ADMIN' : 'NHAN_VIEN'
+  // ✅ FIX: set đúng role theo quyenHanId/tenQuyenHan
+  form.quyenHanId = s.quyenHanId
+  form.quyenHanKey = roleKeyFromStaff(s)
 
   form.anhDaiDien = s.anhDaiDien || ''
   if (form.anhDaiDien) {
     avatarPreview.value = resolveFileUrl(form.anhDaiDien) + '?t=' + Date.now()
   }
 
-  // ✅ mapping địa chỉ vào dropdown khi edit
   if (s.diaChi) {
     await prefillAddressFromDiaChi(s.diaChi)
   }
@@ -673,74 +715,91 @@ async function loadData() {
 async function submit() {
   err.value = ''
 
-  var msg = validateForm()
+  const msg = validateForm()
   if (msg) {
     err.value = msg
+    toast.error(msg)
     return
   }
 
-  var all = await apiGetAllStaff()
-  var dupMsg = await validateDuplicates(all)
+  let all = []
+  try {
+    all = await apiGetAllStaff()
+  } catch {
+    // vẫn cho tiếp tục, nhưng không check dup được
+    all = []
+  }
+
+  const dupMsg = await validateDuplicates(all)
   if (dupMsg) {
     err.value = dupMsg
+    toast.error(dupMsg)
     return
   }
 
-  var actionText = isEdit.value ? 'sửa' : 'thêm mới'
-  if (!confirm('Bạn có chắc chắn ' + actionText + ' nhân viên không ?')) return
+  const actionText = isEdit.value ? 'lưu thay đổi nhân viên' : 'thêm mới nhân viên'
+  openConfirm(`Bạn có chắc chắn muốn ${actionText} không?`, async () => {
+    saving.value = true
+    try {
+      // nếu không admin thì giữ nguyên quyenHanId
+      const qhId = isAdmin.value ? ROLE_TO_ID[form.quyenHanKey] : (form.quyenHanId ?? ROLE_TO_ID[form.quyenHanKey])
 
-  saving.value = true
-  try {
-    var payload = {
-      quyenHanId: ROLE_TO_ID[form.quyenHanKey],
-      maNhanVien: String(form.maNhanVien || '').trim(),
-      tenNhanVien: String(form.tenNhanVien || '').trim(),
-      soDienThoai: String(form.soDienThoai || '').trim(),
-      cccd: String(form.cccd || '').trim(),
-      email: String(form.email || '').trim() ? String(form.email || '').trim() : null,
-      taiKhoan: String(form.taiKhoan || '').trim(),
-      ngaySinh: form.ngaySinh,
-      gioiTinh: (form.gioiTinh === true || form.gioiTinh === false) ? form.gioiTinh : null,
-      diaChi: buildDiaChi(),
-      trangThai: isEdit.value ? form.trangThai : true,
-      anhDaiDien: form.anhDaiDien
-    }
+      const payload = {
+        quyenHanId: qhId,
+        maNhanVien: String(form.maNhanVien || '').trim(),
+        tenNhanVien: String(form.tenNhanVien || '').trim(),
+        soDienThoai: String(form.soDienThoai || '').trim(),
+        cccd: String(form.cccd || '').trim(),
+        email: String(form.email || '').trim() ? String(form.email || '').trim() : null,
+        taiKhoan: String(form.taiKhoan || '').trim(),
+        ngaySinh: form.ngaySinh,
+        gioiTinh: (form.gioiTinh === true || form.gioiTinh === false) ? form.gioiTinh : null,
+        diaChi: buildDiaChi(),
+        trangThai: isEdit.value ? form.trangThai : true,
+        anhDaiDien: form.anhDaiDien
+      }
 
-    // chỉ gửi mật khẩu nếu user nhập (edit)
-    if (!isEdit.value) payload.matKhau = String(form.matKhau || '').trim()
-    else if (String(form.matKhau || '').trim()) payload.matKhau = String(form.matKhau || '').trim()
-    if (!isAdmin.value) {
-      form.matKhau = ''
-    }
-    if (isEdit.value) {
-      var id = route.params.id
-      await http.put('/api/nhan-vien/' + id, payload)
-    } else {
-      await http.post('/api/nhan-vien', payload)
-    }
+      // chỉ gửi mật khẩu nếu user nhập (edit)
+      if (!isEdit.value) payload.matKhau = String(form.matKhau || '').trim()
+      else if (String(form.matKhau || '').trim()) payload.matKhau = String(form.matKhau || '').trim()
 
-    goBack()
-  } catch (e) {
-    var m = ''
-    if (e && e.response && e.response.data && e.response.data.message) m = e.response.data.message
-    else m = e && e.message ? e.message : 'Có lỗi xảy ra'
-    err.value = m
-  } finally {
-    saving.value = false
-  }
+      if (isEdit.value) {
+        await http.put('/api/nhan-vien/' + route.params.id, payload)
+        toast.success('Cập nhật nhân viên thành công!')
+      } else {
+        await http.post('/api/nhan-vien', payload)
+        toast.success('Thêm nhân viên thành công!')
+      }
+
+      goBack()
+    } catch (e) {
+      const m = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra'
+      err.value = m
+      toast.error(m)
+    } finally {
+      saving.value = false
+    }
+  })
+}
+
+function toastClass(type) {
+  const t = String(type || 'info').toLowerCase()
+  if (t === 'success') return 'text-bg-success'
+  if (t === 'error') return 'text-bg-danger'
+  if (t === 'warning') return 'text-bg-warning'
+  return 'text-bg-info'
 }
 
 onMounted(loadData)
-onBeforeUnmount(function () { revokeLocalBlob() })
+onBeforeUnmount(() => revokeLocalBlob())
 </script>
 
 <style scoped>
-/* giữ đúng style bo góc giống trang hóa đơn */
 .card {
   border-radius: 14px;
 }
 
-/* Avatar (giữ UI như cũ, chỉ tinh gọn) */
+/* Avatar */
 .avatar-wrap {
   width: 78px;
   height: 78px;
@@ -786,4 +845,62 @@ onBeforeUnmount(function () { revokeLocalBlob() })
 }
 
 .avatar-input { display: none; }
+
+/* ✅ Confirm modal (overlay) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modal-card {
+  width: min(420px, calc(100% - 32px));
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.modal-desc {
+  margin: 0 0 14px;
+  color: #555;
+  line-height: 1.4;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-outline {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-confirm-primary {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-confirm-primary:disabled,
+.btn-outline:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 </style>
