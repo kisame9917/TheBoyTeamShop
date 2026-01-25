@@ -62,7 +62,7 @@
             </div>
           </div>
 
-          <!-- Detail grid (giống modal bạn đưa) -->
+          <!-- Detail grid -->
           <div class="row g-3">
             <div class="col-12 col-lg-6">
               <div class="info-box">
@@ -113,7 +113,6 @@
               </div>
             </div>
 
-            <!-- (Optional) nếu BE có ngày tạo/cập nhật thì show luôn, không ảnh hưởng nếu null -->
             <div class="col-12 col-lg-6" v-if="staff?.ngayTao">
               <div class="info-box">
                 <div class="label">Ngày tạo</div>
@@ -135,7 +134,7 @@
     <!-- Confirm modal (Bootstrap) -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" ref="confirmModalRef">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content confirm-modal">
           <div class="modal-header">
             <h6 class="modal-title">
               <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng thái
@@ -174,7 +173,7 @@
       </div>
     </div>
 
-    <!-- Toast (dùng đúng useToast.js của bạn) -->
+    <!-- Toast -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
       <div
           v-for="t in toast.state.items"
@@ -270,7 +269,6 @@ function formatDate(d) {
 function formatDateTime(d) {
   if (!d) return "-";
   const s = String(d);
-  // fallback: yyyy-MM-ddTHH:mm:ss...
   return s.replace("T", " ").slice(0, 19);
 }
 
@@ -323,11 +321,9 @@ async function fetchDetail() {
   errorMsg.value = "";
   try {
     const id = route.params.id;
-    // ưu tiên /api/nhan-vien/{id}
     const res = await http.get(`/api/nhan-vien/${id}`);
     staff.value = normalizeStaff(unwrapOne(res.data));
   } catch (e) {
-    // fallback: nếu BE không có endpoint detail, thử lấy list rồi find
     try {
       const id = Number(route.params.id);
       const res2 = await http.get(`/api/nhan-vien`);
@@ -346,7 +342,6 @@ async function fetchDetail() {
 
 /** ===== Buttons ===== */
 function goBack() {
-  // ưu tiên quay về route name staff-list, fallback history
   try {
     router.push({ name: "staff-list" });
   } catch {
@@ -500,5 +495,11 @@ onMounted(fetchDetail);
 .value.addr {
   white-space: normal;
   word-break: break-word;
+}
+
+/* ✅ CHỈ SỬA PHẦN BẠN YÊU CẦU: bỏ 2 đường kẻ trong popup confirm */
+.confirm-modal .modal-header,
+.confirm-modal .modal-footer {
+  border: 0 !important;
 }
 </style>

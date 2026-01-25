@@ -116,7 +116,8 @@
     <!-- Confirm Modal -->
     <div class="modal fade" id="confirmStatusModal" tabindex="-1" aria-hidden="true" ref="confirmModalRef">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <!-- ✅ thêm class để scope CSS bỏ border -->
+        <div class="modal-content confirm-modal">
           <div class="modal-header">
             <h6 class="modal-title">Xác nhận</h6>
             <button type="button" class="btn-close" aria-label="Close" @click="closeConfirmModal"></button>
@@ -150,7 +151,6 @@ const loading = ref(false);
 const customer = ref(null);
 
 function goBack() {
-  // ưu tiên back nếu có history, fallback về list
   if (window.history.length > 1) {
     router.back();
     return;
@@ -362,5 +362,11 @@ onMounted(fetchDetail);
 }
 .btn-agree:hover {
   filter: brightness(0.95);
+}
+
+/* ✅ CHỈ SỬA PHẦN BẠN YÊU CẦU: bỏ 2 đường kẻ trong popup confirm */
+.confirm-modal .modal-header,
+.confirm-modal .modal-footer {
+  border: 0 !important;
 }
 </style>
