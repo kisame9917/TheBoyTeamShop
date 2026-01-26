@@ -40,7 +40,6 @@
 
         <div v-show="filterOpen" class="filter-body">
           <div class="row g-3 align-items-end">
-            <!-- Row 1 -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Tìm kiếm</label>
               <input
@@ -73,7 +72,6 @@
               </select>
             </div>
 
-            <!-- Row 2 -->
             <div class="col-12 col-lg-6">
               <div class="price-label">
                 Khoảng giá:
@@ -141,7 +139,6 @@
               </div>
             </div>
 
-            <!-- Reset bottom-right -->
             <div class="col-12">
               <div class="filter-reset">
                 <button class="btn btn-link btn-sm text-decoration-none" type="button" @click="resetFilters">
@@ -160,7 +157,6 @@
             <thead>
               <tr>
                 <th class="text-center col-stt">STT</th>
-                <!-- ✅ Ảnh trước mã -->
                 <th class="text-center col-img">Ảnh</th>
                 <th class="text-center col-code">Mã SP chi tiết</th>
                 <th class="text-center col-name">Tên sản phẩm</th>
@@ -175,30 +171,23 @@
 
             <tbody>
               <tr v-for="(variant, index) in pagedVariants" :key="variant.id">
-                <td class="text-center">
-                  {{ currentPage * pageSize + index + 1 }}
-                </td>
+                <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
-                <!-- ✅ Ảnh -->
                 <td class="text-center">
-                  <div class="img-cell">
+                  <div class="img-cell img-cell--lg">
                     <img
-                      v-if="variant.anh"
+                      v-if="variant.anh && !variant.__imgErr"
                       :src="buildImgUrl(variant.anh)"
-                      class="variant-img"
+                      class="variant-img variant-img--lg"
                       alt="Ảnh biến thể"
-                      @error="onImgError"
+                      @error="markImgError(variant)"
                     />
-                    <span v-else class="no-img">Ảnh biến thể</span>
+                    <span v-else class="no-img no-img--lg">Ảnh biến thể</span>
                   </div>
                 </td>
 
-                <!-- ✅ Mã -->
                 <td class="text-center">{{ variant.maSanPhamChiTiet }}</td>
-
-                <td class="text-center text-bold">
-                  {{ product.tenSanPham }}
-                </td>
+                <td class="text-center text-bold">{{ product.tenSanPham }}</td>
 
                 <td class="text-center">
                   <div class="color-cell">
@@ -209,10 +198,7 @@
 
                 <td class="text-center">{{ variant.tenKichCo }}</td>
                 <td class="text-center">{{ variant.soLuongTon }}</td>
-
-                <td class="text-center text-highlight">
-                  {{ formatPrice(variant.donGia) }}
-                </td>
+                <td class="text-center text-highlight">{{ formatPrice(variant.donGia) }}</td>
 
                 <td class="text-center">
                   <span class="badge-pill" :class="variant.trangThai ? 'badge-success' : 'badge-danger'">
@@ -236,7 +222,7 @@
                         type="checkbox"
                         :checked="!!variant.trangThai"
                         :disabled="togglingIds.has(variant.id)"
-                        @change="toggleStatus(variant)"
+                        @click.prevent="openConfirmToggle(variant)"
                       />
                       <span class="slider"></span>
                     </label>
@@ -253,9 +239,7 @@
 
         <!-- Pagination -->
         <div class="paging-bar" v-if="totalElements > 0">
-          <div class="paging-left">
-            Hiển thị {{ pagedVariants.length }} / tổng {{ totalElements }} bản ghi
-          </div>
+          <div class="paging-left">Hiển thị {{ pagedVariants.length }} / tổng {{ totalElements }} bản ghi</div>
 
           <div class="paging-center">
             <button
@@ -361,7 +345,7 @@
               <label class="form-label">Ảnh biến thể</label>
               <input type="file" @change="handleFileUpload" class="form-control" accept="image/*" />
               <div v-if="editingVariant.anh" class="mt-2">
-                <img :src="buildImgUrl(editingVariant.anh)" class="variant-img preview" alt="Preview" @error="onImgError" />
+                <img :src="buildImgUrl(editingVariant.anh)" class="variant-img preview" alt="Preview" />
               </div>
             </div>
           </div>
@@ -370,6 +354,32 @@
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeEditModal">Hủy</button>
           <button class="btn btn-primary" @click="submitEdit">Lưu thay đổi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Toggle Modal -->
+    <div v-if="showConfirmToggle" class="modal-overlay" @click.self="closeConfirmToggle">
+      <div class="modals confirm-modal">
+        <div class="modal-header">
+          <h3>Xác nhận đổi trạng thái</h3>
+          <button class="close-btn" @click="closeConfirmToggle">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="mb-2">
+            Bạn có chắc muốn đổi trạng thái biến thể
+            <b>{{ confirmTarget?.maSanPhamChiTiet }}</b>
+            ({{ product?.tenSanPham }} - {{ confirmTarget?.tenMauSac }} - {{ confirmTarget?.tenKichCo }})
+            thành
+            <b>{{ confirmNext ? 'Còn hàng' : 'Hết hàng' }}</b>
+            không?
+          </p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" @click="closeConfirmToggle">Hủy</button>
+          <button class="btn btn-primary" type="button" @click="confirmToggleNow">Xác nhận</button>
         </div>
       </div>
     </div>
@@ -390,26 +400,23 @@ const props = defineProps({
   id: { type: [String, Number], required: true }
 })
 
-/* ===== API ===== */
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+/* base url (ảnh thường nằm ngoài /api) */
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, '')
 
-/* ===== constants ===== */
+/* constants */
 const PRICE_MIN = 0
 const PRICE_MAX = 10000000
 const PRICE_STEP = 10000
 
-/* ===== state ===== */
+/* state */
 const product = ref(null)
 const variants = ref([])
 const loading = ref(false)
 const globalError = ref('')
 const filterOpen = ref(true)
 
-const attributes = reactive({
-  kichCo: [],
-  mauSac: []
-})
-
+const attributes = reactive({ kichCo: [], mauSac: [] })
 const filters = reactive({
   keyword: '',
   colorId: '',
@@ -420,21 +427,20 @@ const filters = reactive({
   priceMax: PRICE_MAX
 })
 
-/* ===== slider percent ===== */
+/* slider percent */
 const leftPct = computed(() => ((filters.priceMin - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100)
 const rightPct = computed(() => ((filters.priceMax - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100)
 
 function onPriceInput(which) {
   if (filters.priceMin < PRICE_MIN) filters.priceMin = PRICE_MIN
   if (filters.priceMax > PRICE_MAX) filters.priceMax = PRICE_MAX
-
   if (filters.priceMin > filters.priceMax) {
     if (which === 'min') filters.priceMin = filters.priceMax
     else filters.priceMax = filters.priceMin
   }
 }
 
-/* ===== filtering ===== */
+/* filtering */
 const filteredVariants = computed(() => {
   const kw = String(filters.keyword || '').toLowerCase().trim()
 
@@ -471,7 +477,7 @@ const filteredVariants = computed(() => {
   })
 })
 
-/* ===== paging ===== */
+/* paging */
 const currentPage = ref(0)
 const pageSize = ref(10)
 const pageInput = ref(1)
@@ -493,25 +499,21 @@ function applyFilters() {
   currentPage.value = 0
   pageInput.value = 1
 }
-
 function onChangeSize() {
   currentPage.value = 0
   pageInput.value = 1
 }
-
 function setPage(p) {
   if (p < 0) return
   if (p > totalPages.value - 1) return
   currentPage.value = p
   pageInput.value = currentPage.value + 1
 }
-
 function jumpPage() {
   const max = Math.max(1, totalPages.value || 1)
   const target = Math.min(Math.max(1, pageInput.value || 1), max)
   setPage(target - 1)
 }
-
 function resetFilters() {
   filters.keyword = ''
   filters.colorId = ''
@@ -523,7 +525,7 @@ function resetFilters() {
   applyFilters()
 }
 
-/* ===== navigation ===== */
+/* navigation */
 function goBack() {
   router.push('/products')
 }
@@ -531,7 +533,7 @@ function goToGlobalList() {
   router.push('/variants')
 }
 
-/* ===== load data ===== */
+/* load data */
 onMounted(getData)
 watch(() => props.id, () => getData())
 
@@ -542,12 +544,12 @@ async function getData() {
     const resProd = await attributeService.getById('san-pham', props.id)
     product.value = resProd.data
 
-    await loadVariants()
-
-    const [resSize, resColor] = await Promise.all([
+    const [_, resSize, resColor] = await Promise.all([
+      loadVariants(),
       attributeService.getAllList('kich-co'),
       attributeService.getAllList('mau-sac')
     ])
+
     attributes.kichCo = resSize.data || []
     attributes.mauSac = resColor.data || []
   } catch (e) {
@@ -560,10 +562,22 @@ async function getData() {
 
 async function loadVariants() {
   const res = await getByProductId(props.id)
-  variants.value = res.data || []
+  variants.value = (res.data || []).map(v => ({ ...v, __imgErr: false }))
 }
 
-/* ===== edit modal + upload ===== */
+/* image */
+function buildImgUrl(path) {
+  if (!path) return ''
+  const p = String(path).replace(/\\/g, '/')
+  if (p.startsWith('http://') || p.startsWith('https://')) return p
+  const b = String(fileBaseUrl).replace(/\/+$/, '')
+  return b + (p.startsWith('/') ? p : `/${p}`)
+}
+function markImgError(v) {
+  v.__imgErr = true
+}
+
+/* edit modal + upload */
 const showEditModal = ref(false)
 const editingVariant = reactive({
   id: null,
@@ -586,8 +600,9 @@ function openEditModal(v) {
   editingVariant.idMauSac = v.idMauSac
   editingVariant.soLuongTon = v.soLuongTon
   editingVariant.donGia = v.donGia
-  editingVariant.trangThai = v.trangThai
-  editingVariant.anh = v.anh
+  editingVariant.ghiChu = v.ghiChu ?? ''
+  editingVariant.trangThai = !!v.trangThai
+  editingVariant.anh = v.anh ?? ''
   showEditModal.value = true
 }
 
@@ -600,7 +615,9 @@ async function handleFileUpload(event) {
   if (!file) return
   try {
     const res = await uploadImage(file)
-    editingVariant.anh = res.data.url
+    const url = res?.data?.url || res?.data || res?.url
+    if (!url) throw new Error('Upload không trả url')
+    editingVariant.anh = url
     success('Upload ảnh thành công!')
   } catch (e) {
     console.error(e)
@@ -621,7 +638,6 @@ async function submitEdit() {
       trangThai: editingVariant.trangThai,
       anh: editingVariant.anh
     })
-
     success('Cập nhật thành công')
     showEditModal.value = false
     await loadVariants()
@@ -631,81 +647,122 @@ async function submitEdit() {
   }
 }
 
-/* ===== toggle status ===== */
+/* toggle status + confirm */
 const togglingIds = reactive(new Set())
 
-async function toggleStatus(variant) {
-  if (togglingIds.has(variant.id)) return
+const showConfirmToggle = ref(false)
+const confirmTarget = ref(null)
+const confirmNext = ref(true)
 
-  const next = !variant.trangThai
-  const old = !!variant.trangThai
+function openConfirmToggle(v) {
+  if (togglingIds.has(v.id)) return
+  confirmTarget.value = v
+  confirmNext.value = !v.trangThai
+  showConfirmToggle.value = true
+}
 
-  togglingIds.add(variant.id)
-  variant.trangThai = next
+function closeConfirmToggle() {
+  showConfirmToggle.value = false
+  confirmTarget.value = null
+}
 
+async function confirmToggleNow() {
+  const v = confirmTarget.value
+  if (!v) return
+  showConfirmToggle.value = false
+
+  togglingIds.add(v.id)
   try {
-    await updateDetail(variant.id, {
-      idSanPham: variant.idSanPham,
-      idKichCo: variant.idKichCo,
-      idMauSac: variant.idMauSac,
-      soLuongTon: variant.soLuongTon,
-      donGia: variant.donGia,
-      ghiChu: variant.ghiChu,
-      trangThai: next,
-      anh: variant.anh
+    await updateDetail(v.id, {
+      idSanPham: v.idSanPham,
+      idKichCo: v.idKichCo,
+      idMauSac: v.idMauSac,
+      soLuongTon: v.soLuongTon,
+      donGia: v.donGia,
+      ghiChu: v.ghiChu ?? '',
+      trangThai: confirmNext.value,
+      anh: v.anh ?? ''
     })
+    v.trangThai = confirmNext.value
+    success(`Đã đổi trạng thái thành ${confirmNext.value ? 'Còn hàng' : 'Hết hàng'}`)
     await loadVariants()
-    success(`Đã đổi trạng thái biến thể thành ${next ? 'Còn hàng' : 'Hết hàng'}`)
   } catch (e) {
     console.error(e)
-    variant.trangThai = old
     error('Lỗi cập nhật trạng thái')
   } finally {
-    togglingIds.delete(variant.id)
+    togglingIds.delete(v.id)
+    confirmTarget.value = null
   }
 }
 
-/* ===== helpers ===== */
+/* helpers */
 function formatPrice(val) {
   const n = Number(val ?? 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
-}
-
-function buildImgUrl(path) {
-  if (!path) return ''
-  const p = String(path)
-  if (p.startsWith('http://') || p.startsWith('https://')) return p
-  const b = String(baseUrl).replace(/\/+$/, '')
-  const x = p.startsWith('/') ? p : `/${p}`
-  return b + x
-}
-
-function onImgError(e) {
-  // ẩn ảnh lỗi -> hiện placeholder
-  e.target.style.display = 'none'
 }
 
 function findColorNameById(id) {
   const it = attributes.mauSac?.find(x => String(x.id) === String(id))
   return it?.ten ?? ''
 }
-
 function findSizeNameById(id) {
   const it = attributes.kichCo?.find(x => String(x.id) === String(id))
   return it?.soSize ?? it?.ten ?? ''
 }
 
-function pickHexFromObject(obj) {
-  const candidates = [
-    obj?.maMau,
-    obj?.maHex,
-    obj?.hex,
-    obj?.giaTri,
-    obj?.value,
-    obj?.code,
-    obj?.rgb
-  ].filter(Boolean)
+/* =========================
+   ✅ CÁCH 2: MÀU THEO TÊN
+   ========================= */
 
+/** Chuẩn hoá: bỏ dấu + đ->d + bỏ ngoặc + trim space */
+function normalizeColorName(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')              // ✅ fix "Đen" -> "den"
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // bỏ dấu
+    .replace(/\(.*?\)/g, '')         // bỏ phần trong ngoặc
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Map màu theo tên (key là tên đã chuẩn hoá) */
+const COLOR_MAP = {
+  den: '#000000',
+  trang: '#ffffff',
+  xam: '#9ca3af',
+  ghi: '#9ca3af',
+
+  do: '#ef4444',
+  'do do': '#7f1d1d',
+  'do ruou': '#7f1d1d',
+
+  vang: '#f59e0b',
+  cam: '#f97316',
+
+  hong: '#ec4899',
+  tim: '#a855f7',
+
+  nau: '#92400e',
+  be: '#f5f5dc',
+  kem: '#fff7ed',
+
+  'xanh la': '#16a34a',
+  'xanh luc': '#16a34a',
+  'xanh ngoc': '#14b8a6',
+
+  'xanh duong': '#2563eb',
+  'xanh navy': '#1e3a8a',
+  'xanh than': '#1e3a8a',
+  navy: '#1e3a8a',
+
+  cyan: '#06b6d4'
+}
+
+/** Nếu bảng màu_sắc có field mã màu hex thì ưu tiên lấy */
+function pickHexFromObject(obj) {
+  const candidates = [obj?.maMau, obj?.maHex, obj?.hex, obj?.giaTri, obj?.value, obj?.code].filter(Boolean)
   for (const c of candidates) {
     const s = String(c).trim()
     if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s)) return s
@@ -713,25 +770,41 @@ function pickHexFromObject(obj) {
   return null
 }
 
-function fallbackColorToHex(name) {
+/** Lấy hex theo tên: match exact -> fallback theo keyword */
+function hexByName(name) {
   if (!name) return '#9ca3af'
-  const n = String(name).toLowerCase().trim()
-  if (n.includes('đen') || n.includes('black')) return '#000000'
-  if (n.includes('trắng') || n.includes('white')) return '#ffffff'
-  if (n.includes('navy') || n.includes('xanh navy') || n.includes('xanh than')) return '#1d4ed8'
-  if (n.includes('xanh dương') || n.includes('blue')) return '#2563eb'
-  if (n.includes('xanh lá') || n.includes('green')) return '#16a34a'
-  if (n.includes('đỏ') || n.includes('red')) return '#ef4444'
-  if (n.includes('vàng') || n.includes('yellow')) return '#f59e0b'
-  if (n.includes('xám') || n.includes('ghi') || n.includes('gray') || n.includes('grey')) return '#6b7280'
-  if (n.includes('xanh')) return '#16a34a'
+  const key = normalizeColorName(name)
+
+  // exact match
+  if (COLOR_MAP[key]) return COLOR_MAP[key]
+
+  // fallback keyword (để đỡ phải map hết mọi biến thể)
+  if (key.includes('navy') || key.includes('than')) return COLOR_MAP['xanh navy']
+  if (key.includes('xanh') && (key.includes('la') || key.includes('luc'))) return COLOR_MAP['xanh la']
+  if (key.includes('xanh') && key.includes('duong')) return COLOR_MAP['xanh duong']
+  if (key.includes('xanh') && key.includes('ngoc')) return COLOR_MAP['xanh ngoc']
+
+  if (key.includes('den') || key.includes('black')) return COLOR_MAP.den
+  if (key.includes('trang') || key.includes('white')) return COLOR_MAP.trang
+  if (key.includes('do') || key.includes('red')) return COLOR_MAP.do
+  if (key.includes('vang') || key.includes('yellow')) return COLOR_MAP.vang
+  if (key.includes('cam') || key.includes('orange')) return COLOR_MAP.cam
+  if (key.includes('hong') || key.includes('pink')) return COLOR_MAP.hong
+  if (key.includes('tim') || key.includes('purple')) return COLOR_MAP.tim
+  if (key.includes('nau') || key.includes('brown')) return COLOR_MAP.nau
+  if (key.includes('xam') || key.includes('ghi') || key.includes('gray') || key.includes('grey')) return COLOR_MAP.xam
+
+  // default
   return '#9ca3af'
 }
 
+/** Style chấm màu: ưu tiên hex từ attribute.mauSac, không có thì dùng tên */
 function colorDotStyle(variant) {
   const fromAttr = attributes.mauSac?.find(x => String(x.id) === String(variant.idMauSac))
-  const hex = pickHexFromObject(fromAttr) || fallbackColorToHex(variant.tenMauSac)
-  const border = hex.toLowerCase() === '#ffffff' ? '#9ca3af' : '#e5e7eb'
+  const hex = pickHexFromObject(fromAttr) || hexByName(fromAttr?.ten || variant.tenMauSac)
+
+  // viền cho màu trắng để nhìn thấy
+  const border = String(hex).toLowerCase() === '#ffffff' ? '#9ca3af' : '#e5e7eb'
   return { backgroundColor: hex, borderColor: border }
 }
 </script>
@@ -745,362 +818,186 @@ function colorDotStyle(variant) {
 }
 
 /* header */
-.page-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.page-title h2{
-  margin:0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color:#111827;
-}
-.page-actions{
-  display:flex;
-  gap:10px;
-  flex-wrap: wrap;
-}
+.page-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.page-title h2{ margin:0; font-size:1.25rem; font-weight:700; color:#111827; }
+.page-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
 /* card */
-.card{
-  background:#fff;
-  border-radius:8px;
-  border:1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-}
+.card{ background:#fff; border-radius:8px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); }
 .filter-card{ overflow:hidden; }
-.table-card{ padding: 14px; }
+.table-card{ padding:14px; }
 
 /* filter head */
-.filter-head{
-  background:#1e293b;
-  color:#fff;
-  padding: 10px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  cursor:pointer;
-}
-.filter-head-left{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-weight:700;
-}
-.filter-head-right{
-  font-size: 12px;
-  opacity: .9;
-}
-.filter-body{ padding: 14px; }
+.filter-head{ background:#1e293b; color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+.filter-head-left{ display:flex; align-items:center; gap:10px; font-weight:700; }
+.filter-head-right{ font-size:12px; opacity:.9; }
+.filter-body{ padding:14px; }
 
-.form-label{
-  font-size: 13px;
-  font-weight: 700;
-  color:#111827;
-  margin-bottom: 6px;
-}
+.form-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
 
 /* reset */
-.filter-reset{
-  display:flex;
-  justify-content:flex-end;
-  padding-top: 6px;
-}
+.filter-reset{ display:flex; justify-content:flex-end; padding-top:6px; }
 .filter-reset .btn{ color:#111827; }
-.filter-reset .btn:hover{
-  background: #f3f4f6;
-  border-radius: 6px;
-}
+.filter-reset .btn:hover{ background:#f3f4f6; border-radius:6px; }
 
 /* status radio */
-.status-radio{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  font-size: 13px;
-  color:#111827;
-}
-.status-radio input{
-  transform: translateY(1px);
-  margin-right: 6px;
-}
+.status-radio{ display:flex; align-items:center; gap:10px; font-size:13px; color:#111827; }
+.status-radio input{ transform: translateY(1px); margin-right:6px; }
 
 /* price slider */
-.price-label{
-  font-size: 13px;
-  font-weight: 700;
-  color:#111827;
-  margin-bottom: 6px;
-}
-.price-green{ color:#059669; font-weight: 800; }
+.price-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
+.price-green{ color:#059669; font-weight:800; }
 
-.double-range{ position: relative; height: 26px; }
-.double-range__track{
-  position:absolute; left:0; right:0; top: 12px;
-  height: 4px; background:#e5e7eb; border-radius: 999px;
-}
-.double-range__range{
-  position:absolute; top: 12px;
-  height: 4px; background:#16a34a; border-radius: 999px;
-}
-.double-range__thumb{
-  position:absolute; left:0; top:0;
-  width:100%;
-  pointer-events:none;
-  -webkit-appearance:none; appearance:none;
-  background: transparent;
-  height: 26px;
-  margin:0;
-}
+.double-range{ position:relative; height:26px; }
+.double-range__track{ position:absolute; left:0; right:0; top:12px; height:4px; background:#e5e7eb; border-radius:999px; }
+.double-range__range{ position:absolute; top:12px; height:4px; background:#16a34a; border-radius:999px; }
+.double-range__thumb{ position:absolute; left:0; top:0; width:100%; pointer-events:none; -webkit-appearance:none; appearance:none; background:transparent; height:26px; margin:0; }
 .double-range__thumb::-webkit-slider-thumb{
-  pointer-events:auto;
-  -webkit-appearance:none; appearance:none;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background:#fff;
-  border: 2px solid #16a34a;
-  box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  pointer-events:auto; -webkit-appearance:none; appearance:none;
+  width:14px; height:14px; border-radius:50%;
+  background:#fff; border:2px solid #16a34a;
+  box-shadow:0 1px 2px rgba(0,0,0,.15);
 }
 .double-range__thumb::-moz-range-thumb{
   pointer-events:auto;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background:#fff;
-  border: 2px solid #16a34a;
-  box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  width:14px; height:14px; border-radius:50%;
+  background:#fff; border:2px solid #16a34a;
+  box-shadow:0 1px 2px rgba(0,0,0,.15);
 }
 
-/* ===== TABLE: căn đều, không nhảy cột ===== */
-.variants-table{
-  width:100%;
-  table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 0;
-}
+/* TABLE */
+.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; }
 .variants-table thead th{
-  background:#1e293b;
-  color:#fff;
-  padding: 10px 12px;
-  text-align:center;
-  font-weight:700;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
+  background:#1e293b; color:#fff;
+  padding:10px 12px; text-align:center;
+  font-weight:700; border-bottom:1px solid #e5e7eb;
+  white-space:nowrap;
 }
 .variants-table td{
-  padding: 10px 12px;
-  border-bottom: 1px solid #eef2f7;
+  padding:12px;
+  border-bottom:1px solid #eef2f7;
   vertical-align: middle !important;
   color:#374151;
 }
 
-/* widths giống ảnh + cân đối */
-.col-stt{ width: 70px; }
-.col-img{ width: 130px; }     /* ✅ ảnh to vừa đủ, hàng đều */
-.col-code{ width: 160px; }
-.col-name{ width: 220px; }
-.col-color{ width: 170px; }
-.col-size{ width: 120px; }
-.col-stock{ width: 120px; }
-.col-price{ width: 140px; }
-.col-status{ width: 120px; }
-.col-action{ width: 150px; }
+.col-stt{ width:70px; }
+.col-img{ width:260px; }
+.col-code{ width:160px; }
+.col-name{ width:220px; }
+.col-color{ width:170px; }
+.col-size{ width:120px; }
+.col-stock{ width:120px; }
+.col-price{ width:140px; }
+.col-status{ width:120px; }
+.col-action{ width:150px; }
 
-.text-center { text-align: center; }
+.text-center{ text-align:center; }
 .text-bold{ font-weight:700; color:#111827; }
 .text-highlight{ color:#0f766e; font-weight:800; }
 
-/* image cell fixed => hàng không lệch */
-.img-cell{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height: 88px;            /* ✅ đảm bảo hàng đều */
-}
+/* IMAGE (to 200x200) */
+.img-cell{ display:flex; align-items:center; justify-content:center; }
+.img-cell--lg{ min-height: 220px; }
+
 .variant-img{
-  width: 84px;
-  height: 84px;
   object-fit: cover;
   border-radius: 6px;
-  border:1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid #e5e7eb;
+  background:#fff;
 }
-.variant-img.preview{
-  width: 140px;
-  height: 140px;
-}
+.variant-img--lg{ width:200px; height:200px; }
+.variant-img.preview{ width:140px; height:140px; }
+
 .no-img{
-  width: 84px;
-  height: 84px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display:flex; align-items:center; justify-content:center;
   text-align:center;
-  font-size: 12px;
   color:#6b7280;
   background:#f3f4f6;
-  border-radius: 6px;
+  border-radius:6px;
   border:1px solid #e5e7eb;
-  line-height: 1.15;
-  padding: 6px;
+  line-height:1.15;
 }
+.no-img--lg{ width:200px; height:200px; font-size:13px; padding:8px; }
 
-/* color cell */
-.color-cell{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap: 10px;
-}
-.color-dot{
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid #e5e7eb;
-  flex: 0 0 18px;
-}
-.color-name{
-  max-width: 120px;
-  overflow:hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* color */
+.color-cell{ display:inline-flex; align-items:center; justify-content:center; gap:10px; }
+.color-dot{ width:18px; height:18px; border-radius:50%; border:1px solid #e5e7eb; flex:0 0 18px; }
+.color-name{ max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* badge */
 .badge-pill{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight:800;
-  white-space: nowrap;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:4px 10px; border-radius:999px;
+  font-size:12px; font-weight:800; white-space:nowrap;
 }
 .badge-success{ background:#d1fae5; color:#065f46; }
 .badge-danger{ background:#fee2e2; color:#991b1b; }
 
 /* action */
-.action-buttons{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap: 10px;
-}
-
-/* edit button */
+.action-buttons{ display:inline-flex; align-items:center; justify-content:center; gap:10px; }
 .edit-btn{
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border-radius: 4px;
+  width:32px; height:32px; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:4px;
   background:#fff !important;
   border-color:#f59e0b !important;
   color:#f59e0b !important;
-  line-height: 1;
 }
-.edit-btn:hover{
-  background:#f59e0b !important;
-  border-color:#f59e0b !important;
-  color:#fff !important;
-}
+.edit-btn:hover{ background:#f59e0b !important; border-color:#f59e0b !important; color:#fff !important; }
 
 /* switch */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 22px;
+.switch{ position:relative; display:inline-block; width:44px; height:22px; }
+.switch input{ opacity:0; width:0; height:0; }
+.slider{ position:absolute; inset:0; cursor:pointer; background:#d1d5db; transition:.2s; border-radius:999px; }
+.slider:before{
+  content:""; position:absolute; width:18px; height:18px;
+  left:2px; top:2px; background:#fff; transition:.2s;
+  border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.15);
 }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-  position: absolute;
-  inset: 0;
-  cursor: pointer;
-  background: #d1d5db;
-  transition: 0.2s;
-  border-radius: 999px;
-}
-.slider:before {
-  content: "";
-  position: absolute;
-  height: 18px;
-  width: 18px;
-  left: 2px;
-  top: 2px;
-  background: #fff;
-  transition: 0.2s;
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-}
-.switch input:checked + .slider { background: #2563eb; }
-.switch input:checked + .slider:before { transform: translateX(22px); }
+.switch input:checked + .slider{ background:#2563eb; }
+.switch input:checked + .slider:before{ transform: translateX(22px); }
 
 /* paging */
 .paging-bar{
-  margin-top: 14px;
+  margin-top:14px;
   display:grid;
   grid-template-columns: 1fr auto 1fr;
   align-items:center;
   gap:12px;
 }
-.paging-left{ justify-self:start; color:#6b7280; font-size: 13px; }
+.paging-left{ justify-self:start; color:#6b7280; font-size:13px; }
 .paging-center{ justify-self:center; display:flex; align-items:center; gap:10px; }
 .paging-right{ justify-self:end; }
-.paging-page{ width: 120px; }
-.paging-size{ width: 160px; }
+.paging-page{ width:120px; }
+.paging-size{ width:160px; }
 
 /* modal */
 .modal-overlay{
-  position: fixed;
-  inset:0;
+  position:fixed; inset:0;
   background: rgba(0,0,0,.5);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index: 9999;
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999;
 }
 .modals{
   background:#fff;
-  width: 560px;
+  width:560px;
   max-width: calc(100vw - 24px);
-  border-radius: 10px;
+  border-radius:10px;
   border:1px solid #e5e7eb;
   box-shadow: 0 18px 50px rgba(0,0,0,.22);
   overflow:hidden;
 }
+.confirm-modal{ width: 520px; }
+
 .modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding: 12px 14px;
-  border-bottom:1px solid #eef2f7;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px; border-bottom:1px solid #eef2f7;
 }
-.modal-header h3{
-  margin:0;
-  font-size: 16px;
-  font-weight:800;
-  color:#111827;
-}
-.close-btn{
-  border:none;
-  background:transparent;
-  font-size: 22px;
-  line-height: 1;
-  cursor:pointer;
-  color:#6b7280;
-}
-.modal-body{ padding: 14px; }
+.modal-header h3{ margin:0; font-size:16px; font-weight:800; color:#111827; }
+.close-btn{ border:none; background:transparent; font-size:22px; line-height:1; cursor:pointer; color:#6b7280; }
+.modal-body{ padding:14px; }
 .modal-footer{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
-  padding: 12px 14px;
-  border-top:1px solid #eef2f7;
+  display:flex; justify-content:flex-end; gap:10px;
+  padding:12px 14px; border-top:1px solid #eef2f7;
 }
 </style>
