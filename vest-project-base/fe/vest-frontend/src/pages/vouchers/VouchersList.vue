@@ -1071,4 +1071,7 @@ onBeforeUnmount(() => {
   opacity: 0.55;
   cursor: not-allowed;
 }
+.fw-semibold {
+    font-weight: 400 !important;
+}
 </style>

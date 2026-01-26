@@ -788,8 +788,8 @@ onBeforeUnmount(() => {
 
 /* ✅ nút confirm màu cũ */
 .btn-confirm{
-  background: #1f2a44;
-  border-color: #1f2a44;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
   color: #fff;
   font-weight: 700;
 }
