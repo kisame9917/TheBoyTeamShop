@@ -1,177 +1,363 @@
 <template>
   <div class="attribute-page">
-    <div class="header">
-      <h2>Quản lý Sản Phẩm/{{ title }}</h2>
+    <!-- Header -->
+    <div class="header-section">
+      <h2>Quản lý Sản phẩm / {{ title }}</h2>
     </div>
 
-    <div class="actions-bar">
-      <div class="search-box">
-        <input type="text" v-model="searchQuery" :placeholder="`Tìm kiếm ${title.toLowerCase()}...`" />
+    <!-- Filter / Actions -->
+    <div class="card filter-card">
+      <div class="filter-row">
+        <div class="form-group search-group">
+          <label>Tìm kiếm</label>
+          <input
+            v-model="searchQuery"
+            class="form-control"
+            :placeholder="`Tìm kiếm ${title.toLowerCase()}...`"
+          />
+        </div>
+
+        <div class="action-group">
+          <button class="btn btn-outline-secondary" type="button" @click="exportExcel">
+            Xuất Excel
+          </button>
+
+          <button class="btn btn-primary" type="button" @click="openModal('create')">
+            + Thêm {{ title.toLowerCase() }}
+          </button>
+        </div>
       </div>
-      <div class="buttons">
-        <button class="btn btn-excel">Xuất Excel</button>
-        <button class="btn btn-primary" @click="openModal('create')">+ Thêm {{ title.toLowerCase() }}</button>
+    </div>
+
+    <!-- Table -->
+    <div class="card table-card">
+      <div class="table-responsive">
+        <table class="table table-custom">
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 80px;">STT</th>
+              <th class="text-center" style="width: 160px;">Mã</th>
+              <th>{{ title }}</th>
+              <th class="text-center" style="width: 160px;">Trạng thái</th>
+              <th class="text-center" style="width: 180px;">Hành động</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="5" class="text-center">Đang tải dữ liệu...</td>
+            </tr>
+
+            <tr v-else-if="pagedItems.length === 0">
+              <td colspan="5" class="text-center">Không có dữ liệu</td>
+            </tr>
+
+            <tr v-else v-for="(item, index) in pagedItems" :key="item.id">
+              <td class="text-center">{{ startIndex + index + 1 }}</td>
+              <td class="text-center">{{ item.ma }}</td>
+              <td>{{ displayName(item) }}</td>
+
+              <td class="text-center">
+                <span :class="['badge', item.trangThai ? 'badge-success' : 'badge-danger']">
+                  {{ item.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
+                </span>
+              </td>
+
+              <td class="text-center">
+                <div class="action-cell">
+                  <!-- ✅ Nút Sửa (Bootstrap) -->
+                  <button
+  type="button"
+  class="btn btn-outline-warning btn-sm action-btn btn-edit"
+  @click="openModal('edit', item)"
+  title="Sửa"
+>
+  <i class="bi bi-pencil-square"></i>
+</button>
+
+
+                  <!-- Switch: confirm popup giữa màn hình -->
+                  <label class="switch" title="Đổi trạng thái">
+                    <input
+                      type="checkbox"
+                      :checked="!!item.trangThai"
+                      :disabled="isToggling(item.id)"
+                      @click.prevent="confirmToggleStatus(item)"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pager" v-if="!loading && filteredItems.length > 0">
+        <div class="pager-left">
+          Hiển thị {{ pagedItems.length }} / tổng {{ filteredItems.length }} bản ghi
+        </div>
+
+        <div class="pager-center">
+          <button class="page-btn" :disabled="currentPage === 1" @click="goPage(currentPage - 1)">‹</button>
+
+          <span class="page-label">Trang</span>
+          <input
+            class="page-input"
+            type="number"
+            min="1"
+            :max="totalPages"
+            v-model.number="pageInput"
+            @keyup.enter="applyPageInput"
+            @blur="applyPageInput"
+          />
+          <span class="page-total">/ {{ totalPages }}</span>
+
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="goPage(currentPage + 1)">›</button>
+        </div>
+
+        <div class="pager-right">
+          <select class="page-size" v-model.number="pageSize">
+            <option :value="5">5 bản ghi / trang</option>
+            <option :value="10">10 bản ghi / trang</option>
+            <option :value="20">20 bản ghi / trang</option>
+            <option :value="50">50 bản ghi / trang</option>
+          </select>
+        </div>
       </div>
     </div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>STT</th>
-            <th>Mã</th>
-            <th>{{ title }}</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(item, index) in filteredItems" :key="item.id">
-            <td>{{ index + 1 }}</td>
-            <td>{{ item.ma }}</td>
-            <td>{{ item.ten }}</td>
-            <td>
-              <span class="status-badge" :class="item.trangThai ? 'active' : 'inactive'">
-                {{ item.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
-              </span>
-            </td>
-            <td>
-              <button class="btn-icon edit" @click="openModal('edit', item)">✏️</button>
-              <label class="switch" title="Đổi trạng thái">
-  <input
-    type="checkbox"
-    :checked="!!item.trangThai"
-    @change="toggleStatus(item)"
-  />
-  <span class="switch-slider"></span>
-</label>
-
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Modal -->
-    <div v-if="showModal" class="modal-overlay">
+    <!-- Modal Create/Edit -->
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modals">
-        <h3>{{ modalMode === 'create' ? 'Thêm' : 'Cập nhật' }} {{ title }}</h3>
-        <form @submit.prevent="submitForm">
+        <div class="modal-header">
+          <h3>{{ modalMode === 'create' ? 'Thêm' : 'Cập nhật' }} {{ title }}</h3>
+          <button class="close-btn" type="button" @click="closeModal">×</button>
+        </div>
+
+        <form class="modal-body" @submit.prevent="submitForm">
+          <div class="form-group">
+            <label class="required">Mã</label>
+            <input v-model="form.ma" class="form-control" type="text" disabled />
+          </div>
 
           <div class="form-group">
-            <label>Tên</label>
-            <input type="text" v-model="formData.ten" required />
+            <label class="required">{{ isSize ? 'Kích cỡ' : 'Tên' }}</label>
+            <input
+              v-model="form.ten"
+              class="form-control"
+              :type="isSize ? 'number' : 'text'"
+              :min="isSize ? 1 : undefined"
+              required
+            />
           </div>
 
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" @click="closeModal">Hủy</button>
-            <button type="submit" class="btn btn-primary">Lưu</button>
+            <button class="btn btn-outline-secondary" type="button" @click="closeModal">Hủy</button>
+            <button class="btn btn-primary" type="submit">Lưu</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Confirm Popup (giữa màn hình) -->
+    <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
+      <div class="confirm-modal">
+        <div class="confirm-header">
+          <h3>Xác nhận</h3>
+          <button class="close-btn" type="button" @click="confirmCancel">×</button>
+        </div>
+
+        <div class="confirm-body">
+          <p>{{ confirmState.message }}</p>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-outline-secondary" type="button" @click="confirmCancel">Hủy</button>
+          <button class="btn btn-primary" type="button" @click="confirmOk">OK</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import attributeService from '../../services/attributeService'
 import { useToast } from '../../composables/useToast'
 
 const { success, error } = useToast()
-
 const route = useRoute()
-const type = computed(() => route.params.type)
 
-const items = ref([])
-const searchQuery = ref('')
-const showModal = ref(false)
-const modalMode = ref('create')
-const formData = ref({ ma: '', ten: '', trangThai: true, id: null })
-
+/* =======================
+ * Type / Title
+ * ======================= */
+const type = computed(() => String(route.params.type || ''))
 const TITLES = {
-  'thuong-hieu': 'Thương Hiệu',
-  'chat-lieu': 'Chất Liệu',
-  'kich-co': 'Kích Cỡ',
-  'mau-sac': 'Màu Sắc',
-  'loai-san-pham': 'Loại Sản Phẩm',
-  'so-khuy': 'Số Khuy',
-  'kieu-tui': 'Kiểu Túi',
-  've-ao': 'Ve Áo',
-  'xe-ta': 'Xẻ Tà',
-  'xuat-xu': 'Xuất Xứ',
+  'thuong-hieu': 'Thương hiệu',
+  'chat-lieu': 'Chất liệu',
+  'kich-co': 'Kích cỡ',
+  'mau-sac': 'Màu sắc',
+  'loai-san-pham': 'Loại sản phẩm',
+  'so-khuy': 'Số khuy',
+  'kieu-tui': 'Kiểu túi',
+  've-ao': 'Ve áo',
+  'xe-ta': 'Xẻ tà',
+  'xuat-xu': 'Xuất xứ',
   'fit': 'Fit'
 }
-
-const actions = {
-  // ...
-}
-
-// Helper to remove Vietnamese tones and special chars
-function removeVietnameseTones(str) {
-  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
-  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
-  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
-  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
-  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
-  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
-  str = str.replace(/đ/g, "d");
-  str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
-  str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
-  str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-  str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
-  str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
-  str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
-  str = str.replace(/Đ/g, "D");
-  // Some system encode vietnamese combining accent as individual utf-8 characters
-  // \u0300, \u0301, \u0303, \u0309, \u0323
-  str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return str;
-}
-
 const title = computed(() => TITLES[type.value] || 'Thuộc tính')
+const isSize = computed(() => type.value === 'kich-co')
 
-async function fetchData() {
-  try {
-    const response = await attributeService.getAllList(type.value)
-    items.value = response.data.map(item => {
-      // Normalize 'soSize' to 'ten' for 'kich-co'
-      if (type.value === 'kich-co' && item.soSize) {
-        return { ...item, ten: item.soSize }
-      }
-      return item
+/* =======================
+ * Prefix mã tự tăng
+ * ======================= */
+const CODE_PREFIX = {
+  'mau-sac': 'MS',
+  'thuong-hieu': 'TH',
+  'chat-lieu': 'CL',
+  'kich-co': 'KC',
+  'loai-san-pham': 'LSP',
+  'so-khuy': 'SK',
+  'kieu-tui': 'KT',
+  've-ao': 'VA',
+  'xe-ta': 'XT',
+  'xuat-xu': 'XX',
+  'fit': 'FIT'
+}
+
+/* =======================
+ * State
+ * ======================= */
+const items = ref([])
+const loading = ref(false)
+const searchQuery = ref('')
+
+/* =======================
+ * Helpers
+ * ======================= */
+function extractFirstNumber(val) {
+  const s = String(val ?? '')
+  const m = s.match(/(\d+)/)
+  return m ? Number(m[1]) : NaN
+}
+
+function displayName(item) {
+  if (!item) return ''
+  if (!isSize.value) return item.ten ?? ''
+  // kích cỡ: ưu tiên soSize, nếu không có thì cố extract từ ten kiểu "S (46)"
+  return item.soSize ?? item.ten ?? ''
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+function genNextCode() {
+  const prefix = (CODE_PREFIX[type.value] || 'TT').toUpperCase()
+
+  const nums = (items.value || [])
+    .map(i => String(i.ma || '').toUpperCase())
+    .map(ma => {
+      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
+      return m ? Number(m[1]) : null
     })
-  } catch (error) {
-    console.error('Failed to fetch data', error)
+    .filter(n => Number.isFinite(n))
+
+  let next = (nums.length ? Math.max(...nums) : 0) + 1
+  let code = `${prefix}${pad2(next)}`
+
+  while (items.value.some(i => String(i.ma || '').toUpperCase() === code.toUpperCase() && i.id !== form.id)) {
+    next++
+    code = `${prefix}${pad2(next)}`
+  }
+  return code
+}
+
+/* =======================
+ * Pagination
+ * ======================= */
+const currentPage = ref(1)
+const pageSize = ref(10)
+const pageInput = ref(1)
+
+const filteredItems = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return items.value
+  return items.value.filter(i => {
+    const name = String(displayName(i) || '').toLowerCase()
+    const code = String(i.ma || '').toLowerCase()
+    return name.includes(q) || code.includes(q)
+  })
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / pageSize.value)))
+const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
+
+const pagedItems = computed(() => {
+  const start = startIndex.value
+  return filteredItems.value.slice(start, start + pageSize.value)
+})
+
+function goPage(p) {
+  const next = Math.min(Math.max(1, p), totalPages.value)
+  currentPage.value = next
+  pageInput.value = next
+}
+
+function applyPageInput() {
+  if (!pageInput.value || Number.isNaN(pageInput.value)) pageInput.value = currentPage.value
+  goPage(pageInput.value)
+}
+
+watch([searchQuery, pageSize, type], () => {
+  currentPage.value = 1
+  pageInput.value = 1
+})
+
+/* =======================
+ * Fetch
+ * ======================= */
+async function fetchData() {
+  loading.value = true
+  try {
+    const res = await attributeService.getAllList(type.value)
+    items.value = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    console.error(e)
+    error('Không thể tải dữ liệu')
+  } finally {
+    loading.value = false
   }
 }
 
-watch(type, () => {
-  fetchData()
-})
+onMounted(fetchData)
+watch(type, fetchData)
 
-onMounted(() => {
-  fetchData()
-})
-
-const filteredItems = computed(() => {
-  if (!searchQuery.value) return items.value
-  const lower = searchQuery.value.toLowerCase()
-  return items.value.filter(i =>
-    i.ten.toLowerCase().includes(lower) ||
-    (i.ma && i.ma.toLowerCase().includes(lower)) // Check ma exists
-  )
-})
+/* =======================
+ * Modal Create/Edit
+ * ======================= */
+const showModal = ref(false)
+const modalMode = ref('create') // create | edit
+const form = reactive({ id: null, ma: '', ten: '', trangThai: true })
 
 function openModal(mode, item = null) {
   modalMode.value = mode
+
   if (mode === 'edit' && item) {
-    formData.value = { ...item }
+    form.id = item.id
+    form.ma = item.ma
+    form.trangThai = !!item.trangThai
+    form.ten = String(displayName(item) ?? '')
   } else {
-    // Default Status is Active (true)
-    formData.value = { ma: '', ten: '', trangThai: true, id: null }
+    form.id = null
+    form.trangThai = true
+    form.ten = ''
+    form.ma = genNextCode()
   }
+
   showModal.value = true
 }
 
@@ -179,263 +365,265 @@ function closeModal() {
   showModal.value = false
 }
 
+/* =======================
+ * Submit
+ * ======================= */
 async function submitForm() {
+  const raw = String(form.ten ?? '').trim()
+  if (!raw) return
+
+  let soSizeNum = undefined
+  if (isSize.value) {
+    soSizeNum = Number(raw)
+    if (!Number.isFinite(soSizeNum) || soSizeNum <= 0) return error('Kích cỡ phải là số > 0')
+  }
+
+  // check trùng
+  const dup = items.value.find(i => {
+    if (i.id === form.id) return false
+    const a = String(displayName(i)).trim().toLowerCase()
+    const b = String(isSize.value ? soSizeNum : raw).trim().toLowerCase()
+    return a === b
+  })
+  if (dup) return error(`Đã tồn tại "${raw}"`)
+
+  const payload = {
+    id: form.id,
+    ma: form.ma || genNextCode(),
+    trangThai: form.trangThai,
+    ten: isSize.value ? undefined : raw,
+    soSize: isSize.value ? soSizeNum : undefined
+  }
+
   try {
-    const payload = { ...formData.value }
-
-    // DUPLICATE CHECK
-    const duplicate = items.value.find(i =>
-      i.ten.trim().toLowerCase() === payload.ten.trim().toLowerCase() &&
-      i.id !== payload.id // Exclude self if editing
-    )
-    if (duplicate) {
-      error(`Đã tồn tại thuộc tính với tên "${payload.ten}"`)
-      return
-    }
-
-    // AUTO GENERATE CODE if creating or code is empty
-    if (modalMode.value === 'create' || !payload.ma) {
-      // Generate code from Name: Áo Thun -> AO_THUN
-      let code = removeVietnameseTones(payload.ten).trim()
-      code = code.replace(/\s+/g, '_').toUpperCase()
-      // Remove special chars
-      code = code.replace(/[^A-Z0-9_]/g, '')
-
-      // Ensure code uniqueness (simple check, append suffix if needed)
-      let uniqueCode = code
-      let counter = 1
-      while (items.value.some(i => i.ma === uniqueCode && i.id !== payload.id)) {
-        uniqueCode = `${code}_${counter}`
-        counter++
-      }
-      payload.ma = uniqueCode
-    }
-
-    // Map 'ten' back to 'soSize' for 'kich-co'
-    if (type.value === 'kich-co') {
-      payload.soSize = payload.ten
-      // delete payload.ten // Optional
-    }
-
     if (modalMode.value === 'create') {
       await attributeService.create(type.value, payload)
-      success(`Thêm ${title.value} thành công!`)
+      success(`Thêm ${title.value} thành công`)
     } else {
-      await attributeService.update(type.value, payload.id, payload)
-      success(`Cập nhật ${title.value} thành công!`)
+      await attributeService.update(type.value, form.id, payload)
+      success(`Cập nhật ${title.value} thành công`)
     }
     closeModal()
-    fetchData()
-  } catch (err) {
-    const msg = err.response?.data?.message || err.message
-    error('Có lỗi xảy ra: ' + msg)
+    await fetchData()
+  } catch (e) {
+    console.error(e)
+    const msg = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra'
+    error(msg)
   }
 }
 
+/* =======================
+ * Confirm Popup (center)
+ * ======================= */
+const confirmState = reactive({
+  open: false,
+  message: '',
+  resolve: null
+})
+
+function openConfirm(message) {
+  confirmState.open = true
+  confirmState.message = message
+  return new Promise((res) => (confirmState.resolve = res))
+}
+
+function confirmOk() {
+  confirmState.open = false
+  confirmState.resolve?.(true)
+  confirmState.resolve = null
+}
+
+function confirmCancel() {
+  confirmState.open = false
+  confirmState.resolve?.(false)
+  confirmState.resolve = null
+}
+
+/* =======================
+ * Toggle status
+ * ======================= */
 const togglingIds = ref(new Set())
 
-async function toggleStatus(item) {
-  if (!item?.id) return
+function isToggling(id) {
+  return togglingIds.value.has(id)
+}
 
+async function confirmToggleStatus(item) {
+  if (!item?.id) return
   if (togglingIds.value.has(item.id)) return
+
+  const next = !item.trangThai
+  const ok = await openConfirm(
+    `Bạn có chắc muốn đổi trạng thái "${displayName(item)}" thành ${next ? 'Hoạt động' : 'Ngừng hoạt động'} không?`
+  )
+  if (!ok) return
+
+  await toggleStatus(item, next)
+}
+
+async function toggleStatus(item, forcedNext) {
   togglingIds.value.add(item.id)
 
-  const old = item.trangThai
-  const next = !old
+  const old = !!item.trangThai
+  const next = typeof forcedNext === 'boolean' ? forcedNext : !old
 
-  // mượt: đổi UI ngay
   item.trangThai = next
 
   try {
-    const updatedItem = { ...item, trangThai: next }
-
-    // map size nếu là kich-co
-    if (type.value === 'kich-co') {
-      updatedItem.soSize = updatedItem.ten
+    let soSizeSafe = undefined
+    if (isSize.value) {
+      // đảm bảo soSize KHÔNG null (tránh lỗi SQL not null)
+      const fromObj = item.soSize
+      const fromTen = extractFirstNumber(item.ten)
+      const fromDisplay = extractFirstNumber(displayName(item))
+      soSizeSafe = Number.isFinite(fromObj) ? fromObj : (Number.isFinite(fromTen) ? fromTen : fromDisplay)
+      if (!Number.isFinite(soSizeSafe)) soSizeSafe = 1
     }
 
-    await attributeService.update(type.value, item.id, updatedItem)
+    const payload = {
+      ...item,
+      trangThai: next,
+      ten: isSize.value ? item.ten : displayName(item),
+      soSize: isSize.value ? soSizeSafe : undefined
+    }
 
-    // reload lại để đồng bộ
+    await attributeService.update(type.value, item.id, payload)
     await fetchData()
-
-    success(`Đã đổi trạng thái "${item.ten}" thành ${next ? 'Hoạt động' : 'Ngừng hoạt động'}`)
-  } catch (err) {
+    success(`Đã đổi trạng thái "${displayName(item)}" thành ${next ? 'Hoạt động' : 'Ngừng hoạt động'}`)
+  } catch (e) {
+    console.error(e)
     item.trangThai = old
-    const msg = err.response?.data?.message || err.message
-    error('Không thể cập nhật trạng thái: ' + msg)
+    const msg = e?.response?.data?.message || e?.message || 'Không thể cập nhật trạng thái'
+    error(msg)
   } finally {
     togglingIds.value.delete(item.id)
   }
 }
 
+/* =======================
+ * Excel stub
+ * ======================= */
+function exportExcel() {
+  success('Chức năng xuất Excel sẽ bổ sung sau')
+}
 </script>
 
 <style scoped>
 .attribute-page {
-  background: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: #f3f4f6;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.header h2 {
-  font-size: 20px;
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.actions-bar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.search-box input {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  width: 300px;
-}
-
-.buttons .btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 10px;
-}
-
-.btn-primary {
-  background-color: #ff4d4f;
-  /* Red-ish color from screenshot */
-  color: white;
-}
-
-.btn-excel {
-  background-color: #f0f0f0;
-  color: #333;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-th {
-  background-color: #fafafa;
-  font-weight: 600;
-  color: #666;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-
-.status-badge.active {
-  background-color: #e6f7ff;
-  color: #1890ff;
-}
-
-.status-badge.inactive {
-  background-color: #fff1f0;
-  color: #ff4d4f;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 8px;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+.header-section {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modals {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  width: 400px;
-}
-
-.form-group {
   margin-bottom: 16px;
 }
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
+.header-section h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
 }
 
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-sizing: border-box;
-  /* Fix width overflow */
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.modal-actions {
+.filter-row {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.search-group {
+  flex: 1;
+  min-width: 260px;
+}
+.action-group {
+  display: flex;
   gap: 10px;
-  margin-top: 24px;
+}
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.required::after { content: " *"; color: #ef4444; }
+
+/* table */
+.table-custom {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.table-custom th {
+  background: #1e293b;
+  color: #fff;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+}
+.table-custom td {
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+  color: #374151;
 }
 
-.btn-secondary {
-  background: #f5f5f5;
-  color: #333;
-}
-.action-buttons {
+/* badge */
+.badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+
+.action-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 
-/* Switch */
+/* ✅ nút sửa kiểu vuông nhỏ */
+.action-btn{
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+/* switch */
 .switch {
   position: relative;
   display: inline-block;
   width: 44px;
   height: 22px;
 }
-
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-
-.switch-slider {
+.slider {
   position: absolute;
   inset: 0;
   cursor: pointer;
@@ -443,8 +631,7 @@ th {
   transition: 0.2s;
   border-radius: 999px;
 }
-
-.switch-slider:before {
+.slider:before {
   content: "";
   position: absolute;
   height: 18px;
@@ -456,14 +643,146 @@ th {
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
+.switch input:checked + .slider { background: #2563eb; }
+.switch input:checked + .slider:before { transform: translateX(22px); }
 
-/* ✅ xanh dương khi bật */
-.switch input:checked + .switch-slider {
-  background: #2563eb;
+/* pager */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eef2f7;
+}
+.pager-left { font-size: 12px; color: #6b7280; }
+.pager-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-label { font-size: 12px; color: #6b7280; }
+.page-input {
+  width: 56px;
+  height: 28px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.page-total { font-size: 12px; color: #6b7280; }
+.pager-right .page-size {
+  height: 30px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  font-size: 12px;
 }
 
-.switch input:checked + .switch-slider:before {
-  transform: translateX(22px);
+/* modal create/edit */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modals {
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+.close-btn {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  color: #6b7280;
+}
+.modal-body { padding: 16px; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
 }
 
+/* confirm popup */
+.confirm-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.confirm-modal{
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.confirm-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+.confirm-header h3{
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+.confirm-body{
+  padding: 16px;
+  color: #374151;
+}
+.confirm-body p{
+  margin: 0;
+  line-height: 1.5;
+}
+.confirm-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
 </style>

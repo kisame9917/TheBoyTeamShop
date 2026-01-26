@@ -1,409 +1,442 @@
 <template>
-  <div class="card">
-    <div class="card-header flex-between">
-      <h2 class="title">{{ isEditMode ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới' }}</h2>
-      <button class="btn btn-secondary" @click="goBack" type="button">← Quay lại danh sách</button>
-    </div>
-
-    <div class="card-body">
-      <!-- Section 1: Basic Info -->
-      <div class="section">
-        <h3 class="section-title">Thông tin cơ bản</h3>
-
-        <div class="grid-3">
-          <div class="form-group">
-            <label class="required">Tên sản phẩm</label>
-            <input
-              type="text"
-              v-model="product.tenSanPham"
-              class="form-input"
-              placeholder="Nhập tên sản phẩm"
-              :class="{ 'error-border': errors.tenSanPham }"
-            />
-            <small v-if="errors.tenSanPham" class="error-text">{{ errors.tenSanPham }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Loại sản phẩm</label>
-            <div class="flex-row-gap">
-              <select v-model="product.loaiSanPhamId" class="form-input" :class="{ 'error-border': errors.loaiSanPhamId }">
-                <option value="">-- Chọn Loại sản phẩm --</option>
-                <option v-for="item in attributes.loaiSanPham" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('loaiSanPham', 'loai-san-pham')" type="button">+</button>
-            </div>
-            <small v-if="errors.loaiSanPhamId" class="error-text">{{ errors.loaiSanPhamId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Thương hiệu</label>
-            <div class="flex-row-gap">
-              <select v-model="product.thuongHieuId" class="form-input" :class="{ 'error-border': errors.thuongHieuId }">
-                <option value="">-- Chọn Thương hiệu --</option>
-                <option v-for="item in attributes.thuongHieu" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('thuongHieu', 'thuong-hieu')" type="button">+</button>
-            </div>
-            <small v-if="errors.thuongHieuId" class="error-text">{{ errors.thuongHieuId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Số khuy</label>
-            <div class="flex-row-gap">
-              <select v-model="product.soKhuyId" class="form-input" :class="{ 'error-border': errors.soKhuyId }">
-                <option value="">-- Chọn Số khuy --</option>
-                <option v-for="item in attributes.soKhuy" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('soKhuy', 'so-khuy')" type="button">+</button>
-            </div>
-            <small v-if="errors.soKhuyId" class="error-text">{{ errors.soKhuyId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Kiểu túi</label>
-            <div class="flex-row-gap">
-              <select v-model="product.kieuTuiId" class="form-input" :class="{ 'error-border': errors.kieuTuiId }">
-                <option value="">-- Chọn Kiểu túi --</option>
-                <option v-for="item in attributes.kieuTui" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('kieuTui', 'kieu-tui')" type="button">+</button>
-            </div>
-            <small v-if="errors.kieuTuiId" class="error-text">{{ errors.kieuTuiId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Ve áo</label>
-            <div class="flex-row-gap">
-              <select v-model="product.veAoId" class="form-input" :class="{ 'error-border': errors.veAoId }">
-                <option value="">-- Chọn Ve áo --</option>
-                <option v-for="item in attributes.veAo" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('veAo', 've-ao')" type="button">+</button>
-            </div>
-            <small v-if="errors.veAoId" class="error-text">{{ errors.veAoId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Xẻ tà</label>
-            <div class="flex-row-gap">
-              <select v-model="product.xeTaId" class="form-input" :class="{ 'error-border': errors.xeTaId }">
-                <option value="">-- Chọn Xẻ tà --</option>
-                <option v-for="item in attributes.xeTa" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('xeTa', 'xe-ta')" type="button">+</button>
-            </div>
-            <small v-if="errors.xeTaId" class="error-text">{{ errors.xeTaId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Xuất xứ</label>
-            <div class="flex-row-gap">
-              <select v-model="product.xuatXuId" class="form-input" :class="{ 'error-border': errors.xuatXuId }">
-                <option value="">-- Chọn Xuất xứ --</option>
-                <option v-for="item in attributes.xuatXu" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('xuatXu', 'xuat-xu')" type="button">+</button>
-            </div>
-            <small v-if="errors.xuatXuId" class="error-text">{{ errors.xuatXuId }}</small>
-          </div>
-
-          <div class="form-group">
-            <label class="required">Kiểu dáng</label>
-            <div class="flex-row-gap">
-              <select v-model="product.fitId" class="form-input" :class="{ 'error-border': errors.fitId }">
-                <option value="">-- Chọn kiểu dáng --</option>
-                <option v-for="item in attributes.fit" :key="item.id" :value="item.id">{{ item.ten }}</option>
-              </select>
-              <button class="btn-quick-add" @click="quickAdd('fit', 'fit')" type="button">+</button>
-            </div>
-            <small v-if="errors.fitId" class="error-text">{{ errors.fitId }}</small>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-top: 15px">
-          <label>Mô tả sản phẩm</label>
-          <textarea v-model="product.moTa" class="form-input" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
-        </div>
+  <div class="page">
+    <div class="card">
+      <!-- Header -->
+      <div class="card-header flex-between">
+        <h2 class="title">{{ isEditMode ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới' }}</h2>
+        <button class="btn btn-secondary" @click="goBack" type="button">← Quay lại danh sách</button>
       </div>
 
-      <!-- Section 2: Variants Config -->
-      <div class="section">
-        <h3 class="section-title">Biến thể sản phẩm</h3>
+      <!-- Body (scroll) -->
+      <div class="card-body">
+        <!-- ===== Thông tin cơ bản ===== -->
+        <div class="section">
+          <h3 class="section-title">Thông tin cơ bản</h3>
 
-        <div class="grid-2">
-          <div class="form-group">
-            <label>Màu sắc</label>
-            <div class="selected-list">
-              <div v-for="color in selectedColors" :key="color.id" class="selected-item-block">
-                <span class="color-square" :style="{ backgroundColor: getColorCode(color.ten) }"></span>
-                <input type="text" :value="color.ten" readonly class="item-name-input" />
-                <button class="btn-remove-block" @click="removeColor(color.id)" type="button">×</button>
-              </div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="required">Tên sản phẩm</label>
+              <input
+                v-model="product.tenSanPham"
+                class="form-input"
+                placeholder="Nhập tên sản phẩm"
+                :class="{ 'error-border': errors.tenSanPham }"
+              />
+              <small v-if="errors.tenSanPham" class="error-text">{{ errors.tenSanPham }}</small>
             </div>
-            <button class="btn btn-orange mt-2" @click="openAttrModal('mauSac')" type="button">+ Thêm màu</button>
+
+            <div class="form-group">
+              <label class="required">Loại sản phẩm</label>
+              <div class="flex-row-gap">
+                <select v-model="product.loaiSanPhamId" class="form-input" :class="{ 'error-border': errors.loaiSanPhamId }">
+                  <option value="">-- Chọn Loại sản phẩm --</option>
+                  <option v-for="i in attributes.loaiSanPham" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('loaiSanPham', 'loai-san-pham')">+</button>
+              </div>
+              <small v-if="errors.loaiSanPhamId" class="error-text">{{ errors.loaiSanPhamId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Thương hiệu</label>
+              <div class="flex-row-gap">
+                <select v-model="product.thuongHieuId" class="form-input" :class="{ 'error-border': errors.thuongHieuId }">
+                  <option value="">-- Chọn Thương hiệu --</option>
+                  <option v-for="i in attributes.thuongHieu" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('thuongHieu', 'thuong-hieu')">+</button>
+              </div>
+              <small v-if="errors.thuongHieuId" class="error-text">{{ errors.thuongHieuId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Số khuy</label>
+              <div class="flex-row-gap">
+                <select v-model="product.soKhuyId" class="form-input" :class="{ 'error-border': errors.soKhuyId }">
+                  <option value="">-- Chọn Số khuy --</option>
+                  <option v-for="i in attributes.soKhuy" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('soKhuy', 'so-khuy')">+</button>
+              </div>
+              <small v-if="errors.soKhuyId" class="error-text">{{ errors.soKhuyId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Kiểu túi</label>
+              <div class="flex-row-gap">
+                <select v-model="product.kieuTuiId" class="form-input" :class="{ 'error-border': errors.kieuTuiId }">
+                  <option value="">-- Chọn Kiểu túi --</option>
+                  <option v-for="i in attributes.kieuTui" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('kieuTui', 'kieu-tui')">+</button>
+              </div>
+              <small v-if="errors.kieuTuiId" class="error-text">{{ errors.kieuTuiId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Ve áo</label>
+              <div class="flex-row-gap">
+                <select v-model="product.veAoId" class="form-input" :class="{ 'error-border': errors.veAoId }">
+                  <option value="">-- Chọn Ve áo --</option>
+                  <option v-for="i in attributes.veAo" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('veAo', 've-ao')">+</button>
+              </div>
+              <small v-if="errors.veAoId" class="error-text">{{ errors.veAoId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Xẻ tà</label>
+              <div class="flex-row-gap">
+                <select v-model="product.xeTaId" class="form-input" :class="{ 'error-border': errors.xeTaId }">
+                  <option value="">-- Chọn Xẻ tà --</option>
+                  <option v-for="i in attributes.xeTa" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('xeTa', 'xe-ta')">+</button>
+              </div>
+              <small v-if="errors.xeTaId" class="error-text">{{ errors.xeTaId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Xuất xứ</label>
+              <div class="flex-row-gap">
+                <select v-model="product.xuatXuId" class="form-input" :class="{ 'error-border': errors.xuatXuId }">
+                  <option value="">-- Chọn Xuất xứ --</option>
+                  <option v-for="i in attributes.xuatXu" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('xuatXu', 'xuat-xu')">+</button>
+              </div>
+              <small v-if="errors.xuatXuId" class="error-text">{{ errors.xuatXuId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Kiểu dáng</label>
+              <div class="flex-row-gap">
+                <select v-model="product.fitId" class="form-input" :class="{ 'error-border': errors.fitId }">
+                  <option value="">-- Chọn kiểu dáng --</option>
+                  <option v-for="i in attributes.fit" :key="i.id" :value="i.id">{{ i.ten }}</option>
+                </select>
+                <button class="btn-quick-add" type="button" @click="openQuickAdd('fit', 'fit')">+</button>
+              </div>
+              <small v-if="errors.fitId" class="error-text">{{ errors.fitId }}</small>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label>Kích cỡ</label>
-            <div class="selected-list">
-              <div v-for="size in selectedSizes" :key="size.id" class="selected-item-block">
-                <span class="size-square">{{ size.soSize }}</span>
-                <button class="btn-remove-block" @click="removeSize(size.id)" type="button">×</button>
-              </div>
-            </div>
-            <button class="btn btn-orange mt-2" @click="openAttrModal('kichCo')" type="button">+ Thêm kích cỡ</button>
+          <div class="form-group mt-2">
+            <label>Mô tả sản phẩm</label>
+            <textarea v-model="product.moTa" class="form-input" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
           </div>
         </div>
 
-        <!-- ATTRIBUTE SELECTION MODAL -->
-        <div v-if="showAttrModal" class="modal-overlay">
-          <div class="modal-box modal-lg">
-            <h3 class="modal-title">Chọn {{ currentAttrType === 'mauSac' ? 'Màu sắc' : 'Kích cỡ' }}</h3>
-
-            <div class="attr-grid">
-              <div
-                v-for="item in attributes[currentAttrType]"
-                :key="item.id"
-                class="attr-item"
-                :class="{ selected: tempSelectedIds.has(item.id) }"
-                @click="toggleAttrSelection(item)"
-              >
-                <template v-if="currentAttrType === 'mauSac'">
-                  <div class="attr-color-preview" :style="{ background: getColorCode(item.ten) }"></div>
-                  <span class="attr-name">{{ item.ten }}</span>
-                </template>
-                <template v-else>
-                  <span class="attr-name-lg">{{ item.soSize }}</span>
-                </template>
-              </div>
-            </div>
-
-            <div class="modal-actions">
-              <button class="btn btn-secondary" @click="showAttrModal = false" type="button">Đóng</button>
-              <button class="btn btn-orange" @click="confirmAttrSelection" type="button">Xác nhận</button>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-orange full-width-btn" @click="generateVariants" type="button">⚡ Tạo biến thể tự động</button>
-      </div>
-
-      <!-- Section 3: Variants List -->
-      <div class="section" v-if="generatedVariants.length > 0">
-        <div class="section-header-bar">
-          <h3 class="section-title-white">Danh sách biến thể</h3>
-          <div class="bulk-actions">
-            <button class="btn btn-outline-white" @click="openGlobalApply" type="button">
-              <span class="icon">⚡</span> Áp dụng cho tất cả
-            </button>
-
-            <!-- Nút Xóa tất cả + popover confirm (giống ảnh) -->
-            <div class="confirm-anchor" ref="clearAnchorRef">
-              <button class="btn btn-outline-danger" @click="toggleClearConfirm" type="button">
-                <span class="icon">🗑️</span> Xóa tất cả
-              </button>
-
-              <div v-if="clearConfirm.show" class="confirm-popover confirm-popover--left">
-                <div class="confirm-row">
-                  <span class="confirm-icon">⚠️</span>
-                  <span class="confirm-msg">Bạn có chắc chắn muốn xóa tất cả biến thể không?</span>
-                </div>
-                <div class="confirm-actions">
-                  <button class="btn-mini btn-cancel" type="button" @click="closeClearConfirm">Hủy</button>
-                  <button class="btn-mini btn-ok-danger" type="button" @click="confirmClearVariants">Đồng ý</button>
-                </div>
-                <div class="confirm-arrow confirm-arrow--left"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-for="group in variantsGroupedByColor" :key="group.id" class="variant-group">
-          <div class="group-header">
-            <div class="group-title">
-              <span class="color-dot-lg" :style="{ backgroundColor: getColorCode(group.name) }"></span>
-              {{ group.name }}
-              <span class="count-gray">({{ group.variants.length }} kích cỡ)</span>
-            </div>
-            <button class="btn-quick-add-blue" @click="openGroupApply(group)" type="button">⚡ Thêm nhanh</button>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table variants-table">
-              <thead>
-                <tr>
-                  <th style="width: 24%; text-align: center;">Kích cỡ</th>
-                  <th style="width: 24%;">Chất liệu</th>
-                  <th style="width: 24%;">Số lượng tồn</th>
-                  <th style="width: 24%;">Đơn giá</th>
-                  <th style="width: 4%;"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(variant, vIndex) in group.variants" :key="vIndex">
-                  <td class="text-center">
-                    <span class="size-badge">{{ variant.tenKichCo }}</span>
-                  </td>
-                  <td style="width: 24%;">
-                    <select class="form-input" v-model="variant.chatLieuId">
-                      <option value="">-- Chọn --</option>
-                      <option v-for="cl in attributes.chatLieu" :key="cl.id" :value="cl.id">{{ cl.ten }}</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input type="number" v-model="variant.soLuongTon" class="form-input" style="width: 100%;" min="0" />
-                  </td>
-                  <td>
-                    <input type="number" v-model="variant.donGia" class="form-input" style="width: 100%;" min="0" />
-                  </td>
-                  <td class="text-center">
-                    <button class="btn-icon danger" @click="removeVariantObj(variant)" type="button">×</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Section 4: Color Images -->
-        <div class="section-image-upload" v-if="variantsGroupedByColor.length > 0">
-          <h3 class="section-title-sm">📸 Ảnh theo màu sắc</h3>
-          <div class="image-upload-grid">
-            <div v-for="group in variantsGroupedByColor" :key="'img-' + group.id" class="image-upload-card">
-              <div class="card-upload-header">
-                <span class="color-dot-lg" :style="{ backgroundColor: getColorCode(group.name) }"></span>
-                {{ group.name }}
-              </div>
-              <label class="upload-area">
-                <div class="preview-box-lg" v-if="group.variants[0]?.anh">
-                  <img :src="'http://localhost:8080' + group.variants[0].anh" />
-                </div>
-                <div class="upload-placeholder" v-else>
-                  <span class="icon-lg">🖼️</span>
-                  <span>Chưa có ảnh</span>
-                </div>
-                <input type="file" hidden accept="image/*" @change="(e) => handleGroupImageUpload(group, e)" />
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Group Apply Modal -->
-      <div v-if="showGroupApplyModal" class="modal-overlay">
-        <div class="modal-box">
-          <h3 class="modal-title">Áp dụng chung ({{ currentApplyGroup?.name }})</h3>
-
-          <div class="form-group">
-            <label>Chất liệu</label>
-            <select class="form-input" v-model="groupApplyData.chatLieuId">
-              <option value="">-- Chọn --</option>
-              <option v-for="cl in attributes.chatLieu" :key="cl.id" :value="cl.id">{{ cl.ten }}</option>
-            </select>
-          </div>
+        <!-- ===== Biến thể ===== -->
+        <div class="section">
+          <h3 class="section-title">Biến thể sản phẩm</h3>
 
           <div class="grid-2">
             <div class="form-group">
-              <label>Số lượng tồn</label>
-              <input type="number" v-model="groupApplyData.soLuongTon" class="form-input" placeholder="Giữ nguyên" min="0" />
+              <label>Màu sắc</label>
+              <div class="selected-list">
+                <div v-for="c in selectedColors" :key="c.id" class="selected-item-block">
+                  <span class="color-square" :style="{ backgroundColor: getColorCode(c.ten) }"></span>
+                  <input class="item-name-input" readonly :value="c.ten" />
+                  <button class="btn-remove-block" type="button" @click="removeColor(c.id)">×</button>
+                </div>
+              </div>
+              <button class="btn btn-orange mt-2" type="button" @click="openAttrModal('mauSac')">+ Thêm màu</button>
             </div>
+
             <div class="form-group">
-              <label>Đơn giá</label>
-              <input type="number" v-model="groupApplyData.donGia" class="form-input" placeholder="Giữ nguyên" min="0" />
+              <label>Kích cỡ</label>
+              <div class="selected-list">
+                <div v-for="s in selectedSizes" :key="s.id" class="selected-item-block">
+                  <span class="size-square">{{ s.soSize }}</span>
+                  <button class="btn-remove-block" type="button" @click="removeSize(s.id)">×</button>
+                </div>
+              </div>
+              <button class="btn btn-orange mt-2" type="button" @click="openAttrModal('kichCo')">+ Thêm kích cỡ</button>
             </div>
           </div>
 
-          <div class="modal-actions">
-            <button class="btn btn-secondary" @click="showGroupApplyModal = false" type="button">Hủy</button>
-            <button class="btn btn-primary" @click="confirmGroupApply" type="button">Áp dụng</button>
-          </div>
+          <button class="btn btn-orange full-width-btn" type="button" @click="generateVariants">⚡ Tạo biến thể tự động</button>
         </div>
-      </div>
 
-      <!-- Quick Add Attribute Modal -->
-      <div v-if="showQuickAddModal" class="modal-overlay">
-        <div class="modal-box">
-          <h3 class="modal-title">Thêm mới {{ quickAddLabel }}</h3>
-          <input
-            ref="quickAddInputRef"
-            v-model="quickAddValue"
-            class="form-input"
-            placeholder="Nhập tên..."
-            @keyup.enter="confirmQuickAdd"
-          />
-          <div class="modal-actions">
-            <button class="btn btn-secondary" @click="closeQuickAdd" type="button">Hủy</button>
-            <button class="btn btn-primary" @click="confirmQuickAdd" type="button">Thêm mới</button>
+        <!-- ===== Danh sách biến thể ===== -->
+        <div class="section" v-if="generatedVariants.length > 0">
+          <div class="section-header-bar">
+            <h3 class="section-title-white">Danh sách biến thể</h3>
+            <div class="bulk-actions">
+              <button class="btn btn-outline-white" type="button" @click="openGlobalApply">⚡ Áp dụng cho tất cả</button>
+              <button class="btn btn-outline-danger" type="button" @click="askClearVariants">🗑️ Xóa tất cả</button>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Action Bar (submit popover confirm) -->
-      <div class="action-bar sticky-bottom">
-        <button class="btn btn-secondary" @click="goBack" type="button">Hủy</button>
-
-        <div class="confirm-anchor" ref="finishAnchorRef">
-          <button class="btn btn-primary lg-btn" @click="toggleSubmitConfirm" :disabled="loading" type="button">
-            {{ loading ? 'Đang xử lý...' : (isEditMode ? 'Lưu thay đổi' : 'Hoàn tất') }}
-          </button>
-
-          <div v-if="submitConfirm.show" class="confirm-popover">
-            <div class="confirm-row">
-              <span class="confirm-icon">⚠️</span>
-              <span class="confirm-msg">{{ submitConfirm.message }}</span>
+          <div v-for="g in variantsGroupedByColor" :key="g.id" class="variant-group">
+            <div class="group-header">
+              <div class="group-title">
+                <span class="color-dot-lg" :style="{ backgroundColor: getColorCode(g.name) }"></span>
+                {{ g.name }}
+                <span class="count-gray">({{ g.variants.length }} kích cỡ)</span>
+              </div>
+              <button class="btn-quick-add-blue" type="button" @click="openGroupApply(g)">⚡ Thêm nhanh</button>
             </div>
 
-            <div class="confirm-actions">
-              <button class="btn-mini btn-cancel" type="button" @click="closeSubmitConfirm" :disabled="loading">Hủy</button>
-              <button class="btn-mini btn-ok" type="button" @click="confirmSubmit" :disabled="loading">Đồng ý</button>
+            <div class="table-responsive">
+              <table class="variants-table">
+                <thead>
+                  <tr>
+                    <th style="width:24%; text-align:center;">Kích cỡ</th>
+                    <th style="width:24%;">Chất liệu</th>
+                    <th style="width:24%;">Số lượng tồn</th>
+                    <th style="width:24%;">Đơn giá</th>
+                    <th style="width:4%;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(v, idx) in g.variants" :key="idx">
+                    <td class="text-center"><span class="size-badge">{{ v.tenKichCo }}</span></td>
+                    <td>
+                      <select class="form-input" v-model="v.chatLieuId">
+                        <option value="">-- Chọn --</option>
+                        <option v-for="cl in attributes.chatLieu" :key="cl.id" :value="cl.id">{{ cl.ten }}</option>
+                      </select>
+                    </td>
+                    <td><input class="form-input" type="number" min="0" v-model="v.soLuongTon" /></td>
+                    <td><input class="form-input" type="number" min="0" v-model="v.donGia" /></td>
+                    <td class="text-center">
+                      <button class="btn-icon danger" type="button" @click="removeVariantObj(v)">×</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+          </div>
 
-            <div class="confirm-arrow"></div>
+          <!-- Ảnh theo màu -->
+          <div class="section-image-upload" v-if="variantsGroupedByColor.length > 0">
+            <h3 class="section-title-sm">📸 Ảnh theo màu sắc</h3>
+            <div class="image-upload-grid">
+              <div v-for="g in variantsGroupedByColor" :key="'img-'+g.id" class="image-upload-card">
+                <div class="card-upload-header">
+                  <span class="color-dot-lg" :style="{ backgroundColor: getColorCode(g.name) }"></span>
+                  {{ g.name }}
+                </div>
+
+                <label class="upload-area">
+                  <div class="preview-box-lg" v-if="g.variants[0]?.anh">
+                    <img :src="'http://localhost:8080' + g.variants[0].anh" />
+                  </div>
+                  <div class="upload-placeholder" v-else>
+                    <span class="icon-lg">🖼️</span>
+                    <span>Chưa có ảnh</span>
+                  </div>
+                  <input type="file" hidden accept="image/*" @change="(e) => handleGroupImageUpload(g, e)" />
+                </label>
+              </div>
+            </div>
           </div>
         </div>
+
+        <p v-if="globalError" class="error-msg">{{ globalError }}</p>
       </div>
 
-      <p v-if="globalError" class="error-msg text-center">{{ globalError }}</p>
+      <!-- Footer actions (fixed inside card) -->
+      <div class="action-bar">
+        <button class="btn btn-secondary" type="button" @click="goBack">Hủy</button>
+        <button class="btn btn-primary" type="button" :disabled="loading" @click="handleSubmitClick">
+          {{ loading ? 'Đang xử lý...' : (isEditMode ? 'Lưu thay đổi' : 'Hoàn tất') }}
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Toast -->
-  <div v-if="toast.show" class="toast" :class="toast.type">
-    {{ toast.message }}
+    <!-- ===== Modals ===== -->
+
+    <!-- Chọn thuộc tính màu / size -->
+    <div v-if="showAttrModal" class="modal-overlay">
+      <div class="modal-box modal-lg">
+        <h3 class="modal-title">Chọn {{ currentAttrType === 'mauSac' ? 'Màu sắc' : 'Kích cỡ' }}</h3>
+
+        <div class="attr-grid">
+          <div
+            v-for="item in attributes[currentAttrType]"
+            :key="item.id"
+            class="attr-item"
+            :class="{ selected: tempSelectedIds.has(item.id) }"
+            @click="toggleAttrSelection(item)"
+          >
+            <template v-if="currentAttrType === 'mauSac'">
+              <div class="attr-color-preview" :style="{ background: getColorCode(item.ten) }"></div>
+              <span class="attr-name">{{ item.ten }}</span>
+            </template>
+            <template v-else>
+              <span class="attr-name-lg">{{ item.soSize }}</span>
+            </template>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" @click="showAttrModal=false">Đóng</button>
+          <button class="btn btn-orange" type="button" @click="confirmAttrSelection">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apply nhóm -->
+    <div v-if="showGroupApplyModal" class="modal-overlay">
+      <div class="modal-box">
+        <h3 class="modal-title">Áp dụng chung ({{ currentApplyGroup?.name }})</h3>
+
+        <div class="form-group">
+          <label>Chất liệu</label>
+          <select class="form-input" v-model="groupApplyData.chatLieuId">
+            <option value="">-- Chọn --</option>
+            <option v-for="cl in attributes.chatLieu" :key="cl.id" :value="cl.id">{{ cl.ten }}</option>
+          </select>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Số lượng tồn</label>
+            <input class="form-input" type="number" min="0" placeholder="Giữ nguyên" v-model="groupApplyData.soLuongTon" />
+          </div>
+          <div class="form-group">
+            <label>Đơn giá</label>
+            <input class="form-input" type="number" min="0" placeholder="Giữ nguyên" v-model="groupApplyData.donGia" />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" @click="showGroupApplyModal=false">Hủy</button>
+          <button class="btn btn-primary" type="button" @click="confirmGroupApply">Áp dụng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick add (dấu + cho các trường) -->
+    <div v-if="showQuickAddModal" class="modal-overlay">
+      <div class="modal-box">
+        <h3 class="modal-title">Thêm nhanh {{ quickAddLabel }}</h3>
+        <input
+          ref="quickAddInputRef"
+          class="form-input"
+          v-model="quickAddValue"
+          placeholder="Nhập..."
+          @keyup.enter="confirmQuickAdd"
+        />
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" @click="closeQuickAdd">Hủy</button>
+          <button class="btn btn-primary" type="button" @click="confirmQuickAdd">Thêm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm -->
+    <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
+      <div class="confirm-modal">
+        <div class="confirm-header">
+          <h3>{{ confirmState.title }}</h3>
+          <button class="close-btn" type="button" @click="confirmCancel">×</button>
+        </div>
+        <div class="confirm-body">
+          <p>{{ confirmState.message }}</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" type="button" @click="confirmCancel" :disabled="loading">{{ confirmState.cancelText }}</button>
+          <button
+            class="btn"
+            :class="confirmState.danger ? 'btn-danger' : 'btn-primary'"
+            type="button"
+            @click="confirmOk"
+            :disabled="loading"
+          >
+            {{ confirmState.okText }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Toast giống ảnh ===== -->
+    <div v-if="toast.show" class="toast2" :class="toast.type">
+      <div class="toast2-bar"></div>
+      <div class="toast2-main">
+        <div class="toast2-title">{{ toast.title }}</div>
+        <div class="toast2-msg">{{ toast.message }}</div>
+      </div>
+      <button class="toast2-close" type="button" @click="hideToast">×</button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, computed, nextTick, onBeforeUnmount } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { reactive, ref, onMounted, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import attributeService from '../../services/attributeService'
 import { createSanPham, updateSanPham } from '../../services/sanPhamApi'
 import { uploadImage } from '../../services/sanPhamChiTietApi'
 
 const router = useRouter()
-useRoute()
-const props = defineProps(['id'])
+
+/* ===== Props ===== */
+const props = defineProps({ id: { type: [String, Number], default: null } })
 const isEditMode = computed(() => !!props.id)
 
 const loading = ref(false)
 const globalError = ref('')
 
-/* ========= Toast ========= */
-const toast = ref({ show: false, message: '', type: 'success' })
+/* ===== Toast ===== */
+const toast = ref({ show: false, title: 'Thành công', message: '', type: 'success' })
 let toastTimer = null
-function showToast(message, type = 'success', duration = 2200) {
-  toast.value = { show: true, message, type }
+
+function hideToast() {
+  toast.value.show = false
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = null
+}
+
+// dùng: showToast('Đã thêm...', 'success') | showToast('Lỗi...', 'error', { title: 'Lỗi' })
+function showToast(message, type = 'success', opts = {}) {
+  const title = opts.title ?? (type === 'success' ? 'Thành công' : 'Lỗi')
+  const duration = opts.duration ?? 2200
+  toast.value = { show: true, title, message, type }
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = setTimeout(() => (toast.value.show = false), duration)
 }
 
-/* ========= Form ========= */
+/* ===== Confirm ===== */
+const confirmState = reactive({
+  open: false,
+  title: 'Xác nhận',
+  message: '',
+  okText: 'OK',
+  cancelText: 'Hủy',
+  danger: false,
+  _resolve: null
+})
+function openConfirm({ title, message, okText, cancelText, danger } = {}) {
+  confirmState.title = title ?? 'Xác nhận'
+  confirmState.message = message ?? ''
+  confirmState.okText = okText ?? 'OK'
+  confirmState.cancelText = cancelText ?? 'Hủy'
+  confirmState.danger = !!danger
+  confirmState.open = true
+  return new Promise((res) => (confirmState._resolve = res))
+}
+function confirmOk() {
+  confirmState.open = false
+  confirmState._resolve?.(true)
+  confirmState._resolve = null
+}
+function confirmCancel() {
+  confirmState.open = false
+  confirmState._resolve?.(false)
+  confirmState._resolve = null
+}
+
+/* ===== Form ===== */
 const product = reactive({
   maSanPham: 'SP' + Math.floor(Math.random() * 10000),
   tenSanPham: '',
   loaiSanPhamId: '',
   thuongHieuId: '',
-  chatLieuId: '',
   soKhuyId: '',
   kieuTuiId: '',
   veAoId: '',
@@ -415,7 +448,7 @@ const product = reactive({
   anh: ''
 })
 
-/* ========= Attributes ========= */
+/* ===== Attributes ===== */
 const attributes = reactive({
   loaiSanPham: [],
   thuongHieu: [],
@@ -448,7 +481,7 @@ onMounted(async () => {
   try {
     const promises = Object.keys(attributeMap).map((key) =>
       attributeService.getAllList(attributeMap[key]).then((res) => {
-        attributes[key] = res.data.filter((item) => item.trangThai === true)
+        attributes[key] = (res.data || []).filter((x) => x.trangThai === true)
       })
     )
     await Promise.all(promises)
@@ -459,7 +492,7 @@ onMounted(async () => {
   }
 })
 
-/* ========= Variants ========= */
+/* ===== Variants ===== */
 const selectedColors = ref([])
 const selectedSizes = ref([])
 const generatedVariants = ref([])
@@ -472,22 +505,22 @@ function removeSize(id) {
 }
 
 function generateVariants() {
-  if (selectedColors.value.length === 0 || selectedSizes.value.length === 0) {
+  if (!selectedColors.value.length || !selectedSizes.value.length) {
     showToast('Vui lòng chọn ít nhất 1 màu và 1 kích cỡ!', 'error')
     return
   }
 
-  const newVariants = []
-  for (const color of selectedColors.value) {
-    for (const size of selectedSizes.value) {
-      const exists = generatedVariants.value.some((v) => v.idMauSac === color.id && v.idKichCo === size.id)
+  const add = []
+  for (const c of selectedColors.value) {
+    for (const s of selectedSizes.value) {
+      const exists = generatedVariants.value.some((v) => v.idMauSac === c.id && v.idKichCo === s.id)
       if (!exists) {
-        newVariants.push({
+        add.push({
           id: Date.now() + Math.random(),
-          idMauSac: color.id,
-          tenMauSac: color.ten,
-          idKichCo: size.id,
-          tenKichCo: size.soSize,
+          idMauSac: c.id,
+          tenMauSac: c.ten,
+          idKichCo: s.id,
+          tenKichCo: s.soSize,
           soLuongTon: 10,
           donGia: 0,
           anh: '',
@@ -497,8 +530,8 @@ function generateVariants() {
     }
   }
 
-  generatedVariants.value = [...generatedVariants.value, ...newVariants]
-  showToast('Đã tạo biến thể tự động!', 'success')
+  generatedVariants.value = [...generatedVariants.value, ...add]
+  showToast('Đã tạo biến thể tự động!')
 }
 
 function removeVariantObj(variant) {
@@ -508,28 +541,28 @@ function removeVariantObj(variant) {
 
 const variantsGroupedByColor = computed(() => {
   const groups = {}
-  generatedVariants.value.forEach((v) => {
+  for (const v of generatedVariants.value) {
     if (!groups[v.idMauSac]) groups[v.idMauSac] = { id: v.idMauSac, name: v.tenMauSac, variants: [] }
     groups[v.idMauSac].variants.push(v)
-  })
+  }
   return Object.values(groups)
 })
 
 async function handleGroupImageUpload(group, event) {
-  const file = event.target.files[0]
+  const file = event.target.files?.[0]
   if (!file) return
   try {
     const res = await uploadImage(file)
     const url = res.data.url
     group.variants.forEach((v) => (v.anh = url))
-    showToast('Upload ảnh theo màu thành công!', 'success')
+    showToast(`Upload ảnh màu "${group.name}" thành công!`)
   } catch (e) {
     console.error(e)
     showToast('Lỗi upload ảnh', 'error')
   }
 }
 
-/* ========= Group Apply ========= */
+/* ===== Group Apply ===== */
 const showGroupApplyModal = ref(false)
 const currentApplyGroup = ref(null)
 const groupApplyData = reactive({ chatLieuId: '', soLuongTon: '', donGia: '' })
@@ -546,17 +579,50 @@ function openGlobalApply() {
 }
 function confirmGroupApply() {
   if (!currentApplyGroup.value) return
-  currentApplyGroup.value.variants.forEach((variant) => {
-    if (groupApplyData.chatLieuId) variant.chatLieuId = groupApplyData.chatLieuId
-    if (groupApplyData.soLuongTon !== '') variant.soLuongTon = Number(groupApplyData.soLuongTon)
-    if (groupApplyData.donGia !== '') variant.donGia = Number(groupApplyData.donGia)
+
+  currentApplyGroup.value.variants.forEach((v) => {
+    if (groupApplyData.chatLieuId) v.chatLieuId = groupApplyData.chatLieuId
+    if (groupApplyData.soLuongTon !== '') v.soLuongTon = Number(groupApplyData.soLuongTon)
+    if (groupApplyData.donGia !== '') v.donGia = Number(groupApplyData.donGia)
   })
+
+  const isAll = currentApplyGroup.value.name === 'Tất cả biến thể'
   showGroupApplyModal.value = false
   currentApplyGroup.value = null
-  showToast('Đã áp dụng cho nhóm biến thể!', 'success')
+
+  showToast(isAll ? 'Đã áp dụng cho tất cả biến thể' : 'Đã áp dụng cho nhóm biến thể')
 }
 
-/* ========= Quick Add ========= */
+/* ===== Quick Add ===== */
+const CODE_PREFIX = {
+  'mau-sac': 'MS',
+  'thuong-hieu': 'TH',
+  'chat-lieu': 'CL',
+  'kich-co': 'KC',
+  'loai-san-pham': 'LSP',
+  'so-khuy': 'SK',
+  'kieu-tui': 'KT',
+  've-ao': 'VA',
+  'xe-ta': 'XT',
+  'xuat-xu': 'XX',
+  fit: 'FIT'
+}
+function pad2(n) {
+  return n < 10 ? `0${n}` : String(n)
+}
+function genNextAttrCode(typeCode, list) {
+  const prefix = (CODE_PREFIX[typeCode] || 'TT').toUpperCase()
+  const nums = (list || [])
+    .map((i) => String(i.ma || '').toUpperCase())
+    .map((ma) => {
+      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
+      return m ? Number(m[1]) : null
+    })
+    .filter((n) => Number.isFinite(n))
+  const next = (nums.length ? Math.max(...nums) : 0) + 1
+  return `${prefix}${pad2(next)}`
+}
+
 const showQuickAddModal = ref(false)
 const quickAddValue = ref('')
 const quickAddTarget = reactive({ key: '', typeCode: '' })
@@ -579,45 +645,63 @@ const quickAddLabel = computed(() => {
   return map[quickAddTarget.key] || 'Thuộc tính'
 })
 
-function quickAdd(attrKey, typeCode) {
-  quickAddTarget.key = attrKey
+function openQuickAdd(key, typeCode) {
+  quickAddTarget.key = key
   quickAddTarget.typeCode = typeCode
   quickAddValue.value = ''
   showQuickAddModal.value = true
   nextTick(() => quickAddInputRef.value?.focus())
 }
+
 function closeQuickAdd() {
   showQuickAddModal.value = false
 }
 
 async function confirmQuickAdd() {
-  if (!quickAddValue.value.trim()) {
-    showToast('Vui lòng nhập tên!', 'error')
+  const raw = String(quickAddValue.value || '').trim()
+  if (!raw) {
+    showToast('Vui lòng nhập giá trị!', 'error')
     return
   }
 
   try {
-    await attributeService.create(quickAddTarget.typeCode, {
-      ten: quickAddValue.value,
-      ma: quickAddValue.value.toUpperCase().replace(/\s+/g, ''),
-      trangThai: true
-    })
+    // lấy ALL để tính mã tiếp theo
+    const allRes = await attributeService.getAllList(quickAddTarget.typeCode)
+    const allList = allRes.data || []
+    const nextMa = genNextAttrCode(quickAddTarget.typeCode, allList)
 
+    const payload =
+      quickAddTarget.typeCode === 'kich-co'
+        ? { ma: nextMa, soSize: Number(raw), trangThai: true }
+        : { ma: nextMa, ten: raw, trangThai: true }
+
+    await attributeService.create(quickAddTarget.typeCode, payload)
+
+    // reload list active
     const res = await attributeService.getAllList(quickAddTarget.typeCode)
-    attributes[quickAddTarget.key] = res.data
+    const activeList = (res.data || []).filter((x) => x.trangThai === true)
+    attributes[quickAddTarget.key] = activeList
 
-    const newItem = res.data.find((x) => x.ten === quickAddValue.value)
-    if (newItem) product[quickAddTarget.key + 'Id'] = newItem.id
+    // tìm item mới và auto chọn
+    const newItem =
+      quickAddTarget.typeCode === 'kich-co'
+        ? activeList.find((x) => Number(x.soSize) === Number(raw))
+        : activeList.find((x) => String(x.ten).trim() === raw)
+
+    const modelKey = quickAddTarget.key + 'Id'
+    if (newItem && modelKey in product) product[modelKey] = newItem.id
 
     closeQuickAdd()
-    showToast('Đã thêm mới thuộc tính!', 'success')
+
+    const valueText = quickAddTarget.typeCode === 'kich-co' ? String(Number(raw)) : raw
+    showToast(`Đã thêm nhanh "${valueText}" vào ${quickAddLabel.value}`)
   } catch (e) {
     console.error(e)
     showToast('Lỗi thêm mới thuộc tính', 'error')
   }
 }
 
-/* ========= Attr Selection Modal ========= */
+/* ===== Attr modal (màu/size) ===== */
 const showAttrModal = ref(false)
 const currentAttrType = ref('')
 const tempSelectedIds = ref(new Set())
@@ -626,24 +710,22 @@ function openAttrModal(type) {
   currentAttrType.value = type
   tempSelectedIds.value = new Set()
   const currentList = type === 'mauSac' ? selectedColors.value : selectedSizes.value
-  currentList.forEach((item) => tempSelectedIds.value.add(item.id))
+  currentList.forEach((i) => tempSelectedIds.value.add(i.id))
   showAttrModal.value = true
 }
-
 function toggleAttrSelection(item) {
   if (tempSelectedIds.value.has(item.id)) tempSelectedIds.value.delete(item.id)
   else tempSelectedIds.value.add(item.id)
 }
-
 function confirmAttrSelection() {
-  const list = attributes[currentAttrType.value]
-  const selectedItems = list.filter((item) => tempSelectedIds.value.has(item.id))
-  if (currentAttrType.value === 'mauSac') selectedColors.value = selectedItems
-  else selectedSizes.value = selectedItems
+  const list = attributes[currentAttrType.value] || []
+  const selected = list.filter((i) => tempSelectedIds.value.has(i.id))
+  if (currentAttrType.value === 'mauSac') selectedColors.value = selected
+  else selectedSizes.value = selected
   showAttrModal.value = false
 }
 
-/* ========= Validation ========= */
+/* ===== Validate ===== */
 const errors = reactive({
   tenSanPham: '',
   maSanPham: '',
@@ -659,33 +741,29 @@ const errors = reactive({
 
 function validate() {
   Object.keys(errors).forEach((k) => (errors[k] = ''))
-  let valid = true
+  let ok = true
 
   if (!product.tenSanPham) {
     errors.tenSanPham = 'Tên sản phẩm bắt buộc'
-    valid = false
+    ok = false
   }
   if (!product.maSanPham) {
     errors.maSanPham = 'Mã sản phẩm bắt buộc'
-    valid = false
+    ok = false
   }
 
   const req = ['loaiSanPhamId', 'thuongHieuId', 'soKhuyId', 'kieuTuiId', 'veAoId', 'xeTaId', 'xuatXuId', 'fitId']
-  for (const r of req) {
-    if (!product[r]) {
-      errors[r] = 'Bắt buộc'
-      valid = false
+  for (const k of req) {
+    if (!product[k]) {
+      errors[k] = 'Bắt buộc'
+      ok = false
     }
   }
-
-  return valid
+  return ok
 }
 
-/* ========= Submit Popover Confirm ========= */
-const finishAnchorRef = ref(null)
-const submitConfirm = reactive({ show: false, message: '' })
-
-function toggleSubmitConfirm() {
+/* ===== Submit ===== */
+async function handleSubmitClick() {
   globalError.value = ''
 
   if (!validate()) {
@@ -693,39 +771,36 @@ function toggleSubmitConfirm() {
     return
   }
 
-  // Nội dung như ảnh: hỏi xác nhận
-  if (generatedVariants.value.length === 0) {
-    submitConfirm.message = 'Bạn chưa tạo biến thể nào. Sản phẩm sẽ được tạo nhưng không có tồn kho. Tiếp tục?'
-  } else {
-    submitConfirm.message = isEditMode.value
-      ? 'Bạn có chắc chắn muốn lưu thay đổi sản phẩm không?'
-      : 'Bạn có chắc chắn muốn hoàn tất thêm sản phẩm không?'
-  }
+  const message =
+    generatedVariants.value.length === 0
+      ? 'Bạn chưa tạo biến thể nào. Sản phẩm sẽ được tạo nhưng không có tồn kho. Tiếp tục?'
+      : isEditMode.value
+          ? 'Bạn có chắc chắn muốn lưu thay đổi sản phẩm không?'
+          : 'Bạn có chắc chắn muốn hoàn tất thêm sản phẩm không?'
 
-  submitConfirm.show = !submitConfirm.show
-}
+  const ok = await openConfirm({
+    title: 'Xác nhận',
+    message,
+    okText: 'Đồng ý',
+    cancelText: 'Hủy'
+  })
+  if (!ok) return
 
-function closeSubmitConfirm() {
-  submitConfirm.show = false
-}
-
-async function confirmSubmit() {
-  submitConfirm.show = false
   await doSubmit()
 }
 
 async function doSubmit() {
   const variantsPayload = generatedVariants.value.map((v) => {
-    const selectedMat = attributes.chatLieu.find((cl) => cl.id === v.chatLieuId)
+    const cl = attributes.chatLieu.find((x) => x.id === v.chatLieuId)
     return {
       idKichCo: v.idKichCo,
       idMauSac: v.idMauSac,
-      soLuongTon: v.soLuongTon,
-      donGia: v.donGia,
+      soLuongTon: Number(v.soLuongTon ?? 0),
+      donGia: Number(v.donGia ?? 0),
       anh: v.anh,
       ghiChu: '',
       trangThai: true,
-      chatLieu: selectedMat ? selectedMat.ten : ''
+      chatLieu: cl ? cl.ten : ''
     }
   })
 
@@ -743,56 +818,46 @@ async function doSubmit() {
     if (isEditMode.value) await updateSanPham(props.id, payload)
     else await createSanPham(payload)
 
-    showToast(isEditMode.value ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm thành công!', 'success')
-    setTimeout(() => router.push('/products'), 700)
+    showToast(isEditMode.value ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm thành công!')
+    setTimeout(() => router.push('/products'), 600)
   } catch (e) {
     console.error(e)
     globalError.value = 'Có lỗi xảy ra.'
-    showToast('Không thể hoàn tất. Vui lòng thử lại!', 'error', 2600)
+    showToast('Không thể hoàn tất. Vui lòng thử lại!', 'error', { title: 'Lỗi' })
   } finally {
     loading.value = false
   }
 }
 
-/* ========= Clear Variants Popover Confirm ========= */
-const clearAnchorRef = ref(null)
-const clearConfirm = reactive({ show: false })
+/* ===== Clear variants ===== */
+async function askClearVariants() {
+  if (generatedVariants.value.length === 0) {
+    showToast('Không có biến thể để xóa', 'error')
+    return
+  }
 
-function toggleClearConfirm() {
-  clearConfirm.show = !clearConfirm.show
-}
-function closeClearConfirm() {
-  clearConfirm.show = false
-}
-function confirmClearVariants() {
-  clearConfirm.show = false
+  const ok = await openConfirm({
+    title: 'Xóa tất cả biến thể',
+    message: 'Bạn có chắc chắn muốn xóa tất cả biến thể không?',
+    okText: 'Xóa',
+    cancelText: 'Hủy',
+    danger: true
+  })
+  if (!ok) return
+
   generatedVariants.value = []
-  showToast('Đã xóa tất cả biến thể', 'success')
+  showToast('Đã xóa tất cả biến thể')
 }
 
-/* ========= Click outside close popovers ========= */
-function handleDocClick(e) {
-  // submit popover
-  if (submitConfirm.show && finishAnchorRef.value && !finishAnchorRef.value.contains(e.target)) {
-    submitConfirm.show = false
-  }
-  // clear popover
-  if (clearConfirm.show && clearAnchorRef.value && !clearAnchorRef.value.contains(e.target)) {
-    clearConfirm.show = false
-  }
-}
-document.addEventListener('click', handleDocClick)
-onBeforeUnmount(() => document.removeEventListener('click', handleDocClick))
-
-/* ========= Navigation ========= */
+/* ===== Navigation ===== */
 function goBack() {
   router.push('/products')
 }
 
-/* ========= Color helper ========= */
+/* ===== Color helper ===== */
 function getColorCode(name) {
   if (!name) return '#e5e7eb'
-  const n = name.toLowerCase()
+  const n = String(name).toLowerCase()
   if (n.includes('đen') || n.includes('black')) return 'black'
   if (n.includes('trắng') || n.includes('white')) return '#ffffff'
   if (n.includes('đỏ') || n.includes('red')) return '#ef4444'
@@ -806,572 +871,370 @@ function getColorCode(name) {
   if (n.includes('be') || n.includes('beige')) return '#f5f5dc'
   if (n.includes('xanh than') || n.includes('navy')) return '#1e3a8a'
   if (n.includes('xám') || n.includes('ghi') || n.includes('gray') || n.includes('grey')) return '#6b7280'
-  const match = n.match(/\(([^)]+)\)/)
-  if (match) return match[1]
+  const m = n.match(/\(([^)]+)\)/)
+  if (m) return m[1]
   return '#e5e7eb'
 }
 </script>
 
 <style scoped>
-/* ===== Modal (đang dùng cho attr modal + quick add + group apply) ===== */
+/* ===== Page fixed height (tránh khoảng trắng) ===== */
+:global(html, body, #app) { height: 100%; margin: 0; }
+.page {
+  height: 100dvh;
+  overflow: hidden;
+  padding: 16px;
+  background: #f3f4f6;
+}
+
+.card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.card-body {
+  flex: 1;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.action-bar {
+  margin-top: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+
+/* ===== Base UI ===== */
+.title { font-size: 1.35rem; font-weight: 800; color: #374151; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+.section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.section-title {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1f2937;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 10px;
+}
+
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1100px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+.form-group { margin-bottom: 12px; }
+.form-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.required::after { content: ' *'; color: red; }
+.error-text { color: red; font-size: 0.8rem; }
+.error-border { border-color: #ef4444 !important; box-shadow: 0 0 0 1px rgba(239,68,68,0.2); }
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-secondary { background: #e5e7eb; color: #374151; }
+.btn-primary { background: #1e3a8a; color: #fff; }
+.btn-orange { background: #1e40af; color: #fff; }
+.full-width-btn { width: 100%; margin-top: 8px; }
+
+.flex-row-gap { display: flex; gap: 8px; align-items: center; }
+
+.btn-quick-add {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-quick-add:hover { background: #e5e7eb; border-color: #1e3a8a; color: #1e3a8a; }
+
+.mt-2 { margin-top: 10px; }
+.text-center { text-align: center; }
+
+/* ===== Selected list ===== */
+.selected-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.selected-item-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #fff;
+}
+.color-square { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); }
+.size-square { font-weight: 900; padding: 0 6px; }
+.item-name-input {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 8px;
+  width: 110px;
+  background: #f9fafb;
+}
+
+.btn-remove-block {
+  background: #1e40af;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+/* ===== Variants ===== */
+.section-header-bar {
+  background: #1e40af;
+  padding: 10px 14px;
+  border-radius: 10px 10px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.section-title-white { margin: 0; color: #fff; font-size: 1rem; font-weight: 900; }
+.btn-outline-white {
+  border: 1px solid rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+.btn-outline-danger {
+  border: 1px solid #fecaca;
+  background: white;
+  color: #1e40af;
+}
+.bulk-actions { display: flex; gap: 10px; }
+
+.variant-group {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.group-header {
+  background: white;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+.group-title { font-weight: 900; color: #1e40af; display: flex; align-items: center; gap: 8px; }
+.color-dot-lg { width: 16px; height: 16px; border-radius: 50%; display: inline-block; }
+.count-gray { color: #6b7280; font-weight: 700; font-size: 0.9rem; }
+
+.table-responsive { overflow-x: auto; }
+.variants-table { width: 100%; border-collapse: collapse; }
+.variants-table th { background: #f9fafb; padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.variants-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+
+.size-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.btn-icon.danger { background: #fee2e2; color: #991b1b; }
+.btn-icon.danger:hover { background: #fecaca; }
+
+.btn-quick-add-blue {
+  background: #1e40af;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.btn-quick-add-blue:hover { background: #1e3a8a; }
+
+/* ===== Image upload ===== */
+.section-image-upload { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
+.section-title-sm { margin: 0 0 12px; font-weight: 900; }
+.image-upload-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.image-upload-card { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #fff; }
+.card-upload-header { padding: 10px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+
+.upload-area { height: 150px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #fdfdfd; }
+.upload-area:hover { background: #f3f4f6; }
+.upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #9ca3af; font-weight: 700; }
+.icon-lg { font-size: 2rem; }
+.preview-box-lg { width: 100%; height: 100%; overflow: hidden; }
+.preview-box-lg img { width: 100%; height: 100%; object-fit: contain; }
+
+/* ===== Modal ===== */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 .modal-box {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-.modal-title {
-  margin-top: 0;
-  margin-bottom: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-/* ===== Toast ===== */
-.toast {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-weight: 600;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-  z-index: 9999;
-  max-width: 360px;
-}
-.toast.success {
-  background: #e9f7ef;
-  color: #1e7e34;
-  border: 1px solid #b7ebc6;
-}
-.toast.error {
-  background: #fdecea;
-  color: #b02a37;
-  border: 1px solid #f5c2c7;
-}
-
-/* ===== Popover Confirm (speech bubble như ảnh) ===== */
-.confirm-anchor {
-  position: relative;
-  display: inline-block;
-}
-.confirm-popover {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 10px 12px;
-  width: 380px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-  z-index: 2000;
+  border-radius: 12px;
+  padding: 18px;
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
 }
-.confirm-popover--left {
-  right: auto;
-  left: 0;
-}
-.confirm-arrow {
-  position: absolute;
-  right: 18px;
-  bottom: -7px;
-  width: 14px;
-  height: 14px;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
-  transform: rotate(45deg);
-}
-.confirm-arrow--left {
-  right: auto;
-  left: 18px;
-}
-.confirm-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.confirm-icon {
-  font-size: 16px;
-  line-height: 1;
-  margin-top: 2px;
-}
-.confirm-msg {
-  font-size: 13px;
-  color: #111827;
-  line-height: 1.35;
-}
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-.btn-mini {
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-.btn-cancel {
-  background: #f3f4f6;
-  border-color: #e5e7eb;
-  color: #374151;
-}
-.btn-ok {
-  background: #1e3a8a;   /* giống .btn-primary */
-  border-color: #1e3a8a;
-  color: #fff;
-}
-.btn-ok-danger {
-  background: #ef4444;
-  border-color: #dc2626;
-  color: #fff;
-}
+.modal-lg { width: 620px; }
+.modal-title { margin: 0 0 12px; font-weight: 900; color: #111827; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 
-/* ===== Base UI (giữ giống bạn) ===== */
-.title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #374151;
-}
-.flex-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.section {
-  margin-bottom: 30px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
-}
-.section-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #1f2937;
-  border-bottom: 1px solid #f3f4f6;
-  padding-bottom: 10px;
-}
-.grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-.form-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-}
-.required::after {
-  content: ' *';
-  color: red;
-}
-.error-text {
-  color: red;
-  font-size: 0.8rem;
-}
-.error-border {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
-}
-
-.btn {
-  padding: 10px 20px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  transition: 0.2s;
-}
-.btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
-}
-.btn-primary {
-  background: #1e3a8a;
-  color: white;
-}
-.btn-orange {
-  background: #f97316;
-  color: white;
-}
-.btn-orange:hover {
-  background: #ea580c;
-}
-.btn-orange:disabled {
-  background: #fed7aa;
-  cursor: not-allowed;
-}
-
-.full-width-btn {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.section-header-bar {
-  background: linear-gradient(to right, #ea580c, #c2410c);
-  padding: 10px 20px;
-  border-radius: 6px 6px 0 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.section-title-white {
-  color: white;
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.btn-outline-white {
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  margin-left: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.btn-outline-white:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.btn-outline-danger {
-  border: 1px solid #fecaca;
-  background: #fee2e2;
-  color: #ef4444;
-  margin-left: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.btn-outline-danger:hover {
-  background: #fecaca;
-}
-
-.variant-group {
-  background: #fdfdfd;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.group-header {
-  background: #fff7ed;
-  padding: 10px 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e5e7eb;
-}
-.group-title {
-  font-weight: 600;
-  color: #9a3412;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.color-dot-lg {
-  width: 16px;
-  height: 16px;
-  background: gray;
-  border-radius: 50%;
-  display: inline-block;
-}
-.count-gray {
-  color: #6b7280;
-  font-weight: normal;
-  font-size: 0.9rem;
-  margin-left: 5px;
-}
-
-.variants-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.variants-table th {
-  background: #f9fafb;
-  padding: 10px;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-}
-.variants-table td {
-  padding: 10px;
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
-}
-
-.size-badge {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 38px;
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  border-radius: 6px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.text-center {
-  text-align: center;
-}
-.flex-row-gap {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-quick-add {
-  border: 1px solid #d1d5db;
-  background: #f9fafb;
-  color: #374151;
-  width: 38px;
-  border-radius: 6px;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.btn-quick-add:hover {
-  background: #e5e7eb;
-  color: #1e3a8a;
-  border-color: #1e3a8a;
-}
-
-.selected-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.selected-item-block {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 5px 10px;
-  background: white;
-}
-
-.color-square {
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-.size-square {
-  font-weight: 600;
-  padding: 0 5px;
-}
-
-.item-name-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.9rem;
-  width: 100px;
-  color: #374151;
-  background: #f9fafb;
-}
-
-.btn-remove-block {
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1.2rem;
-  line-height: 1;
-}
-.btn-remove-block:hover {
-  background: #dc2626;
-}
-.mt-2 {
-  margin-top: 10px;
-}
-
-.modal-lg {
-  max-width: 600px;
-}
 .attr-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 15px;
-  margin: 20px 0;
+  gap: 14px;
   max-height: 400px;
-  overflow-y: auto;
+  overflow: auto;
 }
 .attr-item {
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 10px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-  background: white;
+  min-height: 84px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 80px;
+  cursor: pointer;
+  transition: 0.15s;
 }
-.attr-item:hover {
-  border-color: #fdba74;
-  background: #fff7ed;
-}
-.attr-item.selected {
-  border-color: #ea580c;
-  background: #ffedd5;
-  box-shadow: 0 0 0 1px #ea580c;
-}
-.attr-color-preview {
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  margin-bottom: 5px;
-}
-.attr-name {
-  font-size: 0.85rem;
-  color: #374151;
-}
-.attr-name-lg {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #374151;
-}
+.attr-item:hover { border-color: #1e40af; background: white; }
+.attr-item.selected { border-color: #1e40af; background: white; box-shadow: 0 0 0 1px #1e40af; }
 
-.section-image-upload {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
-}
-.section-title-sm {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.image-upload-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-}
-.image-upload-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-  background: white;
-}
-.card-upload-header {
-  padding: 10px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.upload-area {
-  height: 150px;
-  background: #fdfdfd;
+.attr-color-preview { width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); margin-bottom: 6px; }
+.attr-name { font-size: 0.85rem; font-weight: 800; color: #374151; }
+.attr-name-lg { font-size: 1.1rem; font-weight: 900; color: #374151; }
+
+/* ===== Confirm ===== */
+.confirm-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: 0.2s;
+  z-index: 10000;
 }
-.upload-area:hover {
-  background: #f3f4f6;
-}
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #9ca3af;
-  gap: 5px;
-  font-size: 0.85rem;
-}
-.icon-lg {
-  font-size: 2rem;
-}
-.preview-box-lg {
-  width: 100%;
-  height: 100%;
+.confirm-modal{
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
   overflow: hidden;
 }
-.preview-box-lg img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.confirm-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef2f7;
 }
+.confirm-header h3{ margin: 0; font-size: 1.05rem; font-weight: 900; color: #111827; }
+.close-btn{ border: none; background: transparent; font-size: 22px; cursor: pointer; color: #6b7280; }
+.confirm-body{ padding: 16px; color: #374151; }
+.confirm-actions{ display: flex; justify-content: flex-end; gap: 10px; padding: 0 16px 16px; }
+.btn-danger{ background: #ef4444; color: #fff; }
+.btn-danger:hover{ background: #dc2626; }
 
-.btn-quick-add-blue {
-  background: #1e40af;
-  color: white;
+/* ===== Toast giống ảnh ===== */
+.toast2{
+  position: fixed;
+  top: 16px;
+  right: 16px; /* muốn góc phải: đổi left -> right và set left:auto */
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.14);
+  z-index: 99999;
+  min-width: 360px;
+  max-width: min(520px, calc(100vw - 32px));
+}
+.toast2-bar{
+  width: 6px;
+  border-radius: 10px;
+  align-self: stretch;
+  background: #22c55e;
+}
+.toast2-main{ flex: 1; padding-top: 2px; }
+.toast2-title{ font-weight: 900; margin-bottom: 4px; color: #16a34a; }
+.toast2-msg{ color: #374151; line-height: 1.35; font-weight: 600; }
+.toast2-close{
   border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
+  background: transparent;
   cursor: pointer;
-  font-weight: 500;
+  font-size: 18px;
+  line-height: 1;
+  color: #6b7280;
+  padding: 2px 6px;
+  border-radius: 8px;
 }
-.btn-quick-add-blue:hover {
-  background: #1e3a8a;
-}
+.toast2-close:hover{ background: #f3f4f6; }
+.toast2.error .toast2-bar{ background: #ef4444; }
+.toast2.error .toast2-title{ color: #dc2626; }
 
-.action-bar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  background: white;
-  padding: 20px;
-  border-top: 1px solid #e5e7eb;
-  margin-top: 20px;
-}
+.error-msg { margin-top: 10px; color: #b02a37; font-weight: 900; }
 </style>

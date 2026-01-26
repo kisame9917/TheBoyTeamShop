@@ -1,12 +1,27 @@
 <template>
   <div class="product-detail-page">
-    <div class="header-section">
-      <!-- Breadcrumb or Title -->
-      <div class="header-left">
-        <h2>Danh sách biến thể sản phẩm</h2>
+    <!-- Header giống ảnh -->
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Quản lý sản phẩm / Danh sách biến thể</h2>
       </div>
-      <div class="header-right">
-        <button class="btn btn-secondary" @click="goBack">← Quay lại danh sách</button>
+
+      <div class="page-actions">
+        <button class="btn btn-outline-secondary btn-sm" type="button">
+          <i class="bi bi-qr-code me-1"></i> Quét QR
+        </button>
+
+        <button class="btn btn-outline-primary btn-sm" type="button" @click="downloadExcel">
+          <i class="bi bi-download me-1"></i> Tải Excel
+        </button>
+
+        <button class="btn btn-primary btn-sm" type="button" @click="goToGlobalList">
+          <i class="bi bi-list-ul me-1"></i> Hiển thị đầy đủ biến thể
+        </button>
+
+        <button class="btn btn-secondary btn-sm" type="button" @click="goBack">
+          <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </button>
       </div>
     </div>
 
@@ -14,94 +29,175 @@
 
     <div v-else-if="product" class="content-wrapper">
 
-      <!-- Filter Section -->
-      <div class="card filter-card">
-        <div class="filter-row">
-          <div class="form-group search-group">
-            <label>Tìm kiếm biến thể</label>
-            <input type="text" v-model="filters.keyword" class="form-input" placeholder="Tìm mã, màu, kích cỡ...">
+      <!-- FILTER giống ảnh + có thu gọn/mở rộng -->
+      <div class="filter-panel">
+        <div class="filter-toggle" @click="isFilterOpen = !isFilterOpen">
+          <div class="filter-title">
+            <i class="bi bi-funnel me-2"></i>
+            <span>Bộ lọc tìm kiếm</span>
           </div>
+          <div class="filter-hint">Nhấn để thu gọn/mở rộng</div>
+        </div>
 
-          <div class="form-group select-group">
-            <label>Màu sắc</label>
-            <select v-model="filters.color" class="form-input">
-              <option value="">Tất cả màu</option>
-              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.ten">{{ c.ten }}</option>
-            </select>
-          </div>
+        <div v-show="isFilterOpen" class="filter-body">
+          <div class="filter-grid">
+            <!-- Row 1 -->
+            <div class="filter-item filter-search">
+              <label>Tìm kiếm</label>
+              <input
+                type="text"
+                v-model="filters.keyword"
+                class="form-input"
+                placeholder="Tìm theo mã, màu, kích cỡ..."
+              />
+            </div>
 
-          <div class="form-group select-group">
-            <label>Kích cỡ</label>
-            <select v-model="filters.size" class="form-input">
-              <option value="">Tất cả kích cỡ</option>
-              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.soSize">{{ s.soSize }}</option>
-            </select>
-          </div>
+            <div class="filter-item">
+              <label>Màu sắc</label>
+              <select v-model="filters.color" class="form-input">
+                <option value="">-- Chọn Màu sắc --</option>
+                <option v-for="c in attributes.mauSac" :key="c.id" :value="c.ten">
+                  {{ c.ten }}
+                </option>
+              </select>
+            </div>
 
-          <div class="action-group">
-            <button class="btn btn-secondary" @click="resetFilters">Đặt lại</button>
-            <button class="btn btn-warning">📷 Quét QR</button>
-            <button class="btn btn-primary" @click="goToGlobalList">Hiển thị đầy đủ biến thể</button>
+            <div class="filter-item">
+              <label>Số lượng tồn</label>
+              <select v-model="filters.stock" class="form-input">
+                <option value="">-- Chọn Số lượng tồn --</option>
+                <option value="0">Hết hàng (0)</option>
+                <option value="1-10">1 - 10</option>
+                <option value="11-50">11 - 50</option>
+                <option value="51-200">51 - 200</option>
+                <option value="200+">Trên 200</option>
+              </select>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="filter-item filter-price">
+              <label>
+                Khoảng giá:
+                <span class="price-text">{{ formatMoney(filters.minPrice) }} - {{ formatMoney(filters.maxPrice) }}</span>
+              </label>
+              <!-- giống ảnh: 1 thanh slider (max) -->
+              <input
+                type="range"
+                class="range-input"
+                :min="0"
+                :max="priceMaxLimit"
+                :step="priceStep"
+                v-model.number="filters.maxPrice"
+              />
+            </div>
+
+            <div class="filter-item">
+              <label>Kích cỡ</label>
+              <select v-model="filters.size" class="form-input">
+                <option value="">-- Chọn Kích cỡ --</option>
+                <option v-for="s in attributes.kichCo" :key="s.id" :value="s.soSize">
+                  {{ s.soSize }}
+                </option>
+              </select>
+            </div>
+
+            <div class="filter-item filter-status">
+              <div class="status-row">
+                <div class="status-left">
+                  <label>Trạng thái</label>
+                  <div class="radio-line">
+                    <label class="radio-item">
+                      <input type="radio" value="" v-model="filters.status" />
+                      Tất cả
+                    </label>
+                    <label class="radio-item">
+                      <input type="radio" value="in" v-model="filters.status" />
+                      Còn hàng
+                    </label>
+                    <label class="radio-item">
+                      <input type="radio" value="out" v-model="filters.status" />
+                      Hết hàng
+                    </label>
+                  </div>
+                </div>
+
+                <button class="btn btn-reset" type="button" @click="resetFilters">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Variants Table -->
+      <!-- Variants Table (GIỮ NGUYÊN FORM BẢNG) -->
       <div class="card table-card">
         <div class="table-responsive">
           <table class="table">
             <thead>
               <tr>
-                <th>STT</th>
-                <th>Mã sản phẩm chi tiết</th>
-                <th>Ảnh</th>
-                <th>Tên sản phẩm</th>
-                <th>Màu sắc</th>
-                <th>Kích cỡ</th>
-                <th>Số lượng tồn</th>
-                <th>Giá bán</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
+                <th class="text-center"> STT</th>
+                <th class="text-center">Mã sản phẩm chi tiết</th>
+                <th  class="text-center">Ảnh</th>
+                <th class="text-center"> Tên sản phẩm</th>
+                <th class="text-center"> Màu sắc</th>
+                <th class="text-center">Kích cỡ</th>
+                <th class="text-center">Số lượng tồn</th>
+                <th class="text-center">Giá bán</th>
+                <th class="text-center">Trạng thái</th>
+                <th class="text-center">Hành động</th>
               </tr>
             </thead>
+
             <tbody>
               <tr v-for="(variant, index) in filteredVariants" :key="variant.id">
-                <td>{{ index + 1 }}</td>
-                <td>{{ variant.maSanPhamChiTiet }}</td>
-                <td>
-                  <img v-if="variant.anh" :src="'http://localhost:8080' + variant.anh"
-                    style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;" />
+                <td class="text-center">>{{ index + 1 }}</td>
+                <td class="text-center">>{{ variant.maSanPhamChiTiet }}</td>
+                <td class="text-center">>
+                  <img 
+                    v-if="variant.anh"
+                    :src="'http://localhost:8080' + variant.anh"
+                    style="width: 200px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;"
+                  />
                   <span v-else class="no-img">No Img</span>
                 </td>
-                <td style="font-weight: 500;">{{ product.tenSanPham }}</td>
-                <td>
+
+                <td class="text-center" style="font-weight: 500;">{{ product.tenSanPham }}</td>
+
+                <td class="text-center">
                   <span class="color-dot" :style="{ backgroundColor: getColorCode(variant.tenMauSac) }"></span>
                   {{ variant.tenMauSac }}
                 </td>
-                <td>{{ variant.tenKichCo }}</td>
+
+                <td class="text-center">{{ variant.tenKichCo }}</td>
                 <td class="text-center">{{ variant.soLuongTon }}</td>
                 <td class="text-highlight">{{ formatPrice(variant.donGia) }}</td>
+
                 <td class="status-cell">
                   <span :class="['badge', variant.trangThai ? 'badge-success' : 'badge-danger']">
                     {{ variant.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                   </span>
                 </td>
+
+                <!-- ✅ CHỈ SỬA HÀNH ĐỘNG: nút sửa + switch giống ảnh + popup confirm -->
                 <td>
                   <div class="action-buttons">
-                    <button class="btn-icon blue" @click="editVariant(variant)">✏️</button>
+                    <button class="btn-edit" type="button" @click="editVariant(variant)" title="Sửa">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+
                     <label class="switch" title="Đổi trạng thái">
-  <input
-    type="checkbox"
-    :checked="!!variant.trangThai"
-    @change="toggleStatus(variant)"
-  />
-  <span class="slider"></span>
-</label>
-
-
+                      <input
+                        type="checkbox"
+                        :checked="!!variant.trangThai"
+                        @click.prevent="openStatusConfirm(variant)"
+                      />
+                      <span class="slider"></span>
+                    </label>
                   </div>
                 </td>
               </tr>
+
               <tr v-if="filteredVariants.length === 0">
                 <td colspan="10" class="text-center">Không tìm thấy biến thể nào.</td>
               </tr>
@@ -115,7 +211,32 @@
       {{ globalError || 'Không tìm thấy sản phẩm' }}
     </div>
 
-    <!-- Add Variant Modal (Hidden for now as per design focus on list, but kept for logic) -->
+    <!-- ✅ POPUP XÁC NHẬN ĐỔI TRẠNG THÁI -->
+    <div v-if="showStatusModal" class="modal-overlay" @click.self="closeStatusModal">
+      <div class="confirm-modal">
+        <div class="modal-header">
+          <h3>Xác nhận</h3>
+          <button class="close-btn" type="button" @click="closeStatusModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p style="margin:0;">
+            Bạn có chắc muốn đổi trạng thái biến thể
+            <b>{{ statusTarget?.maSanPhamChiTiet }}</b>
+            sang <b>{{ nextStatusText }}</b> không?
+          </p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" @click="closeStatusModal">Hủy</button>
+          <button class="btn btn-primary" type="button" @click="confirmToggleStatus" :disabled="statusChanging">
+            {{ statusChanging ? 'Đang cập nhật...' : 'Xác nhận' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Variant Modal (giữ nguyên) -->
     <div v-if="showAddModal" class="modal-overlay">
       <div class="modals">
         <div class="modal-header">
@@ -123,7 +244,6 @@
           <button class="close-btn" @click="closeModal">×</button>
         </div>
         <div class="modal-body">
-          <!-- Simplified for brevity, reusing logic -->
           <div class="form-group">
             <label>Kích cỡ</label>
             <select v-model="newVariant.idKichCo" class="form-input">
@@ -156,7 +276,7 @@
       </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Edit Modal (giữ nguyên) -->
     <div v-if="showEditModal" class="modal-overlay">
       <div class="modals">
         <div class="modal-header">
@@ -197,8 +317,11 @@
             <label>Ảnh biến thể</label>
             <input type="file" @change="handleFileUpload" class="form-input" accept="image/*">
             <div v-if="editingVariant.anh" style="margin-top: 10px;">
-              <img :src="'http://localhost:8080' + editingVariant.anh" alt="Preview"
-                style="max-width: 200px; max-height: 200px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">
+              <img
+                :src="'http://localhost:8080' + editingVariant.anh"
+                alt="Preview"
+                style="max-width: 200px; max-height: 200px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;"
+              >
             </div>
           </div>
         </div>
@@ -208,7 +331,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -234,10 +356,19 @@ const attributes = reactive({
   mauSac: []
 })
 
+/** ✅ FILTER giống ảnh */
+const isFilterOpen = ref(true)
+const priceMaxLimit = 10000000
+const priceStep = 50000
+
 const filters = reactive({
   keyword: '',
   color: '',
-  size: ''
+  size: '',
+  stock: '',
+  status: '',
+  minPrice: 0,
+  maxPrice: priceMaxLimit
 })
 
 const newVariant = reactive({
@@ -250,33 +381,54 @@ const newVariant = reactive({
   trangThai: true
 })
 
-
-
 // Mock color mapping
 function getColorCode(colorName) {
-  if (!colorName) return '#ccc';
+  if (!colorName) return '#ccc'
   const map = {
+    'Xanh navy': '#1e3a8a',
     'Xanh dương': 'blue',
     'Đỏ': 'red',
     'Trắng': 'white',
     'Đen': 'black',
     'Vàng': 'yellow'
-  };
-  return map[colorName] || '#ccc'; // Default gray
+  }
+  return map[colorName] || '#ccc'
 }
-
 
 const filteredVariants = computed(() => {
   return variants.value.filter(v => {
-    const matchKeyword = !filters.keyword ||
-      v.maSanPhamChiTiet.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      v.tenMauSac.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-      v.tenKichCo.toLowerCase().includes(filters.keyword.toLowerCase());
+    const kw = (filters.keyword || '').trim().toLowerCase()
 
-    const matchColor = !filters.color || v.tenMauSac === filters.color;
-    const matchSize = !filters.size || v.tenKichCo === filters.size; // Assuming simple string match
+    const ma = (v.maSanPhamChiTiet || '').toLowerCase()
+    const mau = (v.tenMauSac || '').toLowerCase()
+    const sizeText = (v.tenKichCo || '').toLowerCase()
 
-    return matchKeyword && matchColor && matchSize;
+    const matchKeyword = !kw || ma.includes(kw) || mau.includes(kw) || sizeText.includes(kw)
+
+    const matchColor = !filters.color || v.tenMauSac === filters.color
+    const matchSize = !filters.size || String(v.tenKichCo) === String(filters.size)
+
+    // stock filter
+    const sl = Number(v.soLuongTon ?? 0)
+    const matchStock =
+      !filters.stock ||
+      (filters.stock === '0' && sl === 0) ||
+      (filters.stock === '1-10' && sl >= 1 && sl <= 10) ||
+      (filters.stock === '11-50' && sl >= 11 && sl <= 50) ||
+      (filters.stock === '51-200' && sl >= 51 && sl <= 200) ||
+      (filters.stock === '200+' && sl > 200)
+
+    // status radio
+    const matchStatus =
+      !filters.status ||
+      (filters.status === 'in' && !!v.trangThai) ||
+      (filters.status === 'out' && !v.trangThai)
+
+    // price range
+    const price = Number(v.donGia ?? 0)
+    const matchPrice = price >= Number(filters.minPrice) && price <= Number(filters.maxPrice)
+
+    return matchKeyword && matchColor && matchSize && matchStock && matchStatus && matchPrice
   })
 })
 
@@ -294,7 +446,6 @@ async function getData() {
     attributes.kichCo = resSize.data
     const resColor = await attributeService.getAllList('mau-sac')
     attributes.mauSac = resColor.data
-
   } catch (e) {
     console.error("Load failed", e)
     globalError.value = 'Lỗi tải dữ liệu'
@@ -312,17 +463,26 @@ function goBack() {
   router.push('/products')
 }
 
-function resetFilters() {
-  filters.keyword = '';
-  filters.color = '';
-  filters.size = '';
-}
-
 function goToGlobalList() {
-  router.push('/variants');
+  router.push('/variants')
 }
 
-// Edit Modal State
+function resetFilters() {
+  filters.keyword = ''
+  filters.color = ''
+  filters.size = ''
+  filters.stock = ''
+  filters.status = ''
+  filters.minPrice = 0
+  filters.maxPrice = priceMaxLimit
+}
+
+function downloadExcel() {
+  // TODO: gắn api export nếu có
+  success('Chức năng Tải Excel chưa được gắn API.')
+}
+
+/** Edit Modal State (giữ nguyên) */
 const showEditModal = ref(false)
 const editingVariant = reactive({
   id: null,
@@ -338,15 +498,15 @@ const editingVariant = reactive({
 })
 
 async function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  const file = event.target.files[0]
+  if (!file) return
   try {
-    const res = await uploadImage(file);
-    editingVariant.anh = res.data.url;
-    alert("Upload ảnh thành công!");
+    const res = await uploadImage(file)
+    editingVariant.anh = res.data.url
+    alert("Upload ảnh thành công!")
   } catch (e) {
-    console.error(e);
-    alert("Lỗi upload ảnh");
+    console.error(e)
+    alert("Lỗi upload ảnh")
   }
 }
 
@@ -376,16 +536,12 @@ function openEditModal(v) {
   editingVariant.id = v.id
   editingVariant.idSanPham = v.idSanPham
   editingVariant.maSanPhamChiTiet = v.maSanPhamChiTiet
-
-  // Find IDs based on names (reverse lookup) or if API provided IDs use them.
-  // The current getAll response includes IDs (idKichCo, idMauSac).
   editingVariant.idKichCo = v.idKichCo
   editingVariant.idMauSac = v.idMauSac
   editingVariant.soLuongTon = v.soLuongTon
   editingVariant.donGia = v.donGia
   editingVariant.trangThai = v.trangThai
   editingVariant.anh = v.anh
-
   showEditModal.value = true
 }
 
@@ -405,8 +561,8 @@ function closeModal() {
 
 async function submitVariant() {
   if (!newVariant.idKichCo || !newVariant.idMauSac) {
-    alert("Vui lòng chọn đủ thông tin");
-    return;
+    alert("Vui lòng chọn đủ thông tin")
+    return
   }
   try {
     await createDetail({ ...newVariant, idSanPham: props.id })
@@ -415,6 +571,39 @@ async function submitVariant() {
     await loadVariants()
   } catch (e) {
     alert("Lỗi thêm biến thể")
+  }
+}
+
+/** ✅ POPUP confirm đổi trạng thái */
+const showStatusModal = ref(false)
+const statusTarget = ref(null)
+const statusChanging = ref(false)
+
+const nextStatusText = computed(() => {
+  if (!statusTarget.value) return ''
+  return statusTarget.value.trangThai ? 'Hết hàng' : 'Còn hàng'
+})
+
+function openStatusConfirm(variant) {
+  statusTarget.value = variant
+  showStatusModal.value = true
+}
+
+function closeStatusModal() {
+  showStatusModal.value = false
+  statusTarget.value = null
+}
+
+async function confirmToggleStatus() {
+  if (!statusTarget.value) return
+  if (statusChanging.value) return
+
+  statusChanging.value = true
+  try {
+    await toggleStatus(statusTarget.value)
+    closeStatusModal()
+  } finally {
+    statusChanging.value = false
   }
 }
 
@@ -432,6 +621,7 @@ async function toggleStatus(variant) {
       trangThai: updatedVariant.trangThai,
       anh: updatedVariant.anh
     })
+
     await loadVariants()
     const statusText = updatedVariant.trangThai ? 'Còn hàng' : 'Hết hàng'
     success(`Đã đổi trạng thái biến thể thành ${statusText}`)
@@ -442,8 +632,13 @@ async function toggleStatus(variant) {
 }
 
 function formatPrice(val) {
-  if (!val) return '0 đ';
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  if (val === null || val === undefined) return '0 đ'
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
+}
+
+function formatMoney(val) {
+  const n = Number(val ?? 0)
+  return new Intl.NumberFormat('vi-VN').format(n) + ' đ'
 }
 </script>
 
@@ -455,20 +650,57 @@ function formatPrice(val) {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.header-section {
+/* Header giống ảnh */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
-.header-section h2 {
-  font-size: 1.5rem;
+.page-title h2 {
+  font-size: 1.1rem;
   font-weight: 700;
   color: #111827;
   margin: 0;
 }
 
+.page-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* mini btn giống ảnh (fallback nếu không có bootstrap) */
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.btn-outline-secondary {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.btn-outline-secondary:hover {
+  background: #f9fafb;
+}
+
+.btn-outline-primary {
+  background: #fff;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+}
+
+.btn-outline-primary:hover {
+  background: #eff6ff;
+}
+
+/* card chung (giữ nguyên của bạn) */
 .card {
   background: white;
   border-radius: 8px;
@@ -477,42 +709,60 @@ function formatPrice(val) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Filter Styles */
-.filter-row {
+/* FILTER giống ảnh */
+.filter-panel {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.filter-toggle {
+  background: #0f172a;
+  color: #fff;
+  padding: 10px 14px;
   display: flex;
-  gap: 15px;
-  align-items: flex-end;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
 }
 
-.form-group {
+.filter-title {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
 }
 
-.search-group {
-  flex: 2;
-  min-width: 200px;
+.filter-hint {
+  font-size: 12px;
+  opacity: 0.85;
 }
 
-.select-group {
-  flex: 1;
-  min-width: 150px;
+.filter-body {
+  padding: 12px 14px;
 }
 
-.action-group {
-  display: flex;
-  gap: 10px;
-  padding-bottom: 2px;
-  /* align with inputs */
+.filter-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr 1fr;
+  gap: 12px 14px;
+  align-items: end;
 }
 
-.form-group label {
-  font-size: 0.875rem;
+.filter-item label {
+  font-size: 0.85rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 6px;
+  display: block;
 }
+
+.filter-search { grid-column: 1 / 2; }
+.filter-price  { grid-column: 1 / 2; }
 
 .form-input {
   padding: 8px 12px;
@@ -523,40 +773,55 @@ function formatPrice(val) {
   box-sizing: border-box;
 }
 
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  font-size: 0.875rem;
-  transition: background 0.2s;
+.range-input {
+  width: 100%;
+  accent-color: #16a34a; /* xanh giống ảnh */
 }
 
-.btn-secondary {
-  background: #e5e7eb;
+.price-text {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+/* status + reset giống ảnh */
+.filter-status .status-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.radio-line {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   color: #374151;
+  white-space: nowrap;
 }
 
-.btn-secondary:hover {
-  background: #d1d5db;
+.btn-reset {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-.btn-primary {
-  background: #2563eb;
-  color: white;
+.btn-reset:hover {
+  background: #f3f4f6;
 }
 
-.btn-primary:hover {
-  background: #1d4ed8;
-}
-
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-}
-
-/* Table Styles */
+/* Table styles (giữ nguyên của bạn) */
 .table {
   width: 100%;
   border-collapse: separate;
@@ -565,7 +830,6 @@ function formatPrice(val) {
 
 .table th {
   background: #fef3c7;
-  /* Light yellow/beige header like screenshot */
   color: #1f2937;
   padding: 12px;
   text-align: left;
@@ -580,22 +844,6 @@ function formatPrice(val) {
   color: #4b5563;
 }
 
-.img-placeholder {
-  width: 50px;
-  height: 50px;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.img-placeholder img {
-  max-width: 100%;
-  max-height: 100%;
-}
-
 .color-dot {
   display: inline-block;
   width: 12px;
@@ -605,48 +853,13 @@ function formatPrice(val) {
   margin-right: 5px;
 }
 
-.text-center {
-  text-align: center;
-}
-
-.text-highlight {
-  color: #047857;
-  font-weight: 600;
-}
+.text-center { text-align: center; }
+.text-highlight { color: #047857; font-weight: 600;text-align: center; }
 
 .status-cell {
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
-  /* chống xuống dòng ở cell */
-}
-
-/* badge riêng, không phụ thuộc .badge */
-.status-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  padding: 6px 12px;
-  min-width: 90px;
-  /* ✅ giúp “Còn hàng” không bị bó */
-  border-radius: 6px;
-
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-}
-
-/* màu */
-.status-badge.is-success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-badge.is-danger {
-  background: #fee2e2;
-  color: #991b1b;
 }
 
 .badge {
@@ -656,57 +869,69 @@ function formatPrice(val) {
   font-weight: 600;
 }
 
-.badge-success {
-  background: #d1fae5;
-  color: #065f46;
-}
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-danger  { background: #fee2e2; color: #991b1b; }
 
-.badge-danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
+/* ✅ Hành động giống ảnh */
 .action-buttons {
-  display: flex;
-  gap: 5px;
-}
-
-.btn-icon {
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+}
+
+.btn-edit {
+  width: 28px;
+  height: 28px;
   border-radius: 4px;
-  border: none;
+  border: 1px solid #f59e0b;
+  background: #fff;
+  color: #f59e0b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  color: white;
 }
 
-.btn-icon.blue {
-  background: #3b82f6;
+.btn-edit:hover {
+  background: #fff7ed;
 }
 
-.btn-icon.red {
-  background: #ef4444;
+/* Switch (giữ của bạn) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
 }
-
-.btn-icon.status-toggle {
-  background: #f59e0b;
-  /* Orange for state change */
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: #d1d5db;
+  transition: 0.2s;
+  border-radius: 999px;
 }
-
-.btn-icon.status-toggle:hover {
-  background: #d97706;
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  transition: 0.2s;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
+.switch input:checked + .slider { background: #2563eb; }
+.switch input:checked + .slider:before { transform: translateX(22px); }
 
-/* Modal */
+/* Modal chung */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -721,10 +946,20 @@ function formatPrice(val) {
   width: 400px;
 }
 
+/* ✅ confirm modal */
+.confirm-modal {
+  background: #fff;
+  padding: 18px;
+  border-radius: 10px;
+  width: 420px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 15px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .close-btn {
@@ -734,20 +969,14 @@ function formatPrice(val) {
   cursor: pointer;
 }
 
-.form-row {
-  display: flex;
-  gap: 10px;
-}
-
-.half {
-  flex: 1;
-}
+.form-row { display: flex; gap: 10px; }
+.half { flex: 1; }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .no-img {
@@ -757,52 +986,4 @@ function formatPrice(val) {
   padding: 2px 4px;
   border-radius: 4px;
 }
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 22px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  inset: 0;
-  cursor: pointer;
-  background: #d1d5db;
-  transition: 0.2s;
-  border-radius: 999px;
-}
-
-.slider:before {
-  content: "";
-  position: absolute;
-  height: 18px;
-  width: 18px;
-  left: 2px;
-  top: 2px;
-  background: #fff;
-  transition: 0.2s;
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-}
-
-.switch input:checked + .slider {
-  background: #2563eb; /* xanh khi true */
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(22px);
-}
-
-/* cho switch nằm gọn trong action-buttons */
-.action-buttons .switch {
-  margin-left: 6px;
-}
-
 </style>
