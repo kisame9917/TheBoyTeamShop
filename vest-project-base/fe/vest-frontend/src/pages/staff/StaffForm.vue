@@ -10,13 +10,14 @@
         <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
       </button>
     </div>
+
     <!-- Form card -->
     <div class="card shadow-sm">
       <div class="card-body">
         <!-- Avatar centered -->
         <div class="d-flex flex-column align-items-center mb-3">
           <div class="avatar-wrap" @click="triggerPickFile" title="Bấm để chọn ảnh">
-            <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="avatar" @error="onAvatarImgError"/>
+            <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="avatar" @error="onAvatarImgError" />
             <div v-else class="avatar-fallback">NV</div>
             <button v-if="avatarPreview" type="button" class="avatar-remove" @click.stop="clearAvatar" title="Xóa ảnh">×</button>
             <div v-if="uploading" class="avatar-uploading">⏳</div>
@@ -90,10 +91,38 @@
               <input class="form-control" v-model="form.cccd" placeholder="Chỉ nhập số" />
             </div>
 
-            <!-- 8) Ngày sinh -->
+            <!-- 8) Ngày sinh (✅ nhập tay + mở lịch đúng vị trí) -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Ngày sinh</label>
-              <input class="form-control" type="date" v-model="form.ngaySinh" />
+
+              <div class="input-group date-group">
+                <input
+                    ref="dobTextRef"
+                    v-model="dobTextRaw"
+                    type="text"
+                    class="form-control"
+                    placeholder="dd/mm/yyyy"
+                    inputmode="numeric"
+                    @blur="commitDobText"
+                    @keyup.enter="commitDobText"
+                />
+
+                <!-- input date thật để show picker (KHÔNG display:none) -->
+                <input
+                    ref="dobPickerRef"
+                    type="date"
+                    class="dob-native"
+                    :value="form.ngaySinh"
+                    @change="onDobPicked"
+                />
+
+                <button class="btn btn-outline-secondary" type="button" @click="openDobPicker" title="Chọn ngày">
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" @click="clearDob" title="Xóa">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
             </div>
 
             <!-- 9) Tỉnh/Thành phố -->
@@ -202,7 +231,6 @@
             <div>{{ t.message }}</div>
           </div>
 
-          <!-- (giữ nguyên như bạn đang dùng) -->
           <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
         </div>
       </div>
@@ -274,12 +302,89 @@ const form = reactive({
   email: '',
   taiKhoan: '',
   matKhau: '',
-  ngaySinh: '',
+  ngaySinh: '', // ✅ ISO yyyy-mm-dd
   gioiTinh: null,
   diaChi: '',
   trangThai: true,
   anhDaiDien: ''
 })
+
+/** ===== Ngày sinh (✅ nhập tay dd/mm/yyyy + picker đúng vị trí) ===== */
+const dobPickerRef = ref(null)
+const dobTextRef = ref(null)
+const dobTextRaw = ref('')
+
+function toDMY(iso) {
+  const s = String(iso || '').trim() // yyyy-mm-dd
+  if (!s) return ''
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return ''
+  return `${m[3]}/${m[2]}/${m[1]}`
+}
+
+function parseDMY(input) {
+  const s = String(input || '').trim()
+  const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/)
+  if (!m) return ''
+  const dd = parseInt(m[1], 10)
+  const mm = parseInt(m[2], 10)
+  const yyyy = parseInt(m[3], 10)
+
+  if (yyyy < 1900 || yyyy > 2100) return ''
+  if (mm < 1 || mm > 12) return ''
+  if (dd < 1 || dd > 31) return ''
+
+  const dt = new Date(yyyy, mm - 1, dd)
+  if (dt.getFullYear() !== yyyy || dt.getMonth() !== (mm - 1) || dt.getDate() !== dd) return ''
+
+  return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+}
+
+function syncDobUI() {
+  dobTextRaw.value = toDMY(form.ngaySinh)
+  if (dobPickerRef.value) dobPickerRef.value.value = form.ngaySinh || ''
+}
+
+function openDobPicker() {
+  const el = dobPickerRef.value
+  if (!el) return
+  el.value = form.ngaySinh || ''
+  if (typeof el.showPicker === 'function') el.showPicker()
+  else {
+    el.focus()
+    el.click()
+  }
+}
+
+function onDobPicked(e) {
+  const v = e?.target?.value || ''
+  form.ngaySinh = v
+  syncDobUI()
+}
+
+function clearDob() {
+  form.ngaySinh = ''
+  syncDobUI()
+}
+
+function commitDobText() {
+  const s = String(dobTextRaw.value || '').trim()
+  if (!s) {
+    clearDob()
+    return
+  }
+
+  const iso = parseDMY(s)
+  if (!iso) {
+    toast.warning('Ngày sinh không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy')
+    // trả lại giá trị hợp lệ hiện tại
+    syncDobUI()
+    return
+  }
+
+  form.ngaySinh = iso
+  syncDobUI()
+}
 
 /** ===== Avatar ===== */
 const fileInput = ref(null)
@@ -609,6 +714,8 @@ async function loadData() {
   if (!isEdit.value) {
     form.maNhanVien = generateNextCode(all)
     form.trangThai = true
+    form.ngaySinh = ''
+    syncDobUI() // ✅ sync UI ngày sinh
     return
   }
 
@@ -650,6 +757,9 @@ async function loadData() {
   if (s.diaChi) {
     await prefillAddressFromDiaChi(s.diaChi)
   }
+
+  // ✅ QUAN TRỌNG: sync UI ngày sinh sau khi form.ngaySinh đã có dữ liệu
+  syncDobUI()
 }
 
 /** ===== Submit ===== */
@@ -728,7 +838,6 @@ onMounted(loadData)
 onBeforeUnmount(() => revokeLocalBlob())
 </script>
 
-
 <style scoped>
 .card {
   border-radius: 14px;
@@ -780,6 +889,22 @@ onBeforeUnmount(() => revokeLocalBlob())
 }
 
 .avatar-input { display: none; }
+
+/* ✅ Date group */
+.date-group { position: relative; }
+
+/* input date thật: KHÔNG display:none để picker tính đúng vị trí */
+.dob-native{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+}
 
 /* ✅ Confirm modal (overlay) */
 .modal-overlay {
