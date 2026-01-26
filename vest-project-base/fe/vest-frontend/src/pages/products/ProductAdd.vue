@@ -197,24 +197,10 @@
               <span class="icon">⚡</span> Áp dụng cho tất cả
             </button>
 
-            <!-- Nút Xóa tất cả + popover confirm (giống ảnh) -->
-            <div class="confirm-anchor" ref="clearAnchorRef">
-              <button class="btn btn-outline-danger" @click="toggleClearConfirm" type="button">
-                <span class="icon">🗑️</span> Xóa tất cả
-              </button>
-
-              <div v-if="clearConfirm.show" class="confirm-popover confirm-popover--left">
-                <div class="confirm-row">
-                  <span class="confirm-icon">⚠️</span>
-                  <span class="confirm-msg">Bạn có chắc chắn muốn xóa tất cả biến thể không?</span>
-                </div>
-                <div class="confirm-actions">
-                  <button class="btn-mini btn-cancel" type="button" @click="closeClearConfirm">Hủy</button>
-                  <button class="btn-mini btn-ok-danger" type="button" @click="confirmClearVariants">Đồng ý</button>
-                </div>
-                <div class="confirm-arrow confirm-arrow--left"></div>
-              </div>
-            </div>
+            <!-- Xóa tất cả -> Confirm Modal giữa màn -->
+            <button class="btn btn-outline-danger" type="button" @click="askClearVariants">
+              <span class="icon">🗑️</span> Xóa tất cả
+            </button>
           </div>
         </div>
 
@@ -338,29 +324,14 @@
         </div>
       </div>
 
-      <!-- Action Bar (submit popover confirm) -->
+      <!-- Action Bar -->
       <div class="action-bar sticky-bottom">
         <button class="btn btn-secondary" @click="goBack" type="button">Hủy</button>
 
-        <div class="confirm-anchor" ref="finishAnchorRef">
-          <button class="btn btn-primary lg-btn" @click="toggleSubmitConfirm" :disabled="loading" type="button">
-            {{ loading ? 'Đang xử lý...' : (isEditMode ? 'Lưu thay đổi' : 'Hoàn tất') }}
-          </button>
-
-          <div v-if="submitConfirm.show" class="confirm-popover">
-            <div class="confirm-row">
-              <span class="confirm-icon">⚠️</span>
-              <span class="confirm-msg">{{ submitConfirm.message }}</span>
-            </div>
-
-            <div class="confirm-actions">
-              <button class="btn-mini btn-cancel" type="button" @click="closeSubmitConfirm" :disabled="loading">Hủy</button>
-              <button class="btn-mini btn-ok" type="button" @click="confirmSubmit" :disabled="loading">Đồng ý</button>
-            </div>
-
-            <div class="confirm-arrow"></div>
-          </div>
-        </div>
+        <!-- Submit -> Confirm Modal giữa màn -->
+        <button class="btn btn-primary lg-btn" @click="handleSubmitClick" :disabled="loading" type="button">
+          {{ loading ? 'Đang xử lý...' : (isEditMode ? 'Lưu thay đổi' : 'Hoàn tất') }}
+        </button>
       </div>
 
       <p v-if="globalError" class="error-msg text-center">{{ globalError }}</p>
@@ -371,18 +342,49 @@
   <div v-if="toast.show" class="toast" :class="toast.type">
     {{ toast.message }}
   </div>
+
+  <!-- CONFIRM MODAL (giữa màn - giống danh sách thuộc tính) -->
+  <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
+    <div class="confirm-modal">
+      <div class="confirm-header">
+        <h3>{{ confirmState.title }}</h3>
+        <button class="close-btn" type="button" @click="confirmCancel">×</button>
+      </div>
+
+      <div class="confirm-body">
+        <p>{{ confirmState.message }}</p>
+      </div>
+
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" type="button" @click="confirmCancel" :disabled="loading">
+          {{ confirmState.cancelText }}
+        </button>
+
+        <button
+          class="btn"
+          :class="confirmState.danger ? 'btn-danger' : 'btn-primary'"
+          type="button"
+          @click="confirmOk"
+          :disabled="loading"
+        >
+          {{ confirmState.okText }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, computed, nextTick, onBeforeUnmount } from 'vue'
+import { reactive, ref, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import attributeService from '../../services/attributeService'
 import { createSanPham, updateSanPham } from '../../services/sanPhamApi'
 import { uploadImage } from '../../services/sanPhamChiTietApi'
 
 const router = useRouter()
-useRoute()
-const props = defineProps(['id'])
+const route = useRoute()
+
+const props = defineProps({ id: { type: [String, Number], default: null } })
 const isEditMode = computed(() => !!props.id)
 
 const loading = ref(false)
@@ -395,6 +397,38 @@ function showToast(message, type = 'success', duration = 2200) {
   toast.value = { show: true, message, type }
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = setTimeout(() => (toast.value.show = false), duration)
+}
+
+/* ========= Confirm Modal (giữa màn) ========= */
+const confirmState = reactive({
+  open: false,
+  title: 'Xác nhận',
+  message: '',
+  okText: 'OK',
+  cancelText: 'Hủy',
+  danger: false,
+  _resolve: null
+})
+
+function openConfirm({ title, message, okText, cancelText, danger } = {}) {
+  confirmState.title = title ?? 'Xác nhận'
+  confirmState.message = message ?? ''
+  confirmState.okText = okText ?? 'OK'
+  confirmState.cancelText = cancelText ?? 'Hủy'
+  confirmState.danger = !!danger
+  confirmState.open = true
+  return new Promise((res) => (confirmState._resolve = res))
+}
+
+function confirmOk() {
+  confirmState.open = false
+  confirmState._resolve?.(true)
+  confirmState._resolve = null
+}
+function confirmCancel() {
+  confirmState.open = false
+  confirmState._resolve?.(false)
+  confirmState._resolve = null
 }
 
 /* ========= Form ========= */
@@ -448,7 +482,8 @@ onMounted(async () => {
   try {
     const promises = Object.keys(attributeMap).map((key) =>
       attributeService.getAllList(attributeMap[key]).then((res) => {
-        attributes[key] = res.data.filter((item) => item.trangThai === true)
+        // chỉ lấy active để chọn
+        attributes[key] = (res.data || []).filter((item) => item.trangThai === true)
       })
     )
     await Promise.all(promises)
@@ -516,7 +551,7 @@ const variantsGroupedByColor = computed(() => {
 })
 
 async function handleGroupImageUpload(group, event) {
-  const file = event.target.files[0]
+  const file = event.target.files?.[0]
   if (!file) return
   try {
     const res = await uploadImage(file)
@@ -556,7 +591,37 @@ function confirmGroupApply() {
   showToast('Đã áp dụng cho nhóm biến thể!', 'success')
 }
 
-/* ========= Quick Add ========= */
+/* ========= Quick Add (mã tự tăng theo prefix: MS01, TH01...) ========= */
+const CODE_PREFIX = {
+  'mau-sac': 'MS',
+  'thuong-hieu': 'TH',
+  'chat-lieu': 'CL',
+  'kich-co': 'KC',
+  'loai-san-pham': 'LSP',
+  'so-khuy': 'SK',
+  'kieu-tui': 'KT',
+  've-ao': 'VA',
+  'xe-ta': 'XT',
+  'xuat-xu': 'XX',
+  'fit': 'FIT'
+}
+function pad2(n) {
+  return n < 10 ? `0${n}` : String(n)
+}
+function genNextAttrCode(typeCode, list) {
+  const prefix = (CODE_PREFIX[typeCode] || 'TT').toUpperCase()
+  const nums = (list || [])
+    .map((i) => String(i.ma || '').toUpperCase())
+    .map((ma) => {
+      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
+      return m ? Number(m[1]) : null
+    })
+    .filter((n) => Number.isFinite(n))
+
+  let next = (nums.length ? Math.max(...nums) : 0) + 1
+  return `${prefix}${pad2(next)}`
+}
+
 const showQuickAddModal = ref(false)
 const quickAddValue = ref('')
 const quickAddTarget = reactive({ key: '', typeCode: '' })
@@ -591,26 +656,42 @@ function closeQuickAdd() {
 }
 
 async function confirmQuickAdd() {
-  if (!quickAddValue.value.trim()) {
+  const raw = String(quickAddValue.value || '').trim()
+  if (!raw) {
     showToast('Vui lòng nhập tên!', 'error')
     return
   }
 
   try {
-    await attributeService.create(quickAddTarget.typeCode, {
-      ten: quickAddValue.value,
-      ma: quickAddValue.value.toUpperCase().replace(/\s+/g, ''),
-      trangThai: true
-    })
+    // lấy ALL list để tính mã tiếp theo (kể cả inactive)
+    const allRes = await attributeService.getAllList(quickAddTarget.typeCode)
+    const allList = allRes.data || []
+    const nextMa = genNextAttrCode(quickAddTarget.typeCode, allList)
 
+    const payload =
+      quickAddTarget.typeCode === 'kich-co'
+        ? { ma: nextMa, soSize: Number(raw), trangThai: true }
+        : { ma: nextMa, ten: raw, trangThai: true }
+
+    await attributeService.create(quickAddTarget.typeCode, payload)
+
+    // reload list active để chọn
     const res = await attributeService.getAllList(quickAddTarget.typeCode)
-    attributes[quickAddTarget.key] = res.data
+    const activeList = (res.data || []).filter((x) => x.trangThai === true)
+    attributes[quickAddTarget.key] = activeList
 
-    const newItem = res.data.find((x) => x.ten === quickAddValue.value)
-    if (newItem) product[quickAddTarget.key + 'Id'] = newItem.id
+    // auto chọn item mới
+    const newItem =
+      quickAddTarget.typeCode === 'kich-co'
+        ? activeList.find((x) => Number(x.soSize) === Number(raw))
+        : activeList.find((x) => String(x.ten).trim() === raw)
+
+    if (newItem && (quickAddTarget.key + 'Id') in product) {
+      product[quickAddTarget.key + 'Id'] = newItem.id
+    }
 
     closeQuickAdd()
-    showToast('Đã thêm mới thuộc tính!', 'success')
+    showToast(`Đã thêm mới ${quickAddLabel.value}!`, 'success')
   } catch (e) {
     console.error(e)
     showToast('Lỗi thêm mới thuộc tính', 'error')
@@ -636,7 +717,7 @@ function toggleAttrSelection(item) {
 }
 
 function confirmAttrSelection() {
-  const list = attributes[currentAttrType.value]
+  const list = attributes[currentAttrType.value] || []
   const selectedItems = list.filter((item) => tempSelectedIds.value.has(item.id))
   if (currentAttrType.value === 'mauSac') selectedColors.value = selectedItems
   else selectedSizes.value = selectedItems
@@ -681,11 +762,8 @@ function validate() {
   return valid
 }
 
-/* ========= Submit Popover Confirm ========= */
-const finishAnchorRef = ref(null)
-const submitConfirm = reactive({ show: false, message: '' })
-
-function toggleSubmitConfirm() {
+/* ========= Submit (Confirm Modal giữa màn) ========= */
+async function handleSubmitClick() {
   globalError.value = ''
 
   if (!validate()) {
@@ -693,24 +771,22 @@ function toggleSubmitConfirm() {
     return
   }
 
-  // Nội dung như ảnh: hỏi xác nhận
-  if (generatedVariants.value.length === 0) {
-    submitConfirm.message = 'Bạn chưa tạo biến thể nào. Sản phẩm sẽ được tạo nhưng không có tồn kho. Tiếp tục?'
-  } else {
-    submitConfirm.message = isEditMode.value
-      ? 'Bạn có chắc chắn muốn lưu thay đổi sản phẩm không?'
-      : 'Bạn có chắc chắn muốn hoàn tất thêm sản phẩm không?'
-  }
+  const message =
+    generatedVariants.value.length === 0
+      ? 'Bạn chưa tạo biến thể nào. Sản phẩm sẽ được tạo nhưng không có tồn kho. Tiếp tục?'
+      : isEditMode.value
+          ? 'Bạn có chắc chắn muốn lưu thay đổi sản phẩm không?'
+          : 'Bạn có chắc chắn muốn hoàn tất thêm sản phẩm không?'
 
-  submitConfirm.show = !submitConfirm.show
-}
+  const ok = await openConfirm({
+    title: 'Xác nhận',
+    message,
+    okText: 'Đồng ý',
+    cancelText: 'Hủy',
+    danger: false
+  })
 
-function closeSubmitConfirm() {
-  submitConfirm.show = false
-}
-
-async function confirmSubmit() {
-  submitConfirm.show = false
+  if (!ok) return
   await doSubmit()
 }
 
@@ -754,35 +830,26 @@ async function doSubmit() {
   }
 }
 
-/* ========= Clear Variants Popover Confirm ========= */
-const clearAnchorRef = ref(null)
-const clearConfirm = reactive({ show: false })
+/* ========= Clear Variants (Confirm Modal giữa màn) ========= */
+async function askClearVariants() {
+  if (generatedVariants.value.length === 0) {
+    showToast('Không có biến thể để xóa', 'error')
+    return
+  }
 
-function toggleClearConfirm() {
-  clearConfirm.show = !clearConfirm.show
-}
-function closeClearConfirm() {
-  clearConfirm.show = false
-}
-function confirmClearVariants() {
-  clearConfirm.show = false
+  const ok = await openConfirm({
+    title: 'Xóa tất cả biến thể',
+    message: 'Bạn có chắc chắn muốn xóa tất cả biến thể không?',
+    okText: 'Xóa',
+    cancelText: 'Hủy',
+    danger: true
+  })
+
+  if (!ok) return
+
   generatedVariants.value = []
   showToast('Đã xóa tất cả biến thể', 'success')
 }
-
-/* ========= Click outside close popovers ========= */
-function handleDocClick(e) {
-  // submit popover
-  if (submitConfirm.show && finishAnchorRef.value && !finishAnchorRef.value.contains(e.target)) {
-    submitConfirm.show = false
-  }
-  // clear popover
-  if (clearConfirm.show && clearAnchorRef.value && !clearAnchorRef.value.contains(e.target)) {
-    clearConfirm.show = false
-  }
-}
-document.addEventListener('click', handleDocClick)
-onBeforeUnmount(() => document.removeEventListener('click', handleDocClick))
 
 /* ========= Navigation ========= */
 function goBack() {
@@ -792,7 +859,7 @@ function goBack() {
 /* ========= Color helper ========= */
 function getColorCode(name) {
   if (!name) return '#e5e7eb'
-  const n = name.toLowerCase()
+  const n = String(name).toLowerCase()
   if (n.includes('đen') || n.includes('black')) return 'black'
   if (n.includes('trắng') || n.includes('white')) return '#ffffff'
   if (n.includes('đỏ') || n.includes('red')) return '#ef4444'
@@ -813,7 +880,7 @@ function getColorCode(name) {
 </script>
 
 <style scoped>
-/* ===== Modal (đang dùng cho attr modal + quick add + group apply) ===== */
+/* ===== Modal (attr modal + quick add + group apply) ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -870,85 +937,65 @@ function getColorCode(name) {
   border: 1px solid #f5c2c7;
 }
 
-/* ===== Popover Confirm (speech bubble như ảnh) ===== */
-.confirm-anchor {
-  position: relative;
-  display: inline-block;
-}
-.confirm-popover {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 10px 12px;
-  width: 380px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-  z-index: 2000;
-}
-.confirm-popover--left {
-  right: auto;
-  left: 0;
-}
-.confirm-arrow {
-  position: absolute;
-  right: 18px;
-  bottom: -7px;
-  width: 14px;
-  height: 14px;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
-  transform: rotate(45deg);
-}
-.confirm-arrow--left {
-  right: auto;
-  left: 18px;
-}
-.confirm-row {
+/* ===== Confirm Modal (giữa màn - giống danh sách thuộc tính) ===== */
+.confirm-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
 }
-.confirm-icon {
-  font-size: 16px;
-  line-height: 1;
-  margin-top: 2px;
+.confirm-modal{
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
 }
-.confirm-msg {
-  font-size: 13px;
+.confirm-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+.confirm-header h3{
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: #111827;
-  line-height: 1.35;
 }
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-.btn-mini {
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-weight: 600;
-  font-size: 12px;
+.close-btn{
+  border: none;
+  background: transparent;
+  font-size: 22px;
   cursor: pointer;
-  border: 1px solid transparent;
+  line-height: 1;
+  color: #6b7280;
 }
-.btn-cancel {
-  background: #f3f4f6;
-  border-color: #e5e7eb;
+.confirm-body{
+  padding: 16px;
   color: #374151;
 }
-.btn-ok {
-  background: #1e3a8a;   /* giống .btn-primary */
-  border-color: #1e3a8a;
+.confirm-body p{
+  margin: 0;
+  line-height: 1.5;
+}
+.confirm-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+.btn-danger{
+  background: #ef4444;
   color: #fff;
 }
-.btn-ok-danger {
-  background: #ef4444;
-  border-color: #dc2626;
-  color: #fff;
+.btn-danger:hover{
+  background: #dc2626;
 }
 
 /* ===== Base UI (giữ giống bạn) ===== */
@@ -1032,10 +1079,6 @@ function getColorCode(name) {
 }
 .btn-orange:hover {
   background: #1e40af;
-}
-.btn-orange:disabled {
-  background: #fed7aa;
-  cursor: not-allowed;
 }
 
 .full-width-btn {
@@ -1226,16 +1269,9 @@ function getColorCode(name) {
   font-size: 1.2rem;
   line-height: 1;
 }
-.btn-remove-block:hover {
-  background: #1e40af;
-}
-.mt-2 {
-  margin-top: 10px;
-}
+.mt-2 { margin-top: 10px; }
 
-.modal-lg {
-  max-width: 600px;
-}
+.modal-lg { max-width: 600px; }
 .attr-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -1274,15 +1310,8 @@ function getColorCode(name) {
   border: 1px solid rgba(0, 0, 0, 0.1);
   margin-bottom: 5px;
 }
-.attr-name {
-  font-size: 0.85rem;
-  color: #374151;
-}
-.attr-name-lg {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #374151;
-}
+.attr-name { font-size: 0.85rem; color: #374151; }
+.attr-name-lg { font-size: 1.1rem; font-weight: 600; color: #374151; }
 
 .section-image-upload {
   margin-top: 30px;
@@ -1326,9 +1355,7 @@ function getColorCode(name) {
   cursor: pointer;
   transition: 0.2s;
 }
-.upload-area:hover {
-  background: #f3f4f6;
-}
+.upload-area:hover { background: #f3f4f6; }
 .upload-placeholder {
   display: flex;
   flex-direction: column;
@@ -1337,19 +1364,9 @@ function getColorCode(name) {
   gap: 5px;
   font-size: 0.85rem;
 }
-.icon-lg {
-  font-size: 2rem;
-}
-.preview-box-lg {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-.preview-box-lg img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
+.icon-lg { font-size: 2rem; }
+.preview-box-lg { width: 100%; height: 100%; overflow: hidden; }
+.preview-box-lg img { width: 100%; height: 100%; object-fit: contain; }
 
 .btn-quick-add-blue {
   background: #1e40af;
@@ -1361,9 +1378,7 @@ function getColorCode(name) {
   cursor: pointer;
   font-weight: 500;
 }
-.btn-quick-add-blue:hover {
-  background: #1e3a8a;
-}
+.btn-quick-add-blue:hover { background: #1e3a8a; }
 
 .action-bar {
   display: flex;
@@ -1374,4 +1389,22 @@ function getColorCode(name) {
   border-top: 1px solid #e5e7eb;
   margin-top: 20px;
 }
-</style> 
+
+/* icon remove variant */
+.btn-icon {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.btn-icon.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.btn-icon.danger:hover {
+  background: #fecaca;
+}
+</style>

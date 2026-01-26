@@ -66,12 +66,12 @@
                     ✏️
                   </button>
 
-                  <!-- Switch: popup confirm giữa màn hình -->
+                  <!-- Switch confirm popup -->
                   <label class="switch" title="Đổi trạng thái">
                     <input
                       type="checkbox"
                       :checked="!!item.trangThai"
-                      :disabled="isToggling(item.id)"
+                      :disabled="togglingIds.has(item.id)"
                       @click.prevent="confirmToggleStatus(item)"
                     />
                     <span class="slider"></span>
@@ -138,7 +138,7 @@
               v-model="form.ten"
               class="form-input"
               :type="isSize ? 'number' : 'text'"
-              :min="isSize ? 0 : undefined"
+              :min="isSize ? 1 : undefined"
               required
             />
           </div>
@@ -151,7 +151,7 @@
       </div>
     </div>
 
-    <!-- Confirm Popup (giữa màn hình) -->
+    <!-- Confirm Popup (center) -->
     <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
       <div class="confirm-modal">
         <div class="confirm-header">
@@ -185,6 +185,7 @@ const route = useRoute()
  * Type / Title
  * ======================= */
 const type = computed(() => String(route.params.type || ''))
+
 const TITLES = {
   'thuong-hieu': 'Thương hiệu',
   'chat-lieu': 'Chất liệu',
@@ -196,14 +197,13 @@ const TITLES = {
   've-ao': 'Ve áo',
   'xe-ta': 'Xẻ tà',
   'xuat-xu': 'Xuất xứ',
-  'fit': 'Fit'
+  fit: 'Fit'
 }
 const title = computed(() => TITLES[type.value] || 'Thuộc tính')
 const isSize = computed(() => type.value === 'kich-co')
 
 /* =======================
  * Prefix mã tự tăng
- * (màu sắc = MS01..)
  * ======================= */
 const CODE_PREFIX = {
   'mau-sac': 'MS',
@@ -216,7 +216,7 @@ const CODE_PREFIX = {
   've-ao': 'VA',
   'xe-ta': 'XT',
   'xuat-xu': 'XX',
-  'fit': 'FIT'
+  fit: 'FIT'
 }
 
 /* =======================
@@ -231,7 +231,7 @@ const searchQuery = ref('')
  * ======================= */
 function displayName(item) {
   if (!item) return ''
-  // API kích cỡ thường có soSize
+  // kich-co: ưu tiên soSize
   return isSize.value ? (item.soSize ?? item.ten ?? '') : (item.ten ?? '')
 }
 
@@ -242,10 +242,11 @@ function pad2(n) {
 function genNextCode() {
   const prefix = (CODE_PREFIX[type.value] || 'TT').toUpperCase()
 
-  const nums = (items.value || [])
+  // chỉ lấy mã đúng format PREFIX + số (VD: MS01)
+  const nums = items.value
     .map(i => String(i.ma || '').toUpperCase())
     .map(ma => {
-      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`)) // chỉ lấy đúng PREFIX + số
+      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
       return m ? Number(m[1]) : null
     })
     .filter(n => Number.isFinite(n))
@@ -253,9 +254,8 @@ function genNextCode() {
   let next = (nums.length ? Math.max(...nums) : 0) + 1
   let code = `${prefix}${pad2(next)}`
 
-  while (
-    items.value.some(i => String(i.ma || '').toUpperCase() === code.toUpperCase() && i.id !== form.id)
-  ) {
+  // tránh trùng
+  while (items.value.some(i => String(i.ma || '').toUpperCase() === code)) {
     next++
     code = `${prefix}${pad2(next)}`
   }
@@ -311,7 +311,12 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await attributeService.getAllList(type.value)
-    items.value = Array.isArray(res.data) ? res.data : []
+    const data = Array.isArray(res.data) ? res.data : []
+
+    // normalize kich-co để chắc chắn có soSize
+    items.value = isSize.value
+      ? data.map(it => ({ ...it, soSize: it.soSize ?? it.ten }))
+      : data
   } catch (e) {
     console.error(e)
     error('Không thể tải dữ liệu')
@@ -342,7 +347,7 @@ function openModal(mode, item = null) {
     form.id = null
     form.trangThai = true
     form.ten = ''
-    form.ma = genNextCode() // ✅ auto mã tăng
+    form.ma = genNextCode()
   }
 
   showModal.value = true
@@ -353,13 +358,13 @@ function closeModal() {
 }
 
 /* =======================
- * Submit
+ * Submit Create/Edit
  * ======================= */
 async function submitForm() {
   const tenRaw = String(form.ten ?? '').trim()
   if (!tenRaw) return
 
-  // Kích cỡ: ép number
+  // kich-co: ép number
   let soSizeNum = undefined
   if (isSize.value) {
     soSizeNum = Number(tenRaw)
@@ -368,7 +373,7 @@ async function submitForm() {
     }
   }
 
-  // Check trùng
+  // check trùng theo displayName
   const dup = items.value.find(i => {
     if (i.id === form.id) return false
     const a = String(displayName(i)).trim().toLowerCase()
@@ -379,7 +384,7 @@ async function submitForm() {
 
   const payload = {
     id: form.id,
-    ma: form.ma || genNextCode(), // ✅ không sinh theo tên
+    ma: form.ma || genNextCode(),
     trangThai: form.trangThai,
     ten: isSize.value ? undefined : tenRaw,
     soSize: isSize.value ? soSizeNum : undefined
@@ -393,12 +398,12 @@ async function submitForm() {
       await attributeService.update(type.value, form.id, payload)
       success(`Cập nhật ${title.value} thành công`)
     }
+
     closeModal()
     await fetchData()
   } catch (e) {
     console.error(e)
-    const msg = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra'
-    error(msg)
+    error(e?.response?.data?.message || e?.message || 'Có lỗi xảy ra')
   }
 }
 
@@ -414,7 +419,7 @@ const confirmState = reactive({
 function openConfirm(message) {
   confirmState.open = true
   confirmState.message = message
-  return new Promise((res) => {
+  return new Promise(res => {
     confirmState.resolve = res
   })
 }
@@ -432,13 +437,9 @@ function confirmCancel() {
 }
 
 /* =======================
- * Toggle status
+ * Toggle status (FIX kich-co)
  * ======================= */
 const togglingIds = reactive(new Set())
-
-function isToggling(id) {
-  return togglingIds.has(id)
-}
 
 async function confirmToggleStatus(item) {
   if (!item?.id) return
@@ -462,15 +463,17 @@ async function toggleStatus(item, forcedNext) {
   const old = !!item.trangThai
   const next = typeof forcedNext === 'boolean' ? forcedNext : !old
 
-  // optimistic UI
+  // optimistic
   item.trangThai = next
 
   try {
+    // ✅ kich-co bắt buộc gửi soSize, KHÔNG dùng Number(displayName())
     const payload = {
-      ...item,
+      id: item.id,
+      ma: item.ma,
       trangThai: next,
-      ten: isSize.value ? undefined : displayName(item),
-      soSize: isSize.value ? Number(displayName(item)) : undefined
+      ten: isSize.value ? undefined : (item.ten ?? ''),
+      soSize: isSize.value ? (item.soSize ?? item.ten) : undefined
     }
 
     await attributeService.update(type.value, item.id, payload)
@@ -479,15 +482,14 @@ async function toggleStatus(item, forcedNext) {
   } catch (e) {
     console.error(e)
     item.trangThai = old
-    const msg = e?.response?.data?.message || e?.message || 'Không thể cập nhật trạng thái'
-    error(msg)
+    error(e?.response?.data?.message || e?.message || 'Không thể cập nhật trạng thái')
   } finally {
     togglingIds.delete(item.id)
   }
 }
 
 /* =======================
- * Excel stub
+ * Excel
  * ======================= */
 function exportExcel() {
   success('Chức năng xuất Excel sẽ bổ sung sau')
