@@ -5,16 +5,21 @@
         <i class="bi bi-people fs-4"></i>
         <h5 class="mb-0">Danh sách nhân viên</h5>
       </div>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-primary btn-sm" type="button" @click="exportExcel">
+          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+        </button>
 
-      <button
-          class="btn btn-primary btn-sm text-white"
-          type="button"
-          @click="goCreate"
-          :disabled="!isAdmin"
-          title="Thêm mới"
-      >
-        <i class="bi bi-plus-lg me-1"></i> Thêm mới
-      </button>
+        <button
+            class="btn btn-primary btn-sm text-white"
+            type="button"
+            @click="goCreate"
+            :disabled="!isAdmin"
+            title="Thêm mới"
+        >
+          <i class="bi bi-plus-lg me-1"></i> Thêm mới
+        </button>
+      </div>
     </div>
 
     <!-- ✅ Filters (UI giống voucher, không cần Bootstrap JS) -->
@@ -311,7 +316,7 @@ import { useRouter } from "vue-router";
 import http from "../../services/http";
 import { useAuthStore } from "../../stores/auth";
 import { useToast } from "@/composables/useToast";
-
+import * as XLSX from "xlsx";
 const router = useRouter();
 const auth = useAuthStore();
 const toast = useToast();
@@ -324,6 +329,64 @@ const filterOpen = ref(true);
 function toggleFilter() {
   filterOpen.value = !filterOpen.value;
 }
+
+function fmt2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function buildFileName() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = fmt2(d.getMonth() + 1);
+  const day = fmt2(d.getDate());
+  const hh = fmt2(d.getHours());
+  const mm = fmt2(d.getMinutes());
+  return `Danh_sach_nhan_vien_${y}${m}${day}_${hh}${mm}.xlsx`;
+}
+
+function exportExcel() {
+  const rows = (paged.value || []).map((s, idx) => ({
+    "STT": page.page * page.size + idx + 1,
+    "Mã NV": s.maNhanVien || "",
+    "Họ tên": s.tenNhanVien || "",
+    "Email": s.email || "",
+    "SĐT": s.soDienThoai || "",
+    "Tài khoản": s.taiKhoan || "",
+    "Chức vụ": getRoleText(s),
+    "Trạng thái": s.trangThai ? "Đang làm" : "Đã nghỉ",
+    "Địa chỉ": s.diaChi || "",
+    "Ảnh đại diện": s.anhDaiDien ? resolveFileUrl(s.anhDaiDien) : "",
+    "ID": s.id ?? "",
+  }));
+
+  if (!rows.length) {
+    toast.warning("Không có dữ liệu để xuất.");
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // độ rộng cột cho dễ nhìn
+  ws["!cols"] = [
+    { wch: 6 },   // STT
+    { wch: 14 },  // Mã NV
+    { wch: 24 },  // Họ tên
+    { wch: 28 },  // Email
+    { wch: 14 },  // SĐT
+    { wch: 18 },  // Tài khoản
+    { wch: 12 },  // Chức vụ
+    { wch: 14 },  // Trạng thái
+    { wch: 40 },  // Địa chỉ
+    { wch: 40 },  // Ảnh đại diện
+    { wch: 10 },  // ID
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "NhanVien");
+
+  XLSX.writeFile(wb, buildFileName());
+}
+
 
 /** ✅ Không dùng filtersDraft nữa */
 const filters = reactive({
