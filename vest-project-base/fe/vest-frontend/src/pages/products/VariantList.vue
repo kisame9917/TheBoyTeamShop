@@ -286,6 +286,100 @@
 
     <!-- (Các modal giữ nguyên như bạn, mình không sửa) -->
   </div>
+  <!-- Edit Modal -->
+<div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h6 class="mb-0">Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h6>
+      <button class="btn-close" type="button" @click="closeEditModal"></button>
+    </div>
+
+    <div class="modal-body p-3">
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Kích cỡ</label>
+          <select v-model="editingVariant.idKichCo" class="form-select">
+            <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
+              {{ s.soSize }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Màu sắc</label>
+          <select v-model="editingVariant.idMauSac" class="form-select">
+            <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
+              {{ c.ten }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Số lượng tồn</label>
+          <input type="number" min="0" class="form-control" v-model.number="editingVariant.soLuongTon" />
+        </div>
+
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Giá bán</label>
+          <input type="number" min="0" class="form-control" v-model.number="editingVariant.donGia" />
+        </div>
+
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Trạng thái</label>
+          <div class="d-flex gap-3">
+            <label class="d-flex align-items-center gap-2 small mb-0">
+              <input type="radio" :value="true" v-model="editingVariant.trangThai" /> Còn hàng
+            </label>
+            <label class="d-flex align-items-center gap-2 small mb-0">
+              <input type="radio" :value="false" v-model="editingVariant.trangThai" /> Hết hàng
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Ảnh biến thể</label>
+          <input type="file" class="form-control" accept="image/*" @change="handleFileUpload" />
+          <div v-if="editingVariant.anh" class="mt-2">
+            <img :src="'http://localhost:8080' + editingVariant.anh" class="preview-img" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" type="button" @click="closeEditModal">Hủy</button>
+      <button class="btn btn-primary btn-sm" type="button" @click="submitEdit">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Toggle Modal -->
+<div v-if="showConfirmToggle" class="modal-overlay" @click.self="closeToggleModal">
+  <div class="modal-box modal-confirm">
+    <div class="modal-head">
+      <h6 class="mb-0">Xác nhận đổi trạng thái</h6>
+      <button class="btn-close" type="button" @click="closeToggleModal"></button>
+    </div>
+
+    <div class="modal-body p-3">
+      <div>
+        Bạn có chắc muốn đổi trạng thái biến thể
+        <b>{{ pendingVariant?.maSanPhamChiTiet }}</b>
+        thành <b>{{ pendingNext ? 'Còn hàng' : 'Hết hàng' }}</b> không?
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" type="button" @click="closeToggleModal" :disabled="toggleLoading">
+        Hủy
+      </button>
+      <button class="btn btn-primary btn-sm" type="button" @click="confirmToggleStatus" :disabled="toggleLoading">
+        {{ toggleLoading ? 'Đang xử lý...' : 'Xác nhận' }}
+      </button>
+    </div>
+  </div>
+</div>
+
 </template>
 
 <script setup>
@@ -642,7 +736,7 @@ const COLOR_MAP = {
   'xanh duong': '#3b82f6',
   'xanh navy': '#1e3a8a',
   'xanh than': '#1e3a8a',
-  navy: '#1e3a8a',
+  'navy': '#1e3a8a',
 
   cyan: '#06b6d4'
 }
@@ -741,4 +835,49 @@ function formatPrice(val) {
   border: 1px solid #e5e7eb;
   margin-right: 6px;
 }
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box{
+  width: 620px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+}
+
+.modal-confirm{ width: 520px; }
+
+.modal-head{
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.modal-foot{
+  padding: 12px 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eef2f7;
+}
+
+.preview-img{
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
 </style>

@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="page-header">
       <div class="page-title">
-        <h2>Quản lý sản phẩm / Danh sách biến thể</h2>
+        <h2>Quản lý sản phẩm / Chi Tiết biến thể</h2>
       </div>
 
       <div class="page-actions">
@@ -812,7 +812,7 @@ function colorDotStyle(variant) {
 <style scoped>
 .product-detail-page{
   padding: 20px;
-  background:#f3f4f6;
+  background:#ffffff;
   min-height: 100vh;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -1000,4 +1000,23 @@ function colorDotStyle(variant) {
   display:flex; justify-content:flex-end; gap:10px;
   padding:12px 14px; border-top:1px solid #eef2f7;
 }
+/* Card table: không padding + clip bo góc */
+.table-card{
+  padding: 0;            /* ✅ bỏ padding để không bị lệch viền */
+  overflow: hidden;      /* ✅ clip phần bảng theo border-radius */
+  border-radius: 8px;
+}
+
+/* Table responsive: cho phép scroll ngang đúng chỗ */
+.table-responsive{
+  overflow-x: auto;      /* ✅ luôn scroll trong khung */
+  overflow-y: hidden;
+}
+
+/* Bảng không tạo khoảng trống lạ */
+.variants-table{
+  margin: 0;
+  min-width: 1530px;     /* ✅ đúng bằng tổng width cột bạn fix */
+}
+
 </style>
