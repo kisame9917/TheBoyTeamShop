@@ -694,7 +694,7 @@ async function confirmQuickAdd() {
     closeQuickAdd()
 
     const valueText = quickAddTarget.typeCode === 'kich-co' ? String(Number(raw)) : raw
-    showToast(`Đã thêm nhanh "${valueText}" vào ${quickAddLabel.value} và tự chọn vào form.`)
+    showToast(`Đã thêm nhanh "${valueText}" vào ${quickAddLabel.value}`)
   } catch (e) {
     console.error(e)
     showToast('Lỗi thêm mới thuộc tính', 'error')
