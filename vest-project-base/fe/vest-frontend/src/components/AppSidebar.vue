@@ -43,7 +43,7 @@
       <!-- Orders -->
       <RouterLink to="/orders" class="nav-link-item" active-class="active">
         <i class="bi bi-receipt-cutoff icon"></i>
-        <span class="label">Quản lý hóa đơn</span>
+        <span class="label">Hóa đơn</span>
       </RouterLink>
 
       <!-- Group: Products -->
@@ -56,7 +56,7 @@
         >
           <span class="d-flex align-items-center gap-2">
             <i class="bi bi-box-seam icon"></i>
-            <span class="label">Quản lý sản phẩm</span>
+            <span class="label">Sản phẩm</span>
           </span>
           <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.products }"></i>
         </button>
@@ -83,7 +83,7 @@
         >
           <span class="d-flex align-items-center gap-2">
             <i class="bi bi-ui-checks-grid icon"></i>
-            <span class="label">Danh sách thuộc tính</span>
+            <span class="label">Thuộc tính</span>
           </span>
           <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.attributes }"></i>
         </button>
@@ -128,7 +128,7 @@
       <!-- Vouchers -->
       <RouterLink to="/vouchers" class="nav-link-item" active-class="active">
         <i class="bi bi-ticket-perforated icon"></i>
-        <span class="label">Quản lý giảm giá</span>
+        <span class="label">Giảm giá</span>
       </RouterLink>
 
       <!-- Group: Accounts -->
@@ -141,7 +141,7 @@
         >
           <span class="d-flex align-items-center gap-2">
             <i class="bi bi-people icon"></i>
-            <span class="label">Quản lý tài khoản</span>
+            <span class="label">Tài khoản</span>
           </span>
           <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.accounts }"></i>
         </button>
@@ -319,7 +319,7 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   gap:10px;
 
   height: 38px;
-  padding: 0 12px;
+  padding: 0 6px;
 
   margin: 4px 0;
   border-radius: 12px;

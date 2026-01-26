@@ -6,39 +6,20 @@
         <i class="bi bi-person-badge fs-4"></i>
         <h5 class="mb-0">{{ isEdit ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h5>
       </div>
-
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
         <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
       </button>
     </div>
-
     <!-- Form card -->
     <div class="card shadow-sm">
       <div class="card-body">
         <!-- Avatar centered -->
         <div class="d-flex flex-column align-items-center mb-3">
           <div class="avatar-wrap" @click="triggerPickFile" title="Bấm để chọn ảnh">
-            <img
-                v-if="avatarPreview"
-                :src="avatarPreview"
-                class="avatar-img"
-                alt="avatar"
-                @error="onAvatarImgError"
-            />
+            <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="avatar" @error="onAvatarImgError"/>
             <div v-else class="avatar-fallback">NV</div>
-
-            <button
-                v-if="avatarPreview"
-                type="button"
-                class="avatar-remove"
-                @click.stop="clearAvatar"
-                title="Xóa ảnh"
-            >
-              ×
-            </button>
-
+            <button v-if="avatarPreview" type="button" class="avatar-remove" @click.stop="clearAvatar" title="Xóa ảnh">×</button>
             <div v-if="uploading" class="avatar-uploading">⏳</div>
-
             <input
                 ref="fileInput"
                 class="avatar-input"
@@ -64,8 +45,8 @@
             <div class="col-12 col-lg-6">
               <label class="form-label">Chức vụ</label>
               <select class="form-select" v-model="form.quyenHanKey" :disabled="!isAdmin">
-                <option value="ADMIN">ADMIN</option>
-                <option value="NHAN_VIEN">NHÂN VIÊN</option>
+                <option value="ADMIN">Admin</option>
+                <option value="NHAN_VIEN">Nhân viên</option>
               </select>
             </div>
 
@@ -87,11 +68,6 @@
                 <div class="form-check">
                   <input class="form-check-input" type="radio" id="gt_nu" v-model="form.gioiTinh" :value="false" />
                   <label class="form-check-label" for="gt_nu">Nữ</label>
-                </div>
-
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" id="gt_khac" v-model="form.gioiTinh" :value="null" />
-                  <label class="form-check-label" for="gt_khac">Khác</label>
                 </div>
               </div>
             </div>
@@ -125,25 +101,16 @@
               <label class="form-label">Tỉnh/Thành phố</label>
               <select class="form-select" v-model="addr.provinceCode" @change="onProvinceChange">
                 <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                <option v-for="p in provinces" :key="p.code" :value="String(p.code)">
-                  {{ p.name }}
-                </option>
+                <option v-for="p in provinces" :key="p.code" :value="String(p.code)">{{ p.name }}</option>
               </select>
             </div>
 
             <!-- 10) Quận/Huyện -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Quận/Huyện</label>
-              <select
-                  class="form-select"
-                  v-model="addr.districtCode"
-                  @change="onDistrictChange"
-                  :disabled="!addr.provinceCode"
-              >
+              <select class="form-select" v-model="addr.districtCode" @change="onDistrictChange" :disabled="!addr.provinceCode">
                 <option value="">-- Chọn Quận/Huyện --</option>
-                <option v-for="d in districts" :key="d.code" :value="String(d.code)">
-                  {{ d.name }}
-                </option>
+                <option v-for="d in districts" :key="d.code" :value="String(d.code)">{{ d.name }}</option>
               </select>
             </div>
 
@@ -152,9 +119,7 @@
               <label class="form-label">Xã/Phường</label>
               <select class="form-select" v-model="addr.wardCode" :disabled="!addr.districtCode">
                 <option value="">-- Chọn Xã/Phường --</option>
-                <option v-for="w in wards" :key="w.code" :value="String(w.code)">
-                  {{ w.name }}
-                </option>
+                <option v-for="w in wards" :key="w.code" :value="String(w.code)">{{ w.name }}</option>
               </select>
             </div>
 
@@ -186,21 +151,21 @@
             </div>
           </div>
 
-          <div v-if="err" class="alert alert-danger mt-3 mb-0">
-            {{ err }}
-          </div>
+          <!-- ✅ BỎ alert đỏ dưới form -->
 
-          <div class="d-flex justify-content-end gap-2 mt-3">
-            <button type="button" class="btn btn-light" @click="goBack">
-              Hủy
-            </button>
-            <button type="submit" class="btn btn-primary text-white" :disabled="saving || uploading">
-              {{
-                uploading
-                    ? 'Đang upload ảnh...'
-                    : (saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Lưu nhân viên'))
-              }}
-            </button>
+          <div class="d-flex align-items-center justify-content-between gap-2 mt-3">
+            <div class="me-auto fst-italic">Vui lòng điền đầy đủ các thông tin.</div>
+
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-light" @click="goBack">Hủy</button>
+              <button type="submit" class="btn btn-primary text-white" :disabled="saving || uploading">
+                {{
+                  uploading
+                      ? 'Đang upload ảnh...'
+                      : (saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Lưu nhân viên'))
+                }}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -211,7 +176,6 @@
       <div class="modal-card">
         <h3 class="modal-title">Xác nhận</h3>
         <p class="modal-desc">{{ confirmText }}</p>
-
         <div class="modal-actions">
           <button class="btn btn-outline" :disabled="confirmLoading" @click="closeConfirm">Hủy</button>
           <button class="btn btn-confirm-primary" :disabled="confirmLoading" @click="confirmYes">
@@ -237,6 +201,8 @@
             <div v-if="t.title" class="fw-semibold mb-1">{{ t.title }}</div>
             <div>{{ t.message }}</div>
           </div>
+
+          <!-- (giữ nguyên như bạn đang dùng) -->
           <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
         </div>
       </div>
@@ -252,7 +218,6 @@ import { useAuthStore } from '../../stores/auth'
 import { useToast } from '@/composables/useToast'
 
 const toast = useToast()
-
 const MAX_AVATAR_MB = 5
 
 const auth = useAuthStore()
@@ -263,9 +228,7 @@ const route = useRoute()
 const router = useRouter()
 
 const isEdit = computed(() => !!route.params.id)
-
 const saving = ref(false)
-const err = ref('')
 const uploading = ref(false)
 
 /** ===== Confirm popup state ===== */
@@ -336,14 +299,12 @@ const avatarNameText = computed(() => {
 function triggerPickFile() {
   fileInput.value?.click()
 }
-
 function revokeLocalBlob() {
   if (localBlobUrl.value && String(localBlobUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(localBlobUrl.value)
   }
   localBlobUrl.value = ''
 }
-
 function clearAvatar() {
   revokeLocalBlob()
   avatarPreview.value = ''
@@ -352,7 +313,6 @@ function clearAvatar() {
   if (fileInput.value) fileInput.value.value = ''
   toast.info('Đã xóa ảnh đại diện.')
 }
-
 function onAvatarImgError() {
   if (localBlobUrl.value) avatarPreview.value = localBlobUrl.value
   else avatarPreview.value = ''
@@ -360,11 +320,9 @@ function onAvatarImgError() {
 
 /** ===== Resolve URL /uploads ===== */
 const FALLBACK_BACKEND = 'http://localhost:8080'
-
 function getBackendOrigin() {
   let base = ''
   if (http?.defaults?.baseURL) base = String(http.defaults.baseURL).trim()
-
   if (base.startsWith('http://') || base.startsWith('https://')) {
     try {
       return new URL(base).origin
@@ -374,7 +332,6 @@ function getBackendOrigin() {
   }
   return FALLBACK_BACKEND
 }
-
 function resolveFileUrl(url) {
   const u = String(url || '').trim()
   if (!u) return ''
@@ -418,7 +375,6 @@ async function onAvatarFileChange(e) {
   } catch (ex) {
     const msg = ex?.response?.data?.message || ex?.message || 'Upload thất bại'
     toast.error(msg)
-    // giữ preview local
   } finally {
     uploading.value = false
   }
@@ -428,7 +384,6 @@ async function onAvatarFileChange(e) {
 const provinces = ref([])
 const districts = ref([])
 const wards = ref([])
-
 const addr = reactive({
   provinceCode: '',
   districtCode: '',
@@ -440,19 +395,16 @@ async function fetchProvinces() {
   const r = await fetch('https://provinces.open-api.vn/api/p/')
   provinces.value = await r.json()
 }
-
 async function fetchDistricts(provinceCode) {
   const r = await fetch('https://provinces.open-api.vn/api/p/' + provinceCode + '?depth=2')
   const data = await r.json()
   districts.value = data?.districts || []
 }
-
 async function fetchWards(districtCode) {
   const r = await fetch('https://provinces.open-api.vn/api/d/' + districtCode + '?depth=2')
   const data = await r.json()
   wards.value = data?.wards || []
 }
-
 async function onProvinceChange() {
   addr.districtCode = ''
   addr.wardCode = ''
@@ -460,7 +412,6 @@ async function onProvinceChange() {
   if (addr.provinceCode) await fetchDistricts(addr.provinceCode)
   else districts.value = []
 }
-
 async function onDistrictChange() {
   addr.wardCode = ''
   if (addr.districtCode) await fetchWards(addr.districtCode)
@@ -471,7 +422,6 @@ function buildDiaChi() {
   const p = provinces.value.find(x => String(x.code) === String(addr.provinceCode))
   const d = districts.value.find(x => String(x.code) === String(addr.districtCode))
   const w = wards.value.find(x => String(x.code) === String(addr.wardCode))
-
   const parts = []
   if (addr.detail?.trim()) parts.push(addr.detail.trim())
   if (w?.name) parts.push(w.name)
@@ -490,14 +440,12 @@ function normalizeText(s) {
       .replace(/\s+/g, ' ')
       .trim()
 }
-
 async function prefillAddressFromDiaChi(diaChi) {
   const parts = String(diaChi || '').split(',').map(x => String(x).trim()).filter(Boolean)
   if (parts.length < 4) {
     addr.detail = parts[0] || ''
     return
   }
-
   const provinceName = parts[parts.length - 1]
   const districtName = parts[parts.length - 2]
   const wardName = parts[parts.length - 3]
@@ -508,7 +456,6 @@ async function prefillAddressFromDiaChi(diaChi) {
     addr.detail = detail || parts[0] || ''
     return
   }
-
   addr.provinceCode = String(p.code)
   await fetchDistricts(addr.provinceCode)
 
@@ -517,7 +464,6 @@ async function prefillAddressFromDiaChi(diaChi) {
     addr.detail = detail
     return
   }
-
   addr.districtCode = String(d.code)
   await fetchWards(addr.districtCode)
 
@@ -550,7 +496,6 @@ function normalizeStaff(x) {
   const qh = x.quyenHan || {}
   const quyenHanId = x.quyenHanId ?? qh.id ?? null
   const tenQuyenHan = x.tenQuyenHan ?? qh.tenQuyenHan ?? ''
-
   return {
     id: x.id ?? null,
     maNhanVien: x.maNhanVien ?? '',
@@ -603,7 +548,6 @@ function isDigitsOnly(v) {
   const s = String(v ?? '').trim()
   return s.length > 0 && /^\d+$/.test(s)
 }
-
 function isAtLeast18(dateStr) {
   if (!dateStr) return false
   const dob = new Date(dateStr)
@@ -670,14 +614,12 @@ async function loadData() {
 
   const id = route.params.id
   let detail = null
-
   try {
     detail = await apiGetStaffById(id)
   } catch {
     detail = null
   }
 
-  // fallback nếu apiGetById fail
   if (!detail) {
     detail = all.find(x => String(normalizeStaff(x).id) === String(id)) || null
   }
@@ -697,7 +639,6 @@ async function loadData() {
   form.diaChi = s.diaChi || ''
   form.trangThai = (s.trangThai === true || s.trangThai === false) ? s.trangThai : true
 
-  // ✅ FIX: set đúng role theo quyenHanId/tenQuyenHan
   form.quyenHanId = s.quyenHanId
   form.quyenHanKey = roleKeyFromStaff(s)
 
@@ -713,12 +654,9 @@ async function loadData() {
 
 /** ===== Submit ===== */
 async function submit() {
-  err.value = ''
-
   const msg = validateForm()
   if (msg) {
-    err.value = msg
-    toast.error(msg)
+    toast.warning(msg) // ✅ giống customer form
     return
   }
 
@@ -726,14 +664,12 @@ async function submit() {
   try {
     all = await apiGetAllStaff()
   } catch {
-    // vẫn cho tiếp tục, nhưng không check dup được
     all = []
   }
 
   const dupMsg = await validateDuplicates(all)
   if (dupMsg) {
-    err.value = dupMsg
-    toast.error(dupMsg)
+    toast.warning(dupMsg) // ✅ duplicate cũng là cảnh báo vàng
     return
   }
 
@@ -741,7 +677,6 @@ async function submit() {
   openConfirm(`Bạn có chắc chắn muốn ${actionText} không?`, async () => {
     saving.value = true
     try {
-      // nếu không admin thì giữ nguyên quyenHanId
       const qhId = isAdmin.value ? ROLE_TO_ID[form.quyenHanKey] : (form.quyenHanId ?? ROLE_TO_ID[form.quyenHanKey])
 
       const payload = {
@@ -774,8 +709,7 @@ async function submit() {
       goBack()
     } catch (e) {
       const m = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra'
-      err.value = m
-      toast.error(m)
+      toast.error(m) // ✅ lỗi server vẫn đỏ
     } finally {
       saving.value = false
     }
@@ -793,6 +727,7 @@ function toastClass(type) {
 onMounted(loadData)
 onBeforeUnmount(() => revokeLocalBlob())
 </script>
+
 
 <style scoped>
 .card {
@@ -886,7 +821,7 @@ onBeforeUnmount(() => revokeLocalBlob())
   border: 1px solid #d0d7de;
   background: #fff;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 .btn-confirm-primary {
   height: 38px;
@@ -896,11 +831,14 @@ onBeforeUnmount(() => revokeLocalBlob())
   background: #1d4ed8;
   color: #fff;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 .btn-confirm-primary:disabled,
 .btn-outline:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
+.btn-light{font-weight: 500}
+.btn-primary{font-weight: 500}
+.form-label{font-weight: 500}
 </style>

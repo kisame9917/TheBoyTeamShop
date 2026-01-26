@@ -45,7 +45,7 @@
               </div>
             </div>
 
-            <div class="mt-2 fw-bold fs-5 text-center">
+            <div class="mt-2 fw-semibold fs-5 text-center">
               {{ customer?.tenKhachHang || "-" }}
             </div>
 
@@ -346,11 +346,10 @@ onMounted(fetchDetail);
 .info-label {
   color: #6b7280;
   font-weight: 600;
-  font-size: 13px;
   margin-bottom: 6px;
 }
 .info-value {
-  font-weight: 500;
+  font-weight: 400;
   color: #111827;
   word-break: break-word;
 }

@@ -77,7 +77,10 @@
           </div>
 
           <div class="form-group">
-            <label>Mật khẩu</label>
+            <label>
+            Mật khẩu
+            <span v-if="!isEdit" class="req">*</span>
+          </label>
             <input
                 class="form-input"
                 type="password"
@@ -91,17 +94,17 @@
 
         <div class="form-grid">
           <div class="form-group">
-            <label>Người nhận</label>
+            <label>Người nhận <span class="req">*</span></label>
             <input class="form-input" v-model="form.tenNguoiNhan" placeholder="Tên người nhận" />
           </div>
 
           <div class="form-group">
-            <label>SĐT người nhận</label>
+            <label>SĐT người nhận <span class="req">*</span></label>
             <input class="form-input" v-model="form.sdtNguoiNhan" placeholder="SĐT người nhận" />
           </div>
 
           <div class="form-group">
-            <label>Tỉnh/Thành phố</label>
+            <label>Tỉnh/Thành phố <span class="req">*</span></label>
             <select class="form-input" v-model="form.tinhThanh" @change="onProvinceChange">
               <option value="">-- Chọn Tỉnh/Thành phố --</option>
               <option v-for="p in provinces" :key="p.code" :value="p.name">{{ p.name }}</option>
@@ -109,7 +112,7 @@
           </div>
 
           <div class="form-group">
-            <label>Quận/Huyện</label>
+            <label>Quận/Huyện <span class="req">*</span></label>
             <select
                 class="form-input"
                 v-model="form.quanHuyen"
@@ -122,7 +125,7 @@
           </div>
 
           <div class="form-group">
-            <label>Phường/Xã</label>
+            <label>Phường/Xã <span class="req">*</span></label>
             <select class="form-input" v-model="form.phuongXa" :disabled="!wards.length">
               <option value="">-- Chọn Phường/Xã --</option>
               <option v-for="w in wards" :key="w.code" :value="w.name">{{ w.name }}</option>
@@ -130,7 +133,7 @@
           </div>
 
           <div class="form-group">
-            <label>Địa chỉ chi tiết</label>
+            <label>Địa chỉ chi tiết <span class="req">*</span></label>
             <input class="form-input" v-model="form.diaChiChiTiet" placeholder="VD: 12 Cầu Giấy" />
           </div>
         </div>
@@ -305,6 +308,16 @@ function validate() {
   if (!String(form.taiKhoan || "").trim()) return "Tài khoản không được để trống";
   if (!String(form.soDienThoai || "").trim() || !isDigitsOnly(form.soDienThoai)) return "Số điện thoại phải là số";
   if (!isEdit.value && !String(form.matKhau || "").trim()) return "Mật khẩu không được để trống";
+
+  // ✅ NEW: validate địa chỉ mặc định bắt buộc
+  if (!String(form.tenNguoiNhan || "").trim()) return "Vui lòng nhập Người nhận (Địa chỉ mặc định)";
+  if (!String(form.sdtNguoiNhan || "").trim()) return "Vui lòng nhập SĐT người nhận (Địa chỉ mặc định)";
+  if (!isDigitsOnly(form.sdtNguoiNhan)) return "SĐT người nhận phải là số";
+  if (!String(form.tinhThanh || "").trim()) return "Vui lòng chọn Tỉnh/Thành phố (Địa chỉ mặc định)";
+  if (!String(form.quanHuyen || "").trim()) return "Vui lòng chọn Quận/Huyện (Địa chỉ mặc định)";
+  if (!String(form.phuongXa || "").trim()) return "Vui lòng chọn Phường/Xã (Địa chỉ mặc định)";
+  if (!String(form.diaChiChiTiet || "").trim()) return "Vui lòng nhập Địa chỉ chi tiết (Địa chỉ mặc định)";
+
   return "";
 }
 
@@ -569,7 +582,7 @@ onBeforeUnmount(() => {
 .form-group label{
   display:block;
   margin-bottom:6px;
-  font-weight:700;
+  font-weight:500;
 }
 
 .req{ color: #dc2626; }
@@ -604,7 +617,7 @@ onBeforeUnmount(() => {
 .section-title{
   margin-top: 14px;
   margin-bottom: 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .actions{
@@ -622,7 +635,7 @@ onBeforeUnmount(() => {
   border: 1px solid #d0d7de;
   background:#fff;
   cursor:pointer;
-  font-weight:700;
+  font-weight:500;
 }
 .btn-primary{
   border-color:#1d4ed8;

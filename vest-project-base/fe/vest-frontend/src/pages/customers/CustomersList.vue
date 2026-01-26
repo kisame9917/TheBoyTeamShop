@@ -10,13 +10,11 @@
         <button class="btn btn-outline-primary btn-sm" type="button" @click="exportExcel">
           <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
         </button>
-        <button class="btn btn-primary btn-sm text-white" type="button" @click="goCreate" title="Thêm mới">
+        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goCreate" title="Thêm mới">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>
-
     </div>
-
     <!-- ✅ Filters (UI giống voucher, không cần Bootstrap JS) -->
     <div class="card shadow-sm mb-3 filter-card">
       <div
@@ -32,10 +30,8 @@
           <span class="filter-icon">▼</span>
           <span class="filter-title">Bộ lọc tìm kiếm</span>
         </div>
-
         <small class="filter-hint">Nhấn để thu gọn/mở rộng</small>
       </div>
-
       <div id="customerFilterBody" class="collapse show">
         <div class="card-body filter-body">
           <div class="row g-3">
@@ -45,28 +41,24 @@
                   v-model.trim="filters.keyword"
                   type="text"
                   class="form-control"
-                  placeholder="Tìm theo mã, tên, email, SĐT, tài khoản..."
+                  placeholder="Tìm theo mã, tên, email, SĐT"
               />
             </div>
-
-            <!-- email -->
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Email</label>
-              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />
-            </div>
-
-            <!-- phone -->
-            <div class="col-12 col-lg-3">
-              <label class="form-label">SĐT</label>
-              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />
-            </div>
-
-            <!-- ma kh -->
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Mã khách hàng</label>
-              <input v-model.trim="filters.maKhachHang" type="text" class="form-control" placeholder="Mã KH" />
-            </div>
-
+<!--            &lt;!&ndash; email &ndash;&gt;-->
+<!--            <div class="col-12 col-lg-3">-->
+<!--              <label class="form-label">Email</label>-->
+<!--              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />-->
+<!--            </div>-->
+<!--            &lt;!&ndash; phone &ndash;&gt;-->
+<!--            <div class="col-12 col-lg-3">-->
+<!--              <label class="form-label">SĐT</label>-->
+<!--              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />-->
+<!--            </div>-->
+<!--            &lt;!&ndash; ma kh &ndash;&gt;-->
+<!--            <div class="col-12 col-lg-3">-->
+<!--              <label class="form-label">Mã khách hàng</label>-->
+<!--              <input v-model.trim="filters.maKhachHang" type="text" class="form-control" placeholder="Mã KH" />-->
+<!--            </div>-->
             <!-- status -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Trạng thái</label>
@@ -143,14 +135,14 @@
                     <div
                         v-else
                         class="rounded-circle border d-flex align-items-center justify-content-center"
-                        style="width: 40px; height: 40px; background: #eef2ff; color: #1d4ed8; font-weight: 700"
+                        style="width: 40px; height: 40px; background: #eef2ff; color: #1d4ed8; font-weight: 500"
                     >
                       {{ getInitials(c.tenKhachHang) }}
                     </div>
                   </div>
                 </td>
 
-                <td class="fw-semibold">{{ c.maKhachHang || "-" }}</td>
+                <td>{{ c.maKhachHang || "-" }}</td>
                 <td>{{ c.tenKhachHang || "-" }}</td>
 
                 <td class="text-truncate" style="max-width: 260px" :title="c.email || ''">
@@ -376,7 +368,7 @@ const filters = reactive({
   email: "",
   phone: "",
   maKhachHang: "",
-  taiKhoan: "",
+
   statusMode: "all", // all | active | inactive
 });
 
@@ -473,7 +465,7 @@ const filtered = computed(() => {
   const email = safeStr(filters.email);
   const phone = safeStr(filters.phone);
   const ma = safeStr(filters.maKhachHang);
-  const acc = safeStr(filters.taiKhoan);
+
 
   return (list.value || []).filter((c) => {
     if (filters.statusMode !== "all") {
@@ -484,7 +476,7 @@ const filtered = computed(() => {
     if (email && !safeStr(c.email).includes(email)) return false;
     if (phone && !safeStr(c.soDienThoai).includes(phone)) return false;
     if (ma && !safeStr(c.maKhachHang).includes(ma)) return false;
-    if (acc && !safeStr(c.taiKhoan).includes(acc)) return false;
+
 
     if (kw) {
       const blob = (
@@ -494,9 +486,7 @@ const filtered = computed(() => {
           " " +
           String(c.email || "") +
           " " +
-          String(c.soDienThoai || "") +
-          " " +
-          String(c.taiKhoan || "")
+          String(c.soDienThoai || "")
       ).toLowerCase();
       if (!blob.includes(kw)) return false;
     }
@@ -533,7 +523,7 @@ function resetFilters() {
     email: "",
     phone: "",
     maKhachHang: "",
-    taiKhoan: "",
+
     statusMode: "all",
   });
   page.page = 0;
@@ -727,7 +717,7 @@ onMounted(async () => {
   border: 1px solid #d0d7de;
   background: #fff;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 .btn-confirm {
   height: 38px;
@@ -737,8 +727,9 @@ onMounted(async () => {
   background: #1d4ed8;
   color: #fff;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 .btn-outline:disabled,
 .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+.fw-normal {font-weight: 500 !important;}
 </style>

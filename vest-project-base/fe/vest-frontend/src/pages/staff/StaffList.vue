@@ -9,19 +9,16 @@
         <button class="btn btn-outline-primary btn-sm" type="button" @click="exportExcel">
           <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
         </button>
-
         <button
-            class="btn btn-primary btn-sm text-white"
+            class="btn btn-outline-secondary btn-sm"
             type="button"
             @click="goCreate"
             :disabled="!isAdmin"
-            title="Thêm mới"
-        >
+            title="Thêm mới">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>
     </div>
-
     <!-- ✅ Filters (UI giống voucher, không cần Bootstrap JS) -->
     <div class="card shadow-sm mb-3 filter-card">
       <div
@@ -63,23 +60,21 @@
                 <option value="NHAN_VIEN">Nhân viên</option>
               </select>
             </div>
+<!--            <div class="col-12 col-lg-3">-->
+<!--              <label class="form-label">Email</label>-->
+<!--              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />-->
+<!--            </div>-->
 
+<!--            <div class="col-12 col-lg-3">-->
+<!--              <label class="form-label">SĐT</label>-->
+<!--              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />-->
+<!--            </div>-->
+
+<!--            <div class="col-12 col-lg-3">-->
+<!--              <label class="form-label">Mã nhân viên</label>-->
+<!--              <input v-model.trim="filters.maNhanVien" type="text" class="form-control" placeholder="Mã NV" />-->
+<!--            </div>-->
             <div class="col-12 col-lg-3">
-              <label class="form-label">Email</label>
-              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />
-            </div>
-
-            <div class="col-12 col-lg-3">
-              <label class="form-label">SĐT</label>
-              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />
-            </div>
-
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Mã nhân viên</label>
-              <input v-model.trim="filters.maNhanVien" type="text" class="form-control" placeholder="Mã NV" />
-            </div>
-
-            <div class="col-12 col-lg-6">
               <label class="form-label">Trạng thái</label>
               <div class="d-flex align-items-center gap-3 mt-2">
                 <div class="form-check">
@@ -155,7 +150,7 @@
                     <div
                         v-else
                         class="rounded-circle border d-flex align-items-center justify-content-center"
-                        style="width: 40px; height: 40px; background: #eef2ff; color: #1d4ed8; font-weight: 700"
+                        style="width: 40px; height: 40px; background: #eef2ff; color: #1d4ed8; font-weight: 500"
                     >
                       {{ getInitials(s.tenNhanVien) }}
                     </div>
@@ -706,7 +701,7 @@ onMounted(async () => {
   min-width: 320px;
 }
 .badge-normal {
-  font-weight: 400;
+  font-weight: 500;
 }
 .badge-working {
   background: #198754 !important;
@@ -802,7 +797,7 @@ onMounted(async () => {
   border: 1px solid #d0d7de;
   background: #fff;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 .btn-confirm {
   height: 38px;
@@ -812,11 +807,10 @@ onMounted(async () => {
   background: #1d4ed8;
   color: #fff;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 .btn-outline:disabled,
-.btn-confirm:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-confirm:disabled {opacity: 0.6;cursor: not-allowed;}
+.fw-normal {font-weight: 500 !important;}
+
 </style>
