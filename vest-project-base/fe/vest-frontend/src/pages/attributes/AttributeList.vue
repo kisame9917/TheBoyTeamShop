@@ -12,13 +12,16 @@
           <label>Tìm kiếm</label>
           <input
             v-model="searchQuery"
-            class="form-input"
+            class="form-control"
             :placeholder="`Tìm kiếm ${title.toLowerCase()}...`"
           />
         </div>
 
         <div class="action-group">
-          <button class="btn btn-secondary" type="button" @click="exportExcel">Xuất Excel</button>
+          <button class="btn btn-outline-secondary" type="button" @click="exportExcel">
+            Xuất Excel
+          </button>
+
           <button class="btn btn-primary" type="button" @click="openModal('create')">
             + Thêm {{ title.toLowerCase() }}
           </button>
@@ -29,7 +32,7 @@
     <!-- Table -->
     <div class="card table-card">
       <div class="table-responsive">
-        <table class="table">
+        <table class="table table-custom">
           <thead>
             <tr>
               <th class="text-center" style="width: 80px;">STT</th>
@@ -62,16 +65,23 @@
 
               <td class="text-center">
                 <div class="action-cell">
-                  <button class="btn-icon blue" type="button" @click="openModal('edit', item)" title="Sửa">
-                    ✏️
-                  </button>
+                  <!-- ✅ Nút Sửa (Bootstrap) -->
+                  <button
+  type="button"
+  class="btn btn-outline-warning btn-sm action-btn btn-edit"
+  @click="openModal('edit', item)"
+  title="Sửa"
+>
+  <i class="bi bi-pencil-square"></i>
+</button>
 
-                  <!-- Switch confirm popup -->
+
+                  <!-- Switch: confirm popup giữa màn hình -->
                   <label class="switch" title="Đổi trạng thái">
                     <input
                       type="checkbox"
                       :checked="!!item.trangThai"
-                      :disabled="togglingIds.has(item.id)"
+                      :disabled="isToggling(item.id)"
                       @click.prevent="confirmToggleStatus(item)"
                     />
                     <span class="slider"></span>
@@ -129,14 +139,14 @@
         <form class="modal-body" @submit.prevent="submitForm">
           <div class="form-group">
             <label class="required">Mã</label>
-            <input v-model="form.ma" class="form-input" type="text" disabled />
+            <input v-model="form.ma" class="form-control" type="text" disabled />
           </div>
 
           <div class="form-group">
             <label class="required">{{ isSize ? 'Kích cỡ' : 'Tên' }}</label>
             <input
               v-model="form.ten"
-              class="form-input"
+              class="form-control"
               :type="isSize ? 'number' : 'text'"
               :min="isSize ? 1 : undefined"
               required
@@ -144,14 +154,14 @@
           </div>
 
           <div class="modal-actions">
-            <button class="btn btn-secondary" type="button" @click="closeModal">Hủy</button>
+            <button class="btn btn-outline-secondary" type="button" @click="closeModal">Hủy</button>
             <button class="btn btn-primary" type="submit">Lưu</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Confirm Popup (center) -->
+    <!-- Confirm Popup (giữa màn hình) -->
     <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
       <div class="confirm-modal">
         <div class="confirm-header">
@@ -164,7 +174,7 @@
         </div>
 
         <div class="confirm-actions">
-          <button class="btn btn-secondary" type="button" @click="confirmCancel">Hủy</button>
+          <button class="btn btn-outline-secondary" type="button" @click="confirmCancel">Hủy</button>
           <button class="btn btn-primary" type="button" @click="confirmOk">OK</button>
         </div>
       </div>
@@ -185,7 +195,6 @@ const route = useRoute()
  * Type / Title
  * ======================= */
 const type = computed(() => String(route.params.type || ''))
-
 const TITLES = {
   'thuong-hieu': 'Thương hiệu',
   'chat-lieu': 'Chất liệu',
@@ -197,7 +206,7 @@ const TITLES = {
   've-ao': 'Ve áo',
   'xe-ta': 'Xẻ tà',
   'xuat-xu': 'Xuất xứ',
-  fit: 'Fit'
+  'fit': 'Fit'
 }
 const title = computed(() => TITLES[type.value] || 'Thuộc tính')
 const isSize = computed(() => type.value === 'kich-co')
@@ -216,7 +225,7 @@ const CODE_PREFIX = {
   've-ao': 'VA',
   'xe-ta': 'XT',
   'xuat-xu': 'XX',
-  fit: 'FIT'
+  'fit': 'FIT'
 }
 
 /* =======================
@@ -229,21 +238,27 @@ const searchQuery = ref('')
 /* =======================
  * Helpers
  * ======================= */
+function extractFirstNumber(val) {
+  const s = String(val ?? '')
+  const m = s.match(/(\d+)/)
+  return m ? Number(m[1]) : NaN
+}
+
 function displayName(item) {
   if (!item) return ''
-  // kich-co: ưu tiên soSize
-  return isSize.value ? (item.soSize ?? item.ten ?? '') : (item.ten ?? '')
+  if (!isSize.value) return item.ten ?? ''
+  // kích cỡ: ưu tiên soSize, nếu không có thì cố extract từ ten kiểu "S (46)"
+  return item.soSize ?? item.ten ?? ''
 }
 
 function pad2(n) {
-  return n < 10 ? `0${n}` : String(n)
+  return String(n).padStart(2, '0')
 }
 
 function genNextCode() {
   const prefix = (CODE_PREFIX[type.value] || 'TT').toUpperCase()
 
-  // chỉ lấy mã đúng format PREFIX + số (VD: MS01)
-  const nums = items.value
+  const nums = (items.value || [])
     .map(i => String(i.ma || '').toUpperCase())
     .map(ma => {
       const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
@@ -254,12 +269,10 @@ function genNextCode() {
   let next = (nums.length ? Math.max(...nums) : 0) + 1
   let code = `${prefix}${pad2(next)}`
 
-  // tránh trùng
-  while (items.value.some(i => String(i.ma || '').toUpperCase() === code)) {
+  while (items.value.some(i => String(i.ma || '').toUpperCase() === code.toUpperCase() && i.id !== form.id)) {
     next++
     code = `${prefix}${pad2(next)}`
   }
-
   return code
 }
 
@@ -311,12 +324,7 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await attributeService.getAllList(type.value)
-    const data = Array.isArray(res.data) ? res.data : []
-
-    // normalize kich-co để chắc chắn có soSize
-    items.value = isSize.value
-      ? data.map(it => ({ ...it, soSize: it.soSize ?? it.ten }))
-      : data
+    items.value = Array.isArray(res.data) ? res.data : []
   } catch (e) {
     console.error(e)
     error('Không thể tải dữ liệu')
@@ -358,35 +366,32 @@ function closeModal() {
 }
 
 /* =======================
- * Submit Create/Edit
+ * Submit
  * ======================= */
 async function submitForm() {
-  const tenRaw = String(form.ten ?? '').trim()
-  if (!tenRaw) return
+  const raw = String(form.ten ?? '').trim()
+  if (!raw) return
 
-  // kich-co: ép number
   let soSizeNum = undefined
   if (isSize.value) {
-    soSizeNum = Number(tenRaw)
-    if (!Number.isFinite(soSizeNum) || soSizeNum <= 0) {
-      return error('Kích cỡ phải là số > 0')
-    }
+    soSizeNum = Number(raw)
+    if (!Number.isFinite(soSizeNum) || soSizeNum <= 0) return error('Kích cỡ phải là số > 0')
   }
 
-  // check trùng theo displayName
+  // check trùng
   const dup = items.value.find(i => {
     if (i.id === form.id) return false
     const a = String(displayName(i)).trim().toLowerCase()
-    const b = String(isSize.value ? soSizeNum : tenRaw).trim().toLowerCase()
+    const b = String(isSize.value ? soSizeNum : raw).trim().toLowerCase()
     return a === b
   })
-  if (dup) return error(`Đã tồn tại "${tenRaw}"`)
+  if (dup) return error(`Đã tồn tại "${raw}"`)
 
   const payload = {
     id: form.id,
     ma: form.ma || genNextCode(),
     trangThai: form.trangThai,
-    ten: isSize.value ? undefined : tenRaw,
+    ten: isSize.value ? undefined : raw,
     soSize: isSize.value ? soSizeNum : undefined
   }
 
@@ -398,12 +403,12 @@ async function submitForm() {
       await attributeService.update(type.value, form.id, payload)
       success(`Cập nhật ${title.value} thành công`)
     }
-
     closeModal()
     await fetchData()
   } catch (e) {
     console.error(e)
-    error(e?.response?.data?.message || e?.message || 'Có lỗi xảy ra')
+    const msg = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra'
+    error(msg)
   }
 }
 
@@ -419,9 +424,7 @@ const confirmState = reactive({
 function openConfirm(message) {
   confirmState.open = true
   confirmState.message = message
-  return new Promise(res => {
-    confirmState.resolve = res
-  })
+  return new Promise((res) => (confirmState.resolve = res))
 }
 
 function confirmOk() {
@@ -437,13 +440,17 @@ function confirmCancel() {
 }
 
 /* =======================
- * Toggle status (FIX kich-co)
+ * Toggle status
  * ======================= */
-const togglingIds = reactive(new Set())
+const togglingIds = ref(new Set())
+
+function isToggling(id) {
+  return togglingIds.value.has(id)
+}
 
 async function confirmToggleStatus(item) {
   if (!item?.id) return
-  if (togglingIds.has(item.id)) return
+  if (togglingIds.value.has(item.id)) return
 
   const next = !item.trangThai
   const ok = await openConfirm(
@@ -455,25 +462,29 @@ async function confirmToggleStatus(item) {
 }
 
 async function toggleStatus(item, forcedNext) {
-  if (!item?.id) return
-  if (togglingIds.has(item.id)) return
-
-  togglingIds.add(item.id)
+  togglingIds.value.add(item.id)
 
   const old = !!item.trangThai
   const next = typeof forcedNext === 'boolean' ? forcedNext : !old
 
-  // optimistic
   item.trangThai = next
 
   try {
-    // ✅ kich-co bắt buộc gửi soSize, KHÔNG dùng Number(displayName())
+    let soSizeSafe = undefined
+    if (isSize.value) {
+      // đảm bảo soSize KHÔNG null (tránh lỗi SQL not null)
+      const fromObj = item.soSize
+      const fromTen = extractFirstNumber(item.ten)
+      const fromDisplay = extractFirstNumber(displayName(item))
+      soSizeSafe = Number.isFinite(fromObj) ? fromObj : (Number.isFinite(fromTen) ? fromTen : fromDisplay)
+      if (!Number.isFinite(soSizeSafe)) soSizeSafe = 1
+    }
+
     const payload = {
-      id: item.id,
-      ma: item.ma,
+      ...item,
       trangThai: next,
-      ten: isSize.value ? undefined : (item.ten ?? ''),
-      soSize: isSize.value ? (item.soSize ?? item.ten) : undefined
+      ten: isSize.value ? item.ten : displayName(item),
+      soSize: isSize.value ? soSizeSafe : undefined
     }
 
     await attributeService.update(type.value, item.id, payload)
@@ -482,14 +493,15 @@ async function toggleStatus(item, forcedNext) {
   } catch (e) {
     console.error(e)
     item.trangThai = old
-    error(e?.response?.data?.message || e?.message || 'Không thể cập nhật trạng thái')
+    const msg = e?.response?.data?.message || e?.message || 'Không thể cập nhật trạng thái'
+    error(msg)
   } finally {
-    togglingIds.delete(item.id)
+    togglingIds.value.delete(item.id)
   }
 }
 
 /* =======================
- * Excel
+ * Excel stub
  * ======================= */
 function exportExcel() {
   success('Chức năng xuất Excel sẽ bổ sung sau')
@@ -538,11 +550,6 @@ function exportExcel() {
   display: flex;
   gap: 10px;
 }
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
 .form-group label {
   font-size: 0.875rem;
   font-weight: 600;
@@ -551,35 +558,13 @@ function exportExcel() {
 }
 .required::after { content: " *"; color: #ef4444; }
 
-.form-input {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.btn {
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  font-size: 0.875rem;
-}
-.btn-secondary { background: #e5e7eb; color: #374151; }
-.btn-secondary:hover { background: #d1d5db; }
-.btn-primary { background: #1e40af; color: #fff; }
-.btn-primary:hover { background: #1e3a8a; }
-
-.table-responsive { overflow-x: auto; }
-.table {
+/* table */
+.table-custom {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
-.table th {
+.table-custom th {
   background: #1e293b;
   color: #fff;
   padding: 12px;
@@ -587,14 +572,14 @@ function exportExcel() {
   font-weight: 600;
   border-bottom: 1px solid #e5e7eb;
 }
-.table td {
+.table-custom td {
   padding: 12px;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: middle;
   color: #374151;
 }
-.text-center { text-align: center; }
 
+/* badge */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -615,18 +600,16 @@ function exportExcel() {
   gap: 10px;
 }
 
-.btn-icon {
+/* ✅ nút sửa kiểu vuông nhỏ */
+.action-btn{
   width: 32px;
   height: 32px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  border-radius: 4px;
 }
-.btn-icon.blue { background: #3b82f6; }
 
 /* switch */
 .switch {
@@ -710,7 +693,7 @@ function exportExcel() {
   font-size: 12px;
 }
 
-/* modal */
+/* modal create/edit */
 .modal-overlay {
   position: fixed;
   inset: 0;
