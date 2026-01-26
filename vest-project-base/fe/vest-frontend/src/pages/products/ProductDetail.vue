@@ -659,8 +659,8 @@ function formatMoney(val) {
 }
 
 .page-title h2 {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: #111827;
   margin: 0;
 }

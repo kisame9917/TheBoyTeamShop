@@ -417,7 +417,7 @@ onMounted(async () => {
 <style scoped>
 .product-page {
   padding: 20px;
-  background-color: #f3f4f6;
+  background-color: #ffffff;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }

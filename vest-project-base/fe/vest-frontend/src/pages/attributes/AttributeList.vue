@@ -511,7 +511,7 @@ function exportExcel() {
 <style scoped>
 .attribute-page {
   padding: 20px;
-  background: #f3f4f6;
+  background: #ffffff;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

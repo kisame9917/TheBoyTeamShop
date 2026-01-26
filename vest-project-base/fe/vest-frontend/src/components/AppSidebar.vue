@@ -1,14 +1,20 @@
 <template>
   <aside class="sidebar d-flex flex-column bg-white border-end">
     <!-- Logo -->
-    <div class="p-3 border-bottom text-center">
-      <img
-        src="../images/logo.jpg"
-        alt="Logo"
-        class="img-fluid"
-        style="height: 120px; object-fit: contain;"
-      />
+    <div class="brand-box p-3 border-bottom text-center">
+  <img
+    src="../images/logo.jpg"
+    alt="TheBoyTeam Logo"
+    class="brand-logo img-fluid"
+  />
+
+  <div class="brand-text mt-2">
+    <div class="brand-name">
+      <span class="brand-strong">TheBoyTeam</span>
     </div>
+  </div>
+</div>
+
 
     <!-- Nav -->
     <nav class="p-2 flex-grow-1">
@@ -373,4 +379,39 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   border-radius: 999px;
   border: 3px solid #fff;
 }
+.sidebar{
+  position: sticky;
+  top: 0;                 /* dính lên trên */
+  height: 100vh;          /* cao full màn hình */
+  overflow-y: auto;       /* menu dài thì sidebar tự cuộn */
+}
+.brand-box{
+  padding-top: px !important;
+  padding-bottom: 18px !important;
+}
+
+
+.brand-text{
+  line-height: 1.1;
+}
+
+.brand-name{
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.brand-strong{
+  color:#0f172a;          /* đen-xanh sang */
+}
+
+.brand-tagline{
+  margin-top: 6px;
+  font-size: 12px;
+  color:#64748b;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
 </style>

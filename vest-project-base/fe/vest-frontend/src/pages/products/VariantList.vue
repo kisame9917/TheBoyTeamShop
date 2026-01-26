@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <h5 class="mb-0 fw-bold">Quản lý sản phẩm / Danh sách biến thể</h5>
+        <h5 class="mb-0 ">Quản lý sản phẩm / Danh sách biến thể</h5>
       </div>
 
       <div class="d-flex gap-2 flex-wrap">
@@ -744,7 +744,7 @@ function getColorCode(colorName) {
 <style scoped>
 .variant-page {
   padding: 16px;
-  background: #f3f4f6;
+  background: #ffffff;
   min-height: 100vh;
 }
 
