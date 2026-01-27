@@ -2,6 +2,7 @@ package com.vestshop.Repository;
 
 import com.vestshop.Entity.PhieuGiamGiaCaNhan;
 import com.vestshop.dto.response.PhieuGiamGiaCaNhanResponse;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,6 +30,7 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
     """)
     List<PhieuGiamGiaCaNhanResponse> findDsKhachHangNhanPhieu(@Param("pggId") Long pggId);
     List<PhieuGiamGiaCaNhan> findByPhieuGiamGia_Id(Long pggId);
-
+    @EntityGraph(attributePaths = {"khachHang"})
+    List<PhieuGiamGiaCaNhan> findByPhieuGiamGia_IdAndTrangThaiTrue(Long pggId);
     Optional<PhieuGiamGiaCaNhan> findByPhieuGiamGia_IdAndKhachHang_Id(Long pggId, Long khId);
 }

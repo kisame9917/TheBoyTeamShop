@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface  EmailService {
-    void sendPersonalVoucherEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan);
+    void sendPersonalVoucherAssignedEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan);
+    void sendPersonalVoucherStartedEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan);
+    void sendPersonalVoucherEndedEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan);
 
 }

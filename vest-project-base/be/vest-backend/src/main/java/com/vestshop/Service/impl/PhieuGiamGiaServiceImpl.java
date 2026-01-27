@@ -14,10 +14,10 @@ import com.vestshop.dto.request.UpdateKhachHangNhanPhieuRequest;
 import com.vestshop.dto.response.PhieuGiamGiaCaNhanResponse;
 import com.vestshop.dto.response.PhieuGiamGiaDetailResponse;
 import com.vestshop.dto.response.PhieuGiamGiaResponse;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
-   @Autowired
+
+    @Autowired
     PhieuGiamGiaRepository repo;
 
     @Autowired
@@ -39,7 +40,6 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
     @Override
     public List<PhieuGiamGiaResponse> getAll() {
-
         return repo.findAll().stream()
                 .filter(p -> Boolean.TRUE.equals(p.getTrangThai()))
                 .map(p -> new PhieuGiamGiaResponse(
@@ -60,7 +60,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
     @Override
     public Optional<PhieuGiamGia> findbyId(Long id) {
-       return repo.findById(id);
+        return repo.findById(id);
     }
 
     @Override
@@ -87,7 +87,6 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         );
     }
 
-
     @Override
     public PhieuGiamGia create(PhieuGiamGiaCreateRequest dto) throws Exception {
 
@@ -97,7 +96,6 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setSoLuong(dto.getSoLuong());
         pgg.setLoaiGiam(dto.getLoaiGiam());
 
-        // DateTime: FE gửi 00:00:00 và 23:59:59 rồi
         pgg.setNgayBatDau(dto.getNgayBatDau());
         pgg.setNgayKetThuc(dto.getNgayKetThuc());
 
@@ -109,24 +107,20 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
 
         if (Boolean.TRUE.equals(dto.getLoaiGiam())) {
-            // giảm %
             pgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
             pgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
             pgg.setGiaTriTienMat(null);
         } else {
-            // giảm tiền
             pgg.setGiaTriTienMat(dto.getGiaTriTienMat());
             pgg.setGiaTriPhanTram(null);
             pgg.setGiaTriGiamToiDa(null);
         }
 
-        // true = CA_NHAN, false = CONG_KHAI (theo FE bạn đang gửi)
         pgg.setLoaiPhieu(dto.getLoaiPhieu());
 
-        // ✅ Lưu phiếu trước để có ID
         PhieuGiamGia saved = repo.save(pgg);
 
-        // ✅ Nếu phiếu cá nhân thì lưu bảng join
+        // ✅ Nếu phiếu cá nhân thì lưu bảng join + gửi mail "bạn vừa nhận phiếu"
         if (Boolean.TRUE.equals(saved.getLoaiPhieu())) {
 
             var ids = dto.getKhachHangIds();
@@ -141,18 +135,20 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 PhieuGiamGiaCaNhan ct = new PhieuGiamGiaCaNhan();
                 ct.setKhachHang(kh);
                 ct.setPhieuGiamGia(saved);
-
                 ct.setNgayNhan(LocalDateTime.now());
                 ct.setDaSuDung(false);
                 ct.setTrangThai(true);
-
-                // ✅ tạo mã riêng cho dòng cá nhân
                 ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + saved.getId() + "-" + kh.getId());
 
-
                 PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
-                emailService.sendPersonalVoucherEmail(kh, saved, savedCt.getMaPhieuGiamGiaCaNhan());
 
+                // ✅ Mail nhận phiếu
+                try {
+                    emailService.sendPersonalVoucherAssignedEmail(kh, saved, savedCt.getMaPhieuGiamGiaCaNhan());
+                } catch (Exception ex) {
+                    // tuỳ bạn: log thôi để không làm fail create
+                    System.out.println("Send mail failed (create): " + ex.getMessage());
+                }
             }
         }
 
@@ -160,9 +156,9 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     }
 
     @Override
-    public PhieuGiamGia update(Long id, PhieuGiamGiaUpdateRequest dto)  {
+    public PhieuGiamGia update(Long id, PhieuGiamGiaUpdateRequest dto) {
         Optional<PhieuGiamGia> pgg = repo.findById(id);
-        if(!pgg.isPresent()){
+        if (!pgg.isPresent()) {
             throw new RuntimeException("Khong tim thay id: " + id);
         }
         PhieuGiamGia updatepgg = pgg.get();
@@ -178,20 +174,20 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         updatepgg.setLoaiPhieu(dto.getLoaiPhieu());
         updatepgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
         updatepgg.setDonHangToiThieu(dto.getDonHangToiThieu());
-//        updatepgg.setTrangThai(dto.getTrangThai());
         return repo.save(updatepgg);
-
     }
 
     @Override
     public void delete(Long id) {
-        PhieuGiamGia pgg = repo.findById(id).orElseThrow(()-> new RuntimeException("Khong tim thay id:" +id));
+        PhieuGiamGia pgg = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khong tim thay id:" + id));
         pgg.setTrangThai(false);
         pgg.setNgayCapNhat(LocalDateTime.now());
         repo.save(pgg);
     }
+    @Transactional
     @Override
-    public void startpgg(Long id) throws Exception{
+    public void startpgg(Long id) throws Exception {
         PhieuGiamGia pgg = repo.findById(id)
                 .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
 
@@ -199,52 +195,51 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         LocalDateTime start = pgg.getNgayBatDau();
         LocalDateTime end = pgg.getNgayKetThuc();
 
-        // nếu đã kết thúc rồi thì không cho start
-        if (end != null && now.isAfter(end)) {
-            throw new Exception("Phiếu đã kết thúc");
-        }
+        if (end != null && !now.isBefore(end)) throw new Exception("Phiếu đã kết thúc");
 
-        // nếu đã đang áp dụng rồi thì thôi
-        if (start != null && (now.isEqual(start) || now.isAfter(start)) && (end == null || now.isBefore(end) || now.isEqual(end))) {
+        // đang active rồi => return (không gửi mail)
+        if (start != null && (now.isEqual(start) || now.isAfter(start))
+                && (end == null || now.isBefore(end) || now.isEqual(end))) {
             return;
         }
 
-        // ✅ bắt đầu ngay
         pgg.setNgayBatDau(now);
-
-        // (tuỳ bạn) nếu end < now (do dữ liệu bẩn) thì set end = now + 1 phút
-        if (end != null && end.isBefore(now)) {
-            pgg.setNgayKetThuc(now.plusMinutes(1));
-        }
-
+        if (end != null && end.isBefore(now)) pgg.setNgayKetThuc(now.plusMinutes(1));
         repo.save(pgg);
-    }
 
-
-    @Override
-        public void endpgg(Long id) throws Exception {
-            PhieuGiamGia pgg = repo.findById(id)
-                    .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
-
-            // (tùy bạn) chặn nếu chưa đang áp dụng
-            LocalDateTime today = LocalDateTime.now();
-            LocalDateTime start = pgg.getNgayBatDau();
-            LocalDateTime end = pgg.getNgayKetThuc();
-
-            // UPCOMING => không cho kết thúc ngay (bạn có thể bỏ đoạn này nếu muốn)
-            if (start != null && today.isBefore(start)) {
-                throw new Exception("Phiếu đang sắp diễn ra, không thể kết thúc ngay");
+        // ✅ gửi mail chỉ khi là phiếu cá nhân
+        if (Boolean.TRUE.equals(pgg.getLoaiPhieu())) {
+            // dùng method fetch KH
+            List<PhieuGiamGiaCaNhan> rows = cnrepo.findByPhieuGiamGia_IdAndTrangThaiTrue(pgg.getId());
+            for (PhieuGiamGiaCaNhan row : rows) {
+                KhachHang kh = row.getKhachHang(); // giờ chắc chắn có data
+                emailService.sendPersonalVoucherStartedEmail(kh, pgg, row.getMaPhieuGiamGiaCaNhan());
             }
-            // EXPIRED rồi => bỏ qua hoặc báo lỗi
-            if (end != null && today.isAfter(end)) {
-                throw new Exception("Phiếu đã kết thúc");
-            }
-
-            // ✅ Kết thúc ngay: set end = today
-            pgg.setNgayKetThuc(today);
-
-            repo.save(pgg);
         }
+    }
+    @Transactional
+    @Override
+    public void endpgg(Long id) throws Exception {
+        PhieuGiamGia pgg = repo.findById(id)
+                .orElseThrow(() -> new Exception("Phiếu giảm giá không tồn tại"));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = pgg.getNgayBatDau();
+        LocalDateTime end = pgg.getNgayKetThuc();
+
+        if (start != null && now.isBefore(start)) throw new Exception("Phiếu đang sắp diễn ra, không thể kết thúc ngay");
+        if (end != null && !now.isBefore(end)) throw new Exception("Phiếu đã kết thúc");
+
+        pgg.setNgayKetThuc(now);
+        repo.save(pgg);
+
+        if (Boolean.TRUE.equals(pgg.getLoaiPhieu())) {
+            List<PhieuGiamGiaCaNhan> rows = cnrepo.findByPhieuGiamGia_IdAndTrangThaiTrue(pgg.getId());
+            for (PhieuGiamGiaCaNhan row : rows) {
+                emailService.sendPersonalVoucherEndedEmail(row.getKhachHang(), pgg, row.getMaPhieuGiamGiaCaNhan());
+            }
+        }
+    }
 
     @Override
     public List<PhieuGiamGiaCaNhanResponse> getKhachHangNhanPhieu(Long pggId) {
@@ -263,10 +258,8 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         var ids = req.getKhachHangIds();
         if (ids == null) ids = List.of();
 
-        // Lấy tất cả dòng hiện có (kể cả trangThai=false để xử lý add lại)
         List<PhieuGiamGiaCaNhan> current = cnrepo.findByPhieuGiamGia_Id(pggId);
 
-        // Map theo khId
         java.util.Map<Long, PhieuGiamGiaCaNhan> map = new java.util.HashMap<>();
         for (PhieuGiamGiaCaNhan row : current) {
             if (row.getKhachHang() != null && row.getKhachHang().getId() != null) {
@@ -276,7 +269,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
         java.util.Set<Long> newSet = new java.util.HashSet<>(ids);
 
-        // 1) Xử lý REMOVE (những KH hiện đang active nhưng không còn nằm trong newSet)
+        // 1) REMOVE
         for (PhieuGiamGiaCaNhan row : current) {
             Long khId = row.getKhachHang() != null ? row.getKhachHang().getId() : null;
             if (khId == null) continue;
@@ -288,17 +281,17 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 if (Boolean.TRUE.equals(row.getDaSuDung())) {
                     throw new Exception("Không thể bỏ khách hàng id=" + khId + " vì đã sử dụng phiếu");
                 }
-                row.setTrangThai(false); // soft delete
+                row.setTrangThai(false);
                 cnrepo.save(row);
             }
         }
 
-        // 2) Xử lý ADD (những KH mới trong newSet nhưng chưa có active)
+        // 2) ADD
         for (Long khId : newSet) {
             PhieuGiamGiaCaNhan existed = map.get(khId);
 
             if (existed != null) {
-                // Nếu đã tồn tại nhưng đang bị tắt -> bật lại
+                // ✅ KH đã tồn tại sẵn => KHÔNG gửi mail
                 if (!Boolean.TRUE.equals(existed.getTrangThai())) {
                     existed.setTrangThai(true);
                     cnrepo.save(existed);
@@ -306,6 +299,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 continue;
             }
 
+            // ✅ mới hoàn toàn => tạo record + gửi mail
             KhachHang kh = khrepo.findById(khId)
                     .orElseThrow(() -> new Exception("Khách hàng không tồn tại: " + khId));
 
@@ -317,19 +311,24 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
             ct.setTrangThai(true);
             ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + pgg.getId() + "-" + kh.getId());
 
-            cnrepo.save(ct);
+            PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
+
+            try {
+                emailService.sendPersonalVoucherAssignedEmail(kh, pgg, savedCt.getMaPhieuGiamGiaCaNhan());
+            } catch (Exception ex) {
+                System.out.println("Send mail failed (update add KH): " + ex.getMessage());
+            }
         }
     }
 
-
     private String generateUniqueMaGiamGia() {
-        // ví dụ: VCH-8K2P9A
         for (int i = 0; i < 50; i++) {
             String code = "VC-" + randomAlphaNum(6);
             if (!repo.existsByMaGiamGia(code)) return code;
         }
         throw new RuntimeException("Không thể tạo mã giảm giá");
     }
+
     private String randomAlphaNum(int len) {
         final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder(len);
@@ -337,5 +336,4 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         for (int i = 0; i < len; i++) sb.append(chars.charAt(r.nextInt(chars.length())));
         return sb.toString();
     }
-
 }
