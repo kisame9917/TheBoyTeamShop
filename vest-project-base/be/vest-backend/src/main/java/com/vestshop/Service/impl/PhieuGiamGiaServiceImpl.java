@@ -138,7 +138,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 ct.setNgayNhan(LocalDateTime.now());
                 ct.setDaSuDung(false);
                 ct.setTrangThai(true);
-                ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + saved.getId() + "-" + kh.getId());
+                ct.setMaPhieuGiamGiaCaNhan("PGGCN" + saved.getId() +   kh.getId());
 
                 PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
 
@@ -309,7 +309,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
             ct.setNgayNhan(LocalDateTime.now());
             ct.setDaSuDung(false);
             ct.setTrangThai(true);
-            ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + pgg.getId() + "-" + kh.getId());
+            ct.setMaPhieuGiamGiaCaNhan("PGGCN" + pgg.getId() +   kh.getId());
 
             PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
 
