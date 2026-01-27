@@ -9,11 +9,23 @@ server:
 spring:
   application:
     name: vest-backend
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=VestShop;encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://localhost:1433;databaseName=VestShop-TBTS;encrypt=true;trustServerCertificate=true
     username: sa
-    password: 123
+    password: 123456
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
@@ -42,3 +54,6 @@ springdoc:
 
 app:
   upload-dir: D:/2_DATN/vest-project-base/uploads
+  mail:
+    from-name: VestShop
+

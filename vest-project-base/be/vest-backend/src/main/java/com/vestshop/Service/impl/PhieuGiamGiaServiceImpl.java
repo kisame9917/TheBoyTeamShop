@@ -6,6 +6,7 @@ import com.vestshop.Entity.PhieuGiamGiaCaNhan;
 import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Repository.PhieuGiamGiaCaNhanRepository;
 import com.vestshop.Repository.PhieuGiamGiaRepository;
+import com.vestshop.Service.EmailService;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
 import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
@@ -32,6 +33,9 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
     @Autowired
     PhieuGiamGiaCaNhanRepository cnrepo;
+
+    @Autowired
+    EmailService emailService;
 
     @Override
     public List<PhieuGiamGiaResponse> getAll() {
@@ -145,7 +149,10 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 // ✅ tạo mã riêng cho dòng cá nhân
                 ct.setMaPhieuGiamGiaCaNhan("PGGCN-" + saved.getId() + "-" + kh.getId());
 
-                cnrepo.save(ct);
+
+                PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
+                emailService.sendPersonalVoucherEmail(kh, saved, savedCt.getMaPhieuGiamGiaCaNhan());
+
             }
         }
 
