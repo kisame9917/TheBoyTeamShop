@@ -16,43 +16,13 @@
         <div class="row g-3">
           <!-- LEFT -->
           <div class="col-12 col-lg-6">
-            <label class="form-label">Loại giảm</label>
-            <select class="form-select" v-model="form.loaiGiam">
-              <option :value="true">Giảm %</option>
-              <option :value="false">Giảm tiền (VND)</option>
-            </select>
+            <label class="form-label">Tên phiếu giảm giá <span class="req">*</span></label>
+            <input class="form-control text-start" v-model.trim="form.tenGiamGia" placeholder="Ví dụ: Sale 1/6" />
 
             <div class="mt-3">
-              <label class="form-label">Giá trị giảm</label>
-              <div class="input-group">
-                <input
-                  type="number"
-                  class="form-control"
-                  v-model.number="form.giaTriGiam"
-                  :min="1"
-                  :max="form.loaiGiam ? 100 : null"
-                  :placeholder="form.loaiGiam ? 'Ví dụ: 20' : 'Ví dụ: 50000'"
-                />
-                <span class="input-group-text">{{ form.loaiGiam ? "%" : "VND" }}</span>
-              </div>
-            </div>
-
-            <div class="mt-3" v-if="form.loaiGiam">
-              <label class="form-label">Giảm tối đa (VND)</label>
-              <input
-                type="number"
-                class="form-control"
-                v-model.number="form.giaTriGiamToiDa"
-                min="1"
-                placeholder="Ví dụ: 2000000"
-              />
-            </div>
-
-            <!-- Ngày bắt đầu -->
-            <div class="mt-3">
-              <label class="form-label">Ngày bắt đầu</label>
+              <label class="form-label">Ngày bắt đầu <span class="req">*</span></label>
               <div class="input-group date-group">
-                <input ref="startPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" />
+                <input ref="startPickerRef" type="text" class="form-control text-start" placeholder="dd/mm/yyyy" />
                 <button class="btn btn-outline-secondary" type="button" @click="openStartPicker" title="Chọn ngày">
                   <i class="bi bi-calendar3"></i>
                 </button>
@@ -61,34 +31,51 @@
                 </button>
               </div>
             </div>
+
+            <!-- ✅ Loại giảm -->
+            <div class="mt-3">
+              <label class="form-label">Loại giảm </label>
+              <select class="form-select" v-model="form.loaiGiam">
+                <option :value="true">Giảm %</option>
+                <option :value="false">Giảm tiền (VND)</option>
+              </select>
+            </div>
+
+            <!-- ✅ Giảm tối đa NGAY DƯỚI Loại giảm -->
+            <div class="mt-3" v-if="form.loaiGiam">
+              <label class="form-label">Giảm tối đa (VND)<span class="req">*</span> </label>
+              <div class="input-group">
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  class="form-control text-start"
+                  v-model="giaTriGiamToiDaVnd"
+                />
+                <span class="input-group-text">VND</span>
+              </div>
+            </div>
           </div>
 
           <!-- RIGHT -->
           <div class="col-12 col-lg-6">
-            <label class="form-label">Tên phiếu giảm giá</label>
-            <input class="form-control" v-model.trim="form.tenGiamGia" placeholder="Ví dụ: Sale 1/6" />
+            <label class="form-label">Số lượng <span class="req">*</span></label>
+
+            <!-- Công khai: nhập tay -->
+            <input
+              v-if="form.loaiPhieu !== 'CA_NHAN'"
+              type="number"
+              class="form-control text-start"
+              v-model.number="form.soLuong"
+              min="1"
+            />
+
+            <!-- Cá nhân: tự động theo số khách hàng -->
+            <input v-else type="number" class="form-control bg-light text-start" :value="selectedCustomerIds.length" readonly />
 
             <div class="mt-3">
-              <label class="form-label">Số lượng</label>
-              <input type="number" class="form-control" v-model.number="form.soLuong" min="1" />
-            </div>
-
-            <div class="mt-3">
-              <label class="form-label">Đơn hàng tối thiểu (VND)</label>
-              <input
-                type="number"
-                class="form-control"
-                v-model.number="form.donHangToiThieu"
-                min="0"
-                placeholder="Ví dụ: 200000"
-              />
-            </div>
-
-            <!-- Ngày kết thúc -->
-            <div class="mt-3">
-              <label class="form-label">Ngày kết thúc</label>
+              <label class="form-label">Ngày kết thúc <span class="req">*</span></label>
               <div class="input-group date-group">
-                <input ref="endPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" />
+                <input ref="endPickerRef" type="text" class="form-control text-start" placeholder="dd/mm/yyyy" />
                 <button class="btn btn-outline-secondary" type="button" @click="openEndPicker" title="Chọn ngày">
                   <i class="bi bi-calendar3"></i>
                 </button>
@@ -97,17 +84,59 @@
                 </button>
               </div>
             </div>
+
+            <!-- ✅ Giá trị giảm -->
+            <div class="mt-3">
+              <label class="form-label">Giá trị giảm <span class="req">*</span></label>
+              <div class="input-group">
+                <!-- % -->
+                <input
+                  v-if="form.loaiGiam"
+                  type="number"
+                  class="form-control text-start"
+                  v-model.number="form.giaTriGiam"
+                  min="1"
+                  max="100"
+                  placeholder="Ví dụ: 20"
+                />
+                <!-- tiền -->
+                <input
+                  v-else
+                  type="text"
+                  inputmode="numeric"
+                  class="form-control text-start"
+                  v-model="giaTriGiamVnd"
+                  placeholder="Ví dụ: 50.000"
+                />
+                <span class="input-group-text">{{ form.loaiGiam ? "%" : "VND" }}</span>
+              </div>
+            </div>
+
+            <!-- ✅ Đơn hàng tối thiểu: có hậu tố VND giống giá trị giảm -->
+            <div class="mt-3">
+              <label class="form-label">Đơn hàng tối thiểu</label>
+              <div class="input-group">
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  class="form-control text-start"
+                  v-model="donHangToiThieuVnd"
+                  placeholder="Ví dụ: 200.000"
+                />
+                <span class="input-group-text">VND</span>
+              </div>
+            </div>
           </div>
 
           <!-- MÔ TẢ -->
           <div class="col-12">
             <label class="form-label">Mô tả</label>
-            <textarea class="form-control" rows="4" v-model.trim="form.moTa" placeholder="Nhập mô tả..."></textarea>
+            <textarea class="form-control text-start" rows="4" v-model.trim="form.moTa" placeholder="Nhập mô tả..."></textarea>
           </div>
 
           <!-- LOẠI PHIẾU -->
           <div class="col-12">
-            <label class="form-label">Loại phiếu</label>
+            <label class="form-label">Loại phiếu<span class="req">*</span></label>
             <div class="d-flex align-items-center gap-4 flex-wrap">
               <div class="form-check">
                 <input class="form-check-input" type="radio" id="lp_public" value="CONG_KHAI" v-model="form.loaiPhieu" />
@@ -135,18 +164,13 @@
 
                   <div class="d-flex align-items-center gap-2 flex-wrap">
                     <input
-                      class="form-control form-control-sm"
+                      class="form-control form-control-sm text-start"
                       style="width: 320px"
                       v-model.trim="customerKeyword"
                       placeholder="Tìm theo mã / tên / SĐT / email..."
                     />
 
-                    <button
-                      class="btn btn-outline-secondary btn-sm"
-                      type="button"
-                      @click="toggleSelectAll"
-                      :disabled="loadingCustomers"
-                    >
+                    <button class="btn btn-outline-secondary btn-sm" type="button" @click="toggleSelectAll" :disabled="loadingCustomers">
                       {{ isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả" }}
                     </button>
                   </div>
@@ -155,7 +179,6 @@
                 <div v-if="loadingCustomers" class="text-muted mt-3">Đang tải danh sách khách hàng...</div>
                 <div v-else-if="customersError" class="text-danger mt-3">{{ customersError }}</div>
 
-                <!-- ✅ BỌC BẢNG BẰNG KH-BOX + GRID (không dùng .table) -->
                 <div v-else class="kh-box mt-3">
                   <div class="kh-head">
                     <div class="kh-col kh-check"></div>
@@ -166,17 +189,9 @@
                   </div>
 
                   <div class="kh-body">
-                    <div v-if="filteredCustomers.length === 0" class="kh-empty">
-                      Không có khách hàng phù hợp.
-                    </div>
+                    <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
 
-                    <div
-                      v-else
-                      class="kh-row"
-                      v-for="c in filteredCustomers"
-                      :key="c.id"
-                      :title="`${c.maKhachHang ?? c.ma ?? ''} - ${c.tenKhachHang ?? c.ten ?? ''}`"
-                    >
+                    <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
                       <div class="kh-col kh-check">
                         <input
                           type="checkbox"
@@ -217,46 +232,30 @@
       </div>
     </div>
 
-   <!-- ✅ POPUP (Confirm) -->
-<teleport to="body">
-  <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
-    <div class="modal-card">
-      <h6 class="mb-2">{{ popup.title }}</h6>
-      <div class="text-muted mb-3">{{ popup.message }}</div>
+    <!-- ✅ POPUP (Confirm) -->
+    <teleport to="body">
+      <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
+        <div class="modal-card">
+          <h6 class="mb-2">{{ popup.title }}</h6>
+          <div class="text-muted mb-3">{{ popup.message }}</div>
 
-      <div class="d-flex justify-content-end gap-2">
-        <button
-          v-if="popup.mode === 'alert'"
-          class="btn btn-outline-secondary btn-sm"
-          type="button"
-          @click="closePopup"
-        >
-          Đóng
-        </button>
+          <div class="d-flex justify-content-end gap-2">
+            <button v-if="popup.mode === 'alert'" class="btn btn-outline-secondary btn-sm" type="button" @click="closePopup">
+              Đóng
+            </button>
 
-        <template v-else>
-          <button
-            class="btn btn-outline-secondary btn-sm"
-            type="button"
-            :disabled="popup.loading"
-            @click="closePopup"
-          >
-            Hủy
-          </button>
-          <button
-            class="btn btn-confirm btn-sm"
-            type="button"
-            :disabled="popup.loading"
-            @click="confirmPopup"
-          >
-            {{ popup.loading ? "Đang xử lý..." : "Đồng ý" }}
-          </button>
-        </template>
+            <template v-else>
+              <button class="btn btn-outline-secondary btn-sm" type="button" :disabled="popup.loading" @click="closePopup">
+                Hủy
+              </button>
+              <button class="btn btn-confirm btn-sm" type="button" :disabled="popup.loading" @click="confirmPopup">
+                {{ popup.loading ? "Đang xử lý..." : "Đồng ý" }}
+              </button>
+            </template>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</teleport>
-
+    </teleport>
   </div>
 </template>
 
@@ -324,9 +323,9 @@ async function confirmPopup() {
 const form = ref({
   tenGiamGia: "",
   soLuong: 1,
-  loaiGiam: true,
+  loaiGiam: true, // true = %, false = tiền
   giaTriGiam: 1,
-  giaTriGiamToiDa: 0,
+  giaTriGiamToiDa: 0, // chỉ dùng khi %
   donHangToiThieu: 0,
   ngayBatDau: "", // yyyy-MM-dd
   ngayKetThuc: "", // yyyy-MM-dd
@@ -334,6 +333,7 @@ const form = ref({
   loaiPhieu: "CONG_KHAI",
 });
 
+// đổi sang giảm tiền thì reset giảm tối đa
 watch(
   () => form.value.loaiGiam,
   (isPercent) => {
@@ -344,6 +344,54 @@ watch(
 function goBack() {
   router.push("/vouchers");
 }
+
+/* =========================
+   ✅ Format tiền ngay khi nhập (vi-VN)
+   ========================= */
+const nf = new Intl.NumberFormat("vi-VN");
+
+function formatVndInput(n, emptyIfZero = false) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "";
+  if (emptyIfZero && num === 0) return "";
+  return nf.format(num);
+}
+function parseVndInput(s) {
+  const digits = String(s ?? "").replace(/[^\d]/g, "");
+  if (!digits) return 0;
+  return Number(digits);
+}
+
+// v-model string cho ô "Giá trị giảm" khi là TIỀN
+const giaTriGiamVnd = computed({
+  get() {
+    return formatVndInput(form.value.giaTriGiam, true);
+  },
+  set(v) {
+    form.value.giaTriGiam = parseVndInput(v);
+  },
+});
+
+// v-model string cho "Giảm tối đa"
+const giaTriGiamToiDaVnd = computed({
+  get() {
+    return formatVndInput(form.value.giaTriGiamToiDa, true);
+  },
+  set(v) {
+    form.value.giaTriGiamToiDa = parseVndInput(v);
+  },
+});
+
+// v-model string cho "Đơn hàng tối thiểu"
+const donHangToiThieuVnd = computed({
+  get() {
+    // 0 là hợp lệ => vẫn cho hiện 0
+    return formatVndInput(form.value.donHangToiThieu, false);
+  },
+  set(v) {
+    form.value.donHangToiThieu = parseVndInput(v);
+  },
+});
 
 // ===== Date helpers =====
 function toStartOfDay(dateYMD) {
@@ -401,8 +449,12 @@ function initPickers() {
   if (fpStart) fpStart.set("maxDate", form.value.ngayKetThuc ? parseYMD(form.value.ngayKetThuc) : null);
 }
 
-function openStartPicker() { fpStart?.open(); }
-function openEndPicker() { fpEnd?.open(); }
+function openStartPicker() {
+  fpStart?.open();
+}
+function openEndPicker() {
+  fpEnd?.open();
+}
 
 function clearStartDate() {
   form.value.ngayBatDau = "";
@@ -458,7 +510,6 @@ function toggleCustomer(id) {
   selectedCustomerIds.value = arr;
 }
 
-// ✅ Select all giống update: chỉ áp dụng trên danh sách đang filter
 function toggleSelectAll() {
   const ids = filteredCustomers.value.map((x) => x.id);
   if (ids.length === 0) return;
@@ -472,7 +523,9 @@ function toggleSelectAll() {
   }
 }
 
-// Khi chọn Cá nhân -> load KH
+const personalQty = computed(() => selectedCustomerIds.value.length);
+const manualSoLuongBackup = ref(form.value.soLuong);
+
 watch(
   () => form.value.loaiPhieu,
   async (v) => {
@@ -485,6 +538,24 @@ watch(
   }
 );
 
+watch(
+  () => form.value.loaiPhieu,
+  (v) => {
+    if (v === "CA_NHAN") {
+      manualSoLuongBackup.value = form.value.soLuong;
+      form.value.soLuong = personalQty.value;
+    } else {
+      form.value.soLuong = manualSoLuongBackup.value || 1;
+    }
+  }
+);
+
+watch(personalQty, (n) => {
+  if (form.value.loaiPhieu === "CA_NHAN") {
+    form.value.soLuong = n;
+  }
+});
+
 // ===== Validate + Submit =====
 function validate() {
   const isBlank = (v) => !String(v ?? "").trim();
@@ -492,7 +563,13 @@ function validate() {
 
   if (isBlank(form.value.tenGiamGia)) return "Vui lòng nhập tên phiếu giảm giá";
 
-  if (!isNum(form.value.soLuong) || form.value.soLuong < 1) return "Số lượng phải >= 1";
+  if (form.value.loaiPhieu === "CA_NHAN") {
+    form.value.soLuong = selectedCustomerIds.value.length;
+    if (selectedCustomerIds.value.length === 0) return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng";
+  } else {
+    if (!isNum(form.value.soLuong) || form.value.soLuong < 1) return "Số lượng phải >= 1";
+  }
+
   if (!isNum(form.value.giaTriGiam) || form.value.giaTriGiam < 1) return "Giá trị giảm phải >= 1";
 
   if (form.value.loaiGiam) {
@@ -505,10 +582,6 @@ function validate() {
   if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu";
   if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc";
   if (form.value.ngayKetThuc < form.value.ngayBatDau) return "Ngày kết thúc phải >= ngày bắt đầu";
-
-  if (form.value.loaiPhieu === "CA_NHAN") {
-    if (selectedCustomerIds.value.length === 0) return "Phiếu cá nhân phải chọn ít nhất 1 khách hàng";
-  }
 
   if (!form.value.loaiGiam) {
     if (form.value.donHangToiThieu > 0 && form.value.giaTriGiam > form.value.donHangToiThieu) {
@@ -524,7 +597,7 @@ function validate() {
 async function doCreate() {
   const payload = {
     tenGiamGia: form.value.tenGiamGia,
-    soLuong: form.value.soLuong,
+    soLuong: form.value.loaiPhieu === "CA_NHAN" ? selectedCustomerIds.value.length : form.value.soLuong,
     loaiGiam: form.value.loaiGiam,
     ngayBatDau: toStartOfDay(form.value.ngayBatDau),
     ngayKetThuc: toEndOfDay(form.value.ngayKetThuc),
@@ -580,13 +653,17 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  try { fpStart?.destroy(); } catch {}
-  try { fpEnd?.destroy(); } catch {}
+  try {
+    fpStart?.destroy();
+  } catch {}
+  try {
+    fpEnd?.destroy();
+  } catch {}
 });
 </script>
 
 <style scoped>
-/* ✅ date-group giống update */
+/* date-group giống update */
 .date-group .form-control {
   height: 38px !important;
   border-radius: 8px 0 0 8px !important;
@@ -606,26 +683,29 @@ onBeforeUnmount(() => {
   border-radius: 0 8px 8px 0 !important;
 }
 
-/* ✅ nút confirm màu cũ */
-.btn-confirm{
+/* nút confirm */
+.btn-confirm {
   background: #1d4ed8;
   border-color: #1d4ed8;
   color: #fff;
   font-weight: 700;
 }
-.btn-confirm:hover{ filter: brightness(0.95); }
-.btn-confirm:disabled{ opacity: .6; cursor: not-allowed; }
+.btn-confirm:hover {
+  filter: brightness(0.95);
+}
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-
-.kh-box{
+/* KH list */
+.kh-box {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
 }
-
-/* header */
-.kh-head{
+.kh-head {
   display: grid;
   grid-template-columns: 44px 140px 1.6fr 160px 2fr;
   gap: 0;
@@ -636,15 +716,11 @@ onBeforeUnmount(() => {
   color: #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
 }
-
-/* body wrapper scroll */
-.kh-body{
+.kh-body {
   max-height: 360px;
   overflow: auto;
 }
-
-/* row */
-.kh-row{
+.kh-row {
   display: grid;
   grid-template-columns: 44px 140px 1.6fr 160px 2fr;
   padding: 10px 12px;
@@ -652,40 +728,49 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #e5e7eb;
   align-items: center;
 }
-.kh-row:hover{ background: #f8fafc; }
-
-.kh-col{ min-width: 0; } /* để ellipsis work */
-.kh-ellipsis{
+.kh-row:hover {
+  background: #f8fafc;
+}
+.kh-col {
+  min-width: 0;
+}
+.kh-ellipsis {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.kh-empty{
+.kh-empty {
   padding: 16px 12px;
   text-align: center;
   color: #6b7280;
   font-weight: 600;
 }
-.modal-overlay{
+
+/* modal */
+.modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, .45);
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 999999; /* ✅ luôn nổi trên mọi thứ */
+  z-index: 999999;
 }
-
-.modal-card{
+.modal-card {
   width: min(520px, 96vw);
   background: #fff;
   border-radius: 14px;
   padding: 16px 18px;
-  box-shadow: 0 18px 40px rgba(0,0,0,.25);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+.req{
+  color: #dc2626;          /* đỏ */
+  font-weight: 600;
+  margin-left: 4px;
+   font-size: 14px; 
 }
 
 </style>

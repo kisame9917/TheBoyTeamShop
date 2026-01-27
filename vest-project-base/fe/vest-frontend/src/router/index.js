@@ -21,7 +21,6 @@ import StaffDetail from '../pages/staff/StaffDetail.vue'
 
 import VouchersList from '../pages/vouchers/VouchersList.vue'
 import VoucherCreate from '../pages/vouchers/VoucherCreate.vue'
-import VoucherDetail from '../pages/vouchers/VoucherDetail.vue'
 import VoucherUpdate from '../pages/vouchers/VoucherUpdate.vue'
 
 import PaymentsList from '../pages/payments/PaymentsList.vue'
@@ -69,7 +68,6 @@ const routes = [
 
       { path: 'vouchers', name: 'vouchers', component: VouchersList },
       { path: 'vouchers/create', name: 'voucher-create', component: VoucherCreate },
-      { path: 'vouchers/:id', name: 'voucher-detail', component: VoucherDetail, props: true },
       { path: 'vouchers/update/:id', name: 'voucher-update', component: VoucherUpdate, props: true },
 
       { path: 'payments', name: 'payments', component: PaymentsList },
