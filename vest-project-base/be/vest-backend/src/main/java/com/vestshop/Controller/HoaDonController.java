@@ -39,7 +39,7 @@ public class HoaDonController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "ngayTao") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
         Sort sort = "asc".equalsIgnoreCase(sortDir)

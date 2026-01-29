@@ -132,7 +132,7 @@
           <div class="fg-reset">
             <button class="btn-reset" type="button" @click.stop="resetFilters" title="Reset">
               <i class="bi bi-arrow-counterclockwise"></i>
-              <span>Reset</span>
+              <span>Đặt lại</span>
             </button>
           </div>
         </div>
@@ -642,4 +642,5 @@ onMounted(async () => {
   .fg-search, .fg-brand, .fg-qty, .fg-price, .fg-type, .fg-status, .fg-reset { grid-column: 1 / -1; }
   .fg-reset { justify-content: flex-end; margin-top: 0; }
 }
+
 </style>
