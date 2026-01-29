@@ -24,3 +24,9 @@ export async function deleteSanPham(id) {
   return res.data
 }
 
+export async function getGiaMaxDb() {
+  const res = await http.get('/api/san-pham/gia-max')
+  return res.data
+}
+
+
