@@ -1,6 +1,6 @@
 <template>
   <div class="product-page">
-    <!-- TOP BAR: tiêu đề trái + 3 nút phải (giống hóa đơn) -->
+    <!-- TOP BAR -->
     <div class="page-top">
       <div class="page-title">
         <h2>Quản lý sản phẩm / Danh sách sản phẩm</h2>
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <!-- FILTER CARD (đóng/mở như hóa đơn) -->
+    <!-- FILTER CARD -->
     <div class="card filter-card">
       <div class="filter-topbar" @click="toggleFilter">
         <div class="filter-topbar-left">
@@ -33,13 +33,6 @@
         <div class="filter-hint">Nhấn để thu gọn/mở rộng</div>
       </div>
 
-      <!-- Layout đúng yêu cầu:
-           - Khoảng giá nằm dưới Tìm kiếm
-           - Trạng thái xuống dưới
-           - Số lượng lên trên (cùng hàng với Thương hiệu)
-           Hàng 1: Tìm kiếm | Thương hiệu | Số lượng
-           Hàng 2: Khoảng giá | Loại sản phẩm | Trạng thái
-      -->
       <div class="filter-body" v-show="filterOpen">
         <div class="filter-layout">
           <!-- Row 1 -->
@@ -48,7 +41,7 @@
             <input
               type="text"
               v-model="filters.keyword"
-              placeholder="Tìm kiếm theo tên sản phẩm..."
+              placeholder="Tìm kiếm theo tên/mã sản phẩm..."
               class="form-input"
               @keyup.enter="reload"
             />
@@ -56,17 +49,17 @@
 
           <div class="form-group fg-brand">
             <label>Thương hiệu</label>
-            <select v-model="filters.thuongHieu" class="form-input" @change="reload">
+            <select v-model="filters.thuongHieu" class="form-input" @change="onFilterChanged">
               <option value="">-- Chọn Thương hiệu --</option>
-              <option v-for="item in attributes.thuongHieu" :key="item.id" :value="item.id">
-                {{ item.ten }}
+              <option v-for="b in attributes.thuongHieu" :key="b.id" :value="String(b.id)">
+                {{ b.ten }}
               </option>
             </select>
           </div>
 
           <div class="form-group fg-qty">
             <label>Số lượng</label>
-            <select v-model="filters.soLuong" class="form-input" @change="reload">
+            <select v-model="filters.soLuong" class="form-input" @change="onFilterChanged">
               <option value="">-- Chọn Số lượng --</option>
               <option value="1">Dưới 10</option>
               <option value="2">10 - 100</option>
@@ -84,37 +77,40 @@
             </label>
 
             <div class="range-slider">
-              <div class="slider-track"></div>
               <div class="slider-range" :style="rangeStyle"></div>
 
               <input
                 type="range"
                 min="0"
                 :max="priceMaxDb"
-                step="100000"
+                :step="PRICE_STEP"
                 v-model.number="filters.priceMin"
-                @input="validateMinPrice"
-                @change="reload"
+                @input="clampMinPrice"
+                @change="onFilterChanged"
               />
 
               <input
                 type="range"
                 min="0"
                 :max="priceMaxDb"
-                step="100000"
+                :step="PRICE_STEP"
                 v-model.number="filters.priceMax"
-                @input="validateMaxPrice"
-                @change="reload"
+                @input="clampMaxPrice"
+                @change="onFilterChanged"
               />
             </div>
+
+            <small class="hint">
+              Giá tối đa hiện tại: <b>{{ formatPrice(priceMaxDb) }}</b>
+            </small>
           </div>
 
           <div class="form-group fg-type">
             <label>Loại sản phẩm</label>
-            <select v-model="filters.loai" class="form-input" @change="reload">
+            <select v-model="filters.loai" class="form-input" @change="onFilterChanged">
               <option value="">-- Chọn Loại sản phẩm --</option>
-              <option v-for="item in attributes.loaiSanPham" :key="item.id" :value="item.id">
-                {{ item.ten }}
+              <option v-for="t in attributes.loaiSanPham" :key="t.id" :value="String(t.id)">
+                {{ t.ten }}
               </option>
             </select>
           </div>
@@ -122,13 +118,12 @@
           <div class="form-group fg-status">
             <label>Trạng thái</label>
             <div class="radio-group compact">
-              <label><input type="radio" value="" v-model="filters.status" @change="reload" /> Tất cả</label>
-              <label><input type="radio" value="true" v-model="filters.status" @change="reload" /> Còn hàng</label>
-              <label><input type="radio" value="false" v-model="filters.status" @change="reload" /> Hết hàng</label>
+              <label><input type="radio" value="" v-model="filters.status" @change="onFilterChanged" /> Tất cả</label>
+              <label><input type="radio" value="true" v-model="filters.status" @change="onFilterChanged" /> Còn hàng</label>
+              <label><input type="radio" value="false" v-model="filters.status" @change="onFilterChanged" /> Hết hàng</label>
             </div>
           </div>
 
-          <!-- Reset góc phải dưới (giống hóa đơn) -->
           <div class="fg-reset">
             <button class="btn-reset" type="button" @click.stop="resetFilters" title="Reset">
               <i class="bi bi-arrow-counterclockwise"></i>
@@ -163,7 +158,7 @@
 
           <tbody>
             <tr v-for="(p, index) in items" :key="p.id">
-              <td class="text-center">{{ (currentPage * pageSize) + index + 1 }}</td>
+              <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
               <td class="text-center">{{ p.maSanPham }}</td>
               <td class="text-bold">{{ p.tenSanPham }}</td>
               <td class="text-center">{{ p.tenLoaiSanPham || '-' }}</td>
@@ -190,7 +185,7 @@
             <tr v-if="loading">
               <td colspan="9" class="text-center">Đang tải dữ liệu...</td>
             </tr>
-            <tr v-if="!loading && items.length === 0">
+            <tr v-else-if="items.length === 0">
               <td colspan="9" class="text-center">Không tìm thấy sản phẩm nào</td>
             </tr>
           </tbody>
@@ -211,7 +206,7 @@
             <input
               type="number"
               min="1"
-              :max="totalPages || 1"
+              :max="Math.max(totalPages, 1)"
               class="form-control"
               v-model.number="pageInput"
               @keyup.enter="jumpPage"
@@ -244,31 +239,37 @@
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { listSanPham } from '../../services/sanPhamApi'
 import attributeService from '../../services/attributeService'
+import { listSanPham, getGiaMaxDb } from '../../services/sanPhamApi'
 
 const router = useRouter()
 
-// collapse
+/** UI */
 const filterOpen = ref(true)
-function toggleFilter() {
-  filterOpen.value = !filterOpen.value
-}
+const toggleFilter = () => (filterOpen.value = !filterOpen.value)
 
-// data
+/** Pagination */
+const currentPage = ref(0)
+const totalPages = ref(0)
+const totalElements = ref(0)
+const pageSize = ref(10)
+const pageInput = ref(1)
+
+/** Data */
 const items = ref([])
 const loading = ref(false)
 const error = ref('')
 
-// pagination
-const currentPage = ref(0)
-const totalPages = ref(0)
-const pageSize = ref(10)
-const totalElements = ref(0)
-const pageInput = ref(1)
+/** Attributes */
+const attributes = reactive({
+  loaiSanPham: [],
+  thuongHieu: []
+})
 
-// price 0 -> 10.000.000
-const priceMaxDb = ref(10000000)
+/** Price */
+const PRICE_STEP = 100000
+const DEFAULT_MAX = 10000000
+const priceMaxDb = ref(DEFAULT_MAX)
 
 const filters = reactive({
   keyword: '',
@@ -277,19 +278,16 @@ const filters = reactive({
   loai: '',
   status: '',
   priceMin: 0,
-  priceMax: 10000000
+  priceMax: DEFAULT_MAX
 })
 
-const attributes = reactive({
-  loaiSanPham: [],
-  thuongHieu: []
-})
+/** Actions */
+const createProduct = () => router.push('/products/add')
+const goDetail = (id) => router.push(`/products/${id}`)
+const exportExcel = () => console.log('export excel')
+const scanQr = () => console.log('scan qr')
 
-function exportExcel() { console.log('export excel') }
-function scanQr() { console.log('scan qr') }
-function createProduct() { router.push('/products/add') }
-function goDetail(id) { router.push(`/products/${id}`) }
-
+/** Helpers */
 function formatPrice(val) {
   const v = Number(val || 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
@@ -297,56 +295,36 @@ function formatPrice(val) {
 function formatPriceRange(min, max) {
   const mn = Number(min || 0)
   const mx = Number(max ?? mn)
-  if (mn === mx) return formatPrice(mn)
-  return `${formatPrice(mn)} - ${formatPrice(mx)}`
+  return mn === mx ? formatPrice(mn) : `${formatPrice(mn)} - ${formatPrice(mx)}`
 }
 
-const rangeStyle = computed(() => {
-  const min = filters.priceMin
-  const max = filters.priceMax
-  const rangeMax = priceMaxDb.value || 1
-  const pMin = (min / rangeMax) * 100
-  const pMax = (max / rangeMax) * 100
-  return { left: pMin + '%', width: (pMax - pMin) + '%' }
-})
+function roundUpToStep(n, step) {
+  const x = Number(n || 0)
+  if (x <= 0) return 0
+  return Math.ceil(x / step) * step
+}
 
-function validateMinPrice() {
+function clampMinPrice() {
   if (filters.priceMin < 0) filters.priceMin = 0
   if (filters.priceMin > filters.priceMax) filters.priceMin = filters.priceMax
 }
-function validateMaxPrice() {
-  if (filters.priceMax > priceMaxDb.value) filters.priceMax = priceMaxDb.value
+function clampMaxPrice() {
+  const max = Number(priceMaxDb.value || 0)
+  if (filters.priceMax > max) filters.priceMax = max
   if (filters.priceMax < filters.priceMin) filters.priceMax = filters.priceMin
 }
 
-function resetFilters() {
-  filters.keyword = ''
-  filters.thuongHieu = ''
-  filters.soLuong = ''
-  filters.loai = ''
-  filters.status = ''
-  filters.priceMin = 0
-  filters.priceMax = priceMaxDb.value
-  currentPage.value = 0
-  reload()
-}
+/** Slider range highlight */
+const rangeStyle = computed(() => {
+  const max = Number(priceMaxDb.value || 1)
+  const minV = Math.max(0, Math.min(filters.priceMin, max))
+  const maxV = Math.max(0, Math.min(filters.priceMax, max))
+  const left = (minV / max) * 100
+  const width = ((maxV - minV) / max) * 100
+  return { left: left + '%', width: width + '%' }
+})
 
-function changePage(p) {
-  if (p >= 0 && p < totalPages.value) {
-    currentPage.value = p
-    reload()
-  }
-}
-function jumpPage() {
-  const max = Math.max(1, totalPages.value || 1)
-  const target = Math.min(Math.max(1, pageInput.value || 1), max)
-  changePage(target - 1)
-}
-function onChangeSize() {
-  currentPage.value = 0
-  reload()
-}
-
+/** Load attributes */
 async function loadAttributes() {
   try {
     const [resLoai, resTH] = await Promise.all([
@@ -360,56 +338,122 @@ async function loadAttributes() {
   }
 }
 
+/** Load price max from DB */
+async function loadPriceMaxDb() {
+  try {
+    const raw = await getGiaMaxDb()
+    const maxDb = roundUpToStep(Number(raw || 0), PRICE_STEP) || DEFAULT_MAX
+
+    priceMaxDb.value = maxDb
+
+    // nếu đang dùng default (hoặc vượt quá maxDb) thì cập nhật lại
+    if (!filters.priceMax || filters.priceMax === DEFAULT_MAX || filters.priceMax > maxDb) {
+      filters.priceMax = maxDb
+    }
+    if (filters.priceMin > filters.priceMax) filters.priceMin = filters.priceMax
+  } catch (e) {
+    console.error(e)
+    // fallback giữ DEFAULT_MAX
+    priceMaxDb.value = DEFAULT_MAX
+    if (!filters.priceMax) filters.priceMax = DEFAULT_MAX
+  }
+}
+
+/** When any filter changes: về trang 1 rồi reload */
+function onFilterChanged() {
+  currentPage.value = 0
+  reload()
+}
+
+/** Reset */
+function resetFilters() {
+  filters.keyword = ''
+  filters.thuongHieu = ''
+  filters.soLuong = ''
+  filters.loai = ''
+  filters.status = ''
+  filters.priceMin = 0
+  filters.priceMax = priceMaxDb.value
+
+  currentPage.value = 0
+  pageInput.value = 1
+  reload()
+}
+
+/** Pagination */
+function changePage(p) {
+  if (p < 0 || p >= totalPages.value) return
+  currentPage.value = p
+  pageInput.value = p + 1
+  reload()
+}
+function jumpPage() {
+  const max = Math.max(totalPages.value, 1)
+  const target = Math.min(Math.max(1, pageInput.value || 1), max)
+  changePage(target - 1)
+}
+function onChangeSize() {
+  currentPage.value = 0
+  pageInput.value = 1
+  reload()
+}
+
+/** Core: fetch page and filter within current page */
 async function reload() {
   loading.value = true
   error.value = ''
-  try {
-    const raw = await listSanPham(currentPage.value, pageSize.value)
-    const page = raw?.data ?? raw
 
-    const serverItems = page?.content || []
+  try {
+    const resp = await listSanPham(currentPage.value, pageSize.value)
+    const page = resp?.data ?? resp
+
+    const content = page?.content || []
     totalPages.value = page?.totalPages || 0
     totalElements.value = page?.totalElements || 0
     pageInput.value = currentPage.value + 1
 
     const kw = (filters.keyword || '').trim().toLowerCase()
 
-    items.value = serverItems.filter(item => {
-      const ten = (item.tenSanPham || '').toLowerCase()
-      const ma = (item.maSanPham || '').toLowerCase()
+    items.value = content.filter((it) => {
+      const ten = (it.tenSanPham || '').toLowerCase()
+      const ma = (it.maSanPham || '').toLowerCase()
 
       const matchesKeyword = !kw || ten.includes(kw) || ma.includes(kw)
-      const matchesStatus = filters.status === '' || String(!!item.trangThai) === filters.status
-      const matchesLoai = !filters.loai || String(item.loaiSanPhamId) === String(filters.loai)
-      const matchesThuongHieu = !filters.thuongHieu || String(item.thuongHieuId) === String(filters.thuongHieu)
+      const matchesStatus = filters.status === '' || String(!!it.trangThai) === filters.status
+      const matchesLoai = !filters.loai || String(it.loaiSanPhamId) === String(filters.loai)
+      const matchesBrand = !filters.thuongHieu || String(it.thuongHieuId) === String(filters.thuongHieu)
 
-      let matchesSoLuong = true
+      let matchesQty = true
       if (filters.soLuong) {
-        const sl = Number(item.soLuongTon || 0)
-        if (filters.soLuong === '1') matchesSoLuong = sl < 10
-        else if (filters.soLuong === '2') matchesSoLuong = sl >= 10 && sl <= 100
-        else if (filters.soLuong === '3') matchesSoLuong = sl > 100
+        const sl = Number(it.soLuongTon || 0)
+        if (filters.soLuong === '1') matchesQty = sl < 10
+        else if (filters.soLuong === '2') matchesQty = sl >= 10 && sl <= 100
+        else if (filters.soLuong === '3') matchesQty = sl > 100
       }
 
-      const pMin = Number(item.giaMin || 0)
-      const pMax = Number(item.giaMax ?? pMin)
+      const pMin = Number(it.giaMin || 0)
+      const pMax = Number(it.giaMax ?? pMin)
       const fMin = Number(filters.priceMin || 0)
       const fMax = Number(filters.priceMax || 0)
-      const matchesGia = pMax >= fMin && pMin <= fMax
+      const matchesPrice = pMax >= fMin && pMin <= fMax
 
-      return matchesKeyword && matchesStatus && matchesLoai && matchesThuongHieu && matchesSoLuong && matchesGia
+      return matchesKeyword && matchesStatus && matchesLoai && matchesBrand && matchesQty && matchesPrice
     })
   } catch (e) {
     console.error(e)
     error.value = 'Không gọi được API. Vui lòng kiểm tra Backend.'
+    items.value = []
+    totalPages.value = 0
+    totalElements.value = 0
   } finally {
     loading.value = false
   }
 }
 
 onMounted(async () => {
-  await loadAttributes()
-  filters.priceMax = priceMaxDb.value
+  await Promise.all([loadAttributes(), loadPriceMaxDb()])
+  // đảm bảo slider đúng max DB
+  clampMaxPrice()
   reload()
 })
 </script>
@@ -463,46 +507,34 @@ onMounted(async () => {
   cursor: pointer;
   user-select: none;
 }
-.filter-topbar-left {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
+.filter-topbar-left { display: inline-flex; align-items: center; gap: 10px; }
 .filter-title { font-size: 0.95rem; font-weight: 600; }
 .filter-hint { font-size: 0.8rem; opacity: 0.9; }
 .filter-caret {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 22px; height: 22px; border-radius: 6px;
   background: rgba(255,255,255,.12);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
   transition: transform .15s ease;
 }
 .filter-caret.open { transform: rotate(180deg); }
 
-/* filter layout: 3 cột như ảnh */
+/* filter layout */
 .filter-body { padding: 16px; }
 .filter-layout {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
-  gap: 16px 16px;
+  gap: 16px;
   align-items: start;
 }
 
-/* row 1 */
+
 .fg-search { grid-column: 1 / 2; grid-row: 1; }
 .fg-brand  { grid-column: 2 / 3; grid-row: 1; }
 .fg-qty    { grid-column: 3 / 4; grid-row: 1; }
-
-/* row 2 */
 .fg-price  { grid-column: 1 / 2; grid-row: 2; }
 .fg-type   { grid-column: 2 / 3; grid-row: 2; }
 .fg-status { grid-column: 3 / 4; grid-row: 2; }
-
-/* reset bottom right */
-.fg-reset {
+.fg-reset  {
   grid-column: 3 / 4;
   grid-row: 3;
   display: flex;
@@ -528,23 +560,12 @@ onMounted(async () => {
 }
 .form-input:focus { border-color: #3b82f6; }
 
-/* radio compact */
-.radio-group {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
+/* radio */
+.radio-group { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
 .radio-group.compact label { font-size: 0.85rem; }
-.radio-group label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-weight: normal;
-}
+.radio-group label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; }
 
-/* reset button */
+/* reset */
 .btn-reset {
   border: none;
   background: transparent;
@@ -561,6 +582,8 @@ onMounted(async () => {
 
 /* slider */
 .price-display { font-weight: 700; color: #059669; margin-left: 6px; }
+.hint { display: block; margin-top: 6px; color: #6b7280; }
+
 .range-slider {
   position: relative;
   width: 100%;
@@ -608,13 +631,13 @@ onMounted(async () => {
   border-radius: 2px;
 }
 
-/* table (giữ style) */
+/* table */
 .table-card { margin-top: 14px; padding: 16px; }
 .table-header-info h3 { font-size: 1rem; font-weight: 700; color: #111827; margin: 0 0 10px 0; }
 .table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .table th { background-color: #1e293b; color: #fff; padding: 12px; text-align: left; font-size: 0.875rem; font-weight: 600; }
 .table td { padding: 12px; border-bottom: 1px solid #e5e7eb; color: #4b5563; font-size: 0.875rem; }
-.text-bold { font-weight: 600; color: #1f2937;text-align: center; }
+.text-bold { font-weight: 600; color: #1f2937; text-align: center; }
 .text-center { text-align: center; }
 .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
 .badge-success { background-color: #d1fae5; color: #047857; }
