@@ -135,7 +135,7 @@
               @click="resetFilters"
               title="Reset"
             >
-              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Đặt lại
             </button>
           </div>
         </div>

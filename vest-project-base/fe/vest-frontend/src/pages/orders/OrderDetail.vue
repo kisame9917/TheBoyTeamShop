@@ -554,16 +554,18 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref, nextTick } from "vue";
+import { useRouter, useRoute } from "vue-router";
+
 import QRCode from "qrcode";
 import hoaDonApi from "@/services/hoaDonApi";
 
 const props = defineProps({
   id: { type: [String, Number], required: true },
 });
-
 const router = useRouter();
+const route = useRoute();
+
 
 const hd = ref(null);
 const changeStatusCode = ref(0);
@@ -944,9 +946,19 @@ function hideToast() {
   } catch {}
 }
 
-onMounted(() => {
-  fetchDetail();
+onMounted(async () => {
+  await fetchDetail();
+
+  if (route.query.print === "1") {
+    await nextTick();        // đảm bảo modal ref đã sẵn sàng
+    await openPrintModal();  // mở popup xuất hóa đơn
+
+    // Xóa query để tránh reload lại tự mở
+    const { print, ...rest } = route.query;
+    router.replace({ query: rest });
+  }
 });
+
 </script>
 
 <style scoped>
