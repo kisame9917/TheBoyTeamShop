@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/san-pham")
 public class SanPhamController {
@@ -47,4 +49,10 @@ public class SanPhamController {
         sanPhamService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/gia-max")
+    public ResponseEntity<BigDecimal> getGiaMaxDb() {
+        return ResponseEntity.ok(sanPhamService.getGiaMaxDb());
+    }
+
 }

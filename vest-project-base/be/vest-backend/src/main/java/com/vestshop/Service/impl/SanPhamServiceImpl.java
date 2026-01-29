@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -115,10 +116,10 @@ public class SanPhamServiceImpl implements SanPhamService {
     public SanPhamResponse update(Long id, SanPhamRequest request) {
         SanPham sanPham = sanPhamRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("SanPham not found with id: " + id));
-        
+
         updateEntity(sanPham, request);
         sanPham.setNgayCapNhat(LocalDateTime.now());
-        
+
         SanPham updated = sanPhamRepository.save(sanPham);
         return mapToResponse(updated);
     }
@@ -159,7 +160,7 @@ public class SanPhamServiceImpl implements SanPhamService {
         sanPham.setTrangThai(request.getTrangThai());
         sanPham.setMoTa(request.getMoTa());
         sanPham.setAnh(request.getAnh());
-        
+
         if (!sanPham.getChatLieu().getId().equals(request.getChatLieuId())) {
             sanPham.setChatLieu(chatLieuRepository.findById(request.getChatLieuId()).orElseThrow(() -> new RuntimeException("ChatLieu not found")));
         }
@@ -246,6 +247,7 @@ public class SanPhamServiceImpl implements SanPhamService {
                 .max(java.util.Comparator.naturalOrder())
                 .orElse(java.math.BigDecimal.ZERO);
     }
+
     private ChatLieu getChatLieuOrDefault(Long id) {
         if (id != null) {
             return chatLieuRepository.findById(id).orElseGet(this::getDefaultChatLieu);
@@ -256,5 +258,11 @@ public class SanPhamServiceImpl implements SanPhamService {
     private ChatLieu getDefaultChatLieu() {
         return chatLieuRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("He thong can it nhat 1 Chat Lieu de hoat dong (Legacy DB Constraint)."));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getGiaMaxDb() {
+        return sanPhamChiTietRepository.findMaxDonGia();
     }
 }
