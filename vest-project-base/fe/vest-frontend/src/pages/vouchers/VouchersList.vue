@@ -195,7 +195,7 @@
                 <td>{{ page.page * page.size + idx + 1 }}</td>
 
                 <td>
-                  <span class="ellipsis" :title="v.maGiamGia">{{ v.maGiamGia }}</span>
+                  <span class="ellipsis1" :title="v.maGiamGia">{{ v.maGiamGia }}</span>
                 </td>
 
                 <td>
@@ -209,7 +209,7 @@
                 </td>
 
                 <td>
-                  <span class="ellipsis" :title="renderGiaTriGiamRow(v)">{{ renderGiaTriGiamRow(v) }}</span>
+                  <span class="ellipsis1" :title="renderGiaTriGiamRow(v)">{{ renderGiaTriGiamRow(v) }}</span>
                 </td>
 
                 <td>{{ v.soLuong ?? 0 }}</td>
@@ -1145,7 +1145,14 @@ onBeforeUnmount(() => {
   display: block;
   width: 100%;
   overflow: hidden;
+  text-overflow: ellipsis;  
+}
+.ellipsis1{
+   display: block;
+  width: 100%;
+  overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: bold;
 }
 .empty {
   text-align: center;
