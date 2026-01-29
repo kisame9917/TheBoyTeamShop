@@ -8,9 +8,11 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-primary btn-sm" @click="exportExcel">
-          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel (trang)
+        <!-- ✅ Mở modal option thay vì export luôn -->
+        <button class="btn btn-outline-primary btn-sm" @click="openExportModal">
+          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
         </button>
+
         <button class="btn btn-outline-secondary btn-sm" @click="goCreate">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
@@ -73,7 +75,14 @@
               <label class="form-label">Loại phiếu</label>
               <div class="d-flex align-items-center gap-3 mt-2 flex-wrap">
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" id="lp_all" value="" v-model="filters.loaiPhieu" @change="applyFilters" />
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    id="lp_all"
+                    value=""
+                    v-model="filters.loaiPhieu"
+                    @change="applyFilters"
+                  />
                   <label class="form-check-label" for="lp_all">Tất cả</label>
                 </div>
 
@@ -131,7 +140,7 @@
 
             <div class="col-12 d-flex justify-content-end gap-2">
               <button class="btn btn-light" @click="resetFilters">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
               </button>
             </div>
           </div>
@@ -149,20 +158,18 @@
 
         <div v-else class="table-wrap">
           <table class="voucher-table">
-<colgroup>
-  <col style="width: 80px" />   <!-- STT -->
-  <col style="width: 200px" />  <!-- Mã giảm giá -->
-  <col style="width: 220px" />  <!-- Tên giảm giá -->
-  <col style="width: 150px" />  <!-- Loại phiếu -->
-  <col style="width: 130px" />  <!-- Giá trị giảm -->
-  <col style="width: 90px" />   <!-- Số lượng -->
-  <col style="width: 160px" />  <!-- Ngày bắt đầu -->
-  <col style="width: 160px" />  <!-- Ngày kết thúc -->
-  <col style="width: 120px" />  <!-- Trạng thái -->
-  <col style="width: 120px" />  <!-- Hành động -->
-</colgroup>
-
-
+            <colgroup>
+              <col style="width: 80px" />
+              <col style="width: 200px" />
+              <col style="width: 220px" />
+              <col style="width: 150px" />
+              <col style="width: 130px" />
+              <col style="width: 90px" />
+              <col style="width: 160px" />
+              <col style="width: 160px" />
+              <col style="width: 120px" />
+              <col style="width: 120px" />
+            </colgroup>
 
             <thead>
               <tr>
@@ -215,7 +222,6 @@
                   </span>
                 </td>
 
-                <!-- ✅ BỎ NÚT DETAIL -->
                 <td class="text-end">
                   <button
                     class="btn btn-outline-warning btn-sm me-2"
@@ -289,6 +295,75 @@
 
         <div v-if="error" class="alert alert-danger mt-3 mb-0">
           {{ error }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Export options modal -->
+    <div v-if="showExportModal" class="modal-overlay" @click.self="closeExportModal">
+      <div class="modal-card export-modal">
+        <h3 class="modal-title">Tùy chọn xuất Excel</h3>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Chọn phạm vi xuất</label>
+
+          <div class="d-flex flex-column gap-2 mt-2">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" id="ex_current" value="CURRENT" v-model="exportMode" />
+              <label class="form-check-label" for="ex_current">Trang đang xem (Trang {{ page.page + 1 }})</label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" id="ex_page" value="PAGE" v-model="exportMode" />
+              <label class="form-check-label" for="ex_page">Chọn trang khác</label>
+            </div>
+
+            <!-- ✅ NEW: All pages -->
+            <div class="form-check">
+              <input class="form-check-input" type="radio" id="ex_all" value="ALL" v-model="exportMode" />
+              <label class="form-check-label" for="ex_all">
+                Xuất tất cả trang ({{ totalElements }} bản ghi theo bộ lọc hiện tại)
+              </label>
+            </div>
+          </div>
+
+          <div v-if="exportMode === 'PAGE'" class="input-group input-group-sm mt-2" style="max-width: 260px">
+            <span class="input-group-text">Trang</span>
+            <input type="number" class="form-control" v-model.number="exportPage" min="1" :max="totalPages || 1" />
+            <span class="input-group-text">/ {{ totalPages || 1 }}</span>
+          </div>
+
+          <div v-if="exportMode === 'ALL'" class="text-muted mt-2" style="font-size: 12px">
+            Lưu ý: Xuất tất cả có thể lâu nếu dữ liệu nhiều.
+          </div>
+        </div>
+
+        <hr class="my-3" />
+
+        <div class="mb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <label class="form-label fw-semibold mb-0">Chọn cột xuất</label>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" type="button" @click="selectAllExportCols">Chọn tất cả</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @click="clearAllExportCols">Bỏ chọn</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @click="resetExportColsDefault">Mặc định</button>
+          </div>
+        </div>
+
+        <div class="row g-2 export-cols">
+          <div class="col-12 col-md-6" v-for="c in exportCols" :key="c.key">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" :id="`excol-${c.key}`" v-model="exportPick[c.key]" />
+              <label class="form-check-label" :for="`excol-${c.key}`">{{ c.label }}</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions mt-3">
+          <button class="btn btn-outline" :disabled="exporting" @click="closeExportModal">Hủy</button>
+          <button class="btn btn-primary" :disabled="exporting" @click="exportExcelFromModal">
+            {{ exporting ? "Đang xuất..." : "Xuất" }}
+          </button>
         </div>
       </div>
     </div>
@@ -721,6 +796,145 @@ async function onToggleBiz(v, evt) {
   }
 }
 
+/* =========================
+   ✅ Export: chọn trang / trang khác / tất cả + chọn cột (modal)
+   ========================= */
+const showExportModal = ref(false);
+const exporting = ref(false);
+const exportMode = ref("CURRENT"); // CURRENT | PAGE | ALL
+const exportPage = ref(1); // 1-based
+
+function openExportModal() {
+  exportMode.value = "CURRENT";
+  exportPage.value = page.page + 1;
+  showExportModal.value = true;
+}
+function closeExportModal() {
+  if (exporting.value) return;
+  showExportModal.value = false;
+}
+
+const exportCols = [
+  {
+    key: "stt",
+    label: "#",
+    default: true,
+    // ✅ ALL -> STT 1..N ; còn lại theo trang
+    get: (v, idx, pageIndex) => (exportMode.value === "ALL" ? idx + 1 : pageIndex * page.size + idx + 1),
+  },
+  { key: "ma", label: "Mã giảm giá", default: true, get: (v) => v.maGiamGia ?? "" },
+  { key: "ten", label: "Tên giảm giá", default: true, get: (v) => v.tenGiamGia ?? "" },
+  { key: "loaiPhieu", label: "Loại phiếu", default: true, get: (v) => (isPersonal(v) ? "Cá nhân" : "Công khai") },
+  { key: "loaiGiam", label: "Loại giảm", default: true, get: (v) => (v.loaiGiam ? "Giảm %" : "Giảm tiền") },
+  {
+    key: "giaTri",
+    label: "Giá trị giảm",
+    default: true,
+    get: (v) => (v.loaiGiam ? `${Number(v.giaTriPhanTram ?? 0)}%` : Number(v.giaTriTienMat ?? 0)),
+  },
+  { key: "soLuong", label: "Số lượng", default: true, get: (v) => Number(v.soLuong ?? 0) },
+  { key: "ngayBD", label: "Ngày bắt đầu", default: true, get: (v) => formatDate(v.ngayBatDau) },
+  { key: "ngayKT", label: "Ngày kết thúc", default: true, get: (v) => formatDate(v.ngayKetThuc) },
+  { key: "trangThai", label: "Trạng thái", default: true, get: (v) => getBizStatusText(v) },
+];
+
+const exportPick = reactive(
+  exportCols.reduce((acc, c) => {
+    acc[c.key] = c.default !== false;
+    return acc;
+  }, {})
+);
+
+function selectAllExportCols() {
+  exportCols.forEach((c) => (exportPick[c.key] = true));
+}
+function clearAllExportCols() {
+  exportCols.forEach((c) => (exportPick[c.key] = false));
+}
+function resetExportColsDefault() {
+  exportCols.forEach((c) => (exportPick[c.key] = c.default !== false));
+}
+
+function getExportTarget() {
+  const max = Math.max(1, totalPages.value || 1);
+
+  if (exportMode.value === "ALL") {
+    return {
+      mode: "ALL",
+      pageNo: null,
+      pageIndex: 0,
+      rows: sortedItems.value, // ✅ tất cả bản ghi theo filter
+    };
+  }
+
+  if (exportMode.value === "CURRENT") {
+    return {
+      mode: "CURRENT",
+      pageNo: page.page + 1,
+      pageIndex: page.page,
+      rows: pagedItems.value,
+    };
+  }
+
+  // PAGE
+  const pageNo = Math.min(Math.max(1, exportPage.value || 1), max);
+  const pageIndex = pageNo - 1;
+  const start = pageIndex * page.size;
+
+  return {
+    mode: "PAGE",
+    pageNo,
+    pageIndex,
+    rows: sortedItems.value.slice(start, start + page.size),
+  };
+}
+
+function exportExcelInternal() {
+  const pickedCols = exportCols.filter((c) => exportPick[c.key]);
+  if (!pickedCols.length) {
+    toast.error("Vui lòng chọn ít nhất 1 cột để xuất Excel.");
+    return false;
+  }
+
+  const { mode, pageNo, pageIndex, rows } = getExportTarget();
+  if (!rows || rows.length === 0) {
+    toast.error("Không có dữ liệu để xuất.");
+    return false;
+  }
+
+  const data = rows.map((v, idx) => {
+    const row = {};
+    pickedCols.forEach((c) => {
+      row[c.label] = c.get(v, idx, pageIndex);
+    });
+    return row;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  ws["!cols"] = pickedCols.map((c) => ({
+    wch: Math.min(Math.max(c.label.length + 2, 12), 28),
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Vouchers");
+
+  const filename = mode === "ALL" ? "phieu_giam_gia_tat_ca.xlsx" : `phieu_giam_gia_trang_${pageNo}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  return true;
+}
+
+async function exportExcelFromModal() {
+  exporting.value = true;
+  try {
+    const ok = exportExcelInternal();
+    if (ok) toast.success("✅ Đã xuất Excel");
+  } finally {
+    exporting.value = false;
+    showExportModal.value = false;
+  }
+}
+
 // ===== Flatpickr =====
 const fromPickerRef = ref(null);
 const toPickerRef = ref(null);
@@ -826,27 +1040,6 @@ async function reload() {
   } finally {
     loading.value = false;
   }
-}
-
-// ===== Export Excel =====
-function exportExcel() {
-  const data = pagedItems.value.map((v, idx) => ({
-    "#": page.page * page.size + idx + 1,
-    "Mã giảm giá": v.maGiamGia ?? "",
-    "Tên giảm giá": v.tenGiamGia ?? "",
-    "Loại phiếu": isPersonal(v) ? "Cá nhân" : "Công khai",
-    "Loại giảm": v.loaiGiam ? "Giảm %" : "Giảm tiền",
-    "Giá trị giảm": v.loaiGiam ? `${Number(v.giaTriPhanTram ?? 0)}%` : Number(v.giaTriTienMat ?? 0),
-    "Số lượng": Number(v.soLuong ?? 0),
-    "Ngày bắt đầu": formatDate(v.ngayBatDau),
-    "Ngày kết thúc": formatDate(v.ngayKetThuc),
-    "Trạng thái": getBizStatusText(v),
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Vouchers");
-  XLSX.writeFile(wb, `phieu_giam_gia_trang_${page.page + 1}.xlsx`);
 }
 
 // ===== mount =====
@@ -969,8 +1162,8 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 .pill-public {
-background: #1d4ed8;
-  color: #F1F5F9;
+  background: #1d4ed8;
+  color: #f1f5f9;
 }
 .pill-personal {
   background: #fef3c7;
@@ -980,7 +1173,7 @@ background: #1d4ed8;
 /* badge */
 .badge-success {
   background: #1d4ed8;
-  color: #F1F5F9  ;
+  color: #f1f5f9;
 }
 .badge-warning {
   background: #fef3c7;
@@ -1022,6 +1215,16 @@ background: #1d4ed8;
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+/* ✅ export modal */
+.export-modal {
+  width: min(740px, calc(100% - 32px));
+}
+.export-cols {
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 6px;
 }
 
 /* switch */
