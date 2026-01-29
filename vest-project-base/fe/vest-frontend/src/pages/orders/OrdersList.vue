@@ -690,6 +690,8 @@ watch(
  * Data fetch
  * ======================= */
 async function fetchData() {
+  const minSend = Number(filters.minTotal ?? TOTAL_MIN);
+const maxSend = Number(filters.maxTotal ?? TOTAL_MAX);
   loading.value = true;
   try {
     const loaiDon =
@@ -715,10 +717,8 @@ async function fetchData() {
       from: filters.fromDate || undefined,
       to: filters.toDate || undefined,
 
-      minTotal:
-        filters.minTotal > TOTAL_MIN ? Number(filters.minTotal) : undefined,
-      maxTotal:
-        filters.maxTotal < TOTAL_MAX ? Number(filters.maxTotal) : undefined,
+      minTotal: minSend !== TOTAL_MIN ? minSend : undefined,
+  maxTotal: maxSend !== TOTAL_MAX ? maxSend : undefined,
     };
 
     const res = await hoaDonApi.search(params);
@@ -784,7 +784,6 @@ function goDetail(id) {
  * ======================= */async function exportListExcel() {
   if (!rows.value.length) return;
 
-  // --- 1) Header + bộ lọc (ghi lên đầu sheet) ---
   const filterLines = [
     ["DANH SÁCH HÓA ĐƠN (TRANG HIỆN TẠI)"],
     ["Xuất lúc", new Date().toLocaleString("vi-VN")],
