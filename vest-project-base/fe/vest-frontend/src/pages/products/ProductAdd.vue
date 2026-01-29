@@ -27,98 +27,173 @@
 
             <div class="form-group">
               <label class="required">Loại sản phẩm</label>
-              <div class="flex-row-gap">
-                <select v-model="product.loaiSanPhamId" class="form-input" :class="{ 'error-border': errors.loaiSanPhamId }">
-                  <option value="">-- Chọn Loại sản phẩm --</option>
-                  <option v-for="i in attributes.loaiSanPham" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('loaiSanPham', 'loai-san-pham')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.loaiSanPhamId }]">
+                <Multiselect
+                  v-model="msLoaiSanPham"
+                  :options="attributes.loaiSanPham"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Loại sản phẩm --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('loai-san-pham','loaiSanPham','loaiSanPhamId',name)"
+                />
               </div>
               <small v-if="errors.loaiSanPhamId" class="error-text">{{ errors.loaiSanPhamId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Thương hiệu</label>
-              <div class="flex-row-gap">
-                <select v-model="product.thuongHieuId" class="form-input" :class="{ 'error-border': errors.thuongHieuId }">
-                  <option value="">-- Chọn Thương hiệu --</option>
-                  <option v-for="i in attributes.thuongHieu" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('thuongHieu', 'thuong-hieu')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.thuongHieuId }]">
+                <Multiselect
+                  v-model="msThuongHieu"
+                  :options="attributes.thuongHieu"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Thương hiệu --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('thuong-hieu','thuongHieu','thuongHieuId',name)"
+                />
               </div>
               <small v-if="errors.thuongHieuId" class="error-text">{{ errors.thuongHieuId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Số khuy</label>
-              <div class="flex-row-gap">
-                <select v-model="product.soKhuyId" class="form-input" :class="{ 'error-border': errors.soKhuyId }">
-                  <option value="">-- Chọn Số khuy --</option>
-                  <option v-for="i in attributes.soKhuy" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('soKhuy', 'so-khuy')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.soKhuyId }]">
+                <Multiselect
+                  v-model="msSoKhuy"
+                  :options="attributes.soKhuy"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Số khuy --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('so-khuy','soKhuy','soKhuyId',name)"
+                />
               </div>
               <small v-if="errors.soKhuyId" class="error-text">{{ errors.soKhuyId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Kiểu túi</label>
-              <div class="flex-row-gap">
-                <select v-model="product.kieuTuiId" class="form-input" :class="{ 'error-border': errors.kieuTuiId }">
-                  <option value="">-- Chọn Kiểu túi --</option>
-                  <option v-for="i in attributes.kieuTui" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('kieuTui', 'kieu-tui')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.kieuTuiId }]">
+                <Multiselect
+                  v-model="msKieuTui"
+                  :options="attributes.kieuTui"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Kiểu túi --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('kieu-tui','kieuTui','kieuTuiId',name)"
+                />
               </div>
               <small v-if="errors.kieuTuiId" class="error-text">{{ errors.kieuTuiId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Ve áo</label>
-              <div class="flex-row-gap">
-                <select v-model="product.veAoId" class="form-input" :class="{ 'error-border': errors.veAoId }">
-                  <option value="">-- Chọn Ve áo --</option>
-                  <option v-for="i in attributes.veAo" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('veAo', 've-ao')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.veAoId }]">
+                <Multiselect
+                  v-model="msVeAo"
+                  :options="attributes.veAo"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Ve áo --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('ve-ao','veAo','veAoId',name)"
+                />
               </div>
               <small v-if="errors.veAoId" class="error-text">{{ errors.veAoId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Xẻ tà</label>
-              <div class="flex-row-gap">
-                <select v-model="product.xeTaId" class="form-input" :class="{ 'error-border': errors.xeTaId }">
-                  <option value="">-- Chọn Xẻ tà --</option>
-                  <option v-for="i in attributes.xeTa" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('xeTa', 'xe-ta')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.xeTaId }]">
+                <Multiselect
+                  v-model="msXeTa"
+                  :options="attributes.xeTa"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Xẻ tà --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('xe-ta','xeTa','xeTaId',name)"
+                />
               </div>
               <small v-if="errors.xeTaId" class="error-text">{{ errors.xeTaId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Xuất xứ</label>
-              <div class="flex-row-gap">
-                <select v-model="product.xuatXuId" class="form-input" :class="{ 'error-border': errors.xuatXuId }">
-                  <option value="">-- Chọn Xuất xứ --</option>
-                  <option v-for="i in attributes.xuatXu" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('xuatXu', 'xuat-xu')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.xuatXuId }]">
+                <Multiselect
+                  v-model="msXuatXu"
+                  :options="attributes.xuatXu"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Xuất xứ --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('xuat-xu','xuatXu','xuatXuId',name)"
+                />
               </div>
               <small v-if="errors.xuatXuId" class="error-text">{{ errors.xuatXuId }}</small>
             </div>
 
             <div class="form-group">
               <label class="required">Kiểu dáng</label>
-              <div class="flex-row-gap">
-                <select v-model="product.fitId" class="form-input" :class="{ 'error-border': errors.fitId }">
-                  <option value="">-- Chọn kiểu dáng --</option>
-                  <option v-for="i in attributes.fit" :key="i.id" :value="i.id">{{ i.ten }}</option>
-                </select>
-                <button class="btn-quick-add" type="button" @click="openQuickAdd('fit', 'fit')">+</button>
+              <div :class="['ms-wrap', { 'error-border': errors.fitId }]">
+                <Multiselect
+                  v-model="msFit"
+                  :options="attributes.fit"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn kiểu dáng --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('fit','fit','fitId',name)"
+                />
               </div>
               <small v-if="errors.fitId" class="error-text">{{ errors.fitId }}</small>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Chất liệu</label>
+              <div :class="['ms-wrap', { 'error-border': errors.chatLieuId }]">
+                <Multiselect
+                  v-model="msChatLieu"
+                  :options="attributes.chatLieu"
+                  track-by="id"
+                  label="ten"
+                  placeholder="-- Chọn Chất liệu --"
+                  :searchable="true"
+                  :taggable="true"
+                  tag-placeholder="Nhập để thêm"
+                  :show-labels="false"
+                  @tag="(name) => onTagCreate('chat-lieu','chatLieu','chatLieuId',name)"
+                />
+              </div>
+              <small v-if="errors.chatLieuId" class="error-text">{{ errors.chatLieuId }}</small>
             </div>
           </div>
 
@@ -185,22 +260,14 @@
                 <thead>
                   <tr>
                     <th style="width:24%; text-align:center;">Kích cỡ</th>
-                    <th style="width:24%;">Chất liệu</th>
-                    <th style="width:24%;">Số lượng tồn</th>
+                                        <th style="width:24%;">Số lượng tồn</th>
                     <th style="width:24%;">Đơn giá</th>
                     <th style="width:4%;"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(v, idx) in g.variants" :key="idx">
-                    <td class="text-center"><span class="size-badge">{{ v.tenKichCo }}</span></td>
-                    <td>
-                      <select class="form-input" v-model="v.chatLieuId">
-                        <option value="">-- Chọn --</option>
-                        <option v-for="cl in attributes.chatLieu" :key="cl.id" :value="cl.id">{{ cl.ten }}</option>
-                      </select>
-                    </td>
-                    <td><input class="form-input" type="number" min="0" v-model="v.soLuongTon" /></td>
+                    <td class="text-center"><span class="size-badge">{{ v.tenKichCo }}</span></td>                    <td><input class="form-input" type="number" min="0" v-model="v.soLuongTon" /></td>
                     <td><input class="form-input" type="number" min="0" v-model="v.donGia" /></td>
                     <td class="text-center">
                       <button class="btn-icon danger" type="button" @click="removeVariantObj(v)">×</button>
@@ -283,17 +350,7 @@
     <!-- Apply nhóm -->
     <div v-if="showGroupApplyModal" class="modal-overlay">
       <div class="modal-box">
-        <h3 class="modal-title">Áp dụng chung ({{ currentApplyGroup?.name }})</h3>
-
-        <div class="form-group">
-          <label>Chất liệu</label>
-          <select class="form-input" v-model="groupApplyData.chatLieuId">
-            <option value="">-- Chọn --</option>
-            <option v-for="cl in attributes.chatLieu" :key="cl.id" :value="cl.id">{{ cl.ten }}</option>
-          </select>
-        </div>
-
-        <div class="grid-2">
+        <h3 class="modal-title">Áp dụng chung ({{ currentApplyGroup?.name }})</h3>        <div class="grid-2">
           <div class="form-group">
             <label>Số lượng tồn</label>
             <input class="form-input" type="number" min="0" placeholder="Giữ nguyên" v-model="groupApplyData.soLuongTon" />
@@ -368,6 +425,8 @@
 
 <script setup>
 import { reactive, ref, onMounted, computed, nextTick } from 'vue'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
 import { useRouter } from 'vue-router'
 import attributeService from '../../services/attributeService'
 import { createSanPham, updateSanPham } from '../../services/sanPhamApi'
@@ -443,6 +502,7 @@ const product = reactive({
   xeTaId: '',
   xuatXuId: '',
   fitId: '',
+  chatLieuId: '',
   trangThai: true,
   moTa: '',
   anh: ''
@@ -477,6 +537,26 @@ const attributeMap = {
   kichCo: 'kich-co'
 }
 
+
+// ===== Select2-like (vue-multiselect) bindings =====
+function bindMs(productKey, listKey) {
+  return computed({
+    get: () => (attributes[listKey] || []).find((i) => String(i.id) === String(product[productKey])) || null,
+    set: (val) => {
+      product[productKey] = val ? val.id : ''
+    }
+  })
+}
+
+const msLoaiSanPham = bindMs('loaiSanPhamId', 'loaiSanPham')
+const msThuongHieu = bindMs('thuongHieuId', 'thuongHieu')
+const msSoKhuy = bindMs('soKhuyId', 'soKhuy')
+const msKieuTui = bindMs('kieuTuiId', 'kieuTui')
+const msVeAo = bindMs('veAoId', 'veAo')
+const msXeTa = bindMs('xeTaId', 'xeTa')
+const msXuatXu = bindMs('xuatXuId', 'xuatXu')
+const msFit = bindMs('fitId', 'fit')
+const msChatLieu = bindMs('chatLieuId', 'chatLieu')
 onMounted(async () => {
   try {
     const promises = Object.keys(attributeMap).map((key) =>
@@ -524,7 +604,7 @@ function generateVariants() {
           soLuongTon: 10,
           donGia: 0,
           anh: '',
-          chatLieuId: ''
+          chatLieuId: product.chatLieuId
         })
       }
     }
@@ -565,11 +645,10 @@ async function handleGroupImageUpload(group, event) {
 /* ===== Group Apply ===== */
 const showGroupApplyModal = ref(false)
 const currentApplyGroup = ref(null)
-const groupApplyData = reactive({ chatLieuId: '', soLuongTon: '', donGia: '' })
+const groupApplyData = reactive({ soLuongTon: '', donGia: '' })
 
 function openGroupApply(group) {
   currentApplyGroup.value = group
-  groupApplyData.chatLieuId = ''
   groupApplyData.soLuongTon = ''
   groupApplyData.donGia = ''
   showGroupApplyModal.value = true
@@ -581,7 +660,6 @@ function confirmGroupApply() {
   if (!currentApplyGroup.value) return
 
   currentApplyGroup.value.variants.forEach((v) => {
-    if (groupApplyData.chatLieuId) v.chatLieuId = groupApplyData.chatLieuId
     if (groupApplyData.soLuongTon !== '') v.soLuongTon = Number(groupApplyData.soLuongTon)
     if (groupApplyData.donGia !== '') v.donGia = Number(groupApplyData.donGia)
   })
@@ -623,6 +701,33 @@ function genNextAttrCode(typeCode, list) {
   return `${prefix}${pad2(next)}`
 }
 
+
+
+async function onTagCreate(typeCode, listKey, productKey, name) {
+  const ten = String(name || '').trim()
+  if (!ten) return
+
+  // nếu đã tồn tại thì chọn luôn
+  const existed = (attributes[listKey] || []).find((x) => String(x.ten || '').toLowerCase() === ten.toLowerCase())
+  if (existed) {
+    product[productKey] = existed.id
+    return
+  }
+
+  try {
+    const ma = genNextAttrCode(typeCode, attributes[listKey] || [])
+    const res = await attributeService.create(typeCode, { ma, ten, trangThai: true })
+    const created = res?.data
+    if (!created?.id) throw new Error('Create attribute failed')
+
+    attributes[listKey] = [...(attributes[listKey] || []), created]
+    product[productKey] = created.id
+    showToast(`Đã thêm "${ten}"!`)
+  } catch (e) {
+    console.error(e)
+    showToast('Không thể thêm nhanh. Vui lòng thử lại!', 'error')
+  }
+}
 const showQuickAddModal = ref(false)
 const quickAddValue = ref('')
 const quickAddTarget = reactive({ key: '', typeCode: '' })
@@ -736,7 +841,8 @@ const errors = reactive({
   veAoId: '',
   xeTaId: '',
   xuatXuId: '',
-  fitId: ''
+  fitId: '',
+  chatLieuId: ''
 })
 
 function validate() {
@@ -752,7 +858,7 @@ function validate() {
     ok = false
   }
 
-  const req = ['loaiSanPhamId', 'thuongHieuId', 'soKhuyId', 'kieuTuiId', 'veAoId', 'xeTaId', 'xuatXuId', 'fitId']
+  const req = ['loaiSanPhamId', 'thuongHieuId', 'soKhuyId', 'kieuTuiId', 'veAoId', 'xeTaId', 'xuatXuId', 'fitId', 'chatLieuId']
   for (const k of req) {
     if (!product[k]) {
       errors[k] = 'Bắt buộc'
@@ -791,7 +897,8 @@ async function handleSubmitClick() {
 
 async function doSubmit() {
   const variantsPayload = generatedVariants.value.map((v) => {
-    const cl = attributes.chatLieu.find((x) => x.id === v.chatLieuId)
+    const clId = v.chatLieuId || product.chatLieuId
+    const cl = attributes.chatLieu.find((x) => x.id === clId)
     return {
       idKichCo: v.idKichCo,
       idMauSac: v.idMauSac,
@@ -952,6 +1059,30 @@ function getColorCode(name) {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   box-sizing: border-box;
+}
+
+
+/* ===== select2-like (vue-multiselect) ===== */
+.ms-wrap :deep(.multiselect__tags){
+  min-height: 40px;
+  padding: 6px 40px 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.ms-wrap.error-border :deep(.multiselect__tags){
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239,68,68,0.2);
+}
+.ms-wrap :deep(.multiselect__single){
+  margin-top: 3px;
+  font-size: 0.95rem;
+}
+.ms-wrap :deep(.multiselect__input){
+  margin-top: 3px;
+}
+.ms-wrap :deep(.multiselect__select){
+  height: 38px;
 }
 
 .required::after { content: ' *'; color: red; }
