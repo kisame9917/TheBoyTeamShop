@@ -6,7 +6,7 @@ import com.vestshop.Entity.PhieuGiamGiaCaNhan;
 import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Repository.PhieuGiamGiaCaNhanRepository;
 import com.vestshop.Repository.PhieuGiamGiaRepository;
-import com.vestshop.Service.EmailService;
+import com.vestshop.Service.EmailPGGService;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
 import com.vestshop.dto.request.PhieuGiamGiaUpdateRequest;
@@ -36,7 +36,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     PhieuGiamGiaCaNhanRepository cnrepo;
 
     @Autowired
-    EmailService emailService;
+    EmailPGGService emailPGGService;
 
     @Override
     public List<PhieuGiamGiaResponse> getAll() {
@@ -144,7 +144,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
                 // ✅ Mail nhận phiếu
                 try {
-                    emailService.sendPersonalVoucherAssignedEmail(kh, saved, savedCt.getMaPhieuGiamGiaCaNhan());
+                    emailPGGService.sendPersonalVoucherAssignedEmail(kh, saved, savedCt.getMaPhieuGiamGiaCaNhan());
                 } catch (Exception ex) {
                     System.out.println("Send mail failed (create): " + ex.getMessage());
                 }
@@ -214,7 +214,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 if (kh == null) continue;
 
                 try {
-                    emailService.sendPersonalVoucherUpdatedEmail(
+                    emailPGGService.sendPersonalVoucherUpdatedEmail(
                             kh,
                             oldSnapshot,
                             saved,
@@ -265,7 +265,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
             List<PhieuGiamGiaCaNhan> rows = cnrepo.findByPhieuGiamGia_IdAndTrangThaiTrue(pgg.getId());
             for (PhieuGiamGiaCaNhan row : rows) {
                 KhachHang kh = row.getKhachHang();
-                emailService.sendPersonalVoucherStartedEmail(kh, pgg, row.getMaPhieuGiamGiaCaNhan());
+                emailPGGService.sendPersonalVoucherStartedEmail(kh, pgg, row.getMaPhieuGiamGiaCaNhan());
             }
         }
     }
@@ -289,7 +289,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         if (Boolean.TRUE.equals(pgg.getLoaiPhieu())) {
             List<PhieuGiamGiaCaNhan> rows = cnrepo.findByPhieuGiamGia_IdAndTrangThaiTrue(pgg.getId());
             for (PhieuGiamGiaCaNhan row : rows) {
-                emailService.sendPersonalVoucherEndedEmail(row.getKhachHang(), pgg, row.getMaPhieuGiamGiaCaNhan());
+                emailPGGService.sendPersonalVoucherEndedEmail(row.getKhachHang(), pgg, row.getMaPhieuGiamGiaCaNhan());
             }
         }
     }
@@ -367,7 +367,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
             PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
 
             try {
-                emailService.sendPersonalVoucherAssignedEmail(kh, pgg, savedCt.getMaPhieuGiamGiaCaNhan());
+                emailPGGService.sendPersonalVoucherAssignedEmail(kh, pgg, savedCt.getMaPhieuGiamGiaCaNhan());
             } catch (Exception ex) {
                 System.out.println("Send mail failed (update add KH): " + ex.getMessage());
             }
