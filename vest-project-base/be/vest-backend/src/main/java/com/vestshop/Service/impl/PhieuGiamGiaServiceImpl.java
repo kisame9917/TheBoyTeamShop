@@ -138,7 +138,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 ct.setNgayNhan(LocalDateTime.now());
                 ct.setDaSuDung(false);
                 ct.setTrangThai(true);
-                ct.setMaPhieuGiamGiaCaNhan("PGGCN" + saved.getId() +   kh.getId());
+                ct.setMaPhieuGiamGiaCaNhan("PGGCN" + saved.getId() + kh.getId());
 
                 PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
 
@@ -146,7 +146,6 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                 try {
                     emailService.sendPersonalVoucherAssignedEmail(kh, saved, savedCt.getMaPhieuGiamGiaCaNhan());
                 } catch (Exception ex) {
-                    // tuỳ bạn: log thôi để không làm fail create
                     System.out.println("Send mail failed (create): " + ex.getMessage());
                 }
             }
@@ -155,13 +154,33 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         return saved;
     }
 
+    /**
+     * ✅ Update: cập nhật phiếu + nếu là phiếu cá nhân => gửi mail "UPDATED" cho tất cả KH đang có phiếu.
+     * ✅ ĐÃ BỎ biến effectiveFrom (không còn "thời điểm áp dụng")
+     */
+    @Transactional
     @Override
     public PhieuGiamGia update(Long id, PhieuGiamGiaUpdateRequest dto) {
-        Optional<PhieuGiamGia> pgg = repo.findById(id);
-        if (!pgg.isPresent()) {
-            throw new RuntimeException("Khong tim thay id: " + id);
-        }
-        PhieuGiamGia updatepgg = pgg.get();
+        PhieuGiamGia updatepgg = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khong tim thay id: " + id));
+
+        // ✅ snapshot trước khi sửa (để mail hiển thị Trước -> Sau)
+        PhieuGiamGia oldSnapshot = new PhieuGiamGia();
+        oldSnapshot.setId(updatepgg.getId());
+        oldSnapshot.setMaGiamGia(updatepgg.getMaGiamGia());
+        oldSnapshot.setTenGiamGia(updatepgg.getTenGiamGia());
+        oldSnapshot.setSoLuong(updatepgg.getSoLuong());
+        oldSnapshot.setLoaiGiam(updatepgg.getLoaiGiam());
+        oldSnapshot.setGiaTriPhanTram(updatepgg.getGiaTriPhanTram());
+        oldSnapshot.setGiaTriTienMat(updatepgg.getGiaTriTienMat());
+        oldSnapshot.setDonHangToiThieu(updatepgg.getDonHangToiThieu());
+        oldSnapshot.setGiaTriGiamToiDa(updatepgg.getGiaTriGiamToiDa());
+        oldSnapshot.setNgayBatDau(updatepgg.getNgayBatDau());
+        oldSnapshot.setNgayKetThuc(updatepgg.getNgayKetThuc());
+        oldSnapshot.setLoaiPhieu(updatepgg.getLoaiPhieu());
+        oldSnapshot.setMoTa(updatepgg.getMoTa());
+
+        // ✅ apply update
         updatepgg.setTenGiamGia(dto.getTenGiamGia());
         updatepgg.setSoLuong(dto.getSoLuong());
         updatepgg.setLoaiGiam(dto.getLoaiGiam());
@@ -169,12 +188,45 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         updatepgg.setNgayKetThuc(dto.getNgayKetThuc());
         updatepgg.setMoTa(dto.getMoTa());
         updatepgg.setNgayCapNhat(LocalDateTime.now());
-        updatepgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
-        updatepgg.setGiaTriTienMat(dto.getGiaTriTienMat());
         updatepgg.setLoaiPhieu(dto.getLoaiPhieu());
-        updatepgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
         updatepgg.setDonHangToiThieu(dto.getDonHangToiThieu());
-        return repo.save(updatepgg);
+
+        // ✅ xử lý đúng theo loại giảm
+        if (Boolean.TRUE.equals(dto.getLoaiGiam())) {
+            updatepgg.setGiaTriPhanTram(dto.getGiaTriPhanTram());
+            updatepgg.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa());
+            updatepgg.setGiaTriTienMat(null);
+        } else {
+            updatepgg.setGiaTriTienMat(dto.getGiaTriTienMat());
+            updatepgg.setGiaTriPhanTram(null);
+            updatepgg.setGiaTriGiamToiDa(null); // giảm tiền thì không có max
+        }
+
+        PhieuGiamGia saved = repo.save(updatepgg);
+
+        // ✅ Nếu là phiếu cá nhân => gửi mail cập nhật cho tất cả KH đang có phiếu (trangThai=true)
+        boolean isPersonal = Boolean.TRUE.equals(saved.getLoaiPhieu());
+        if (isPersonal) {
+            List<PhieuGiamGiaCaNhan> rows = cnrepo.findByPhieuGiamGia_IdAndTrangThaiTrue(saved.getId());
+
+            for (PhieuGiamGiaCaNhan row : rows) {
+                KhachHang kh = row.getKhachHang();
+                if (kh == null) continue;
+
+                try {
+                    emailService.sendPersonalVoucherUpdatedEmail(
+                            kh,
+                            oldSnapshot,
+                            saved,
+                            row.getMaPhieuGiamGiaCaNhan()
+                    );
+                } catch (Exception ex) {
+                    System.out.println("Send mail failed (update): " + ex.getMessage());
+                }
+            }
+        }
+
+        return saved;
     }
 
     @Override
@@ -185,6 +237,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         pgg.setNgayCapNhat(LocalDateTime.now());
         repo.save(pgg);
     }
+
     @Transactional
     @Override
     public void startpgg(Long id) throws Exception {
@@ -209,14 +262,14 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
         // ✅ gửi mail chỉ khi là phiếu cá nhân
         if (Boolean.TRUE.equals(pgg.getLoaiPhieu())) {
-            // dùng method fetch KH
             List<PhieuGiamGiaCaNhan> rows = cnrepo.findByPhieuGiamGia_IdAndTrangThaiTrue(pgg.getId());
             for (PhieuGiamGiaCaNhan row : rows) {
-                KhachHang kh = row.getKhachHang(); // giờ chắc chắn có data
+                KhachHang kh = row.getKhachHang();
                 emailService.sendPersonalVoucherStartedEmail(kh, pgg, row.getMaPhieuGiamGiaCaNhan());
             }
         }
     }
+
     @Transactional
     @Override
     public void endpgg(Long id) throws Exception {
@@ -309,7 +362,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
             ct.setNgayNhan(LocalDateTime.now());
             ct.setDaSuDung(false);
             ct.setTrangThai(true);
-            ct.setMaPhieuGiamGiaCaNhan("PGGCN" + pgg.getId() +   kh.getId());
+            ct.setMaPhieuGiamGiaCaNhan("PGGCN" + pgg.getId() + kh.getId());
 
             PhieuGiamGiaCaNhan savedCt = cnrepo.save(ct);
 
