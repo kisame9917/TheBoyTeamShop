@@ -411,11 +411,15 @@
 
               <small v-if="errors.kichCo" class="error-text">{{ errors.kichCo }}</small>
 
-              <small v-if="showPolicyHint" class="hint">
-                Rule size đang áp dụng: <b>{{ allowedSizeText }}</b>
-                <span v-if="policySource === 'default'"> (mặc định cho brand/fit mới)</span>
-                <span v-else-if="policySource === 'mix'"> (kết hợp với mặc định)</span>
-              </small>
+             <small v-if="showPolicyHint" class="hint">
+  Kích cỡ đang áp dụng cho
+  <b>{{ policyTargetText }}</b>:
+  <b>{{ allowedSizeText }}</b>
+  <span v-if="policySource === 'default'"></span>
+  <span v-else-if="policySource === 'mix'"> </span>
+  <span v-else-if="policySource === 'both'"></span>
+</small>
+
             </div>
           </div>
 
@@ -866,14 +870,20 @@ function intersect(a, b) {
   for (const x of a) if (b.has(x)) out.add(x)
   return out
 }
-function formatAllowedSizes(set) {
-  if (!set) return 'chưa áp dụng'
-  const arr = Array.from(set).sort((a, b) => a - b)
-  if (!arr.length) return 'không có size phù hợp'
-  const step = arr.length > 1 ? arr[1] - arr[0] : 0
-  const isRange = arr.every((v, i) => i === 0 || v - arr[i - 1] === step) && (step === 1 || step === 2)
-  return isRange ? `${arr[0]}–${arr[arr.length - 1]}` : arr.join(', ')
+function formatAllowedSizes(allowed) {
+  if (!allowed) return 'chưa áp dụng'
+  const arr = Array.from(allowed).sort((a, b) => a - b)
+  if (arr.length === 0) return 'không có size phù hợp'
+  if (arr.length === 1) return String(arr[0])
+
+  // chỉ rút gọn khi liên tiếp từng 1 đơn vị (vd 46,47,48,49,50)
+  const isStep1 = arr.every((v, i) => i === 0 || v - arr[i - 1] === 1)
+  if (isStep1) return `${arr[0]}–${arr[arr.length - 1]}`
+
+  // còn lại: HIỂN THỊ ĐÚNG DANH SÁCH
+  return arr.join(', ')
 }
+
 
 const brandNameNorm = computed(() => normKey(msThuongHieu.value?.ten))
 const fitNameNorm = computed(() => normKey(msFit.value?.ten))
@@ -908,6 +918,16 @@ const allowedSizeSet = computed(() => sizePolicyMeta.value.set)
 const policySource = computed(() => sizePolicyMeta.value.source)
 const showPolicyHint = computed(() => policySource.value !== 'none')
 const allowedSizeText = computed(() => formatAllowedSizes(allowedSizeSet.value))
+const policyTargetText = computed(() => {
+  const brand = msThuongHieu.value?.ten?.trim()
+  const fit = msFit.value?.ten?.trim()
+
+  if (brand && fit) return `"${brand}" + "${fit}"`
+  if (brand) return `"${brand}"`
+  if (fit) return `"${fit}"`
+  return 'thương hiệu/kiểu dáng'
+})
+
 
 function isSizeInvalid(option) {
   const allowed = allowedSizeSet.value

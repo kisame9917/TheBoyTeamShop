@@ -7,13 +7,35 @@
       </div>
 
       <div class="page-actions">
-        <button class="btn btn-outline-secondary btn-sm" type="button">
+        <button class="btn btn-outline-secondary btn-sm" type="button" @click="scanQr">
           <i class="bi bi-qr-code me-1"></i> Quét QR
         </button>
 
-        <button class="btn btn-outline-primary btn-sm" type="button">
+        <!-- EXCEL -->
+        <button
+          v-if="!exportMode"
+          class="btn btn-outline-primary btn-sm"
+          type="button"
+          @click="openExportMode"
+        >
           <i class="bi bi-download me-1"></i> Tải Excel
         </button>
+
+        <template v-else>
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            :disabled="selectedIds.length === 0 || exporting"
+            @click="exportSelectedToExcel"
+          >
+            <i class="bi bi-file-earmark-excel me-1"></i>
+            {{ exporting ? 'Đang xuất...' : `Xuất Excel (${selectedIds.length})` }}
+          </button>
+
+          <button class="btn btn-outline-secondary btn-sm" type="button" :disabled="exporting" @click="cancelExportMode">
+            <i class="bi bi-x-lg me-1"></i> Hủy
+          </button>
+        </template>
 
         <button class="btn btn-primary btn-sm" type="button" @click="goToGlobalList">
           <i class="bi bi-list-ul me-1"></i> Hiển thị đầy đủ biến thể
@@ -26,10 +48,7 @@
     </div>
 
     <div v-if="loading" class="text-center py-4">Đang tải dữ liệu...</div>
-
-    <div v-else-if="globalError" class="text-center error-text py-4">
-      {{ globalError }}
-    </div>
+    <div v-else-if="globalError" class="text-center error-text py-4">{{ globalError }}</div>
 
     <div v-else class="content-wrapper">
       <!-- Filter -->
@@ -47,7 +66,7 @@
             <div class="col-12 col-lg-6">
               <label class="form-label">Tìm kiếm</label>
               <input
-                :value="filters.keyword"
+                v-model="filters.keyword"
                 type="text"
                 class="form-control"
                 placeholder="Tìm theo mã, màu, kích cỡ..."
@@ -81,7 +100,7 @@
               <div class="price-label">
                 Khoảng giá:
                 <span class="price-green">
-                  {{ formatPrice(filters.priceMin) }} - {{ formatPrice(filters.priceMax) }}
+                  {{ isPriceReady ? `${formatPrice(filters.priceMin)} - ${formatPrice(filters.priceMax)}` : 'Đang tải...' }}
                 </span>
               </div>
 
@@ -91,9 +110,10 @@
                 <input
                   type="range"
                   min="0"
-                  :max="priceMaxDb"
+                  :max="priceMaxSafe"
                   :step="PRICE_STEP"
                   v-model.number="filters.priceMin"
+                  :disabled="!isPriceReady"
                   @input="onPriceInput('min')"
                   @change="applyFilters"
                 />
@@ -101,15 +121,18 @@
                 <input
                   type="range"
                   min="0"
-                  :max="priceMaxDb"
+                  :max="priceMaxSafe"
                   :step="PRICE_STEP"
                   v-model.number="filters.priceMax"
+                  :disabled="!isPriceReady"
                   @input="onPriceInput('max')"
                   @change="applyFilters"
                 />
               </div>
 
-              <small class="hint">Giá tối đa hiện tại: <b>{{ formatPrice(priceMaxDb) }}</b></small>
+              <small class="hint">
+                Giá tối đa hiện tại: <b>{{ isPriceReady ? formatPrice(priceMaxSafe) : 'Đang tải...' }}</b>
+              </small>
             </div>
 
             <div class="col-12 col-lg-3">
@@ -157,6 +180,16 @@
           <table class="table variants-table">
             <thead>
               <tr>
+                <th v-if="exportMode" class="text-center col-check">
+                  <input
+                    type="checkbox"
+                    :disabled="pagedVariants.length === 0"
+                    :checked="allVisibleSelected"
+                    @change="toggleSelectAllVisible($event.target.checked)"
+                    title="Chọn tất cả dòng đang hiển thị"
+                  />
+                </th>
+
                 <th class="text-center col-stt">STT</th>
                 <th class="text-center col-img">Ảnh</th>
                 <th class="text-center col-code">Mã SP chi tiết</th>
@@ -172,6 +205,10 @@
 
             <tbody>
               <tr v-for="(v, index) in pagedVariants" :key="v.id">
+                <td v-if="exportMode" class="text-center col-check">
+                  <input type="checkbox" :checked="isSelected(v.id)" @change="toggleSelect(v, $event.target.checked)" />
+                </td>
+
                 <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
                 <td class="text-center">
@@ -181,18 +218,18 @@
                       :src="buildImgUrl(v.anh)"
                       class="variant-img variant-img--lg"
                       alt="Ảnh biến thể"
-                      @error="markImgError(v)"
+                      @error="v.__imgErr = true"
                     />
                     <span v-else class="no-img no-img--lg">Ảnh biến thể</span>
                   </div>
                 </td>
 
                 <td class="text-center">{{ v.maSanPhamChiTiet || '-' }}</td>
-                <td class="text-center text-bold">{{ product?.tenSanPham || '-' }}</td>
+                <td class="text-center text-bold">{{ productName || '-' }}</td>
 
                 <td class="text-center">
                   <div class="color-cell">
-                    <span class="color-dot" :style="colorDotStyle(v)"></span>
+                    <span class="color-dot" :style="{ backgroundColor: getColorCode(v.tenMauSac) }"></span>
                     <span class="color-name">{{ v.tenMauSac || '-' }}</span>
                   </div>
                 </td>
@@ -209,12 +246,7 @@
 
                 <td class="text-center">
                   <div class="action-buttons">
-                    <button
-                      class="btn btn-outline-warning btn-sm edit-btn"
-                      type="button"
-                      title="Sửa"
-                      @click="openEditModal(v)"
-                    >
+                    <button class="btn btn-outline-warning btn-sm edit-btn" type="button" title="Sửa" @click="openEditModal(v)">
                       <i class="bi bi-pencil-square"></i>
                     </button>
 
@@ -232,7 +264,7 @@
               </tr>
 
               <tr v-if="!pagedVariants.length">
-                <td colspan="10" class="text-center py-4">Không tìm thấy biến thể nào.</td>
+                <td :colspan="tableColspan" class="text-center py-4">Không tìm thấy biến thể nào.</td>
               </tr>
             </tbody>
           </table>
@@ -243,14 +275,7 @@
           <div class="paging-left">Hiển thị {{ pagedVariants.length }} / tổng {{ totalElements }} bản ghi</div>
 
           <div class="paging-center">
-            <button
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="currentPage === 0"
-              @click="setPage(currentPage - 1)"
-              type="button"
-            >
-              ‹
-            </button>
+            <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage === 0" @click="setPage(currentPage - 1)" type="button">‹</button>
 
             <div class="input-group input-group-sm paging-page">
               <span class="input-group-text">Trang</span>
@@ -265,14 +290,7 @@
               />
             </div>
 
-            <button
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="currentPage >= totalPages - 1"
-              @click="setPage(currentPage + 1)"
-              type="button"
-            >
-              ›
-            </button>
+            <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages - 1" @click="setPage(currentPage + 1)" type="button">›</button>
           </div>
 
           <div class="paging-right">
@@ -299,7 +317,8 @@
             <div class="col-6">
               <label class="form-label">Kích cỡ</label>
               <select v-model="edit.idKichCo" class="form-select">
-                <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
+                <option value="" disabled>-- Chọn kích cỡ --</option>
+                <option v-for="s in attributes.kichCo" :key="s.id" :value="String(s.id)">
                   {{ s.soSize }}
                 </option>
               </select>
@@ -308,7 +327,8 @@
             <div class="col-6">
               <label class="form-label">Màu sắc</label>
               <select v-model="edit.idMauSac" class="form-select">
-                <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
+                <option value="" disabled>-- Chọn màu sắc --</option>
+                <option v-for="c in attributes.mauSac" :key="c.id" :value="String(c.id)">
                   {{ c.ten }}
                 </option>
               </select>
@@ -316,14 +336,7 @@
 
             <div class="col-6">
               <label class="form-label">Số lượng</label>
-              <input
-                type="number"
-                v-model.number="edit.soLuongTon"
-                class="form-control"
-                min="0"
-                step="1"
-                @blur="normalizeQty"
-              />
+              <input type="number" v-model.number="edit.soLuongTon" class="form-control" min="0" step="1" />
             </div>
 
             <div class="col-6">
@@ -333,23 +346,17 @@
                 inputmode="numeric"
                 class="form-control"
                 placeholder="Ví dụ: 999.999"
-                :value="edit.donGiaText"
-                @input="onEditMoneyInput"
-                @blur="normalizeEditMoney"
+                v-model="edit.donGiaText"
+                @input="onEditMoneyTyping"
+                @blur="onEditMoneyBlur"
               />
             </div>
 
             <div class="col-12">
               <label class="form-label">Trạng thái</label>
               <div class="status-radio">
-                <label class="me-3">
-                  <input type="radio" :value="true" v-model="edit.trangThai" />
-                  Còn hàng
-                </label>
-                <label>
-                  <input type="radio" :value="false" v-model="edit.trangThai" />
-                  Hết hàng
-                </label>
+                <label class="me-3"><input type="radio" :value="true" v-model="edit.trangThai" /> Còn hàng</label>
+                <label><input type="radio" :value="false" v-model="edit.trangThai" /> Hết hàng</label>
               </div>
             </div>
 
@@ -384,10 +391,7 @@
           <p class="mb-2">
             Bạn có chắc muốn đổi trạng thái biến thể
             <b>{{ confirmToggle.target?.maSanPhamChiTiet }}</b>
-            ({{ product?.tenSanPham }} - {{ confirmToggle.target?.tenMauSac }} - {{ confirmToggle.target?.tenKichCo }})
-            thành
-            <b>{{ confirmToggle.next ? 'Còn hàng' : 'Hết hàng' }}</b>
-            không?
+            thành <b>{{ confirmToggle.next ? 'Còn hàng' : 'Hết hàng' }}</b> không?
           </p>
         </div>
 
@@ -401,8 +405,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import * as XLSX from 'xlsx'
 
 import attributeService from '../../services/attributeService'
 import { getByProductId, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
@@ -416,25 +421,39 @@ const props = defineProps({
   id: { type: [String, Number], required: true }
 })
 
-/* base url */
+/** base url */
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, '')
 
-/* price */
-const PRICE_STEP = 10000
-const DEFAULT_MAX = 10000000
-const priceMaxDb = ref(DEFAULT_MAX)
+function buildImgUrl(path) {
+  if (!path) return ''
+  const p = String(path).replace(/\\/g, '/')
+  if (p.startsWith('http://') || p.startsWith('https://')) return p
+  const b = String(fileBaseUrl).replace(/\/+$/, '')
+  return b + (p.startsWith('/') ? p : `/${p}`)
+}
 
-/* state */
+/** state */
 const loading = ref(false)
 const globalError = ref('')
 const filterOpen = ref(true)
 
-const product = ref(null)
 const variants = ref([])
-
 const attributes = reactive({ kichCo: [], mauSac: [] })
 
+/** product name (lấy từ dữ liệu biến thể cho chắc) */
+const productName = computed(() => {
+  const first = variants.value?.[0]
+  return first?.tenSanPham || first?.sanPhamTen || ''
+})
+
+/** PRICE: không default, chờ DB */
+const PRICE_STEP = 10000
+const priceMaxDb = ref(null) // null -> chưa sẵn sàng
+const isPriceReady = computed(() => Number(priceMaxDb.value || 0) > 0)
+const priceMaxSafe = computed(() => (isPriceReady.value ? Number(priceMaxDb.value) : 0))
+
+/** filters */
 const filters = reactive({
   keyword: '',
   colorId: '',
@@ -442,13 +461,12 @@ const filters = reactive({
   stock: '',
   status: '',
   priceMin: 0,
-  priceMax: DEFAULT_MAX
+  priceMax: 0
 })
 
-/* ========= helpers ========= */
-function formatPrice(val) {
-  const n = Number(val ?? 0)
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
+function onKeywordInput() {
+  // chặn khoảng trắng đầu
+  filters.keyword = String(filters.keyword ?? '').replace(/^\s+/, '')
 }
 
 function roundUpToStep(n, step) {
@@ -457,14 +475,15 @@ function roundUpToStep(n, step) {
   return Math.ceil(x / step) * step
 }
 
-function onKeywordInput(e) {
-  // ✅ chặn khoảng trắng ở đầu
-  const v = String(e?.target?.value ?? '')
-  filters.keyword = v.replace(/^\s+/, '')
+function syncPriceFilterToMax() {
+  if (!isPriceReady.value) return
+  filters.priceMin = Math.max(0, Number(filters.priceMin || 0))
+  filters.priceMax = Number(priceMaxSafe.value)
 }
 
 function onPriceInput(which) {
-  const max = Number(priceMaxDb.value || DEFAULT_MAX)
+  if (!isPriceReady.value) return
+  const max = priceMaxSafe.value
 
   if (filters.priceMin < 0) filters.priceMin = 0
   if (filters.priceMax > max) filters.priceMax = max
@@ -475,8 +494,11 @@ function onPriceInput(which) {
   }
 }
 
+/** rangeStyle: left + width (không bị lỗi thanh) */
 const rangeStyle = computed(() => {
-  const max = Math.max(1, Number(priceMaxDb.value || 1))
+  if (!isPriceReady.value) return { left: '0%', width: '0%' }
+
+  const max = Math.max(1, priceMaxSafe.value)
   const minV = Math.max(0, Math.min(filters.priceMin, max))
   const maxV = Math.max(0, Math.min(filters.priceMax, max))
   const left = (minV / max) * 100
@@ -484,7 +506,7 @@ const rangeStyle = computed(() => {
   return { left: left + '%', width: width + '%' }
 })
 
-/* ========= filtering + paging ========= */
+/** filtering + paging */
 const filteredVariants = computed(() => {
   const kw = String(filters.keyword || '').toLowerCase().trim()
   const fMin = Number(filters.priceMin || 0)
@@ -500,7 +522,7 @@ const filteredVariants = computed(() => {
     const okColor = !filters.colorId || String(v.idMauSac ?? '') === String(filters.colorId)
     const okSize = !filters.sizeId || String(v.idKichCo ?? '') === String(filters.sizeId)
 
-    const okStatus = filters.status === '' || (!!v.trangThai === (filters.status === 'true'))
+    const okStatus = filters.status === '' || (String(!!v.trangThai) === String(filters.status))
 
     const sl = Number(v.soLuongTon ?? 0)
     let okStock = true
@@ -510,7 +532,7 @@ const filteredVariants = computed(() => {
     if (filters.stock === 'gte100') okStock = sl >= 100
 
     const gia = Number(v.donGia ?? 0)
-    const okPrice = gia >= fMin && gia <= fMax
+    const okPrice = !isPriceReady.value ? true : (gia >= fMin && gia <= fMax)
 
     return okKw && okColor && okSize && okStatus && okStock && okPrice
   })
@@ -544,8 +566,9 @@ function resetFilters() {
   filters.sizeId = ''
   filters.stock = ''
   filters.status = ''
+
   filters.priceMin = 0
-  filters.priceMax = priceMaxDb.value
+  filters.priceMax = isPriceReady.value ? priceMaxSafe.value : 0
 
   applyFilters()
 }
@@ -568,15 +591,7 @@ function jumpPage() {
   setPage(target - 1)
 }
 
-/* ========= navigation ========= */
-function goBack() {
-  router.push('/products')
-}
-function goToGlobalList() {
-  router.push('/variants')
-}
-
-/* ========= load ========= */
+/** load */
 onMounted(getData)
 watch(() => props.id, () => getData())
 
@@ -584,9 +599,9 @@ async function getData() {
   loading.value = true
   globalError.value = ''
   try {
-    await Promise.all([loadAttributes(), loadVariants(), loadProduct()])
-    await loadPriceMaxDb() // ✅ lấy max giá từ DB (fallback nếu lỗi)
-    syncFilterToMax()
+    await Promise.all([loadAttributes(), loadVariants()])
+    await loadPriceMaxFromDb()
+    if (isPriceReady.value) syncPriceFilterToMax()
   } catch (e) {
     console.error(e)
     globalError.value = 'Lỗi tải dữ liệu'
@@ -609,55 +624,154 @@ async function loadVariants() {
   variants.value = (res?.data || res || []).map((v) => ({ ...v, __imgErr: false }))
 }
 
-async function loadProduct() {
-  // giữ cách bạn đang dùng (nếu project bạn có API khác thì đổi ở đây)
+async function loadPriceMaxFromDb() {
   try {
-    const resProd = await attributeService.getById('san-pham', props.id)
-    product.value = resProd?.data ?? resProd
-  } catch {
-    product.value = { id: props.id, tenSanPham: '' }
-  }
-}
+    const res = await getGiaMaxDb()
+    const raw = res?.data ?? res
+    const maxNum = typeof raw === 'object' ? Number(raw?.max ?? raw?.giaMax ?? raw?.value ?? 0) : Number(raw ?? 0)
+    const maxDb = roundUpToStep(maxNum, PRICE_STEP)
 
-async function loadPriceMaxDb() {
-  try {
-    // có thể BE trả số trực tiếp hoặc {data: number} hoặc {data:{max:...}}
-    const raw = await getGiaMaxDb()
-    const data = raw?.data ?? raw
-    const num =
-      typeof data === 'object'
-        ? Number(data?.max ?? data?.giaMax ?? data?.value ?? 0)
-        : Number(data ?? 0)
-
-    const maxDb = roundUpToStep(num, PRICE_STEP) || DEFAULT_MAX
-    priceMaxDb.value = maxDb
+    if (maxDb > 0) {
+      priceMaxDb.value = maxDb
+      return
+    }
   } catch (e) {
-    // fallback: tính từ list biến thể
-    const maxLocal = Math.max(...variants.value.map((v) => Number(v.donGia ?? 0)), 0)
-    const maxDb = roundUpToStep(maxLocal, PRICE_STEP) || DEFAULT_MAX
-    priceMaxDb.value = maxDb
+    // ignore -> fallback dưới
+  }
+
+  // fallback: lấy max từ list biến thể (không default)
+  const localMax = Math.max(...variants.value.map(v => Number(v.donGia ?? 0)), 0)
+  const maxLocal = roundUpToStep(localMax, PRICE_STEP)
+  priceMaxDb.value = maxLocal > 0 ? maxLocal : 0
+}
+
+/** nav */
+function goBack() {
+  router.push('/products')
+}
+function goToGlobalList() {
+  router.push('/variants')
+}
+function scanQr() {
+  console.log('scan qr')
+}
+
+/** format */
+function formatPrice(val) {
+  const n = Number(val ?? 0)
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
+}
+
+/** ================== EXCEL EXPORT (FE) ================== */
+const exportMode = ref(false)
+const exporting = ref(false)
+const selectedIds = ref([])
+const selectedRows = reactive({})
+
+const tableColspan = computed(() => (exportMode.value ? 11 : 10))
+
+function openExportMode() {
+  exportMode.value = true
+}
+
+function cancelExportMode() {
+  exportMode.value = false
+  selectedIds.value = []
+  Object.keys(selectedRows).forEach((k) => delete selectedRows[k])
+}
+
+function isSelected(id) {
+  return selectedIds.value.includes(id)
+}
+
+function toggleSelect(row, checked) {
+  const id = row?.id
+  if (!id) return
+
+  if (checked) {
+    if (!selectedIds.value.includes(id)) selectedIds.value.push(id)
+    selectedRows[id] = { ...row }
+  } else {
+    selectedIds.value = selectedIds.value.filter((x) => x !== id)
+    delete selectedRows[id]
   }
 }
 
-function syncFilterToMax() {
-  const max = Number(priceMaxDb.value || DEFAULT_MAX)
-  if (!filters.priceMax || filters.priceMax > max || filters.priceMax === DEFAULT_MAX) filters.priceMax = max
-  if (filters.priceMin > filters.priceMax) filters.priceMin = filters.priceMax
+const allVisibleSelected = computed(() => {
+  if (!exportMode.value || pagedVariants.value.length === 0) return false
+  return pagedVariants.value.every((v) => selectedIds.value.includes(v.id))
+})
+
+function toggleSelectAllVisible(checked) {
+  pagedVariants.value.forEach((v) => toggleSelect(v, checked))
 }
 
-/* ========= image ========= */
-function buildImgUrl(path) {
-  if (!path) return ''
-  const p = String(path).replace(/\\/g, '/')
-  if (p.startsWith('http://') || p.startsWith('https://')) return p
-  const b = String(fileBaseUrl).replace(/\/+$/, '')
-  return b + (p.startsWith('/') ? p : `/${p}`)
-}
-function markImgError(v) {
-  v.__imgErr = true
+function safeName(s) {
+  return String(s ?? '').trim().slice(0, 60).replace(/[^\w\-]+/g, '_')
 }
 
-/* ========= edit modal ========= */
+function toExcelRow(v) {
+  return {
+    'Mã SP chi tiết': v.maSanPhamChiTiet ?? '',
+    'Tên sản phẩm': productName.value ?? '',
+    'Màu sắc': v.tenMauSac ?? '',
+    'Kích cỡ': v.tenKichCo ?? '',
+    'Số lượng tồn': Number(v.soLuongTon ?? 0),
+    'Giá bán': Number(v.donGia ?? 0),
+    'Trạng thái': v.trangThai ? 'Còn hàng' : 'Hết hàng',
+    'Ảnh': v.anh ? buildImgUrl(v.anh) : ''
+  }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function exportSelectedToExcel() {
+  if (selectedIds.value.length === 0) return
+
+  exporting.value = true
+  try {
+    for (const id of selectedIds.value) {
+      const v = selectedRows[id]
+      if (!v) continue
+
+      const ws = XLSX.utils.json_to_sheet([toExcelRow(v)])
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'BienThe')
+
+      const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+
+      const code = safeName(v.maSanPhamChiTiet ?? id)
+      const fileName = `bien-the_${code}.xlsx`
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+
+      // tránh browser chặn tải nhiều file quá nhanh
+      await sleep(120)
+    }
+
+    cancelExportMode()
+    success('Xuất Excel thành công')
+  } catch (e) {
+    console.error(e)
+    error('Xuất Excel thất bại (có thể bị trình duyệt chặn nhiều download).')
+  } finally {
+    exporting.value = false
+  }
+}
+
+/** ================== EDIT MODAL ================== */
 const edit = reactive({
   open: false,
   saving: false,
@@ -684,14 +798,14 @@ function openEditModal(v) {
 
   edit.id = v.id
   edit.idSanPham = v.idSanPham
-  edit.maSanPhamChiTiet = v.maSanPhamChiTiet || ''
+  edit.maSanPhamChiTiet = v.maSanPhamChiTiet ?? ''
 
-  edit.idKichCo = v.idKichCo
-  edit.idMauSac = v.idMauSac
+  edit.idKichCo = String(v.idKichCo ?? '')
+  edit.idMauSac = String(v.idMauSac ?? '')
   edit.soLuongTon = Number(v.soLuongTon ?? 0)
 
   edit.donGia = Number(v.donGia ?? 0)
-  edit.donGiaText = formatDotsNoSymbol(edit.donGia)
+  edit.donGiaText = formatDots(edit.donGia)
 
   edit.ghiChu = v.ghiChu ?? ''
   edit.trangThai = !!v.trangThai
@@ -702,32 +816,23 @@ function closeEditModal() {
   edit.open = false
 }
 
-function normalizeQty() {
-  let n = Number(edit.soLuongTon ?? 0)
-  if (!Number.isFinite(n) || n < 0) n = 0
-  edit.soLuongTon = Math.floor(n)
+function parseDigits(text) {
+  const digits = String(text || '').replace(/[^\d]/g, '')
+  return digits ? Number(digits) : 0
+}
+function formatDots(n) {
+  const x = Number(n || 0)
+  if (!Number.isFinite(x) || x <= 0) return ''
+  return String(Math.floor(x)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
-/* money input (999.999) */
-function stripNonDigits(s) {
-  return String(s ?? '').replace(/[^\d]/g, '')
+function onEditMoneyTyping() {
+  const num = parseDigits(edit.donGiaText)
+  edit.donGia = num
+  edit.donGiaText = num ? formatDots(num) : ''
 }
-function formatDotsNoSymbol(n) {
-  const x = Number(n ?? 0)
-  if (!Number.isFinite(x) || x <= 0) return ''
-  return new Intl.NumberFormat('vi-VN').format(x)
-}
-function setEditMoneyFromRaw(raw) {
-  const digits = stripNonDigits(raw)
-  const n = digits ? Number(digits) : 0
-  edit.donGia = n
-  edit.donGiaText = digits ? formatDotsNoSymbol(n) : ''
-}
-function onEditMoneyInput(e) {
-  setEditMoneyFromRaw(e?.target?.value ?? '')
-}
-function normalizeEditMoney() {
-  setEditMoneyFromRaw(edit.donGiaText)
+function onEditMoneyBlur() {
+  edit.donGiaText = edit.donGia ? formatDots(edit.donGia) : ''
 }
 
 async function handleFileUpload(event) {
@@ -750,17 +855,10 @@ async function handleFileUpload(event) {
 async function submitEdit() {
   if (!edit.id) return
 
-  normalizeQty()
-  normalizeEditMoney()
-
-  if (!edit.idKichCo || !edit.idMauSac) {
-    error('Vui lòng chọn đầy đủ Kích cỡ và Màu sắc')
-    return
-  }
-  if (edit.donGia < 0 || !Number.isFinite(edit.donGia)) {
-    error('Đơn giá không hợp lệ')
-    return
-  }
+  const sl = Number(edit.soLuongTon ?? 0)
+  if (!edit.idKichCo || !edit.idMauSac) return error('Vui lòng chọn kích cỡ và màu sắc')
+  if (!Number.isFinite(sl) || sl < 0) return error('Số lượng không hợp lệ')
+  if (!Number.isFinite(edit.donGia) || edit.donGia < 0) return error('Đơn giá không hợp lệ')
 
   edit.saving = true
   try {
@@ -768,10 +866,10 @@ async function submitEdit() {
       idSanPham: edit.idSanPham,
       idKichCo: edit.idKichCo,
       idMauSac: edit.idMauSac,
-      soLuongTon: edit.soLuongTon,
-      donGia: edit.donGia, // ✅ gửi number về BE
+      soLuongTon: Math.floor(sl),
+      donGia: Number(edit.donGia),
       ghiChu: edit.ghiChu,
-      trangThai: edit.trangThai,
+      trangThai: !!edit.trangThai,
       anh: edit.anh
     })
     success('Cập nhật thành công')
@@ -785,7 +883,7 @@ async function submitEdit() {
   }
 }
 
-/* ========= toggle status + confirm ========= */
+/** ================== TOGGLE STATUS ================== */
 const togglingIds = reactive(new Set())
 
 const confirmToggle = reactive({
@@ -812,6 +910,7 @@ async function confirmToggleNow() {
 
   confirmToggle.open = false
   togglingIds.add(v.id)
+
   try {
     await updateDetail(v.id, {
       idSanPham: v.idSanPham,
@@ -834,7 +933,7 @@ async function confirmToggleNow() {
   }
 }
 
-/* ========= color dot ========= */
+/** ================== COLOR DOT ================== */
 function normalizeColorName(name) {
   return String(name || '')
     .trim()
@@ -848,7 +947,7 @@ function normalizeColorName(name) {
 }
 
 const COLOR_MAP = {
-  den: '#000000',
+  den: '#111827',
   trang: '#ffffff',
   xam: '#9ca3af',
   ghi: '#9ca3af',
@@ -860,51 +959,26 @@ const COLOR_MAP = {
   nau: '#92400e',
   be: '#f5f5dc',
   kem: '#fff7ed',
-  'xanh la': '#16a34a',
-  'xanh luc': '#16a34a',
+  'xanh la': '#10b981',
+  'xanh luc': '#10b981',
   'xanh ngoc': '#14b8a6',
-  'xanh duong': '#2563eb',
+  'xanh duong': '#3b82f6',
   'xanh navy': '#1e3a8a',
   'xanh than': '#1e3a8a',
   navy: '#1e3a8a'
 }
 
-function pickHexFromObject(obj) {
-  const candidates = [obj?.maMau, obj?.maHex, obj?.hex, obj?.giaTri, obj?.value, obj?.code].filter(Boolean)
-  for (const c of candidates) {
-    const s = String(c).trim()
-    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s)) return s
-  }
-  return null
-}
-
-function hexByName(name) {
-  if (!name) return '#9ca3af'
-  const key = normalizeColorName(name)
+function getColorCode(colorName) {
+  if (!colorName) return '#9ca3af'
+  const key = normalizeColorName(colorName)
   if (COLOR_MAP[key]) return COLOR_MAP[key]
-
   if (key.includes('navy') || key.includes('than')) return COLOR_MAP['xanh navy']
   if (key.includes('xanh') && (key.includes('la') || key.includes('luc'))) return COLOR_MAP['xanh la']
   if (key.includes('xanh') && key.includes('duong')) return COLOR_MAP['xanh duong']
-
-  if (key.includes('den') || key.includes('black')) return COLOR_MAP.den
-  if (key.includes('trang') || key.includes('white')) return COLOR_MAP.trang
-  if (key.includes('do') || key.includes('red')) return COLOR_MAP.do
-  if (key.includes('vang') || key.includes('yellow')) return COLOR_MAP.vang
-  if (key.includes('cam') || key.includes('orange')) return COLOR_MAP.cam
-  if (key.includes('hong') || key.includes('pink')) return COLOR_MAP.hong
-  if (key.includes('tim') || key.includes('purple')) return COLOR_MAP.tim
-  if (key.includes('nau') || key.includes('brown')) return COLOR_MAP.nau
-  if (key.includes('xam') || key.includes('ghi') || key.includes('gray') || key.includes('grey')) return COLOR_MAP.xam
-
+  if (key.includes('den')) return COLOR_MAP.den
+  if (key.includes('trang')) return COLOR_MAP.trang
+  if (key.includes('do')) return COLOR_MAP.do
   return '#9ca3af'
-}
-
-function colorDotStyle(variant) {
-  const fromAttr = attributes.mauSac?.find((x) => String(x.id) === String(variant.idMauSac))
-  const hex = pickHexFromObject(fromAttr) || hexByName(fromAttr?.ten || variant.tenMauSac)
-  const border = String(hex).toLowerCase() === '#ffffff' ? '#9ca3af' : '#e5e7eb'
-  return { backgroundColor: hex, borderColor: border }
 }
 </script>
 
@@ -938,7 +1012,7 @@ function colorDotStyle(variant) {
 .price-green{ color:#059669; font-weight:800; }
 .hint{ display:block; margin-top:6px; color:#6b7280; }
 
-/* slider like danh sách sản phẩm */
+/* slider */
 .range-slider{
   position: relative;
   width: 100%;
@@ -994,7 +1068,7 @@ function colorDotStyle(variant) {
 .table-card{ padding:0; border-radius:8px; overflow:hidden; margin-top: 12px; }
 .table-responsive{ overflow-x:auto; overflow-y:hidden; }
 
-.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; min-width: 1530px; }
+.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; min-width: 1580px; }
 .variants-table thead th{
   background:#1e293b; color:#fff;
   padding:10px 12px; text-align:center;
@@ -1008,6 +1082,7 @@ function colorDotStyle(variant) {
   color:#374151;
 }
 
+.col-check{ width:46px; min-width:46px; }
 .col-stt{ width:70px; }
 .col-img{ width:260px; }
 .col-code{ width:160px; }
@@ -1026,11 +1101,9 @@ function colorDotStyle(variant) {
 /* image */
 .img-cell{ display:flex; align-items:center; justify-content:center; }
 .img-cell--lg{ min-height: 220px; }
-
 .variant-img{ object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; background:#fff; }
 .variant-img--lg{ width:200px; height:200px; }
 .variant-img.preview{ width:140px; height:140px; }
-
 .no-img{
   display:flex; align-items:center; justify-content:center;
   text-align:center;
@@ -1044,7 +1117,7 @@ function colorDotStyle(variant) {
 
 /* color */
 .color-cell{ display:inline-flex; align-items:center; justify-content:center; gap:10px; }
-.color-dot{ width:18px; height:18px; border-radius:50%; border:1px solid #e5e7eb; flex:0 0 18px; }
+.color-dot{ width:18px; height:18px; border-radius:50%; border:1px solid #e5e7eb; }
 .color-name{ max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* badge */
@@ -1062,13 +1135,7 @@ function colorDotStyle(variant) {
   width:32px; height:32px; padding:0;
   display:inline-flex; align-items:center; justify-content:center;
   border-radius:4px;
-  background:#fff !important;
-  border-color:#f59e0b !important;
-  color:#f59e0b !important;
 }
-.edit-btn:hover{ background:#f59e0b !important; border-color:#f59e0b !important; color:#fff !important; }
-
-/* switch */
 .switch{ position:relative; display:inline-block; width:44px; height:22px; }
 .switch input{ opacity:0; width:0; height:0; }
 .slider{ position:absolute; inset:0; cursor:pointer; background:#d1d5db; transition:.2s; border-radius:999px; }
