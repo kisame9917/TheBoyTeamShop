@@ -1326,9 +1326,9 @@ onBeforeUnmount(() => {
 .btn.btn-outline-secondary:hover .eye-icon {
   color: #fff !important;
 }
+
 .table-normal th,
 .table-normal td {
   font-weight: 400 !important; /* chữ thường */
 }
-
 </style>
