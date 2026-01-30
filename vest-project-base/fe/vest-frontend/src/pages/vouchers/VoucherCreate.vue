@@ -114,7 +114,7 @@
 
             <!-- ✅ Đơn hàng tối thiểu: có hậu tố VND giống giá trị giảm -->
             <div class="mt-3">
-              <label class="form-label">Đơn hàng tối thiểu</label>
+              <label class="form-label">Đơn hàng tối thiểu </label>
               <div class="input-group">
                 <input
                   type="text"

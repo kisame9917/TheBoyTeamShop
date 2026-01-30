@@ -551,9 +551,6 @@ function getBizStatusText(v) {
   const end = toDate(v.ngayKetThuc);
   const now = new Date();
 
-  if (start) start.setHours(0, 0, 0, 0);
-  if (end) end.setHours(23, 59, 59, 999);
-
   if (start && now < start) return "Sắp diễn ra";
   if (end && now > end) return "Kết thúc";
   return "Đang áp dụng";
