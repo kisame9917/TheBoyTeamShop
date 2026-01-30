@@ -106,10 +106,13 @@ const props = defineProps({
   subtitle: { type: String, default: '' },
 
   // demo thông báo (sau này bạn thay bằng API)
-  notifications: { type: Array, default: () => ([
-    { id: 1, title: 'Có đơn hàng mới', time: 'Vừa xong', read: false, link: '/admin/orders' },
-    { id: 2, title: 'Phiếu giảm giá sắp hết hạn', time: 'Hôm nay', read: true, link: '/admin/vouchers' }
-  ]) }
+  notifications: {
+    type: Array,
+    default: () => ([
+      { id: 1, title: 'Có đơn hàng mới', time: 'Vừa xong', read: false, link: '/admin/orders' },
+      { id: 2, title: 'Phiếu giảm giá sắp hết hạn', time: 'Hôm nay', read: true, link: '/admin/vouchers' }
+    ])
+  }
 })
 
 const route = useRoute()
@@ -124,9 +127,48 @@ const admin = ref({
 const showNoti = ref(false)
 const showUser = ref(false)
 
-const resolvedSubtitle = computed(() => props.subtitle || route.meta?.subtitle || new Date().toLocaleString())
+/** ====== TIME (Kiểu 1) ======
+ * Ví dụ: "Thứ Sáu, 30/01/2026 • 14:05"
+ * Cập nhật mỗi phút
+ */
+const now = ref(new Date())
+let timer
+
+onMounted(() => {
+  timer = setInterval(() => {
+    now.value = new Date()
+  }, 60_000)
+  document.addEventListener('click', closeAll)
+})
+
+onBeforeUnmount(() => {
+  clearInterval(timer)
+  document.removeEventListener('click', closeAll)
+})
+
+
+const resolvedSubtitle = computed(() => {
+  if (props.subtitle) return props.subtitle
+  if (route.meta?.subtitle) return route.meta.subtitle
+
+  const datePart = new Intl.DateTimeFormat('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(now.value)
+
+  const timePart = new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(now.value)
+
+  return `${datePart} • ${timePart}`
+})
 
 const unreadCount = computed(() => props.notifications.filter(n => !n.read).length)
+
 const initials = computed(() => {
   const name = admin.value.name.trim() || 'AD'
   const parts = name.split(/\s+/).slice(0, 2)
@@ -162,13 +204,9 @@ function openNoti(n) {
 }
 
 function fakeLogout() {
-  // demo thôi, chưa authen thì không làm gì
   closeAll()
   alert('Demo: sau này bạn nối authentication/authorization vào đây.')
 }
-
-onMounted(() => document.addEventListener('click', closeAll))
-onBeforeUnmount(() => document.removeEventListener('click', closeAll))
 </script>
 
 <style scoped>
