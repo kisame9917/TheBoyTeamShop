@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="page-header">
       <div class="page-title">
-        <h2>Quản lý sản phẩm / Chi Tiết biến thể</h2>
+        <h2>Quản lý sản phẩm / Chi tiết biến thể</h2>
       </div>
 
       <div class="page-actions">
@@ -27,7 +27,11 @@
 
     <div v-if="loading" class="text-center py-4">Đang tải dữ liệu...</div>
 
-    <div v-else-if="product" class="content-wrapper">
+    <div v-else-if="globalError" class="text-center error-text py-4">
+      {{ globalError }}
+    </div>
+
+    <div v-else class="content-wrapper">
       <!-- Filter -->
       <div class="card filter-card">
         <div class="filter-head" @click="filterOpen = !filterOpen">
@@ -43,10 +47,11 @@
             <div class="col-12 col-lg-6">
               <label class="form-label">Tìm kiếm</label>
               <input
-                v-model.trim="filters.keyword"
+                :value="filters.keyword"
                 type="text"
                 class="form-control"
                 placeholder="Tìm theo mã, màu, kích cỡ..."
+                @input="onKeywordInput"
                 @keyup.enter="applyFilters"
               />
             </div>
@@ -80,18 +85,13 @@
                 </span>
               </div>
 
-              <div class="double-range">
-                <div class="double-range__track"></div>
-                <div
-                  class="double-range__range"
-                  :style="{ left: leftPct + '%', right: (100 - rightPct) + '%' }"
-                ></div>
+              <div class="range-slider">
+                <div class="slider-range" :style="rangeStyle"></div>
 
                 <input
-                  class="double-range__thumb double-range__thumb--left"
                   type="range"
-                  :min="PRICE_MIN"
-                  :max="PRICE_MAX"
+                  min="0"
+                  :max="priceMaxDb"
                   :step="PRICE_STEP"
                   v-model.number="filters.priceMin"
                   @input="onPriceInput('min')"
@@ -99,16 +99,17 @@
                 />
 
                 <input
-                  class="double-range__thumb double-range__thumb--right"
                   type="range"
-                  :min="PRICE_MIN"
-                  :max="PRICE_MAX"
+                  min="0"
+                  :max="priceMaxDb"
                   :step="PRICE_STEP"
                   v-model.number="filters.priceMax"
                   @input="onPriceInput('max')"
                   @change="applyFilters"
                 />
               </div>
+
+              <small class="hint">Giá tối đa hiện tại: <b>{{ formatPrice(priceMaxDb) }}</b></small>
             </div>
 
             <div class="col-12 col-lg-3">
@@ -170,39 +171,39 @@
             </thead>
 
             <tbody>
-              <tr v-for="(variant, index) in pagedVariants" :key="variant.id">
+              <tr v-for="(v, index) in pagedVariants" :key="v.id">
                 <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
                 <td class="text-center">
                   <div class="img-cell img-cell--lg">
                     <img
-                      v-if="variant.anh && !variant.__imgErr"
-                      :src="buildImgUrl(variant.anh)"
+                      v-if="v.anh && !v.__imgErr"
+                      :src="buildImgUrl(v.anh)"
                       class="variant-img variant-img--lg"
                       alt="Ảnh biến thể"
-                      @error="markImgError(variant)"
+                      @error="markImgError(v)"
                     />
                     <span v-else class="no-img no-img--lg">Ảnh biến thể</span>
                   </div>
                 </td>
 
-                <td class="text-center">{{ variant.maSanPhamChiTiet }}</td>
-                <td class="text-center text-bold">{{ product.tenSanPham }}</td>
+                <td class="text-center">{{ v.maSanPhamChiTiet || '-' }}</td>
+                <td class="text-center text-bold">{{ product?.tenSanPham || '-' }}</td>
 
                 <td class="text-center">
                   <div class="color-cell">
-                    <span class="color-dot" :style="colorDotStyle(variant)"></span>
-                    <span class="color-name">{{ variant.tenMauSac }}</span>
+                    <span class="color-dot" :style="colorDotStyle(v)"></span>
+                    <span class="color-name">{{ v.tenMauSac || '-' }}</span>
                   </div>
                 </td>
 
-                <td class="text-center">{{ variant.tenKichCo }}</td>
-                <td class="text-center">{{ variant.soLuongTon }}</td>
-                <td class="text-center text-highlight">{{ formatPrice(variant.donGia) }}</td>
+                <td class="text-center">{{ v.tenKichCo || '-' }}</td>
+                <td class="text-center">{{ v.soLuongTon ?? 0 }}</td>
+                <td class="text-center text-highlight">{{ formatPrice(v.donGia ?? 0) }}</td>
 
                 <td class="text-center">
-                  <span class="badge-pill" :class="variant.trangThai ? 'badge-success' : 'badge-danger'">
-                    {{ variant.trangThai ? 'Còn hàng' : 'Hết hàng' }}
+                  <span class="badge-pill" :class="v.trangThai ? 'badge-success' : 'badge-danger'">
+                    {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                   </span>
                 </td>
 
@@ -212,7 +213,7 @@
                       class="btn btn-outline-warning btn-sm edit-btn"
                       type="button"
                       title="Sửa"
-                      @click="openEditModal(variant)"
+                      @click="openEditModal(v)"
                     >
                       <i class="bi bi-pencil-square"></i>
                     </button>
@@ -220,9 +221,9 @@
                     <label class="switch" title="Đổi trạng thái">
                       <input
                         type="checkbox"
-                        :checked="!!variant.trangThai"
-                        :disabled="togglingIds.has(variant.id)"
-                        @click.prevent="openConfirmToggle(variant)"
+                        :checked="!!v.trangThai"
+                        :disabled="togglingIds.has(v.id)"
+                        @click.prevent="openConfirmToggle(v)"
                       />
                       <span class="slider"></span>
                     </label>
@@ -285,15 +286,11 @@
       </div>
     </div>
 
-    <div v-else class="text-center error-text">
-      {{ globalError || 'Không tìm thấy sản phẩm' }}
-    </div>
-
     <!-- Edit Modal -->
-    <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+    <div v-if="edit.open" class="modal-overlay" @click.self="closeEditModal">
       <div class="modals">
         <div class="modal-header">
-          <h3>Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h3>
+          <h3>Sửa biến thể: {{ edit.maSanPhamChiTiet }}</h3>
           <button class="close-btn" @click="closeEditModal">×</button>
         </div>
 
@@ -301,7 +298,7 @@
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Kích cỡ</label>
-              <select v-model="editingVariant.idKichCo" class="form-select">
+              <select v-model="edit.idKichCo" class="form-select">
                 <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
                   {{ s.soSize }}
                 </option>
@@ -310,7 +307,7 @@
 
             <div class="col-6">
               <label class="form-label">Màu sắc</label>
-              <select v-model="editingVariant.idMauSac" class="form-select">
+              <select v-model="edit.idMauSac" class="form-select">
                 <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
                   {{ c.ten }}
                 </option>
@@ -319,23 +316,38 @@
 
             <div class="col-6">
               <label class="form-label">Số lượng</label>
-              <input type="number" v-model.number="editingVariant.soLuongTon" class="form-control" min="0" />
+              <input
+                type="number"
+                v-model.number="edit.soLuongTon"
+                class="form-control"
+                min="0"
+                step="1"
+                @blur="normalizeQty"
+              />
             </div>
 
             <div class="col-6">
               <label class="form-label">Đơn giá</label>
-              <input type="number" v-model.number="editingVariant.donGia" class="form-control" min="0" />
+              <input
+                type="text"
+                inputmode="numeric"
+                class="form-control"
+                placeholder="Ví dụ: 999.999"
+                :value="edit.donGiaText"
+                @input="onEditMoneyInput"
+                @blur="normalizeEditMoney"
+              />
             </div>
 
             <div class="col-12">
               <label class="form-label">Trạng thái</label>
               <div class="status-radio">
                 <label class="me-3">
-                  <input type="radio" :value="true" v-model="editingVariant.trangThai" />
+                  <input type="radio" :value="true" v-model="edit.trangThai" />
                   Còn hàng
                 </label>
                 <label>
-                  <input type="radio" :value="false" v-model="editingVariant.trangThai" />
+                  <input type="radio" :value="false" v-model="edit.trangThai" />
                   Hết hàng
                 </label>
               </div>
@@ -344,8 +356,8 @@
             <div class="col-12">
               <label class="form-label">Ảnh biến thể</label>
               <input type="file" @change="handleFileUpload" class="form-control" accept="image/*" />
-              <div v-if="editingVariant.anh" class="mt-2">
-                <img :src="buildImgUrl(editingVariant.anh)" class="variant-img preview" alt="Preview" />
+              <div v-if="edit.anh" class="mt-2">
+                <img :src="buildImgUrl(edit.anh)" class="variant-img preview" alt="Preview" />
               </div>
             </div>
           </div>
@@ -353,13 +365,15 @@
 
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeEditModal">Hủy</button>
-          <button class="btn btn-primary" @click="submitEdit">Lưu thay đổi</button>
+          <button class="btn btn-primary" @click="submitEdit" :disabled="edit.saving">
+            {{ edit.saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Confirm Toggle Modal -->
-    <div v-if="showConfirmToggle" class="modal-overlay" @click.self="closeConfirmToggle">
+    <div v-if="confirmToggle.open" class="modal-overlay" @click.self="closeConfirmToggle">
       <div class="modals confirm-modal">
         <div class="modal-header">
           <h3>Xác nhận đổi trạng thái</h3>
@@ -369,10 +383,10 @@
         <div class="modal-body">
           <p class="mb-2">
             Bạn có chắc muốn đổi trạng thái biến thể
-            <b>{{ confirmTarget?.maSanPhamChiTiet }}</b>
-            ({{ product?.tenSanPham }} - {{ confirmTarget?.tenMauSac }} - {{ confirmTarget?.tenKichCo }})
+            <b>{{ confirmToggle.target?.maSanPhamChiTiet }}</b>
+            ({{ product?.tenSanPham }} - {{ confirmToggle.target?.tenMauSac }} - {{ confirmToggle.target?.tenKichCo }})
             thành
-            <b>{{ confirmNext ? 'Còn hàng' : 'Hết hàng' }}</b>
+            <b>{{ confirmToggle.next ? 'Còn hàng' : 'Hết hàng' }}</b>
             không?
           </p>
         </div>
@@ -389,8 +403,10 @@
 <script setup>
 import { ref, onMounted, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+
 import attributeService from '../../services/attributeService'
 import { getByProductId, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
+import { getGiaMaxDb } from '../../services/sanPhamApi'
 import { useToast } from '../../composables/useToast'
 
 const { success, error } = useToast()
@@ -400,49 +416,79 @@ const props = defineProps({
   id: { type: [String, Number], required: true }
 })
 
-/* base url (ảnh thường nằm ngoài /api) */
+/* base url */
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, '')
 
-/* constants */
-const PRICE_MIN = 0
-const PRICE_MAX = 10000000
+/* price */
 const PRICE_STEP = 10000
+const DEFAULT_MAX = 10000000
+const priceMaxDb = ref(DEFAULT_MAX)
 
 /* state */
-const product = ref(null)
-const variants = ref([])
 const loading = ref(false)
 const globalError = ref('')
 const filterOpen = ref(true)
 
+const product = ref(null)
+const variants = ref([])
+
 const attributes = reactive({ kichCo: [], mauSac: [] })
+
 const filters = reactive({
   keyword: '',
   colorId: '',
   sizeId: '',
   stock: '',
   status: '',
-  priceMin: PRICE_MIN,
-  priceMax: PRICE_MAX
+  priceMin: 0,
+  priceMax: DEFAULT_MAX
 })
 
-/* slider percent */
-const leftPct = computed(() => ((filters.priceMin - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100)
-const rightPct = computed(() => ((filters.priceMax - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100)
+/* ========= helpers ========= */
+function formatPrice(val) {
+  const n = Number(val ?? 0)
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
+}
+
+function roundUpToStep(n, step) {
+  const x = Number(n || 0)
+  if (!Number.isFinite(x) || x <= 0) return 0
+  return Math.ceil(x / step) * step
+}
+
+function onKeywordInput(e) {
+  // ✅ chặn khoảng trắng ở đầu
+  const v = String(e?.target?.value ?? '')
+  filters.keyword = v.replace(/^\s+/, '')
+}
 
 function onPriceInput(which) {
-  if (filters.priceMin < PRICE_MIN) filters.priceMin = PRICE_MIN
-  if (filters.priceMax > PRICE_MAX) filters.priceMax = PRICE_MAX
+  const max = Number(priceMaxDb.value || DEFAULT_MAX)
+
+  if (filters.priceMin < 0) filters.priceMin = 0
+  if (filters.priceMax > max) filters.priceMax = max
+
   if (filters.priceMin > filters.priceMax) {
     if (which === 'min') filters.priceMin = filters.priceMax
     else filters.priceMax = filters.priceMin
   }
 }
 
-/* filtering */
+const rangeStyle = computed(() => {
+  const max = Math.max(1, Number(priceMaxDb.value || 1))
+  const minV = Math.max(0, Math.min(filters.priceMin, max))
+  const maxV = Math.max(0, Math.min(filters.priceMax, max))
+  const left = (minV / max) * 100
+  const width = ((maxV - minV) / max) * 100
+  return { left: left + '%', width: width + '%' }
+})
+
+/* ========= filtering + paging ========= */
 const filteredVariants = computed(() => {
   const kw = String(filters.keyword || '').toLowerCase().trim()
+  const fMin = Number(filters.priceMin || 0)
+  const fMax = Number(filters.priceMax || 0)
 
   return (variants.value || []).filter((v) => {
     const okKw =
@@ -451,17 +497,10 @@ const filteredVariants = computed(() => {
       String(v.tenMauSac || '').toLowerCase().includes(kw) ||
       String(v.tenKichCo || '').toLowerCase().includes(kw)
 
-    const okColor =
-      !filters.colorId ||
-      String(v.idMauSac ?? '') === String(filters.colorId) ||
-      String(v.tenMauSac ?? '') === String(findColorNameById(filters.colorId) ?? '')
+    const okColor = !filters.colorId || String(v.idMauSac ?? '') === String(filters.colorId)
+    const okSize = !filters.sizeId || String(v.idKichCo ?? '') === String(filters.sizeId)
 
-    const okSize =
-      !filters.sizeId ||
-      String(v.idKichCo ?? '') === String(filters.sizeId) ||
-      String(v.tenKichCo ?? '') === String(findSizeNameById(filters.sizeId) ?? '')
-
-    const okStatus = filters.status === '' || !!v.trangThai === (filters.status === 'true')
+    const okStatus = filters.status === '' || (!!v.trangThai === (filters.status === 'true'))
 
     const sl = Number(v.soLuongTon ?? 0)
     let okStock = true
@@ -471,13 +510,12 @@ const filteredVariants = computed(() => {
     if (filters.stock === 'gte100') okStock = sl >= 100
 
     const gia = Number(v.donGia ?? 0)
-    const okPrice = gia >= Number(filters.priceMin) && gia <= Number(filters.priceMax)
+    const okPrice = gia >= fMin && gia <= fMax
 
     return okKw && okColor && okSize && okStatus && okStock && okPrice
   })
 })
 
-/* paging */
 const currentPage = ref(0)
 const pageSize = ref(10)
 const pageInput = ref(1)
@@ -499,33 +537,38 @@ function applyFilters() {
   currentPage.value = 0
   pageInput.value = 1
 }
-function onChangeSize() {
-  currentPage.value = 0
-  pageInput.value = 1
-}
-function setPage(p) {
-  if (p < 0) return
-  if (p > totalPages.value - 1) return
-  currentPage.value = p
-  pageInput.value = currentPage.value + 1
-}
-function jumpPage() {
-  const max = Math.max(1, totalPages.value || 1)
-  const target = Math.min(Math.max(1, pageInput.value || 1), max)
-  setPage(target - 1)
-}
+
 function resetFilters() {
   filters.keyword = ''
   filters.colorId = ''
   filters.sizeId = ''
   filters.stock = ''
   filters.status = ''
-  filters.priceMin = PRICE_MIN
-  filters.priceMax = PRICE_MAX
+  filters.priceMin = 0
+  filters.priceMax = priceMaxDb.value
+
   applyFilters()
 }
 
-/* navigation */
+function onChangeSize() {
+  currentPage.value = 0
+  pageInput.value = 1
+}
+
+function setPage(p) {
+  if (p < 0) return
+  if (p > totalPages.value - 1) return
+  currentPage.value = p
+  pageInput.value = currentPage.value + 1
+}
+
+function jumpPage() {
+  const max = Math.max(1, totalPages.value || 1)
+  const target = Math.min(Math.max(1, pageInput.value || 1), max)
+  setPage(target - 1)
+}
+
+/* ========= navigation ========= */
 function goBack() {
   router.push('/products')
 }
@@ -533,7 +576,7 @@ function goToGlobalList() {
   router.push('/variants')
 }
 
-/* load data */
+/* ========= load ========= */
 onMounted(getData)
 watch(() => props.id, () => getData())
 
@@ -541,17 +584,9 @@ async function getData() {
   loading.value = true
   globalError.value = ''
   try {
-    const resProd = await attributeService.getById('san-pham', props.id)
-    product.value = resProd.data
-
-    const [_, resSize, resColor] = await Promise.all([
-      loadVariants(),
-      attributeService.getAllList('kich-co'),
-      attributeService.getAllList('mau-sac')
-    ])
-
-    attributes.kichCo = resSize.data || []
-    attributes.mauSac = resColor.data || []
+    await Promise.all([loadAttributes(), loadVariants(), loadProduct()])
+    await loadPriceMaxDb() // ✅ lấy max giá từ DB (fallback nếu lỗi)
+    syncFilterToMax()
   } catch (e) {
     console.error(e)
     globalError.value = 'Lỗi tải dữ liệu'
@@ -560,12 +595,57 @@ async function getData() {
   }
 }
 
-async function loadVariants() {
-  const res = await getByProductId(props.id)
-  variants.value = (res.data || []).map(v => ({ ...v, __imgErr: false }))
+async function loadAttributes() {
+  const [resSize, resColor] = await Promise.all([
+    attributeService.getAllList('kich-co'),
+    attributeService.getAllList('mau-sac')
+  ])
+  attributes.kichCo = (resSize?.data || resSize || []).filter((x) => x?.trangThai !== false)
+  attributes.mauSac = (resColor?.data || resColor || []).filter((x) => x?.trangThai !== false)
 }
 
-/* image */
+async function loadVariants() {
+  const res = await getByProductId(props.id)
+  variants.value = (res?.data || res || []).map((v) => ({ ...v, __imgErr: false }))
+}
+
+async function loadProduct() {
+  // giữ cách bạn đang dùng (nếu project bạn có API khác thì đổi ở đây)
+  try {
+    const resProd = await attributeService.getById('san-pham', props.id)
+    product.value = resProd?.data ?? resProd
+  } catch {
+    product.value = { id: props.id, tenSanPham: '' }
+  }
+}
+
+async function loadPriceMaxDb() {
+  try {
+    // có thể BE trả số trực tiếp hoặc {data: number} hoặc {data:{max:...}}
+    const raw = await getGiaMaxDb()
+    const data = raw?.data ?? raw
+    const num =
+      typeof data === 'object'
+        ? Number(data?.max ?? data?.giaMax ?? data?.value ?? 0)
+        : Number(data ?? 0)
+
+    const maxDb = roundUpToStep(num, PRICE_STEP) || DEFAULT_MAX
+    priceMaxDb.value = maxDb
+  } catch (e) {
+    // fallback: tính từ list biến thể
+    const maxLocal = Math.max(...variants.value.map((v) => Number(v.donGia ?? 0)), 0)
+    const maxDb = roundUpToStep(maxLocal, PRICE_STEP) || DEFAULT_MAX
+    priceMaxDb.value = maxDb
+  }
+}
+
+function syncFilterToMax() {
+  const max = Number(priceMaxDb.value || DEFAULT_MAX)
+  if (!filters.priceMax || filters.priceMax > max || filters.priceMax === DEFAULT_MAX) filters.priceMax = max
+  if (filters.priceMin > filters.priceMax) filters.priceMin = filters.priceMax
+}
+
+/* ========= image ========= */
 function buildImgUrl(path) {
   if (!path) return ''
   const p = String(path).replace(/\\/g, '/')
@@ -577,37 +657,77 @@ function markImgError(v) {
   v.__imgErr = true
 }
 
-/* edit modal + upload */
-const showEditModal = ref(false)
-const editingVariant = reactive({
+/* ========= edit modal ========= */
+const edit = reactive({
+  open: false,
+  saving: false,
+
   id: null,
   idSanPham: null,
+  maSanPhamChiTiet: '',
+
   idKichCo: '',
   idMauSac: '',
   soLuongTon: 0,
+
   donGia: 0,
+  donGiaText: '',
+
   ghiChu: '',
   trangThai: true,
-  anh: '',
-  maSanPhamChiTiet: ''
+  anh: ''
 })
 
 function openEditModal(v) {
-  editingVariant.id = v.id
-  editingVariant.idSanPham = v.idSanPham
-  editingVariant.maSanPhamChiTiet = v.maSanPhamChiTiet
-  editingVariant.idKichCo = v.idKichCo
-  editingVariant.idMauSac = v.idMauSac
-  editingVariant.soLuongTon = v.soLuongTon
-  editingVariant.donGia = v.donGia
-  editingVariant.ghiChu = v.ghiChu ?? ''
-  editingVariant.trangThai = !!v.trangThai
-  editingVariant.anh = v.anh ?? ''
-  showEditModal.value = true
+  edit.open = true
+  edit.saving = false
+
+  edit.id = v.id
+  edit.idSanPham = v.idSanPham
+  edit.maSanPhamChiTiet = v.maSanPhamChiTiet || ''
+
+  edit.idKichCo = v.idKichCo
+  edit.idMauSac = v.idMauSac
+  edit.soLuongTon = Number(v.soLuongTon ?? 0)
+
+  edit.donGia = Number(v.donGia ?? 0)
+  edit.donGiaText = formatDotsNoSymbol(edit.donGia)
+
+  edit.ghiChu = v.ghiChu ?? ''
+  edit.trangThai = !!v.trangThai
+  edit.anh = v.anh ?? ''
 }
 
 function closeEditModal() {
-  showEditModal.value = false
+  edit.open = false
+}
+
+function normalizeQty() {
+  let n = Number(edit.soLuongTon ?? 0)
+  if (!Number.isFinite(n) || n < 0) n = 0
+  edit.soLuongTon = Math.floor(n)
+}
+
+/* money input (999.999) */
+function stripNonDigits(s) {
+  return String(s ?? '').replace(/[^\d]/g, '')
+}
+function formatDotsNoSymbol(n) {
+  const x = Number(n ?? 0)
+  if (!Number.isFinite(x) || x <= 0) return ''
+  return new Intl.NumberFormat('vi-VN').format(x)
+}
+function setEditMoneyFromRaw(raw) {
+  const digits = stripNonDigits(raw)
+  const n = digits ? Number(digits) : 0
+  edit.donGia = n
+  edit.donGiaText = digits ? formatDotsNoSymbol(n) : ''
+}
+function onEditMoneyInput(e) {
+  setEditMoneyFromRaw(e?.target?.value ?? '')
+}
+function normalizeEditMoney() {
+  setEditMoneyFromRaw(edit.donGiaText)
 }
 
 async function handleFileUpload(event) {
@@ -617,60 +737,80 @@ async function handleFileUpload(event) {
     const res = await uploadImage(file)
     const url = res?.data?.url || res?.data || res?.url
     if (!url) throw new Error('Upload không trả url')
-    editingVariant.anh = url
+    edit.anh = url
     success('Upload ảnh thành công!')
   } catch (e) {
     console.error(e)
     error('Lỗi upload ảnh')
+  } finally {
+    event.target.value = ''
   }
 }
 
 async function submitEdit() {
-  if (!editingVariant.id) return
+  if (!edit.id) return
+
+  normalizeQty()
+  normalizeEditMoney()
+
+  if (!edit.idKichCo || !edit.idMauSac) {
+    error('Vui lòng chọn đầy đủ Kích cỡ và Màu sắc')
+    return
+  }
+  if (edit.donGia < 0 || !Number.isFinite(edit.donGia)) {
+    error('Đơn giá không hợp lệ')
+    return
+  }
+
+  edit.saving = true
   try {
-    await updateDetail(editingVariant.id, {
-      idSanPham: editingVariant.idSanPham,
-      idKichCo: editingVariant.idKichCo,
-      idMauSac: editingVariant.idMauSac,
-      soLuongTon: editingVariant.soLuongTon,
-      donGia: editingVariant.donGia,
-      ghiChu: editingVariant.ghiChu,
-      trangThai: editingVariant.trangThai,
-      anh: editingVariant.anh
+    await updateDetail(edit.id, {
+      idSanPham: edit.idSanPham,
+      idKichCo: edit.idKichCo,
+      idMauSac: edit.idMauSac,
+      soLuongTon: edit.soLuongTon,
+      donGia: edit.donGia, // ✅ gửi number về BE
+      ghiChu: edit.ghiChu,
+      trangThai: edit.trangThai,
+      anh: edit.anh
     })
     success('Cập nhật thành công')
-    showEditModal.value = false
+    edit.open = false
     await loadVariants()
   } catch (e) {
     console.error(e)
     error('Cập nhật thất bại')
+  } finally {
+    edit.saving = false
   }
 }
 
-/* toggle status + confirm */
+/* ========= toggle status + confirm ========= */
 const togglingIds = reactive(new Set())
 
-const showConfirmToggle = ref(false)
-const confirmTarget = ref(null)
-const confirmNext = ref(true)
+const confirmToggle = reactive({
+  open: false,
+  target: null,
+  next: true
+})
 
 function openConfirmToggle(v) {
   if (togglingIds.has(v.id)) return
-  confirmTarget.value = v
-  confirmNext.value = !v.trangThai
-  showConfirmToggle.value = true
+  confirmToggle.open = true
+  confirmToggle.target = v
+  confirmToggle.next = !v.trangThai
 }
 
 function closeConfirmToggle() {
-  showConfirmToggle.value = false
-  confirmTarget.value = null
+  confirmToggle.open = false
+  confirmToggle.target = null
 }
 
 async function confirmToggleNow() {
-  const v = confirmTarget.value
+  const v = confirmToggle.target
   if (!v) return
-  showConfirmToggle.value = false
 
+  confirmToggle.open = false
   togglingIds.add(v.id)
   try {
     await updateDetail(v.id, {
@@ -680,87 +820,55 @@ async function confirmToggleNow() {
       soLuongTon: v.soLuongTon,
       donGia: v.donGia,
       ghiChu: v.ghiChu ?? '',
-      trangThai: confirmNext.value,
+      trangThai: confirmToggle.next,
       anh: v.anh ?? ''
     })
-    v.trangThai = confirmNext.value
-    success(`Đã đổi trạng thái thành ${confirmNext.value ? 'Còn hàng' : 'Hết hàng'}`)
+    success(`Đã đổi trạng thái thành ${confirmToggle.next ? 'Còn hàng' : 'Hết hàng'}`)
     await loadVariants()
   } catch (e) {
     console.error(e)
     error('Lỗi cập nhật trạng thái')
   } finally {
     togglingIds.delete(v.id)
-    confirmTarget.value = null
+    confirmToggle.target = null
   }
 }
 
-/* helpers */
-function formatPrice(val) {
-  const n = Number(val ?? 0)
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
-}
-
-function findColorNameById(id) {
-  const it = attributes.mauSac?.find(x => String(x.id) === String(id))
-  return it?.ten ?? ''
-}
-function findSizeNameById(id) {
-  const it = attributes.kichCo?.find(x => String(x.id) === String(id))
-  return it?.soSize ?? it?.ten ?? ''
-}
-
-/* =========================
-   ✅ CÁCH 2: MÀU THEO TÊN
-   ========================= */
-
-/** Chuẩn hoá: bỏ dấu + đ->d + bỏ ngoặc + trim space */
+/* ========= color dot ========= */
 function normalizeColorName(name) {
   return String(name || '')
     .trim()
     .toLowerCase()
-    .replace(/đ/g, 'd')              // ✅ fix "Đen" -> "den"
+    .replace(/đ/g, 'd')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // bỏ dấu
-    .replace(/\(.*?\)/g, '')         // bỏ phần trong ngoặc
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\(.*?\)/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-/** Map màu theo tên (key là tên đã chuẩn hoá) */
 const COLOR_MAP = {
   den: '#000000',
   trang: '#ffffff',
   xam: '#9ca3af',
   ghi: '#9ca3af',
-
   do: '#ef4444',
-  'do do': '#7f1d1d',
-  'do ruou': '#7f1d1d',
-
   vang: '#f59e0b',
   cam: '#f97316',
-
   hong: '#ec4899',
   tim: '#a855f7',
-
   nau: '#92400e',
   be: '#f5f5dc',
   kem: '#fff7ed',
-
   'xanh la': '#16a34a',
   'xanh luc': '#16a34a',
   'xanh ngoc': '#14b8a6',
-
   'xanh duong': '#2563eb',
   'xanh navy': '#1e3a8a',
   'xanh than': '#1e3a8a',
-  navy: '#1e3a8a',
-
-  cyan: '#06b6d4'
+  navy: '#1e3a8a'
 }
 
-/** Nếu bảng màu_sắc có field mã màu hex thì ưu tiên lấy */
 function pickHexFromObject(obj) {
   const candidates = [obj?.maMau, obj?.maHex, obj?.hex, obj?.giaTri, obj?.value, obj?.code].filter(Boolean)
   for (const c of candidates) {
@@ -770,19 +878,14 @@ function pickHexFromObject(obj) {
   return null
 }
 
-/** Lấy hex theo tên: match exact -> fallback theo keyword */
 function hexByName(name) {
   if (!name) return '#9ca3af'
   const key = normalizeColorName(name)
-
-  // exact match
   if (COLOR_MAP[key]) return COLOR_MAP[key]
 
-  // fallback keyword (để đỡ phải map hết mọi biến thể)
   if (key.includes('navy') || key.includes('than')) return COLOR_MAP['xanh navy']
   if (key.includes('xanh') && (key.includes('la') || key.includes('luc'))) return COLOR_MAP['xanh la']
   if (key.includes('xanh') && key.includes('duong')) return COLOR_MAP['xanh duong']
-  if (key.includes('xanh') && key.includes('ngoc')) return COLOR_MAP['xanh ngoc']
 
   if (key.includes('den') || key.includes('black')) return COLOR_MAP.den
   if (key.includes('trang') || key.includes('white')) return COLOR_MAP.trang
@@ -794,16 +897,12 @@ function hexByName(name) {
   if (key.includes('nau') || key.includes('brown')) return COLOR_MAP.nau
   if (key.includes('xam') || key.includes('ghi') || key.includes('gray') || key.includes('grey')) return COLOR_MAP.xam
 
-  // default
   return '#9ca3af'
 }
 
-/** Style chấm màu: ưu tiên hex từ attribute.mauSac, không có thì dùng tên */
 function colorDotStyle(variant) {
-  const fromAttr = attributes.mauSac?.find(x => String(x.id) === String(variant.idMauSac))
+  const fromAttr = attributes.mauSac?.find((x) => String(x.id) === String(variant.idMauSac))
   const hex = pickHexFromObject(fromAttr) || hexByName(fromAttr?.ten || variant.tenMauSac)
-
-  // viền cho màu trắng để nhìn thấy
   const border = String(hex).toLowerCase() === '#ffffff' ? '#9ca3af' : '#e5e7eb'
   return { backgroundColor: hex, borderColor: border }
 }
@@ -822,12 +921,9 @@ function colorDotStyle(variant) {
 .page-title h2{ margin:0; font-size:1.25rem; font-weight:700; color:#111827; }
 .page-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
-/* card */
-.card{ background:#fff; border-radius:8px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-.filter-card{ overflow:hidden; }
-.table-card{ padding:14px; }
+.card{ background:#fff; border-radius:8px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; }
 
-/* filter head */
+/* filter */
 .filter-head{ background:#1e293b; color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
 .filter-head-left{ display:flex; align-items:center; gap:10px; font-weight:700; }
 .filter-head-right{ font-size:12px; opacity:.9; }
@@ -835,42 +931,74 @@ function colorDotStyle(variant) {
 
 .form-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
 
-/* reset */
+.status-radio{ display:flex; align-items:center; gap:10px; font-size:13px; color:#111827; }
+.status-radio input{ transform: translateY(1px); margin-right:6px; }
+
+.price-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
+.price-green{ color:#059669; font-weight:800; }
+.hint{ display:block; margin-top:6px; color:#6b7280; }
+
+/* slider like danh sách sản phẩm */
+.range-slider{
+  position: relative;
+  width: 100%;
+  height: 4px;
+  margin-top: 14px;
+  background: #e5e7eb;
+  border-radius: 2px;
+}
+.slider-range{
+  position:absolute;
+  height:100%;
+  background:#059669;
+  border-radius:2px;
+  z-index:1;
+}
+.range-slider input[type="range"]{
+  position:absolute;
+  width:100%;
+  pointer-events:none;
+  appearance:none;
+  -webkit-appearance:none;
+  z-index:2;
+  height:5px;
+  top:-1px;
+  background:transparent;
+  left:0;
+}
+.range-slider input[type="range"]::-webkit-slider-thumb{
+  pointer-events:all;
+  width:18px;
+  height:18px;
+  -webkit-appearance:none;
+  background:#fff;
+  border:2px solid #059669;
+  border-radius:50%;
+  cursor:pointer;
+  margin-top:-7px;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.range-slider input[type="range"]::-webkit-slider-runnable-track{
+  width:100%;
+  height:4px;
+  cursor:pointer;
+  background:transparent;
+  border-radius:2px;
+}
+
 .filter-reset{ display:flex; justify-content:flex-end; padding-top:6px; }
 .filter-reset .btn{ color:#111827; }
 .filter-reset .btn:hover{ background:#f3f4f6; border-radius:6px; }
 
-/* status radio */
-.status-radio{ display:flex; align-items:center; gap:10px; font-size:13px; color:#111827; }
-.status-radio input{ transform: translateY(1px); margin-right:6px; }
+/* table */
+.table-card{ padding:0; border-radius:8px; overflow:hidden; margin-top: 12px; }
+.table-responsive{ overflow-x:auto; overflow-y:hidden; }
 
-/* price slider */
-.price-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
-.price-green{ color:#059669; font-weight:800; }
-
-.double-range{ position:relative; height:26px; }
-.double-range__track{ position:absolute; left:0; right:0; top:12px; height:4px; background:#e5e7eb; border-radius:999px; }
-.double-range__range{ position:absolute; top:12px; height:4px; background:#16a34a; border-radius:999px; }
-.double-range__thumb{ position:absolute; left:0; top:0; width:100%; pointer-events:none; -webkit-appearance:none; appearance:none; background:transparent; height:26px; margin:0; }
-.double-range__thumb::-webkit-slider-thumb{
-  pointer-events:auto; -webkit-appearance:none; appearance:none;
-  width:14px; height:14px; border-radius:50%;
-  background:#fff; border:2px solid #16a34a;
-  box-shadow:0 1px 2px rgba(0,0,0,.15);
-}
-.double-range__thumb::-moz-range-thumb{
-  pointer-events:auto;
-  width:14px; height:14px; border-radius:50%;
-  background:#fff; border:2px solid #16a34a;
-  box-shadow:0 1px 2px rgba(0,0,0,.15);
-}
-
-/* TABLE */
-.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; }
+.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; min-width: 1530px; }
 .variants-table thead th{
   background:#1e293b; color:#fff;
   padding:10px 12px; text-align:center;
-  font-weight:700; border-bottom:1px solid #e5e7eb;
+  font-weight:600; border-bottom:1px solid #e5e7eb;
   white-space:nowrap;
 }
 .variants-table td{
@@ -893,18 +1021,13 @@ function colorDotStyle(variant) {
 
 .text-center{ text-align:center; }
 .text-bold{ font-weight:700; color:#111827; }
-.text-highlight{ color:#0f766e; font-weight:800; }
+.text-highlight{ color:#0f766e; font-weight:700; }
 
-/* IMAGE (to 200x200) */
+/* image */
 .img-cell{ display:flex; align-items:center; justify-content:center; }
 .img-cell--lg{ min-height: 220px; }
 
-.variant-img{
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background:#fff;
-}
+.variant-img{ object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; background:#fff; }
 .variant-img--lg{ width:200px; height:200px; }
 .variant-img.preview{ width:140px; height:140px; }
 
@@ -959,7 +1082,7 @@ function colorDotStyle(variant) {
 
 /* paging */
 .paging-bar{
-  margin-top:14px;
+  margin:14px;
   display:grid;
   grid-template-columns: 1fr auto 1fr;
   align-items:center;
@@ -970,6 +1093,8 @@ function colorDotStyle(variant) {
 .paging-right{ justify-self:end; }
 .paging-page{ width:120px; }
 .paging-size{ width:160px; }
+
+.error-text{ color:#b02a37; font-weight:800; }
 
 /* modal */
 .modal-overlay{
@@ -988,7 +1113,6 @@ function colorDotStyle(variant) {
   overflow:hidden;
 }
 .confirm-modal{ width: 520px; }
-
 .modal-header{
   display:flex; justify-content:space-between; align-items:center;
   padding:12px 14px; border-bottom:1px solid #eef2f7;
@@ -1000,23 +1124,4 @@ function colorDotStyle(variant) {
   display:flex; justify-content:flex-end; gap:10px;
   padding:12px 14px; border-top:1px solid #eef2f7;
 }
-/* Card table: không padding + clip bo góc */
-.table-card{
-  padding: 0;            /* ✅ bỏ padding để không bị lệch viền */
-  overflow: hidden;      /* ✅ clip phần bảng theo border-radius */
-  border-radius: 8px;
-}
-
-/* Table responsive: cho phép scroll ngang đúng chỗ */
-.table-responsive{
-  overflow-x: auto;      /* ✅ luôn scroll trong khung */
-  overflow-y: hidden;
-}
-
-/* Bảng không tạo khoảng trống lạ */
-.variants-table{
-  margin: 0;
-  min-width: 1530px;     /* ✅ đúng bằng tổng width cột bạn fix */
-}
-
 </style>
