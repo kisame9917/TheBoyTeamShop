@@ -12,7 +12,7 @@
           <i class="bi bi-qr-code-scan me-1"></i> Quét QR
         </button>
         <button class="btn btn-outline-primary btn-sm" @click="exportListExcel">
-          <i class="bi bi-file-earmark-excel me-1"></i> Export trang
+          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
         </button>
       </div>
     </div>
@@ -232,7 +232,8 @@
         </div>
 
         <div v-else class="table-responsive table-wrap">
-          <table class="table align-middle mb-0 table-hover table-fixed">
+         <table class="table align-middle mb-0 table-hover table-fixed table-normal">
+
             <colgroup>
               <col style="width: 60px" />
               <col style="width: 150px" />
@@ -1324,6 +1325,10 @@ onBeforeUnmount(() => {
 /* Hover vào button -> đổi màu icon sang trắng */
 .btn.btn-outline-secondary:hover .eye-icon {
   color: #fff !important;
+}
+.table-normal th,
+.table-normal td {
+  font-weight: 400 !important; /* chữ thường */
 }
 
 </style>
