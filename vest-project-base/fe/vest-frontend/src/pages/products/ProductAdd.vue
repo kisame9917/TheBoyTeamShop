@@ -9,7 +9,7 @@
 
       <!-- Body -->
       <div class="card-body">
-        <!-- ===== Thông tin cơ bản ===== -->
+        <!-- =================== THÔNG TIN CƠ BẢN =================== -->
         <div class="section">
           <h3 class="section-title">Thông tin cơ bản</h3>
 
@@ -41,12 +41,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy loại sản phẩm theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có loại sản phẩm.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -77,12 +73,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy thương hiệu theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có thương hiệu.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -113,12 +105,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy số khuy theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có số khuy.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -149,12 +137,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy kiểu túi theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có kiểu túi.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -185,12 +169,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy ve áo theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có ve áo.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -221,12 +201,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy xẻ tà theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có xẻ tà.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -257,12 +233,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy xuất xứ theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có xuất xứ.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -293,12 +265,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy kiểu dáng theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có kiểu dáng.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -329,12 +297,8 @@
                     :taggable="false"
                     :show-labels="false"
                   >
-                    <template #noResult>
-                      <span class="ms-empty">Không tìm thấy chất liệu theo từ khóa đã nhập.</span>
-                    </template>
-                    <template #noOptions>
-                      <span class="ms-empty">Chưa có chất liệu.</span>
-                    </template>
+                    <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                    <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
                   </Multiselect>
                 </div>
 
@@ -364,12 +328,12 @@
           </div>
         </div>
 
-        <!-- ===== Biến thể ===== -->
+        <!-- =================== BIẾN THỂ =================== -->
         <div class="section">
           <h3 class="section-title">Biến thể sản phẩm</h3>
 
-          <!-- Màu trên, size dưới (KHÔNG thêm nhanh) -->
           <div class="grid-1">
+            <!-- Màu -->
             <div class="form-group">
               <label class="required">Màu sắc</label>
               <div :class="['ms-wrap', { 'error-border': errors.mauSac }]">
@@ -385,12 +349,8 @@
                   :show-labels="false"
                   :taggable="false"
                 >
-                  <template #noResult>
-                    <span class="ms-empty">Không tìm thấy màu sắc theo từ khóa đã nhập.</span>
-                  </template>
-                  <template #noOptions>
-                    <span class="ms-empty">Chưa có màu sắc.</span>
-                  </template>
+                  <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                  <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
 
                   <template #option="{ option }">
                     <div class="opt-row">
@@ -403,7 +363,7 @@
                     <span class="ms-tag">
                       <span class="color-dot" :style="{ background: getColorCode(option.ten) }"></span>
                       {{ option.ten }}
-                      <span class="ms-tag-x" @click="remove(option)">×</span>
+                      <span class="ms-tag-x" @click.stop="remove(option)">×</span>
                     </span>
                   </template>
                 </Multiselect>
@@ -411,6 +371,7 @@
               <small v-if="errors.mauSac" class="error-text">{{ errors.mauSac }}</small>
             </div>
 
+            <!-- Size -->
             <div class="form-group">
               <label class="required">Kích cỡ</label>
               <div :class="['ms-wrap', { 'error-border': errors.kichCo }]">
@@ -425,22 +386,36 @@
                   :close-on-select="false"
                   :show-labels="false"
                   :taggable="false"
+                  @select="onSizeSelect"
                 >
-                  <template #noResult>
-                    <span class="ms-empty">Không tìm thấy kích cỡ theo từ khóa đã nhập.</span>
+                  <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
+                  <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
+
+                  <template #option="{ option }">
+                    <div class="opt-row" :class="{ 'opt-invalid': isSizeInvalid(option) }">
+                      <span>{{ option.soSize }}</span>
+                      <small v-if="isSizeInvalid(option) && showPolicyHint" class="size-hint">
+                        (Hợp lệ: {{ allowedSizeText }})
+                      </small>
+                    </div>
                   </template>
-                  <template #noOptions>
-                    <span class="ms-empty">Chưa có kích cỡ.</span>
+
+                  <template #tag="{ option, remove }">
+                    <span class="ms-tag" :class="{ 'tag-invalid': isSizeInvalid(option) }">
+                      {{ option.soSize }}
+                      <span class="ms-tag-x" @click.stop="remove(option)">×</span>
+                    </span>
                   </template>
-                   <template #tag="{ option, remove }">
-    <span class="ms-tag">
-      {{ option.soSize }}
-      <span class="ms-tag-x" @click="remove(option)">×</span>
-    </span>
-  </template>
                 </Multiselect>
               </div>
+
               <small v-if="errors.kichCo" class="error-text">{{ errors.kichCo }}</small>
+
+              <small v-if="showPolicyHint" class="hint">
+                Rule size đang áp dụng: <b>{{ allowedSizeText }}</b>
+                <span v-if="policySource === 'default'"> (mặc định cho brand/fit mới)</span>
+                <span v-else-if="policySource === 'mix'"> (kết hợp với mặc định)</span>
+              </small>
             </div>
           </div>
 
@@ -449,7 +424,7 @@
           </button>
         </div>
 
-        <!-- ===== Danh sách biến thể ===== -->
+        <!-- =================== DANH SÁCH BIẾN THỂ =================== -->
         <div class="section" v-if="generatedVariants.length > 0">
           <div class="section-header-bar">
             <h3 class="section-title-white">Danh sách biến thể</h3>
@@ -466,17 +441,17 @@
                 {{ g.name }}
                 <span class="count-gray">({{ g.variants.length }} kích cỡ)</span>
               </div>
-              <button class="btn-quick-add-blue" type="button" @click="openGroupApply(g)">⚡ Thêm nhanh</button>
+              <button class="btn-quick-add-blue" type="button" @click="openGroupApply(g)">⚡ Áp dụng nhóm</button>
             </div>
 
             <div class="table-responsive">
               <table class="variants-table">
                 <thead>
                   <tr>
-                    <th style="width: 28%; text-align: center;">Kích cỡ</th>
-                    <th style="width: 34%;">Số lượng tồn</th>
-                    <th style="width: 34%;">Đơn giá</th>
-                    <th style="width: 4%;"></th>
+                    <th style="width:28%; text-align:center;">Kích cỡ</th>
+                    <th style="width:34%;">Số lượng tồn</th>
+                    <th style="width:34%;">Đơn giá</th>
+                    <th style="width:4%;"></th>
                   </tr>
                 </thead>
 
@@ -485,17 +460,10 @@
                     <td class="text-center"><span class="size-badge">{{ v.tenKichCo }}</span></td>
 
                     <td>
-                      <input
-                        class="form-input"
-                        type="number"
-                        min="0"
-                        step="1"
-                        v-model.number="v.soLuongTon"
-                      />
+                      <input class="form-input" type="number" min="0" step="1" v-model.number="v.soLuongTon" />
                       <small v-if="v._qtyErr" class="error-text">{{ v._qtyErr }}</small>
                     </td>
 
-                    <!-- Giá: nhập có dấu chấm ngăn cách -->
                     <td>
                       <input
                         class="form-input"
@@ -503,8 +471,8 @@
                         inputmode="numeric"
                         placeholder="0"
                         :value="v.donGiaText"
-                        @input="(e) => onMoneyInput(e, v)"
-                        @blur="() => normalizeMoneyText(v)"
+                        @input="(e) => onMoneyInputVariant(e, v)"
+                        @blur="() => normalizeMoneyVariant(v)"
                       />
                       <small v-if="v._priceErr" class="error-text">{{ v._priceErr }}</small>
                     </td>
@@ -537,7 +505,6 @@
                     <span class="icon-lg">🖼️</span>
                     <span>Chưa có ảnh</span>
                   </div>
-
                   <input type="file" hidden accept="image/*" @change="(e) => handleGroupImageUpload(g, e)" />
                 </label>
               </div>
@@ -557,7 +524,7 @@
       </div>
     </div>
 
-    <!-- ===== Modal thêm nhanh attribute (dấu +) ===== -->
+    <!-- =================== MODAL THÊM NHANH ATTRIBUTE =================== -->
     <div v-if="addModal.open" class="modal-overlay" @click.self="closeAddModal">
       <div class="modal-box">
         <h3 class="modal-title">Thêm nhanh {{ addModal.label }}</h3>
@@ -577,7 +544,7 @@
       </div>
     </div>
 
-    <!-- ===== Apply nhóm / tất cả ===== -->
+    <!-- =================== MODAL ÁP DỤNG CHUNG =================== -->
     <div v-if="showApplyModal" class="modal-overlay" @click.self="closeApplyModal">
       <div class="modal-box">
         <h3 class="modal-title">Áp dụng chung ({{ applyTarget?.name }})</h3>
@@ -611,7 +578,7 @@
       </div>
     </div>
 
-    <!-- ===== Confirm ===== -->
+    <!-- =================== CONFIRM =================== -->
     <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
       <div class="confirm-modal">
         <div class="confirm-header">
@@ -630,7 +597,7 @@
       </div>
     </div>
 
-    <!-- ===== Toast ===== -->
+    <!-- =================== TOAST =================== -->
     <div v-if="toast.show" class="toast2" :class="toast.type">
       <div class="toast2-bar"></div>
       <div class="toast2-main">
@@ -643,7 +610,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { reactive, ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
@@ -652,23 +619,22 @@ import attributeService from '../../services/attributeService'
 import { createSanPham, updateSanPham } from '../../services/sanPhamApi'
 import { uploadImage } from '../../services/sanPhamChiTietApi'
 
-/* ========= Router / Props ========= */
+/* ================= Router/Props ================= */
 const router = useRouter()
 const props = defineProps({ id: { type: [String, Number], default: null } })
 const isEditMode = computed(() => !!props.id)
 
-/* ========= Base ========= */
+/* ================= Base ================= */
 const loading = ref(false)
 const globalError = ref('')
 const fileBase = (import.meta?.env?.VITE_FILE_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
-
 function resolveFileUrl(pathOrUrl) {
   if (!pathOrUrl) return ''
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl
   return fileBase + pathOrUrl
 }
 
-/* ========= Toast ========= */
+/* ================= Toast ================= */
 const toast = ref({ show: false, title: 'Thành công', message: '', type: 'success' })
 let toastTimer = null
 function hideToast() {
@@ -684,7 +650,7 @@ function showToast(message, type = 'success', opts = {}) {
   toastTimer = setTimeout(() => (toast.value.show = false), duration)
 }
 
-/* ========= Confirm ========= */
+/* ================= Confirm ================= */
 const confirmState = reactive({
   open: false,
   title: 'Xác nhận',
@@ -714,16 +680,17 @@ function confirmCancel() {
   confirmState._resolve = null
 }
 
-/* ===================== VALIDATION HELPERS ===================== */
+/* ================= Validation helpers ================= */
 const MSG_LEADING_SPACE = 'Không được nhập khoảng trắng ở đầu'
+const RE = {
+  NAME: /^[\p{L}\p{M}\p{N} ]+$/u,
+  DESC: /^[\p{L}\p{M}\p{N}\s.,;:!?()\-/%'"“”‘’]+$/u
+}
 function hasLeadingSpace(v) {
   return /^\s/.test(String(v ?? ''))
 }
 function cleanText(s) {
-  return String(s ?? '')
-    .normalize('NFC')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return String(s ?? '').normalize('NFC').replace(/\s+/g, ' ').trim()
 }
 function cleanTextarea(s) {
   return String(s ?? '')
@@ -733,83 +700,6 @@ function cleanTextarea(s) {
     .join('\n')
     .trim()
 }
-
-// Cho phép chữ + dấu (Mark) + số + khoảng trắng
-const RE = {
-  NAME: /^[\p{L}\p{M}\p{N} ]+$/u,
-  // mô tả: cho phép thêm dấu câu cơ bản
-  DESC: /^[\p{L}\p{M}\p{N}\s.,;:!?()\-/%'"“”‘’]+$/u
-}
-
-function clearErrors() {
-  Object.keys(errors).forEach((k) => (errors[k] = ''))
-}
-function setErr(key, msg) {
-  errors[key] = msg
-}
-function validateRequiredSelect(key, label, val) {
-  if (!val) {
-    setErr(key, `Vui lòng chọn ${label}`)
-    return false
-  }
-  return true
-}
-
-function validateNameField(key, label, raw, { required = true, min = 2, max = 80 } = {}) {
-  if (hasLeadingSpace(raw)) {
-    setErr(key, MSG_LEADING_SPACE)
-    return { ok: false, value: raw }
-  }
-
-  const v = cleanText(raw)
-
-  if (required && !v) {
-    setErr(key, `${label} bắt buộc`)
-    return { ok: false, value: v }
-  }
-  if (v) {
-    if (v.length < min) {
-      setErr(key, `${label} tối thiểu ${min} ký tự`)
-      return { ok: false, value: v }
-    }
-    if (v.length > max) {
-      setErr(key, `${label} tối đa ${max} ký tự`)
-      return { ok: false, value: v }
-    }
-    if (!RE.NAME.test(v)) {
-      setErr(key, `${label} không được chứa ký tự đặc biệt`)
-      return { ok: false, value: v }
-    }
-  }
-
-  return { ok: true, value: v }
-}
-
-function validateDescField(key, label, raw, { required = false, max = 500 } = {}) {
-  if (hasLeadingSpace(raw)) {
-    setErr(key, MSG_LEADING_SPACE)
-    return { ok: false, value: raw }
-  }
-
-  const v = cleanTextarea(raw)
-
-  if (required && !v) {
-    setErr(key, `${label} bắt buộc`)
-    return { ok: false, value: v }
-  }
-  if (v) {
-    if (v.length > max) {
-      setErr(key, `${label} tối đa ${max} ký tự`)
-      return { ok: false, value: v }
-    }
-    if (!RE.DESC.test(v)) {
-      setErr(key, `${label} có ký tự không hợp lệ`)
-      return { ok: false, value: v }
-    }
-  }
-  return { ok: true, value: v }
-}
-
 function validateInt0(label, n) {
   if (n === '' || n === null || n === undefined) return `${label} không được để trống`
   const x = Number(n)
@@ -817,7 +707,7 @@ function validateInt0(label, n) {
   return true
 }
 
-/* ===================== MONEY (dấu chấm) ===================== */
+/* ================= Money (dấu chấm) ================= */
 function stripNonDigits(s) {
   return String(s ?? '').replace(/[^\d]/g, '')
 }
@@ -832,22 +722,20 @@ function parseMoneyToNumber(text) {
   const n = Number(digits)
   return Number.isFinite(n) ? n : 0
 }
-
-function onMoneyInput(e, v) {
+function onMoneyInputVariant(e, v) {
   const raw = e?.target?.value ?? ''
   v._priceErr = ''
   if (hasLeadingSpace(raw)) v._priceErr = MSG_LEADING_SPACE
-
   const digits = stripNonDigits(raw)
   v.donGiaText = formatDotsFromDigits(digits)
   v.donGia = parseMoneyToNumber(v.donGiaText)
 }
-function normalizeMoneyText(v) {
+function normalizeMoneyVariant(v) {
   v.donGiaText = formatDotsFromDigits(stripNonDigits(v.donGiaText))
   v.donGia = parseMoneyToNumber(v.donGiaText)
 }
 
-/* ========= Form ========= */
+/* ================= Form state ================= */
 const product = reactive({
   maSanPham: 'SP' + Math.floor(Math.random() * 10000),
   tenSanPham: '',
@@ -880,7 +768,11 @@ const errors = reactive({
   moTa: ''
 })
 
-/* ========= Attributes ========= */
+function clearErrors() {
+  Object.keys(errors).forEach((k) => (errors[k] = ''))
+}
+
+/* ================= Attributes ================= */
 const attributes = reactive({
   loaiSanPham: [],
   thuongHieu: [],
@@ -894,7 +786,6 @@ const attributes = reactive({
   mauSac: [],
   kichCo: []
 })
-
 const attributeMap = {
   loaiSanPham: 'loai-san-pham',
   thuongHieu: 'thuong-hieu',
@@ -909,7 +800,7 @@ const attributeMap = {
   kichCo: 'kich-co'
 }
 
-/* ========= Bind multiselect single ========= */
+/* ================= Bind multiselect (single) ================= */
 function bindMs(productKey, listKey) {
   return computed({
     get: () => (attributes[listKey] || []).find((i) => String(i.id) === String(product[productKey])) || null,
@@ -926,11 +817,149 @@ const msXuatXu = bindMs('xuatXuId', 'xuatXu')
 const msFit = bindMs('fitId', 'fit')
 const msChatLieu = bindMs('chatLieuId', 'chatLieu')
 
-/* ========= Colors / Sizes (multiple) ========= */
+/* ================= Colors/Sizes (multiple) ================= */
 const selectedColors = ref([])
 const selectedSizes = ref([])
 
-/* ========= Add modal (+) ========= */
+/* ================= SIZE POLICY (CHUẨN + KHÔNG LỌT 53) =================
+   - Luôn HIỆN TẤT CẢ options
+   - Click size sai => bật ra + báo "hợp lệ: ..."
+   - Brand/Fit không có trong map => mặc định 46–50
+   - Nếu 1 cái có policy, 1 cái không có => intersect(policy, default) để vẫn validate (tránh lọt size lạ)
+*/
+const DEFAULT_SIZE_SET = new Set([46, 47, 48, 49, 50])
+
+function normKey(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\s+/g, ' ')
+}
+
+const BRAND_POLICY = {
+  'adam': [46, 48, 50, 52, 54],
+  'adam store': [46, 48, 50, 52, 54],
+  'aristino': [46, 48, 50, 52, 54, 56, 58],
+  'routine': [44, 46, 48, 50, 52, 54],
+  'owen': [48, 50, 52, 54, 56, 58, 60],
+  'viet tien': [46, 48, 50, 52, 54, 56],
+  'may 10': [44, 46, 48, 50, 52, 54, 56, 58],
+  'biluxury': [44, 46, 48, 50, 52],
+  'blue exchange': [44, 46, 48, 50],
+  'an phuoc - pierre cardin': [46, 48, 50, 52, 54, 56, 58, 60]
+}
+
+const FIT_POLICY = {
+  'slim fit': [44, 46, 48, 50, 52],
+  'regular fit': [46, 48, 50, 52, 54, 56, 58],
+  'reguler fit': [46, 48, 50, 52, 54, 56, 58], // typo thường gặp
+  'big size': [56, 58, 60, 62, 64]
+}
+
+function toSet(arr) {
+  return new Set((arr || []).map((x) => Number(x)).filter((x) => Number.isFinite(x)))
+}
+function intersect(a, b) {
+  const out = new Set()
+  for (const x of a) if (b.has(x)) out.add(x)
+  return out
+}
+function formatAllowedSizes(set) {
+  if (!set) return 'chưa áp dụng'
+  const arr = Array.from(set).sort((a, b) => a - b)
+  if (!arr.length) return 'không có size phù hợp'
+  const step = arr.length > 1 ? arr[1] - arr[0] : 0
+  const isRange = arr.every((v, i) => i === 0 || v - arr[i - 1] === step) && (step === 1 || step === 2)
+  return isRange ? `${arr[0]}–${arr[arr.length - 1]}` : arr.join(', ')
+}
+
+const brandNameNorm = computed(() => normKey(msThuongHieu.value?.ten))
+const fitNameNorm = computed(() => normKey(msFit.value?.ten))
+
+const sizePolicyMeta = computed(() => {
+  const hasBrand = !!product.thuongHieuId
+  const hasFit = !!product.fitId
+  if (!hasBrand && !hasFit) return { set: null, source: 'none' }
+
+  const brandSet = hasBrand ? toSet(BRAND_POLICY[brandNameNorm.value]) : null
+  const fitSet = hasFit ? toSet(FIT_POLICY[fitNameNorm.value]) : null
+
+  const brandKnown = !!(brandSet && brandSet.size)
+  const fitKnown = !!(fitSet && fitSet.size)
+
+  // cả hai known => giao
+  if (brandKnown && fitKnown) return { set: intersect(brandSet, fitSet), source: 'both' }
+
+  // 1 known 1 unknown => giao với default (để brand/fit mới vẫn validate 46–50)
+  if (brandKnown && !fitKnown && hasFit) return { set: intersect(brandSet, DEFAULT_SIZE_SET), source: 'mix' }
+  if (!brandKnown && fitKnown && hasBrand) return { set: intersect(fitSet, DEFAULT_SIZE_SET), source: 'mix' }
+
+  // chỉ 1 cái được chọn
+  if (brandKnown && !hasFit) return { set: brandSet, source: 'brand' }
+  if (fitKnown && !hasBrand) return { set: fitSet, source: 'fit' }
+
+  // chọn brand hoặc fit nhưng không có map => default
+  return { set: DEFAULT_SIZE_SET, source: 'default' }
+})
+
+const allowedSizeSet = computed(() => sizePolicyMeta.value.set)
+const policySource = computed(() => sizePolicyMeta.value.source)
+const showPolicyHint = computed(() => policySource.value !== 'none')
+const allowedSizeText = computed(() => formatAllowedSizes(allowedSizeSet.value))
+
+function isSizeInvalid(option) {
+  const allowed = allowedSizeSet.value
+  if (!allowed) return false
+  return !allowed.has(Number(option?.soSize))
+}
+
+// IMPORTANT FIX: @select có thể chạy trước khi v-model cập nhật -> dùng nextTick
+async function onSizeSelect(option) {
+  const allowed = allowedSizeSet.value
+  if (!allowed) return
+
+  const s = Number(option?.soSize)
+  if (!Number.isFinite(s)) return
+
+  if (!allowed.has(s)) {
+    await nextTick() // đợi multiselect cập nhật selectedSizes xong
+    selectedSizes.value = selectedSizes.value.filter((x) => String(x.id) !== String(option.id))
+    errors.kichCo = `Size ${s} không phù hợp. Hợp lệ: ${allowedSizeText.value}`
+    showToast(errors.kichCo, 'error', { title: 'Không hợp lệ' })
+  } else if (errors.kichCo) {
+    errors.kichCo = ''
+  }
+}
+
+// đổi brand/fit: chỉ cảnh báo nếu đang giữ size sai (KHÔNG tự xóa)
+watch([() => product.thuongHieuId, () => product.fitId], () => {
+  const allowed = allowedSizeSet.value
+  if (!allowed) return
+  const invalid = selectedSizes.value.filter((x) => !allowed.has(Number(x.soSize)))
+  if (invalid.length) {
+    showToast(
+      `Đang có size không phù hợp: ${invalid.map((x) => x.soSize).join(', ')}. Hợp lệ: ${allowedSizeText.value}`,
+      'error',
+      { title: 'Cảnh báo' }
+    )
+  }
+})
+
+function ensureSizesValidOrShow() {
+  const allowed = allowedSizeSet.value
+  if (!allowed) return true
+  const invalid = selectedSizes.value.filter((x) => !allowed.has(Number(x.soSize)))
+  if (invalid.length) {
+    errors.kichCo = `Size không hợp lệ: ${invalid.map((x) => x.soSize).join(', ')}. Hợp lệ: ${allowedSizeText.value}`
+    showToast(errors.kichCo, 'error')
+    return false
+  }
+  return true
+}
+
+/* ================= Add modal (+) ================= */
 const addModal = reactive({
   open: false,
   typeCode: '',
@@ -955,8 +984,6 @@ function closeAddModal() {
   addModal.value = ''
   addModal.error = ''
 }
-
-// check trùng: gộp space + lower
 function normalizeCompareName(s) {
   return cleanText(s).toLowerCase()
 }
@@ -969,7 +996,6 @@ const CODE_PREFIX = {
   'mau-sac': 'MS',
   'thuong-hieu': 'TH',
   'chat-lieu': 'CL',
-  'kich-co': 'KC',
   'loai-san-pham': 'LSP',
   'so-khuy': 'SK',
   'kieu-tui': 'KT',
@@ -1008,14 +1034,11 @@ function computeAddModalError() {
   if (isDuplicateName(list, ten)) return 'Tên đã tồn tại'
   return ''
 }
-
 const addModalCanSubmit = computed(() => addModal.open && !computeAddModalError())
 
 watch(
   () => [addModal.open, addModal.value, addModal.listKey],
-  () => {
-    addModal.error = computeAddModalError()
-  },
+  () => (addModal.error = computeAddModalError()),
   { immediate: true }
 )
 
@@ -1046,10 +1069,11 @@ async function confirmAddModal() {
   } catch (e) {
     console.error(e)
     addModal.error = 'Không thể thêm mới, vui lòng thử lại'
+    showToast(addModal.error, 'error')
   }
 }
 
-/* ========= Variants ========= */
+/* ================= Variants ================= */
 const generatedVariants = ref([])
 
 function generateVariants() {
@@ -1072,11 +1096,12 @@ function generateVariants() {
     showToast(errors.chatLieuId, 'error')
     return
   }
+  if (!ensureSizesValidOrShow()) return
 
   const add = []
   for (const c of selectedColors.value) {
     for (const s of selectedSizes.value) {
-      const exists = generatedVariants.value.some((v) => v.idMauSac === c.id && v.idKichCo === s.id)
+      const exists = generatedVariants.value.some((v) => String(v.idMauSac) === String(c.id) && String(v.idKichCo) === String(s.id))
       if (!exists) {
         add.push({
           _key: `${c.id}-${s.id}-${Date.now()}-${Math.random()}`,
@@ -1106,8 +1131,9 @@ function removeVariantObj(v) {
 const variantsGroupedByColor = computed(() => {
   const groups = {}
   for (const v of generatedVariants.value) {
-    if (!groups[v.idMauSac]) groups[v.idMauSac] = { id: v.idMauSac, name: v.tenMauSac, variants: [] }
-    groups[v.idMauSac].variants.push(v)
+    const id = String(v.idMauSac)
+    if (!groups[id]) groups[id] = { id, name: v.tenMauSac, variants: [] }
+    groups[id].variants.push(v)
   }
   return Object.values(groups).map((g) => {
     g.variants.sort((a, b) => Number(a.tenKichCo) - Number(b.tenKichCo))
@@ -1132,7 +1158,7 @@ async function handleGroupImageUpload(group, event) {
   }
 }
 
-/* ========= Apply modal ========= */
+/* ================= Apply modal ================= */
 const showApplyModal = ref(false)
 const applyTarget = ref(null)
 const applyForm = reactive({
@@ -1170,11 +1196,9 @@ function normalizeMoneyApply() {
 
 function confirmApply() {
   if (!applyTarget.value) return
-
   applyForm._qtyErr = ''
   applyForm._priceErr = ''
 
-  // qty: cho phép rỗng
   let qtyApply = null
   if (applyForm.qty !== '' && applyForm.qty !== null && applyForm.qty !== undefined) {
     const msg = validateInt0('Số lượng tồn', applyForm.qty)
@@ -1185,7 +1209,6 @@ function confirmApply() {
     qtyApply = Number(applyForm.qty)
   }
 
-  // price: cho phép rỗng
   let priceApply = null
   if (applyForm.priceText.trim() !== '') {
     if (hasLeadingSpace(applyForm.priceText)) {
@@ -1212,7 +1235,7 @@ function confirmApply() {
   showToast('Đã áp dụng thành công!')
 }
 
-/* ========= Load attributes ========= */
+/* ================= Load attributes ================= */
 onMounted(async () => {
   try {
     const tasks = Object.keys(attributeMap).map((key) =>
@@ -1228,32 +1251,66 @@ onMounted(async () => {
   }
 })
 
-/* ========= Validate form ========= */
+/* ================= Validate form ================= */
 function validateForm() {
   clearErrors()
   let ok = true
 
-  // text fields: cấm khoảng trắng đầu
-  const tenRes = validateNameField('tenSanPham', 'Tên sản phẩm', product.tenSanPham, { min: 2, max: 80 })
-  product.tenSanPham = tenRes.value
-  ok = tenRes.ok && ok
+  // Tên
+  if (hasLeadingSpace(product.tenSanPham)) {
+    errors.tenSanPham = MSG_LEADING_SPACE
+    ok = false
+  } else {
+    const ten = cleanText(product.tenSanPham)
+    product.tenSanPham = ten
+    if (!ten) {
+      errors.tenSanPham = 'Tên sản phẩm bắt buộc'
+      ok = false
+    } else if (ten.length < 2 || ten.length > 80) {
+      errors.tenSanPham = 'Tên sản phẩm 2–80 ký tự'
+      ok = false
+    } else if (!RE.NAME.test(ten)) {
+      errors.tenSanPham = 'Tên sản phẩm không được chứa ký tự đặc biệt'
+      ok = false
+    }
+  }
 
-  const descRes = validateDescField('moTa', 'Mô tả', product.moTa, { required: false, max: 500 })
-  product.moTa = descRes.value
-  ok = descRes.ok && ok
+  // Mô tả
+  if (hasLeadingSpace(product.moTa)) {
+    errors.moTa = MSG_LEADING_SPACE
+    ok = false
+  } else {
+    const moTa = cleanTextarea(product.moTa)
+    product.moTa = moTa
+    if (moTa && moTa.length > 500) {
+      errors.moTa = 'Mô tả tối đa 500 ký tự'
+      ok = false
+    } else if (moTa && !RE.DESC.test(moTa)) {
+      errors.moTa = 'Mô tả có ký tự không hợp lệ'
+      ok = false
+    }
+  }
 
-  // select required
-  ok = validateRequiredSelect('loaiSanPhamId', 'loại sản phẩm', product.loaiSanPhamId) && ok
-  ok = validateRequiredSelect('thuongHieuId', 'thương hiệu', product.thuongHieuId) && ok
-  ok = validateRequiredSelect('soKhuyId', 'số khuy', product.soKhuyId) && ok
-  ok = validateRequiredSelect('kieuTuiId', 'kiểu túi', product.kieuTuiId) && ok
-  ok = validateRequiredSelect('veAoId', 've áo', product.veAoId) && ok
-  ok = validateRequiredSelect('xeTaId', 'xẻ tà', product.xeTaId) && ok
-  ok = validateRequiredSelect('xuatXuId', 'xuất xứ', product.xuatXuId) && ok
-  ok = validateRequiredSelect('fitId', 'kiểu dáng', product.fitId) && ok
-  ok = validateRequiredSelect('chatLieuId', 'chất liệu', product.chatLieuId) && ok
+  // required selects
+  const req = [
+    ['loaiSanPhamId', 'loại sản phẩm'],
+    ['thuongHieuId', 'thương hiệu'],
+    ['soKhuyId', 'số khuy'],
+    ['kieuTuiId', 'kiểu túi'],
+    ['veAoId', 've áo'],
+    ['xeTaId', 'xẻ tà'],
+    ['xuatXuId', 'xuất xứ'],
+    ['fitId', 'kiểu dáng'],
+    ['chatLieuId', 'chất liệu']
+  ]
+  for (const [k, label] of req) {
+    if (!product[k]) {
+      errors[k] = `Vui lòng chọn ${label}`
+      ok = false
+    }
+  }
 
-  // colors / sizes
+  // colors/sizes
   if (!selectedColors.value.length) {
     errors.mauSac = 'Vui lòng chọn ít nhất 1 màu'
     ok = false
@@ -1262,6 +1319,8 @@ function validateForm() {
     errors.kichCo = 'Vui lòng chọn ít nhất 1 kích cỡ'
     ok = false
   }
+
+  if (selectedSizes.value.length && !ensureSizesValidOrShow()) ok = false
 
   return ok
 }
@@ -1277,7 +1336,6 @@ function validateVariantsBeforeSubmit() {
       return qtyMsg
     }
 
-    // giá: cấm khoảng trắng đầu
     if (hasLeadingSpace(v.donGiaText)) {
       v._priceErr = MSG_LEADING_SPACE
       return `Đơn giá (${v.tenMauSac} - size ${v.tenKichCo}): ${MSG_LEADING_SPACE}`
@@ -1292,7 +1350,7 @@ function validateVariantsBeforeSubmit() {
   return true
 }
 
-/* ========= Submit ========= */
+/* ================= Submit ================= */
 async function handleSubmitClick() {
   globalError.value = ''
 
@@ -1301,30 +1359,21 @@ async function handleSubmitClick() {
     return
   }
 
-  const vMsg = validateVariantsBeforeSubmit()
-  if (vMsg !== true) {
-    showToast(vMsg, 'error')
-    return
+  if (generatedVariants.value.length) {
+    const vMsg = validateVariantsBeforeSubmit()
+    if (vMsg !== true) {
+      showToast(vMsg, 'error')
+      return
+    }
   }
 
-  // chưa có biến thể thì hỏi
-  if (generatedVariants.value.length === 0) {
-    const okNoVariants = await openConfirm({
-      title: 'Chưa có biến thể',
-      message: 'Bạn chưa tạo biến thể nào. Vẫn muốn tiếp tục lưu sản phẩm?',
-      okText: 'Tiếp tục',
-      cancelText: 'Hủy'
-    })
-    if (!okNoVariants) return
-  } else {
-    const okConfirm = await openConfirm({
-      title: 'Xác nhận',
-      message: isEditMode.value ? 'Bạn có chắc chắn muốn lưu thay đổi?' : 'Bạn có chắc chắn muốn hoàn tất thêm sản phẩm?',
-      okText: 'Đồng ý',
-      cancelText: 'Hủy'
-    })
-    if (!okConfirm) return
-  }
+  const okConfirm = await openConfirm({
+    title: 'Xác nhận',
+    message: isEditMode.value ? 'Bạn có chắc chắn muốn lưu thay đổi?' : 'Bạn có chắc chắn muốn hoàn tất thêm sản phẩm?',
+    okText: 'Đồng ý',
+    cancelText: 'Hủy'
+  })
+  if (!okConfirm) return
 
   await doSubmit()
 }
@@ -1368,7 +1417,7 @@ async function doSubmit() {
   }
 }
 
-/* ========= Clear variants ========= */
+/* ================= Clear variants ================= */
 async function askClearVariants() {
   if (generatedVariants.value.length === 0) {
     showToast('Không có biến thể để xóa', 'error')
@@ -1388,12 +1437,12 @@ async function askClearVariants() {
   showToast('Đã xóa tất cả biến thể')
 }
 
-/* ========= Navigation ========= */
+/* ================= Navigation ================= */
 function goBack() {
   router.push('/products')
 }
 
-/* ========= Color helper ========= */
+/* ================= Color helper ================= */
 function getColorCode(name) {
   if (!name) return '#e5e7eb'
   const n = String(name).toLowerCase()
@@ -1441,6 +1490,7 @@ function getColorCode(name) {
 .required::after { content: ' *'; color: red; }
 .error-text { color: red; font-size: 0.8rem; }
 .error-border { border-color: #ef4444 !important; box-shadow: 0 0 0 1px rgba(239,68,68,0.2); }
+.hint { display: block; margin-top: 6px; color: #6b7280; font-weight: 700; }
 
 .btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; }
 .btn-secondary { background: #e5e7eb; color: #374151; }
@@ -1482,6 +1532,9 @@ function getColorCode(name) {
 }
 
 .opt-row{ display:flex; align-items:center; gap:8px; padding:2px 0; }
+.opt-invalid { opacity: 0.65; }
+.size-hint { margin-left: 8px; color: #dc2626; font-weight: 800; font-size: 0.8rem; }
+
 .color-dot{ width:12px; height:12px; border-radius:999px; border:1px solid rgba(0,0,0,0.12); }
 .ms-tag{
   display:inline-flex;
@@ -1495,6 +1548,11 @@ function getColorCode(name) {
   font-weight:800;
 }
 .ms-tag-x{ cursor:pointer; padding:0 4px; }
+.tag-invalid{
+  background:#fee2e2 !important;
+  color:#991b1b !important;
+  border: 1px solid #fecaca;
+}
 
 /* ===== Variants ===== */
 .section-header-bar { background: #1e40af; padding: 10px 14px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; }
