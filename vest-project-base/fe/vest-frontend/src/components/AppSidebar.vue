@@ -89,22 +89,13 @@
         </button>
 
         <div v-if="openGroups.attributes" class="sub-wrap">
-          <RouterLink to="/attributes/thuong-hieu" class="sub-link" active-class="active-sub">
-            <i class="bi bi-award sub-icon"></i> Thương hiệu
-          </RouterLink>
-          <RouterLink to="/attributes/chat-lieu" class="sub-link" active-class="active-sub">
-            <i class="bi bi-layers sub-icon"></i> Chất liệu
-          </RouterLink>
-          <RouterLink to="/attributes/kich-co" class="sub-link" active-class="active-sub">
-            <i class="bi bi-rulers sub-icon"></i> Kích cỡ
-          </RouterLink>
-          <RouterLink to="/attributes/mau-sac" class="sub-link" active-class="active-sub">
-            <i class="bi bi-palette sub-icon"></i> Màu sắc
-          </RouterLink>
           <RouterLink to="/attributes/loai-san-pham" class="sub-link" active-class="active-sub">
             <i class="bi bi-tags sub-icon"></i> Loại sản phẩm
           </RouterLink>
-          <RouterLink to="/attributes/so-khuy" class="sub-link" active-class="active-sub">
+          <RouterLink to="/attributes/thuong-hieu" class="sub-link" active-class="active-sub">
+            <i class="bi bi-award sub-icon"></i> Thương hiệu
+          </RouterLink>
+           <RouterLink to="/attributes/so-khuy" class="sub-link" active-class="active-sub">
             <i class="bi bi-circle-square sub-icon"></i> Số khuy
           </RouterLink>
           <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">
@@ -116,12 +107,29 @@
           <RouterLink to="/attributes/xe-ta" class="sub-link" active-class="active-sub">
             <i class="bi bi-scissors sub-icon"></i> Xẻ tà
           </RouterLink>
-          <RouterLink to="/attributes/xuat-xu" class="sub-link" active-class="active-sub">
+           <RouterLink to="/attributes/xuat-xu" class="sub-link" active-class="active-sub">
             <i class="bi bi-globe-asia-australia sub-icon"></i> Xuất xứ
           </RouterLink>
-          <RouterLink to="/attributes/fit" class="sub-link" active-class="active-sub">
+           <RouterLink to="/attributes/fit" class="sub-link" active-class="active-sub">
             <i class="bi bi-person-arms-up sub-icon"></i> Kiểu dáng
           </RouterLink>
+          <RouterLink to="/attributes/chat-lieu" class="sub-link" active-class="active-sub">
+            <i class="bi bi-layers sub-icon"></i> Chất liệu
+          </RouterLink>
+      
+        
+          <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">
+            <i class="bi bi-handbag sub-icon"></i> Kiểu túi
+          </RouterLink>
+         
+            <RouterLink to="/attributes/mau-sac" class="sub-link" active-class="active-sub">
+            <i class="bi bi-palette sub-icon"></i> Màu sắc
+          </RouterLink>
+          
+          <RouterLink to="/attributes/kich-co" class="sub-link" active-class="active-sub">
+            <i class="bi bi-rulers sub-icon"></i> Kích cỡ
+          </RouterLink>
+        
         </div>
       </div>
 

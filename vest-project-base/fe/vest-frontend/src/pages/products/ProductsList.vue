@@ -11,9 +11,37 @@
           <i class="bi bi-qr-code-scan me-2"></i> Quét QR
         </button>
 
-        <button class="btn btn-outline-primary btn-sm" type="button" @click="exportExcel">
+        <!-- Excel: bấm vào sẽ bật chế độ chọn -->
+        <button
+          v-if="!exportMode"
+          class="btn btn-outline-primary btn-sm"
+          type="button"
+          @click="openExportMode"
+        >
           <i class="bi bi-download me-2"></i> Tải Excel
         </button>
+
+        <!-- Excel: đang ở chế độ chọn -->
+        <template v-else>
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            :disabled="selectedIds.length === 0 || exporting"
+            @click="exportSelectedToExcel"
+          >
+            <i class="bi bi-file-earmark-excel me-2"></i>
+            {{ exporting ? 'Đang xuất...' : `Xuất Excel (${selectedIds.length})` }}
+          </button>
+
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            :disabled="exporting"
+            @click="cancelExportMode"
+          >
+            <i class="bi bi-x-lg me-2"></i> Hủy
+          </button>
+        </template>
 
         <button class="btn btn-outline-secondary btn-sm" type="button" @click="createProduct">
           <i class="bi bi-plus-lg me-2"></i> Thêm mới
@@ -138,12 +166,25 @@
     <div class="card table-card">
       <div class="table-header-info">
         <h3>Tổng số sản phẩm {{ totalElements }}</h3>
+        <div v-if="exportMode" class="export-hint">
+          Đang chọn để xuất Excel — đã chọn: <b>{{ selectedIds.length }}</b>
+        </div>
       </div>
 
       <div class="table-responsive">
         <table class="table">
           <thead>
             <tr>
+              <th v-if="exportMode" class="text-center col-check">
+                <input
+                  type="checkbox"
+                  :disabled="items.length === 0"
+                  :checked="allVisibleSelected"
+                  @change="toggleSelectAllVisible($event.target.checked)"
+                  title="Chọn tất cả trang hiện tại"
+                />
+              </th>
+
               <th class="text-center">STT</th>
               <th class="text-center">Mã sản phẩm</th>
               <th class="text-center">Tên sản phẩm</th>
@@ -158,6 +199,14 @@
 
           <tbody>
             <tr v-for="(p, index) in items" :key="p.id">
+              <td v-if="exportMode" class="text-center col-check">
+                <input
+                  type="checkbox"
+                  :checked="isSelected(p.id)"
+                  @change="toggleSelect(p, $event.target.checked)"
+                />
+              </td>
+
               <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
               <td class="text-center">{{ p.maSanPham }}</td>
               <td class="text-bold">{{ p.tenSanPham }}</td>
@@ -183,10 +232,10 @@
             </tr>
 
             <tr v-if="loading">
-              <td colspan="9" class="text-center">Đang tải dữ liệu...</td>
+              <td :colspan="tableColspan" class="text-center">Đang tải dữ liệu...</td>
             </tr>
             <tr v-else-if="items.length === 0">
-              <td colspan="9" class="text-center">Không tìm thấy sản phẩm nào</td>
+              <td :colspan="tableColspan" class="text-center">Không tìm thấy sản phẩm nào</td>
             </tr>
           </tbody>
         </table>
@@ -239,6 +288,8 @@
 <script setup>
 import { onMounted, ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import * as XLSX from 'xlsx'
+
 import attributeService from '../../services/attributeService'
 import { listSanPham, getGiaMaxDb } from '../../services/sanPhamApi'
 
@@ -281,10 +332,51 @@ const filters = reactive({
   priceMax: DEFAULT_MAX
 })
 
+/** Export Mode (FE only) */
+const exportMode = ref(false)
+const exporting = ref(false)
+const selectedIds = ref([])          // [id1, id2,...]
+const selectedRows = reactive({})    // { [id]: productObject }
+
+function openExportMode() {
+  exportMode.value = true
+}
+
+function cancelExportMode() {
+  exportMode.value = false
+  selectedIds.value = []
+  Object.keys(selectedRows).forEach((k) => delete selectedRows[k])
+}
+
+const tableColspan = computed(() => (exportMode.value ? 10 : 9))
+
+function isSelected(id) {
+  return selectedIds.value.includes(id)
+}
+
+function toggleSelect(row, checked) {
+  const id = row.id
+  if (checked) {
+    if (!selectedIds.value.includes(id)) selectedIds.value.push(id)
+    selectedRows[id] = { ...row } // lưu row để export kể cả khi chuyển trang
+  } else {
+    selectedIds.value = selectedIds.value.filter((x) => x !== id)
+    delete selectedRows[id]
+  }
+}
+
+const allVisibleSelected = computed(() => {
+  if (!exportMode.value || items.value.length === 0) return false
+  return items.value.every((p) => selectedIds.value.includes(p.id))
+})
+
+function toggleSelectAllVisible(checked) {
+  items.value.forEach((p) => toggleSelect(p, checked))
+}
+
 /** Actions */
 const createProduct = () => router.push('/products/add')
 const goDetail = (id) => router.push(`/products/${id}`)
-const exportExcel = () => console.log('export excel')
 const scanQr = () => console.log('scan qr')
 
 /** Helpers */
@@ -297,7 +389,6 @@ function formatPriceRange(min, max) {
   const mx = Number(max ?? mn)
   return mn === mx ? formatPrice(mn) : `${formatPrice(mn)} - ${formatPrice(mx)}`
 }
-
 function roundUpToStep(n, step) {
   const x = Number(n || 0)
   if (x <= 0) return 0
@@ -314,7 +405,6 @@ function clampMaxPrice() {
   if (filters.priceMax < filters.priceMin) filters.priceMax = filters.priceMin
 }
 
-/** Slider range highlight */
 const rangeStyle = computed(() => {
   const max = Number(priceMaxDb.value || 1)
   const minV = Math.max(0, Math.min(filters.priceMin, max))
@@ -343,25 +433,23 @@ async function loadPriceMaxDb() {
   try {
     const raw = await getGiaMaxDb()
     const maxDb = roundUpToStep(Number(raw || 0), PRICE_STEP) || DEFAULT_MAX
-
     priceMaxDb.value = maxDb
 
-    // nếu đang dùng default (hoặc vượt quá maxDb) thì cập nhật lại
     if (!filters.priceMax || filters.priceMax === DEFAULT_MAX || filters.priceMax > maxDb) {
       filters.priceMax = maxDb
     }
     if (filters.priceMin > filters.priceMax) filters.priceMin = filters.priceMax
   } catch (e) {
     console.error(e)
-    // fallback giữ DEFAULT_MAX
     priceMaxDb.value = DEFAULT_MAX
     if (!filters.priceMax) filters.priceMax = DEFAULT_MAX
   }
 }
 
-/** When any filter changes: về trang 1 rồi reload */
+/** Filter change */
 function onFilterChanged() {
   currentPage.value = 0
+  pageInput.value = 1
   reload()
 }
 
@@ -374,7 +462,6 @@ function resetFilters() {
   filters.status = ''
   filters.priceMin = 0
   filters.priceMax = priceMaxDb.value
-
   currentPage.value = 0
   pageInput.value = 1
   reload()
@@ -398,7 +485,7 @@ function onChangeSize() {
   reload()
 }
 
-/** Core: fetch page and filter within current page */
+/** Core load */
 async function reload() {
   loading.value = true
   error.value = ''
@@ -450,9 +537,77 @@ async function reload() {
   }
 }
 
+/** Export FE: mỗi sản phẩm 1 file excel */
+function toExcelRow(p) {
+  const giaMin = Number(p.giaMin ?? 0)
+  const giaMax = Number(p.giaMax ?? p.giaMin ?? 0)
+
+  return {
+    'Mã sản phẩm': p.maSanPham ?? '',
+    'Tên sản phẩm': p.tenSanPham ?? '',
+    'Loại sản phẩm': p.tenLoaiSanPham ?? '',
+    'Thương hiệu': p.tenThuongHieu ?? '',
+    'Hàng tồn': Number(p.soLuongTon ?? 0),
+    'Giá min': giaMin,
+    'Giá max': giaMax,
+    'Trạng thái': p.trangThai ? 'Còn hàng' : 'Hết hàng'
+  }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function exportSelectedToExcel() {
+  if (selectedIds.value.length === 0) return
+
+  exporting.value = true
+  error.value = ''
+
+  try {
+    // Tải lần lượt để hạn chế browser chặn multiple downloads
+    for (const id of selectedIds.value) {
+      const p = selectedRows[id]
+      if (!p) continue
+
+      const ws = XLSX.utils.json_to_sheet([toExcelRow(p)])
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'SanPham')
+
+      // tạo file excel dạng blob
+      const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([arrayBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+
+      const safeCode = String(p.maSanPham ?? id).replace(/[^\w\-]+/g, '_')
+      const safeName = String(p.tenSanPham ?? '').slice(0, 40).replace(/[^\w\-]+/g, '_')
+      const filename = `san-pham_${safeCode}${safeName ? '_' + safeName : ''}.xlsx`
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+
+      await sleep(120)
+    }
+
+    // xong thì tắt chế độ chọn
+    cancelExportMode()
+  } catch (e) {
+    console.error(e)
+    error.value = 'Xuất Excel thất bại (có thể bị chặn tải nhiều file).'
+  } finally {
+    exporting.value = false
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadAttributes(), loadPriceMaxDb()])
-  // đảm bảo slider đúng max DB
   clampMaxPrice()
   reload()
 })
@@ -526,8 +681,6 @@ onMounted(async () => {
   gap: 16px;
   align-items: start;
 }
-
-
 .fg-search { grid-column: 1 / 2; grid-row: 1; }
 .fg-brand  { grid-column: 2 / 3; grid-row: 1; }
 .fg-qty    { grid-column: 3 / 4; grid-row: 1; }
@@ -633,10 +786,16 @@ onMounted(async () => {
 
 /* table */
 .table-card { margin-top: 14px; padding: 16px; }
-.table-header-info h3 { font-size: 1rem; font-weight: 700; color: #111827; margin: 0 0 10px 0; }
+.table-header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.table-header-info h3 { font-size: 1rem; font-weight: 700; color: #111827; margin: 0; }
+.export-hint { color: #6b7280; font-size: 0.875rem; }
+
 .table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .table th { background-color: #1e293b; color: #fff; padding: 12px; text-align: left; font-size: 0.875rem; font-weight: 600; }
 .table td { padding: 12px; border-bottom: 1px solid #e5e7eb; color: #4b5563; font-size: 0.875rem; }
+
+.col-check { width: 46px; min-width: 46px; }
+
 .text-bold { font-weight: 600; color: #1f2937; text-align: center; }
 .text-center { text-align: center; }
 .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
@@ -665,5 +824,4 @@ onMounted(async () => {
   .fg-search, .fg-brand, .fg-qty, .fg-price, .fg-type, .fg-status, .fg-reset { grid-column: 1 / -1; }
   .fg-reset { justify-content: flex-end; margin-top: 0; }
 }
-
 </style>
