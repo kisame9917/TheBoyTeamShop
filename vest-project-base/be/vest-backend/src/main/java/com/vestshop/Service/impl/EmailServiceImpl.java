@@ -14,6 +14,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -64,6 +66,37 @@ public class EmailServiceImpl implements EmailService {
         return formatMoney(pgg.getGiaTriTienMat());
     }
 
+    /**
+     * ✅ Lấy đúng field entity bạn: getGiaTriGiamToiDa()
+     * - nếu giảm tiền: "Không áp dụng"
+     * - nếu giảm % và null/<=0: "Không giới hạn"
+     */
+    private String renderGiamToiDa(PhieuGiamGia pgg) {
+        if (pgg == null) return "-";
+
+        if (!Boolean.TRUE.equals(pgg.getLoaiGiam())) {
+            return "Không áp dụng";
+        }
+
+        Number max = pgg.getGiaTriGiamToiDa();
+        if (max == null) return "Không giới hạn";
+        if (max.doubleValue() <= 0) return "Không giới hạn";
+        return formatMoney(max);
+    }
+
+    /**
+     * ✅ Lấy đúng field entity bạn: getDonHangToiThieu()
+     * - null/<=0: "Không yêu cầu"
+     */
+    private String renderDonToiThieu(PhieuGiamGia pgg) {
+        if (pgg == null) return "-";
+
+        Number min = pgg.getDonHangToiThieu();
+        if (min == null) return "Không yêu cầu";
+        if (min.doubleValue() <= 0) return "Không yêu cầu";
+        return formatMoney(min);
+    }
+
     private String fmtDate(LocalDateTime dt) {
         return dt == null ? "-" : dt.format(FMT);
     }
@@ -78,7 +111,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     /**
-     * Gửi email dạng HTML + fallback plain text (chuẩn nhất cho email client)
+     * Gửi email dạng HTML + fallback plain text
      */
     private void sendRichEmail(String to, String subject, String plainText, String html) throws Exception {
         if (to == null || to.isBlank()) return;
@@ -94,26 +127,85 @@ public class EmailServiceImpl implements EmailService {
         helper.setTo(to);
         helper.setSubject(subject);
 
-        // ✅ plain + html
         helper.setText(plainText, html);
-
         mailSender.send(message);
     }
 
-    /**
-     * HTML mail: chỉ gồm Mã giảm giá (to), Ưu đãi, Ngày bắt đầu, Ngày kết thúc. Không CTA.
-     */
+    // ================== DIFF (UPDATE MAIL) ==================
+
+    private static class Change {
+        final String label;
+        final String before;
+        final String after;
+
+        Change(String label, String before, String after) {
+            this.label = label;
+            this.before = before;
+            this.after = after;
+        }
+    }
+
+    private boolean diff(String a, String b) {
+        String x = (a == null) ? "" : a.trim();
+        String y = (b == null) ? "" : b.trim();
+        return !x.equals(y);
+    }
+
+    private String buildChangesHtml(List<Change> changes) {
+        if (changes == null || changes.isEmpty()) return "";
+
+        StringBuilder rows = new StringBuilder();
+        for (Change c : changes) {
+            rows.append("""
+              <tr>
+                <td style="padding:10px 12px;border-top:1px solid #e5e7eb;color:#111827;font-size:13px;"><b>%s</b></td>
+                <td style="padding:10px 12px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;">%s</td>
+                <td style="padding:10px 12px;border-top:1px solid #e5e7eb;color:#111827;font-size:13px;">%s</td>
+              </tr>
+            """.formatted(esc(c.label), esc(c.before), esc(c.after)));
+        }
+
+        return """
+          <div style="margin-top:16px;font-family:Arial,sans-serif;">
+            <div style="font-size:14px;font-weight:900;margin-bottom:10px;color:#111827;">📌 Nội dung cập nhật</div>
+            <table role="presentation" width="100%%" cellspacing="0" cellpadding="0"
+                   style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;">
+              <tr style="background:#f9fafb;">
+                <th align="left" style="padding:10px 12px;font-size:12px;color:#6b7280;">Hạng mục</th>
+                <th align="left" style="padding:10px 12px;font-size:12px;color:#6b7280;">Trước</th>
+                <th align="left" style="padding:10px 12px;font-size:12px;color:#6b7280;">Sau</th>
+              </tr>
+              %s
+            </table>
+          </div>
+        """.formatted(rows.toString());
+    }
+
+    private String buildChangesPlain(List<Change> changes) {
+        if (changes == null || changes.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("\n\nNội dung cập nhật:\n");
+        for (Change c : changes) {
+            sb.append("- ").append(c.label).append(": ").append(c.before).append(" -> ").append(c.after).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // ================== TEMPLATE ==================
+
     private String buildVoucherHtml(
             String title,
             String greetingName,
             String messageLine,
             String maPhieuCaNhan,
             String uuDai,
+            String giamToiDa,
+            String donToiThieu,
             String batDau,
-            String ketThuc
+            String ketThuc,
+            String changesHtml
     ) {
-        // preheader (ẩn) giúp email nhìn chuyên nghiệp hơn
         String preheader = esc(messageLine);
+        String changesBlock = (changesHtml == null) ? "" : changesHtml;
 
         return """
         <!doctype html>
@@ -168,7 +260,6 @@ public class EmailServiceImpl implements EmailService {
                           <td style="padding:20px;">
                             <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">Mã giảm giá</div>
 
-                            <!-- ✅ MÃ TO -->
                             <div style="
                               font-size:42px;
                               font-weight:1000;
@@ -183,18 +274,31 @@ public class EmailServiceImpl implements EmailService {
                               %s
                             </div>
 
-                            <!-- ✅ Chỉ còn: Ưu đãi + ngày bắt đầu + ngày kết thúc -->
                             <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="margin-top:14px;">
                               <tr>
                                 <td style="font-size:14px;color:#111827;padding:6px 0;">
                                   ✅ Ưu đãi: <b>%s</b>
                                 </td>
                               </tr>
+
+                              <tr>
+                                <td style="font-size:13px;color:#6b7280;padding:4px 0;">
+                                  Giảm tối đa: <b style="color:#111827;">%s</b>
+                                </td>
+                              </tr>
+
+                              <tr>
+                                <td style="font-size:13px;color:#6b7280;padding:4px 0;">
+                                  Đơn tối thiểu: <b style="color:#111827;">%s</b>
+                                </td>
+                              </tr>
+
                               <tr>
                                 <td style="font-size:13px;color:#6b7280;padding:4px 0;">
                                   Bắt đầu: <b style="color:#111827;">%s</b>
                                 </td>
                               </tr>
+
                               <tr>
                                 <td style="font-size:13px;color:#6b7280;padding:4px 0;">
                                   Kết thúc: <b style="color:#111827;">%s</b>
@@ -202,10 +306,11 @@ public class EmailServiceImpl implements EmailService {
                               </tr>
                             </table>
 
-                            
                           </td>
                         </tr>
                       </table>
+
+                      %s
 
                     </td>
                   </tr>
@@ -232,8 +337,11 @@ public class EmailServiceImpl implements EmailService {
                 esc(messageLine),
                 esc(maPhieuCaNhan),
                 esc(uuDai),
+                esc(giamToiDa),
+                esc(donToiThieu),
                 esc(batDau),
-                esc(ketThuc)
+                esc(ketThuc),
+                changesBlock
         );
     }
 
@@ -242,6 +350,8 @@ public class EmailServiceImpl implements EmailService {
             String messageLine,
             String maPhieuCaNhan,
             String uuDai,
+            String giamToiDa,
+            String donToiThieu,
             String batDau,
             String ketThuc
     ) {
@@ -249,12 +359,14 @@ public class EmailServiceImpl implements EmailService {
                 messageLine + "\n\n" +
                 "Mã phiếu: " + maPhieuCaNhan + "\n" +
                 "Ưu đãi: " + uuDai + "\n" +
+                "Giảm tối đa: " + giamToiDa + "\n" +
+                "Đơn tối thiểu: " + donToiThieu + "\n" +
                 "Bắt đầu: " + batDau + "\n" +
                 "Kết thúc: " + ketThuc + "\n\n" +
                 "TheBoyTeam";
     }
 
-    // ================== 3 EMAIL (GIỜ GỬI HTML) ==================
+    // ================== 3 EMAIL ==================
 
     @Override
     public void sendPersonalVoucherAssignedEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan) {
@@ -265,14 +377,18 @@ public class EmailServiceImpl implements EmailService {
         String subject = "[TheBoyTeam] Bạn nhận được phiếu giảm giá: " + tenPhieu;
 
         String uuDai = renderUuDai(pgg);
+        String giamToiDa = renderGiamToiDa(pgg);
+        String donToiThieu = renderDonToiThieu(pgg);
         String batDau = (pgg == null) ? "-" : fmtDate(pgg.getNgayBatDau());
         String ketThuc = (pgg == null) ? "-" : fmtDate(pgg.getNgayKetThuc());
 
         String messageLine = "Bạn vừa nhận được phiếu giảm giá. Vui lòng dùng mã bên dưới khi thanh toán.";
         String title = "🎁 Tặng bạn phiếu giảm giá!";
 
-        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan, uuDai, batDau, ketThuc);
-        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan, uuDai, batDau, ketThuc);
+        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
+                uuDai, giamToiDa, donToiThieu, batDau, ketThuc, "");
+        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan,
+                uuDai, giamToiDa, donToiThieu, batDau, ketThuc);
 
         try {
             sendRichEmail(to, subject, plain, html);
@@ -290,14 +406,18 @@ public class EmailServiceImpl implements EmailService {
         String subject = "[TheBoyTeam] Phiếu đã bắt đầu áp dụng: " + tenPhieu;
 
         String uuDai = renderUuDai(pgg);
+        String giamToiDa = renderGiamToiDa(pgg);
+        String donToiThieu = renderDonToiThieu(pgg);
         String batDau = (pgg == null) ? "-" : fmtDate(pgg.getNgayBatDau());
         String ketThuc = (pgg == null) ? "-" : fmtDate(pgg.getNgayKetThuc());
 
         String messageLine = "Phiếu giảm giá cá nhân của bạn đã bắt đầu áp dụng. Dùng mã bên dưới khi thanh toán nhé!";
         String title = "✅ Phiếu giảm giá đã bắt đầu!";
 
-        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan, uuDai, batDau, ketThuc);
-        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan, uuDai, batDau, ketThuc);
+        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
+                uuDai, giamToiDa, donToiThieu, batDau, ketThuc, "");
+        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan,
+                uuDai, giamToiDa, donToiThieu, batDau, ketThuc);
 
         try {
             sendRichEmail(to, subject, plain, html);
@@ -315,14 +435,83 @@ public class EmailServiceImpl implements EmailService {
         String subject = "[TheBoyTeam] Phiếu đã kết thúc: " + tenPhieu;
 
         String uuDai = renderUuDai(pgg);
+        String giamToiDa = renderGiamToiDa(pgg);
+        String donToiThieu = renderDonToiThieu(pgg);
         String batDau = (pgg == null) ? "-" : fmtDate(pgg.getNgayBatDau());
         String ketThuc = (pgg == null) ? "-" : fmtDate(pgg.getNgayKetThuc());
 
         String messageLine = "Rất tiếc, phiếu giảm giá cá nhân của bạn đã hết hạn.";
         String title = "⏳ Phiếu giảm giá đã kết thúc";
 
-        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan, uuDai, batDau, ketThuc);
-        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan, uuDai, batDau, ketThuc);
+        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
+                uuDai, giamToiDa, donToiThieu, batDau, ketThuc, "");
+        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan,
+                uuDai, giamToiDa, donToiThieu, batDau, ketThuc);
+
+        try {
+            sendRichEmail(to, subject, plain, html);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
+    // ================== UPDATE EMAIL ==================
+    // ✅ BỎ "thời điểm áp dụng" hoàn toàn (param effectiveFrom bị bỏ qua)
+    @Override
+    public void sendPersonalVoucherUpdatedEmail(
+            KhachHang kh,
+            PhieuGiamGia oldPgg,
+            PhieuGiamGia newPgg,
+            String maPhieuCaNhan
+
+    ) {
+        String to = getTo(kh);
+        String name = getName(kh);
+
+        String tenPhieu = (newPgg == null || newPgg.getTenGiamGia() == null) ? "" : newPgg.getTenGiamGia();
+        String subject = "[TheBoyTeam] Voucher của bạn đã được cập nhật: " + tenPhieu;
+
+        // NEW
+        String newTen = (newPgg == null || newPgg.getTenGiamGia() == null) ? "-" : newPgg.getTenGiamGia();
+        String newUuDai = renderUuDai(newPgg);
+        String newMax = renderGiamToiDa(newPgg);
+        String newMin = renderDonToiThieu(newPgg);
+        String newBatDau = (newPgg == null) ? "-" : fmtDate(newPgg.getNgayBatDau());
+        String newKetThuc = (newPgg == null) ? "-" : fmtDate(newPgg.getNgayKetThuc());
+
+        // OLD
+        String oldTen = (oldPgg == null || oldPgg.getTenGiamGia() == null) ? "-" : oldPgg.getTenGiamGia();
+        String oldUuDai = renderUuDai(oldPgg);
+        String oldMax = renderGiamToiDa(oldPgg);
+        String oldMin = renderDonToiThieu(oldPgg);
+        String oldBatDau = (oldPgg == null) ? "-" : fmtDate(oldPgg.getNgayBatDau());
+        String oldKetThuc = (oldPgg == null) ? "-" : fmtDate(oldPgg.getNgayKetThuc());
+
+        List<Change> changes = new ArrayList<>();
+        if (diff(oldTen, newTen)) changes.add(new Change("Tên phiếu", oldTen, newTen));
+        if (diff(oldUuDai, newUuDai)) changes.add(new Change("Ưu đãi", oldUuDai, newUuDai));
+        if (diff(oldMax, newMax)) changes.add(new Change("Giảm tối đa", oldMax, newMax));
+        if (diff(oldMin, newMin)) changes.add(new Change("Đơn tối thiểu", oldMin, newMin));
+        if (diff(oldBatDau, newBatDau)) changes.add(new Change("Ngày bắt đầu", oldBatDau, newBatDau));
+        if (diff(oldKetThuc, newKetThuc)) changes.add(new Change("Ngày kết thúc", oldKetThuc, newKetThuc));
+
+        String messageLine = "Voucher của bạn vừa được cập nhật. Dưới đây là nội dung thay đổi:";
+        String title = "🔔 Voucher đã được cập nhật";
+
+        String changesHtml = buildChangesHtml(changes);
+
+        String html = buildVoucherHtml(
+                title, name, messageLine, maPhieuCaNhan,
+                newUuDai, newMax, newMin, newBatDau, newKetThuc,
+                changesHtml
+        );
+
+        String plain = buildVoucherPlain(
+                name, messageLine, maPhieuCaNhan,
+                newUuDai, newMax, newMin, newBatDau, newKetThuc
+        ) + buildChangesPlain(changes);
 
         try {
             sendRichEmail(to, subject, plain, html);
