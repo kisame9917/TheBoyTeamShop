@@ -1119,6 +1119,7 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   overflow: auto;
   background: #fff;
+  text-align: center;
 }
 .voucher-table {
   width: 100%;

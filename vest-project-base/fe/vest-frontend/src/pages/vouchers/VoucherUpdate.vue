@@ -81,7 +81,6 @@
                     class="form-control text-start"
                     v-model="giaTriGiamToiDaVnd"
                     :disabled="isEnded"
-                    placeholder="Ví dụ: 2.000.000"
                   />
                   <span class="input-group-text">VND</span>
                 </div>
@@ -754,7 +753,11 @@ function validate() {
       return "Tiền giảm không được vượt đơn hàng tối thiểu";
     }
   }
-
+  if (form.value.loaiGiam) { // giảm %
+  if (form.value.donHangToiThieu > 0 && form.value.giaTriGiamToiDa > form.value.donHangToiThieu) {
+    return "Giảm tối đa không được vượt đơn hàng tối thiểu";
+  }
+}
   if (!isBlank(form.value.moTa) && String(form.value.moTa).length > 500) return "Mô tả tối đa 500 ký tự";
 
   return "";
