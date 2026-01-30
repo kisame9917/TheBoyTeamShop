@@ -128,7 +128,7 @@
       <!-- Vouchers -->
       <RouterLink to="/vouchers" class="nav-link-item" active-class="active">
         <i class="bi bi-ticket-perforated icon"></i>
-        <span class="label">Giảm giá</span>
+        <span class="label">Phiếu Giảm giá</span>
       </RouterLink>
 
       <!-- Group: Accounts -->
