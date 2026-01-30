@@ -8,10 +8,36 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <!-- ✅ Mở modal option thay vì export luôn -->
-        <button class="btn btn-outline-primary btn-sm" @click="openExportModal">
+        <!-- ✅ GIỮ MỌI THỨ NHƯ CŨ, CHỈ ĐỔI EXPORT -->
+        <button 
+          v-if="!exportMode"
+          class="btn btn-outline-primary btn-sm"
+          type="button"
+          @click="openExportMode"
+        >
           <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
         </button>
+
+        <template v-else>
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            :disabled="selectedIds.length === 0 || exporting"
+            @click="exportSelectedToExcel"
+          >
+            <i class="bi bi-file-earmark-excel me-1"></i>
+            {{ exporting ? "Đang xuất..." : `Xuất Excel (${selectedIds.length})` }}
+          </button>
+
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            :disabled="exporting"
+            @click="cancelExportMode"
+          >
+            <i class="bi bi-x-lg me-1"></i> Hủy
+          </button>
+        </template>
 
         <button class="btn btn-outline-secondary btn-sm" @click="goCreate">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
@@ -158,7 +184,22 @@
 
         <div v-else class="table-wrap">
           <table class="voucher-table">
-            <colgroup>
+            <!-- ✅ chỉ thêm col cho checkbox KHI exportMode (liên quan Excel) -->
+            <colgroup v-if="exportMode">
+              <col style="width: 20px" />
+              <col style="width: 80px" />
+              <col style="width: 200px" />
+              <col style="width: 220px" />
+              <col style="width: 150px" />
+              <col style="width: 130px" />
+              <col style="width: 90px" />
+              <col style="width: 160px" />
+              <col style="width: 160px" />
+              <col style="width: 120px" />
+              <col style="width: 120px" />
+            </colgroup>
+
+            <colgroup v-else>
               <col style="width: 80px" />
               <col style="width: 200px" />
               <col style="width: 220px" />
@@ -173,6 +214,16 @@
 
             <thead>
               <tr>
+                <th v-if="exportMode" class="text-center">
+                  <input
+                    type="checkbox"
+                    :disabled="pagedItems.length === 0"
+                    :checked="allVisibleSelected"
+                    @change="toggleSelectAllVisible($event.target.checked)"
+                    title="Chọn tất cả dòng đang hiển thị"
+                  />
+                </th>
+
                 <th>STT</th>
                 <th>Mã giảm giá</th>
                 <th>Tên giảm giá</th>
@@ -188,10 +239,14 @@
 
             <tbody>
               <tr v-if="pagedItems.length === 0">
-                <td colspan="10" class="empty">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 11 : 10" class="empty">Không có dữ liệu</td>
               </tr>
 
               <tr v-for="(v, idx) in pagedItems" :key="v.id">
+                <td v-if="exportMode" class="text-center">
+                  <input type="checkbox" :checked="isSelected(v.id)" @change="toggleSelect(v, $event.target.checked)" />
+                </td>
+
                 <td>{{ page.page * page.size + idx + 1 }}</td>
 
                 <td>
@@ -295,75 +350,6 @@
 
         <div v-if="error" class="alert alert-danger mt-3 mb-0">
           {{ error }}
-        </div>
-      </div>
-    </div>
-
-    <!-- ✅ Export options modal -->
-    <div v-if="showExportModal" class="modal-overlay" @click.self="closeExportModal">
-      <div class="modal-card export-modal">
-        <h3 class="modal-title">Tùy chọn xuất Excel</h3>
-
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Chọn phạm vi xuất</label>
-
-          <div class="d-flex flex-column gap-2 mt-2">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" id="ex_current" value="CURRENT" v-model="exportMode" />
-              <label class="form-check-label" for="ex_current">Trang đang xem (Trang {{ page.page + 1 }})</label>
-            </div>
-
-            <div class="form-check">
-              <input class="form-check-input" type="radio" id="ex_page" value="PAGE" v-model="exportMode" />
-              <label class="form-check-label" for="ex_page">Chọn trang khác</label>
-            </div>
-
-            <!-- ✅ NEW: All pages -->
-            <div class="form-check">
-              <input class="form-check-input" type="radio" id="ex_all" value="ALL" v-model="exportMode" />
-              <label class="form-check-label" for="ex_all">
-                Xuất tất cả trang ({{ totalElements }} bản ghi theo bộ lọc hiện tại)
-              </label>
-            </div>
-          </div>
-
-          <div v-if="exportMode === 'PAGE'" class="input-group input-group-sm mt-2" style="max-width: 260px">
-            <span class="input-group-text">Trang</span>
-            <input type="number" class="form-control" v-model.number="exportPage" min="1" :max="totalPages || 1" />
-            <span class="input-group-text">/ {{ totalPages || 1 }}</span>
-          </div>
-
-          <div v-if="exportMode === 'ALL'" class="text-muted mt-2" style="font-size: 12px">
-            Lưu ý: Xuất tất cả có thể lâu nếu dữ liệu nhiều.
-          </div>
-        </div>
-
-        <hr class="my-3" />
-
-        <div class="mb-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <label class="form-label fw-semibold mb-0">Chọn cột xuất</label>
-
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm" type="button" @click="selectAllExportCols">Chọn tất cả</button>
-            <button class="btn btn-outline-secondary btn-sm" type="button" @click="clearAllExportCols">Bỏ chọn</button>
-            <button class="btn btn-outline-secondary btn-sm" type="button" @click="resetExportColsDefault">Mặc định</button>
-          </div>
-        </div>
-
-        <div class="row g-2 export-cols">
-          <div class="col-12 col-md-6" v-for="c in exportCols" :key="c.key">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" :id="`excol-${c.key}`" v-model="exportPick[c.key]" />
-              <label class="form-check-label" :for="`excol-${c.key}`">{{ c.label }}</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-actions mt-3">
-          <button class="btn btn-outline" :disabled="exporting" @click="closeExportModal">Hủy</button>
-          <button class="btn btn-primary" :disabled="exporting" @click="exportExcelFromModal">
-            {{ exporting ? "Đang xuất..." : "Xuất" }}
-          </button>
         </div>
       </div>
     </div>
@@ -549,9 +535,7 @@ function formatDate(v) {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function dateFromYMD(ymd, endOfDay = false) {
@@ -566,6 +550,9 @@ function getBizStatusText(v) {
   const start = toDate(v.ngayBatDau);
   const end = toDate(v.ngayKetThuc);
   const now = new Date();
+
+  if (start) start.setHours(0, 0, 0, 0);
+  if (end) end.setHours(23, 59, 59, 999);
 
   if (start && now < start) return "Sắp diễn ra";
   if (end && now > end) return "Kết thúc";
@@ -797,141 +784,134 @@ async function onToggleBiz(v, evt) {
 }
 
 /* =========================
-   ✅ Export: chọn trang / trang khác / tất cả + chọn cột (modal)
+   ✅ CHỈ SỬA XUẤT EXCEL (GIỐNG TRANG SẢN PHẨM)
    ========================= */
-const showExportModal = ref(false);
+const exportMode = ref(false);
 const exporting = ref(false);
-const exportMode = ref("CURRENT"); // CURRENT | PAGE | ALL
-const exportPage = ref(1); // 1-based
+const selectedIds = ref([]);
+const selectedRows = reactive({}); // id -> row
 
-function openExportModal() {
-  exportMode.value = "CURRENT";
-  exportPage.value = page.page + 1;
-  showExportModal.value = true;
+function openExportMode() {
+  exportMode.value = true;
 }
-function closeExportModal() {
-  if (exporting.value) return;
-  showExportModal.value = false;
-}
-
-const exportCols = [
-  {
-    key: "stt",
-    label: "#",
-    default: true,
-    // ✅ ALL -> STT 1..N ; còn lại theo trang
-    get: (v, idx, pageIndex) => (exportMode.value === "ALL" ? idx + 1 : pageIndex * page.size + idx + 1),
-  },
-  { key: "ma", label: "Mã giảm giá", default: true, get: (v) => v.maGiamGia ?? "" },
-  { key: "ten", label: "Tên giảm giá", default: true, get: (v) => v.tenGiamGia ?? "" },
-  { key: "loaiPhieu", label: "Loại phiếu", default: true, get: (v) => (isPersonal(v) ? "Cá nhân" : "Công khai") },
-  { key: "loaiGiam", label: "Loại giảm", default: true, get: (v) => (v.loaiGiam ? "Giảm %" : "Giảm tiền") },
-  {
-    key: "giaTri",
-    label: "Giá trị giảm",
-    default: true,
-    get: (v) => (v.loaiGiam ? `${Number(v.giaTriPhanTram ?? 0)}%` : Number(v.giaTriTienMat ?? 0)),
-  },
-  { key: "soLuong", label: "Số lượng", default: true, get: (v) => Number(v.soLuong ?? 0) },
-  { key: "ngayBD", label: "Ngày bắt đầu", default: true, get: (v) => formatDate(v.ngayBatDau) },
-  { key: "ngayKT", label: "Ngày kết thúc", default: true, get: (v) => formatDate(v.ngayKetThuc) },
-  { key: "trangThai", label: "Trạng thái", default: true, get: (v) => getBizStatusText(v) },
-];
-
-const exportPick = reactive(
-  exportCols.reduce((acc, c) => {
-    acc[c.key] = c.default !== false;
-    return acc;
-  }, {})
-);
-
-function selectAllExportCols() {
-  exportCols.forEach((c) => (exportPick[c.key] = true));
-}
-function clearAllExportCols() {
-  exportCols.forEach((c) => (exportPick[c.key] = false));
-}
-function resetExportColsDefault() {
-  exportCols.forEach((c) => (exportPick[c.key] = c.default !== false));
+function cancelExportMode() {
+  exportMode.value = false;
+  selectedIds.value = [];
+  Object.keys(selectedRows).forEach((k) => delete selectedRows[k]);
 }
 
-function getExportTarget() {
-  const max = Math.max(1, totalPages.value || 1);
+function isSelected(id) {
+  return selectedIds.value.includes(id);
+}
 
-  if (exportMode.value === "ALL") {
-    return {
-      mode: "ALL",
-      pageNo: null,
-      pageIndex: 0,
-      rows: sortedItems.value, // ✅ tất cả bản ghi theo filter
-    };
+function toggleSelect(row, checked) {
+  const id = row?.id;
+  if (!id) return;
+
+  if (checked) {
+    if (!selectedIds.value.includes(id)) selectedIds.value.push(id);
+    selectedRows[id] = { ...row };
+  } else {
+    selectedIds.value = selectedIds.value.filter((x) => x !== id);
+    delete selectedRows[id];
   }
+}
 
-  if (exportMode.value === "CURRENT") {
-    return {
-      mode: "CURRENT",
-      pageNo: page.page + 1,
-      pageIndex: page.page,
-      rows: pagedItems.value,
-    };
-  }
+const allVisibleSelected = computed(() => {
+  if (!exportMode.value || pagedItems.value.length === 0) return false;
+  return pagedItems.value.every((v) => selectedIds.value.includes(v.id));
+});
 
-  // PAGE
-  const pageNo = Math.min(Math.max(1, exportPage.value || 1), max);
-  const pageIndex = pageNo - 1;
-  const start = pageIndex * page.size;
+function toggleSelectAllVisible(checked) {
+  pagedItems.value.forEach((v) => toggleSelect(v, checked));
+}
 
+function safeName(s) {
+  return String(s ?? "").trim().slice(0, 60).replace(/[^\w\-]+/g, "_");
+}
+
+function toExcelRow(v) {
   return {
-    mode: "PAGE",
-    pageNo,
-    pageIndex,
-    rows: sortedItems.value.slice(start, start + page.size),
+    "Mã giảm giá": v.maGiamGia ?? "",
+    "Tên giảm giá": v.tenGiamGia ?? "",
+    "Loại phiếu": isPersonal(v) ? "Cá nhân" : "Công khai",
+    "Loại giảm": v.loaiGiam ? "Giảm %" : "Giảm tiền",
+    "Giá trị giảm": v.loaiGiam ? `${Number(v.giaTriPhanTram ?? 0)}%` : Number(v.giaTriTienMat ?? 0),
+    "Số lượng": Number(v.soLuong ?? 0),
+    "Ngày bắt đầu": formatDate(v.ngayBatDau),
+    "Ngày kết thúc": formatDate(v.ngayKetThuc),
+    "Trạng thái": getBizStatusText(v),
   };
 }
 
-function exportExcelInternal() {
-  const pickedCols = exportCols.filter((c) => exportPick[c.key]);
-  if (!pickedCols.length) {
-    toast.error("Vui lòng chọn ít nhất 1 cột để xuất Excel.");
-    return false;
-  }
-
-  const { mode, pageNo, pageIndex, rows } = getExportTarget();
-  if (!rows || rows.length === 0) {
-    toast.error("Không có dữ liệu để xuất.");
-    return false;
-  }
-
-  const data = rows.map((v, idx) => {
-    const row = {};
-    pickedCols.forEach((c) => {
-      row[c.label] = c.get(v, idx, pageIndex);
-    });
-    return row;
-  });
-
-  const ws = XLSX.utils.json_to_sheet(data);
-
-  ws["!cols"] = pickedCols.map((c) => ({
-    wch: Math.min(Math.max(c.label.length + 2, 12), 28),
-  }));
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Vouchers");
-
-  const filename = mode === "ALL" ? "phieu_giam_gia_tat_ca.xlsx" : `phieu_giam_gia_trang_${pageNo}.xlsx`;
-  XLSX.writeFile(wb, filename);
-  return true;
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
-async function exportExcelFromModal() {
+async function exportSelectedToExcel() {
+  if (selectedIds.value.length === 0) return;
+
   exporting.value = true;
   try {
-    const ok = exportExcelInternal();
-    if (ok) toast.success("✅ Đã xuất Excel");
+    // 1) Gom tất cả dòng đã chọn
+    const rows = selectedIds.value
+      .map((id) => selectedRows[id])
+      .filter(Boolean);
+
+    // 2) Map sang format export
+    const data = rows.map((v, i) => ({
+      "STT": i + 1,
+      ...toExcelRow(v),
+    }));
+
+    // 3) Tạo worksheet + workbook (CHỈ 1 sheet)
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    // (Tuỳ chọn) set độ rộng cột cho dễ nhìn
+    ws["!cols"] = [
+      { wch: 6 },   // STT
+      { wch: 16 },  // Mã giảm giá
+      { wch: 28 },  // Tên giảm giá
+      { wch: 12 },  // Loại phiếu
+      { wch: 12 },  // Loại giảm
+      { wch: 14 },  // Giá trị giảm
+      { wch: 10 },  // Số lượng
+      { wch: 14 },  // Ngày bắt đầu
+      { wch: 14 },  // Ngày kết thúc
+      { wch: 14 },  // Trạng thái
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PhieuGiamGia");
+
+    // 4) Download 1 file duy nhất
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+const pad2 = (n) => String(n).padStart(2, "0");
+const now = new Date();
+const stamp = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
+
+const fileName = `pgg_${stamp}.xlsx`;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    cancelExportMode();
+    toast.success(`✅ Xuất Excel thành công (${rows.length} dòng)`);
+  } catch (e) {
+    console.error(e);
+    toast.error("Xuất Excel thất bại.");
   } finally {
     exporting.value = false;
-    showExportModal.value = false;
   }
 }
 
@@ -1146,10 +1126,10 @@ onBeforeUnmount(() => {
   display: block;
   width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;  
+  text-overflow: ellipsis;
 }
-.ellipsis1{
-   display: block;
+.ellipsis1 {
+  display: block;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1225,7 +1205,7 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
 }
 
-/* ✅ export modal */
+/* ✅ export modal (giữ nguyên như cũ, không ảnh hưởng vì không dùng nữa) */
 .export-modal {
   width: min(740px, calc(100% - 32px));
 }
