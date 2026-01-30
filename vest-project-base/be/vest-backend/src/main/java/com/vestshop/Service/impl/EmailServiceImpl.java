@@ -440,7 +440,7 @@ public class EmailServiceImpl implements EmailService {
         String batDau = (pgg == null) ? "-" : fmtDate(pgg.getNgayBatDau());
         String ketThuc = (pgg == null) ? "-" : fmtDate(pgg.getNgayKetThuc());
 
-        String messageLine = "Rất tiếc, phiếu giảm giá cá nhân của bạn đã hết hạn.";
+        String messageLine = "Chúng tôi rất tiếc phải thông báo rằng mã giảm giá của bạn đã không khả dụng nữa.";
         String title = "⏳ Phiếu giảm giá đã kết thúc";
 
         String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
