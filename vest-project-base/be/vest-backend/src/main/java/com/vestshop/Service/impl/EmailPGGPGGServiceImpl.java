@@ -2,7 +2,7 @@ package com.vestshop.Service.impl;
 
 import com.vestshop.Entity.KhachHang;
 import com.vestshop.Entity.PhieuGiamGia;
-import com.vestshop.Service.EmailService;
+import com.vestshop.Service.EmailPGGService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
-public class EmailServiceImpl implements EmailService {
+public class EmailPGGPGGServiceImpl implements EmailPGGService {
 
     private final JavaMailSender mailSender;
 
@@ -32,7 +32,7 @@ public class EmailServiceImpl implements EmailService {
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Locale LOCALE_VI = new Locale("vi", "VN");
 
-    public EmailServiceImpl(JavaMailSender mailSender) {
+    public EmailPGGPGGServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 

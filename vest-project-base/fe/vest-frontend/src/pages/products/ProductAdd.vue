@@ -1654,6 +1654,22 @@ function getColorCode(name) {
 .toast2-close:hover{ background: #f3f4f6; }
 .toast2.error .toast2-bar{ background: #ef4444; }
 .toast2.error .toast2-title{ color: #dc2626; }
+.ms-wrap :deep(.multiselect__option--highlight),
+.ms-wrap :deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #0284c7 !important; /* xanh nước biển */
+  color: #fff !important;
+}
 
+.ms-wrap :deep(.multiselect__option--highlight:after),
+.ms-wrap :deep(.multiselect__option--selected.multiselect__option--highlight:after) {
+  background: #0284c7 !important;
+  color: #fff !important;
+}
+
+/* (tuỳ chọn) màu khi option đã được chọn nhưng không hover */
+.ms-wrap :deep(.multiselect__option--selected) {
+  background: #e0f2fe !important;
+  color: #075985 !important;
+}
 .error-msg { margin-top: 10px; color: #b02a37; font-weight: 900; }
 </style>
