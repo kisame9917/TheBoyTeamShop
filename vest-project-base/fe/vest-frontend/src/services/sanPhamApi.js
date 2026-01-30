@@ -1,4 +1,5 @@
 import http from './http'
+import axios from 'axios'
 
 export async function listSanPham(page = 0, size = 10) {
   const res = await http.get('/api/san-pham', {
@@ -29,4 +30,11 @@ export async function getGiaMaxDb() {
   return res.data
 }
 
-
+export function exportSanPhamExcelByIds(ids) {
+  // ids: [1,2,3]
+  return axios.post('/api/san-pham/export-excel', ids, {
+    responseType: 'blob',
+    headers: { 'Content-Type': 'application/json' }
+  })
+ 
+}

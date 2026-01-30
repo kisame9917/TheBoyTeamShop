@@ -65,18 +65,15 @@
 
               <td class="text-center">
                 <div class="action-cell">
-                  <!-- ✅ Nút Sửa (Bootstrap) -->
                   <button
-  type="button"
-  class="btn btn-outline-warning btn-sm action-btn btn-edit"
-  @click="openModal('edit', item)"
-  title="Sửa"
->
-  <i class="bi bi-pencil-square"></i>
-</button>
+                    type="button"
+                    class="btn btn-outline-warning btn-sm action-btn"
+                    @click="openModal('edit', item)"
+                    title="Sửa"
+                  >
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
 
-
-                  <!-- Switch: confirm popup giữa màn hình -->
                   <label class="switch" title="Đổi trạng thái">
                     <input
                       type="checkbox"
@@ -144,24 +141,46 @@
 
           <div class="form-group">
             <label class="required">{{ isSize ? 'Kích cỡ' : 'Tên' }}</label>
+
+            <!-- ✅ Kích cỡ: number (giống add sản phẩm) -->
             <input
+              v-if="isSize"
               v-model="form.ten"
               class="form-control"
-              :type="isSize ? 'number' : 'text'"
-              :min="isSize ? 1 : undefined"
-              required
+              type="number"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              placeholder="Ví dụ: 50"
+              @input="validateTenLive"
+              @blur="validateTenLive"
             />
+
+            <!-- ✅ Các thuộc tính khác: text -->
+            <input
+              v-else
+              v-model="form.ten"
+              class="form-control"
+              type="text"
+              :placeholder="`Nhập ${title.toLowerCase()}`"
+              @input="validateTenLive"
+              @blur="validateTenLive"
+            />
+
+            <small v-if="formErrors.ten" class="err-text">{{ formErrors.ten }}</small>
           </div>
 
           <div class="modal-actions">
             <button class="btn btn-outline-secondary" type="button" @click="closeModal">Hủy</button>
-            <button class="btn btn-primary" type="submit">Lưu</button>
+            <button class="btn btn-primary" type="submit" :disabled="isSaveDisabled">
+              Lưu
+            </button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Confirm Popup (giữa màn hình) -->
+    <!-- Confirm Popup -->
     <div v-if="confirmState.open" class="confirm-overlay" @click.self="confirmCancel">
       <div class="confirm-modal">
         <div class="confirm-header">
@@ -227,37 +246,11 @@ const CODE_PREFIX = {
   'xuat-xu': 'XX',
   'fit': 'FIT'
 }
-
-/* =======================
- * State
- * ======================= */
-const items = ref([])
-const loading = ref(false)
-const searchQuery = ref('')
-
-/* =======================
- * Helpers
- * ======================= */
-function extractFirstNumber(val) {
-  const s = String(val ?? '')
-  const m = s.match(/(\d+)/)
-  return m ? Number(m[1]) : NaN
-}
-
-function displayName(item) {
-  if (!item) return ''
-  if (!isSize.value) return item.ten ?? ''
-  // kích cỡ: ưu tiên soSize, nếu không có thì cố extract từ ten kiểu "S (46)"
-  return item.soSize ?? item.ten ?? ''
-}
-
 function pad2(n) {
   return String(n).padStart(2, '0')
 }
-
 function genNextCode() {
   const prefix = (CODE_PREFIX[type.value] || 'TT').toUpperCase()
-
   const nums = (items.value || [])
     .map(i => String(i.ma || '').toUpperCase())
     .map(ma => {
@@ -268,13 +261,100 @@ function genNextCode() {
 
   let next = (nums.length ? Math.max(...nums) : 0) + 1
   let code = `${prefix}${pad2(next)}`
-
   while (items.value.some(i => String(i.ma || '').toUpperCase() === code.toUpperCase() && i.id !== form.id)) {
     next++
     code = `${prefix}${pad2(next)}`
   }
   return code
 }
+
+/* =======================
+ * State
+ * ======================= */
+const items = ref([])
+const loading = ref(false)
+const searchQuery = ref('')
+
+function displayName(item) {
+  if (!item) return ''
+  if (!isSize.value) return item.ten ?? ''
+  return item.soSize ?? item.ten ?? ''
+}
+
+/* =======================
+ * VALIDATION (giống add sản phẩm)
+ * ======================= */
+const formErrors = reactive({ ten: '' })
+
+function normalizeSpaces(s) {
+  return String(s ?? '').replace(/\s+/g, ' ')
+}
+
+// ✅ chỉ cho chữ có dấu + số + 1 khoảng trắng giữa từ (KHÔNG cho ký tự đặc biệt)
+function validateNameCommon(raw) {
+  const s = String(raw ?? '')
+
+  if (!s) return 'Không được để trống'
+  if (/^\s/.test(s)) return 'Không được nhập khoảng trắng ở đầu'
+  if (/\s$/.test(s)) return 'Không được nhập khoảng trắng ở cuối'
+  if (/\s{2,}/.test(s)) return 'Không được nhập 2 khoảng trắng liên tiếp'
+
+  const v = normalizeSpaces(s).trim()
+
+  // Unicode letters + numbers + space
+  const ok = /^[\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u.test(v)
+  if (!ok) return 'Không được chứa ký tự đặc biệt'
+
+  return ''
+}
+
+// ✅ size: số nguyên > 0, không cho space đầu/cuối
+function validateSize(raw) {
+  const s = String(raw ?? '')
+
+  if (!s) return 'Không được để trống'
+  if (/^\s/.test(s)) return 'Không được nhập khoảng trắng ở đầu'
+  if (/\s$/.test(s)) return 'Không được nhập khoảng trắng ở cuối'
+  if (/\s/.test(s)) return 'Kích cỡ chỉ được nhập số'
+
+  if (!/^\d+$/.test(s)) return 'Kích cỡ chỉ được nhập số nguyên'
+  const n = Number(s)
+  if (!Number.isFinite(n) || n <= 0) return 'Kích cỡ phải là số > 0'
+  return ''
+}
+
+function normalizedCompareValue(raw) {
+  // dùng cho check trùng: trim + gom space + lowercase
+  return normalizeSpaces(String(raw ?? '')).trim().toLowerCase()
+}
+
+function isDuplicateTen(raw, excludeId) {
+  if (isSize.value) {
+    const n = Number(String(raw ?? '').trim())
+    return (items.value || []).some(i => i.id !== excludeId && Number(i.soSize ?? i.ten) === n)
+  }
+  const v = normalizedCompareValue(raw)
+  return (items.value || []).some(i => i.id !== excludeId && normalizedCompareValue(i.ten) === v)
+}
+
+function validateTenLive() {
+  formErrors.ten = ''
+  const raw = form.ten
+
+  formErrors.ten = isSize.value ? validateSize(raw) : validateNameCommon(raw)
+
+  // nếu không lỗi format thì check trùng luôn
+  if (!formErrors.ten) {
+    if (isDuplicateTen(raw, form.id)) formErrors.ten = 'Giá trị đã tồn tại'
+  }
+}
+
+const isSaveDisabled = computed(() => {
+  // chặn bấm lưu khi đang lỗi / đang trống / đang loading
+  if (loading.value) return true
+  if (!String(form.ten ?? '')) return true
+  return !!formErrors.ten
+})
 
 /* =======================
  * Pagination
@@ -284,18 +364,17 @@ const pageSize = ref(10)
 const pageInput = ref(1)
 
 const filteredItems = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
+  const q = normalizedCompareValue(searchQuery.value)
   if (!q) return items.value
   return items.value.filter(i => {
-    const name = String(displayName(i) || '').toLowerCase()
-    const code = String(i.ma || '').toLowerCase()
+    const name = normalizedCompareValue(displayName(i))
+    const code = normalizedCompareValue(i.ma)
     return name.includes(q) || code.includes(q)
   })
 })
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / pageSize.value)))
 const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
-
 const pagedItems = computed(() => {
   const start = startIndex.value
   return filteredItems.value.slice(start, start + pageSize.value)
@@ -306,7 +385,6 @@ function goPage(p) {
   currentPage.value = next
   pageInput.value = next
 }
-
 function applyPageInput() {
   if (!pageInput.value || Number.isNaN(pageInput.value)) pageInput.value = currentPage.value
   goPage(pageInput.value)
@@ -337,7 +415,7 @@ onMounted(fetchData)
 watch(type, fetchData)
 
 /* =======================
- * Modal Create/Edit
+ * Modal
  * ======================= */
 const showModal = ref(false)
 const modalMode = ref('create') // create | edit
@@ -345,12 +423,15 @@ const form = reactive({ id: null, ma: '', ten: '', trangThai: true })
 
 function openModal(mode, item = null) {
   modalMode.value = mode
+  formErrors.ten = ''
 
   if (mode === 'edit' && item) {
     form.id = item.id
     form.ma = item.ma
     form.trangThai = !!item.trangThai
-    form.ten = String(displayName(item) ?? '')
+
+    // size: lấy soSize (number) để edit, không cho nhập chữ
+    form.ten = isSize.value ? String(item.soSize ?? item.ten ?? '') : String(item.ten ?? '')
   } else {
     form.id = null
     form.trangThai = true
@@ -369,30 +450,19 @@ function closeModal() {
  * Submit
  * ======================= */
 async function submitForm() {
-  const raw = String(form.ten ?? '').trim()
-  if (!raw) return
+  validateTenLive()
+  if (formErrors.ten) return
 
-  let soSizeNum = undefined
-  if (isSize.value) {
-    soSizeNum = Number(raw)
-    if (!Number.isFinite(soSizeNum) || soSizeNum <= 0) return error('Kích cỡ phải là số > 0')
-  }
-
-  // check trùng
-  const dup = items.value.find(i => {
-    if (i.id === form.id) return false
-    const a = String(displayName(i)).trim().toLowerCase()
-    const b = String(isSize.value ? soSizeNum : raw).trim().toLowerCase()
-    return a === b
-  })
-  if (dup) return error(`Đã tồn tại "${raw}"`)
+  // chuẩn hoá
+  const raw = String(form.ten ?? '')
+  const clean = isSize.value ? raw.trim() : normalizeSpaces(raw).trim()
 
   const payload = {
     id: form.id,
     ma: form.ma || genNextCode(),
     trangThai: form.trangThai,
-    ten: isSize.value ? undefined : raw,
-    soSize: isSize.value ? soSizeNum : undefined
+    ten: isSize.value ? undefined : clean,
+    soSize: isSize.value ? Number(clean) : undefined
   }
 
   try {
@@ -413,26 +483,19 @@ async function submitForm() {
 }
 
 /* =======================
- * Confirm Popup (center)
+ * Confirm Popup
  * ======================= */
-const confirmState = reactive({
-  open: false,
-  message: '',
-  resolve: null
-})
-
+const confirmState = reactive({ open: false, message: '', resolve: null })
 function openConfirm(message) {
   confirmState.open = true
   confirmState.message = message
-  return new Promise((res) => (confirmState.resolve = res))
+  return new Promise(res => (confirmState.resolve = res))
 }
-
 function confirmOk() {
   confirmState.open = false
   confirmState.resolve?.(true)
   confirmState.resolve = null
 }
-
 function confirmCancel() {
   confirmState.open = false
   confirmState.resolve?.(false)
@@ -443,7 +506,6 @@ function confirmCancel() {
  * Toggle status
  * ======================= */
 const togglingIds = ref(new Set())
-
 function isToggling(id) {
   return togglingIds.value.has(id)
 }
@@ -461,30 +523,19 @@ async function confirmToggleStatus(item) {
   await toggleStatus(item, next)
 }
 
-async function toggleStatus(item, forcedNext) {
+async function toggleStatus(item, next) {
   togglingIds.value.add(item.id)
 
   const old = !!item.trangThai
-  const next = typeof forcedNext === 'boolean' ? forcedNext : !old
-
   item.trangThai = next
 
   try {
-    let soSizeSafe = undefined
-    if (isSize.value) {
-      // đảm bảo soSize KHÔNG null (tránh lỗi SQL not null)
-      const fromObj = item.soSize
-      const fromTen = extractFirstNumber(item.ten)
-      const fromDisplay = extractFirstNumber(displayName(item))
-      soSizeSafe = Number.isFinite(fromObj) ? fromObj : (Number.isFinite(fromTen) ? fromTen : fromDisplay)
-      if (!Number.isFinite(soSizeSafe)) soSizeSafe = 1
-    }
-
+    // payload update phải đủ field quan trọng (đặc biệt kích cỡ)
     const payload = {
       ...item,
       trangThai: next,
-      ten: isSize.value ? item.ten : displayName(item),
-      soSize: isSize.value ? soSizeSafe : undefined
+      ten: isSize.value ? item.ten : item.ten,
+      soSize: isSize.value ? Number(item.soSize ?? item.ten ?? 1) : undefined
     }
 
     await attributeService.update(type.value, item.id, payload)
@@ -558,6 +609,14 @@ function exportExcel() {
 }
 .required::after { content: " *"; color: #ef4444; }
 
+.err-text{
+  display:block;
+  margin-top: 6px;
+  color:#ef4444;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* table */
 .table-custom {
   width: 100%;
@@ -599,8 +658,6 @@ function exportExcel() {
   justify-content: center;
   gap: 10px;
 }
-
-/* ✅ nút sửa kiểu vuông nhỏ */
 .action-btn{
   width: 32px;
   height: 32px;
@@ -693,7 +750,7 @@ function exportExcel() {
   font-size: 12px;
 }
 
-/* modal create/edit */
+/* modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -740,7 +797,7 @@ function exportExcel() {
   margin-top: 14px;
 }
 
-/* confirm popup */
+/* confirm */
 .confirm-overlay{
   position: fixed;
   inset: 0;
