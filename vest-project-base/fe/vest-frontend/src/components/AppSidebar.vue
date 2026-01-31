@@ -35,10 +35,11 @@
         <span class="label">Thống kê</span>
       </div>
 
-      <div class="nav-link-item is-static">
-        <i class="bi bi-cart3 icon"></i>
-        <span class="label">Bán Hàng</span>
-      </div>
+      <RouterLink to="/sales" class="nav-link-item" active-class="active">
+  <i class="bi bi-cart3 icon"></i>
+  <span class="label">Bán Hàng</span>
+</RouterLink>
+
 
       <!-- Orders -->
       <RouterLink to="/orders" class="nav-link-item" active-class="active">

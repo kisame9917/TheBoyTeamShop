@@ -44,6 +44,8 @@ const routes = [
             { path: 'products/add', name: 'product-add', component: () => import('../pages/products/ProductAdd.vue') },
             { path: 'products/edit/:id', name: 'product-edit', component: () => import('../pages/products/ProductAdd.vue'), props: true },
             { path: 'products/:id', name: 'product-detail', component: ProductDetail, props: true },
+            { path: 'sales', name: 'sales', component: () => import('../pages/sales/SalesPage.vue') },
+
             { path: 'variants', name: 'variants-list', component: () => import('../pages/products/VariantList.vue') },
             {
               path: 'attributes/:type',
