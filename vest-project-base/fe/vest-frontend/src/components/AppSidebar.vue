@@ -30,15 +30,15 @@
       </RouterLink>
 
       <!-- Placeholder -->
-      <div class="nav-link-item is-static">
+      <RouterLink to="/statistic" class="nav-link-item" active-class="active">
         <i class="bi bi-bar-chart icon"></i>
         <span class="label">Thống kê</span>
-      </div>
+      </RouterLink>
 
       <RouterLink to="/sales" class="nav-link-item" active-class="active">
-  <i class="bi bi-cart3 icon"></i>
-  <span class="label">Bán Hàng</span>
-</RouterLink>
+        <i class="bi bi-cart3 icon"></i>
+        <span class="label">Bán Hàng</span>
+      </RouterLink>
 
 
       <!-- Orders -->
@@ -119,9 +119,9 @@
           </RouterLink>
       
         
-          <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">
-            <i class="bi bi-handbag sub-icon"></i> Kiểu túi
-          </RouterLink>
+<!--          <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">-->
+<!--            <i class="bi bi-handbag sub-icon"></i> Kiểu túi-->
+<!--          </RouterLink>-->
          
             <RouterLink to="/attributes/mau-sac" class="sub-link" active-class="active-sub">
             <i class="bi bi-palette sub-icon"></i> Màu sắc

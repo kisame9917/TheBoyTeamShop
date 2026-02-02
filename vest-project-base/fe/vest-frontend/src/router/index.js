@@ -23,6 +23,8 @@ import VouchersList from '../pages/vouchers/VouchersList.vue'
 import VoucherCreate from '../pages/vouchers/VoucherCreate.vue'
 import VoucherUpdate from '../pages/vouchers/VoucherUpdate.vue'
 
+import Statistic from '@/pages/statistic/Statistic.vue'
+
 import PaymentsList from '../pages/payments/PaymentsList.vue'
 import NotFound from '../pages/notfound/NotFound.vue'
 
@@ -40,6 +42,7 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'dashboard', component: Dashboard },
+      { path: 'statistic', name: 'statistic', component: Statistic },
             { path: 'products', name: 'products', component: ProductsList },
             { path: 'products/add', name: 'product-add', component: () => import('../pages/products/ProductAdd.vue') },
             { path: 'products/edit/:id', name: 'product-edit', component: () => import('../pages/products/ProductAdd.vue'), props: true },

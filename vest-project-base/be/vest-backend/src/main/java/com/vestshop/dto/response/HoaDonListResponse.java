@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class HoaDonListResponse {
     private Long id;
     private String maHoaDon;
-
+    private Boolean trangThai;
     private Integer trangThaiDon;
     private String tenTrangThaiDon;
 

@@ -4,7 +4,6 @@ import com.vestshop.Exception.ApiException;
 import com.vestshop.Service.KhachHangService;
 import com.vestshop.dto.request.KhachHangRequest;
 import com.vestshop.dto.request.KhachHangTrangThaiRequest;
-import com.vestshop.dto.request.KhachHangTrangThaiRequest;
 import com.vestshop.dto.response.KhachHangResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,18 +12,26 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/khach-hang")
+@CrossOrigin(
+        origins = "*",
+        allowedHeaders = "*",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.PATCH,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 @RequiredArgsConstructor
-@CrossOrigin // nếu bạn đã có CORS global thì có thể bỏ
 public class KhachHangController {
 
     private final KhachHangService khachHangService;
@@ -66,6 +73,16 @@ public class KhachHangController {
         return khachHangService.updateTrangThai(id, body.getTrangThai());
     }
 
+    // (Tuỳ chọn) Nếu FE lỡ gọi PUT
+    @PutMapping("/{id}/trang-thai")
+    public KhachHangResponse updateTrangThaiPut(@PathVariable Long id, @RequestBody KhachHangTrangThaiRequest body) {
+        if (body == null || body.getTrangThai() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu trangThai");
+        }
+        return khachHangService.updateTrangThai(id, body.getTrangThai());
+    }
+
+    // ========= UPLOAD AVATAR =========
     private static final String UPLOAD_DIR = "D:/2_DATN/vest-project-base/uploads/khachhang";
 
     @PostMapping("/upload-avatar")
@@ -85,7 +102,6 @@ public class KhachHangController {
 
             String name = System.currentTimeMillis() + "-" + UUID.randomUUID() + ext;
             Path target = Paths.get(UPLOAD_DIR).resolve(name).normalize();
-
             file.transferTo(target.toFile());
 
             String url = "/uploads/khachhang/" + name;

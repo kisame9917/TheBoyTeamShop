@@ -38,7 +38,7 @@ public class NhanVienRequest {
     @Size(max = 255)
     private String email;
 
-    @NotBlank
+
     @Size(max = 80)
     private String taiKhoan;
 
@@ -46,6 +46,7 @@ public class NhanVienRequest {
     private String matKhau;
 
     private LocalDate ngaySinh;
+
     private Boolean gioiTinh;
 
     @Size(max = 255)

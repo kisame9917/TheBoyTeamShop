@@ -125,7 +125,7 @@
                 <th style="width: 500px">Địa chỉ</th>
                 <th style="width: 130px" class="text-center">Chức vụ</th>
                 <th style="width: 140px" class="text-center">Trạng thái</th>
-                <th style="width: 170px" class="text-center">Hành động</th>
+                <th style="width: 210px" class="text-center">Hành động</th>
               </tr>
               </thead>
 
@@ -199,6 +199,15 @@
                           :checked="!!s.trangThai"
                           :disabled="!isAdmin"
                           @change="onSwitchAttempt($event, s)"
+                      />
+                    </div>
+                    <!-- ✅ Checkbox chọn để xuất Excel (đặt sau switch) -->
+                    <div class="form-check m-0" title="Chọn để xuất Excel">
+                      <input
+                          class="form-check-input"
+                          type="checkbox"
+                          :checked="isSelected(s.id)"
+                          @change="onSelectRow($event, s.id)"
                       />
                     </div>
                   </div>
@@ -340,8 +349,17 @@ function buildFileName() {
 }
 
 function exportExcel() {
-  const rows = (paged.value || []).map((s, idx) => ({
-    "STT": page.page * page.size + idx + 1,
+  const picked = selectedIds.value;
+  const hasPicked = picked && picked.size > 0;
+
+  // ✅ Có tick -> export đúng các hàng đã tick (lấy từ list để tick qua nhiều trang vẫn xuất được)
+  // ✅ Không tick -> dùng logic hiện tại: xuất toàn bộ các hàng (theo filter hiện tại)
+  const source = hasPicked
+      ? (list.value || []).filter((s) => picked.has(s.id))
+      : (filtered.value || []);
+
+  const rows = source.map((s, idx) => ({
+    "STT": idx + 1,
     "Mã NV": s.maNhanVien || "",
     "Họ tên": s.tenNhanVien || "",
     "Email": s.email || "",
@@ -355,13 +373,12 @@ function exportExcel() {
   }));
 
   if (!rows.length) {
-    toast.warning("Không có dữ liệu để xuất.");
+    toast.warning(hasPicked ? "Bạn chưa chọn dòng nào để xuất." : "Không có dữ liệu để xuất.");
     return;
   }
 
   const ws = XLSX.utils.json_to_sheet(rows);
 
-  // độ rộng cột cho dễ nhìn
   ws["!cols"] = [
     { wch: 6 },   // STT
     { wch: 14 },  // Mã NV
@@ -378,7 +395,6 @@ function exportExcel() {
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "NhanVien");
-
   XLSX.writeFile(wb, buildFileName());
 }
 
@@ -495,6 +511,20 @@ async function fetchList() {
   } finally {
     loading.value = false;
   }
+  const alive = new Set((list.value || []).map(x => x.id));
+  selectedIds.value = new Set([...selectedIds.value].filter(id => alive.has(id)));
+}
+const selectedIds = ref(new Set());
+
+function isSelected(id) {
+  return selectedIds.value.has(id);
+}
+
+function onSelectRow(e, id) {
+  const next = new Set(selectedIds.value);
+  if (e?.target?.checked) next.add(id);
+  else next.delete(id);
+  selectedIds.value = next;
 }
 
 const filtered = computed(() => {

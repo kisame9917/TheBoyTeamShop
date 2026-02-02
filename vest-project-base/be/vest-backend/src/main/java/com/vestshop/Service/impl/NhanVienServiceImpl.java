@@ -5,7 +5,9 @@ import com.vestshop.Entity.QuyenHan;
 import com.vestshop.Exception.ApiException;
 import com.vestshop.Repository.NhanVienRepository;
 import com.vestshop.Repository.QuyenHanRepository;
+import com.vestshop.Service.EmailService;
 import com.vestshop.Service.NhanVienService;
+import com.vestshop.Util.CredentialUtil;
 import com.vestshop.dto.request.NhanVienRequest;
 import com.vestshop.dto.response.NhanVienResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,14 +24,54 @@ public class NhanVienServiceImpl implements NhanVienService {
 
     private final NhanVienRepository nhanVienRepository;
     private final QuyenHanRepository quyenHanRepository;
+    private final EmailService emailService;
 
-    // ✅ default ảnh
     private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
+    private static final int USERNAME_MAX_LEN = 80;
+
+    // Chống trùng nhẹ khi tạo liên tiếp (1 instance backend)
+    private static final Object USERNAME_SEQ_LOCK = new Object();
 
     private String normalizeAvatar(String v) {
         if (v == null) return DEFAULT_AVATAR;
         String s = v.trim();
         return s.isEmpty() ? DEFAULT_AVATAR : s;
+    }
+
+    /**
+     * Lấy số đuôi 3 chữ số lớn nhất trong toàn bộ bảng nhân viên, rồi +1.
+     * Không phụ thuộc vào base tên.
+     *
+     * Ví dụ đã có: abc001, xyz002 => return 3
+     *
+     * NOTE: Cố tình làm bằng Java để tránh các vấn đề CHAR/NCHAR pad khoảng trắng trong SQL Server.
+     */
+    private int nextGlobalSuffix3Digits() {
+        List<NhanVien> all = nhanVienRepository.findAll();
+
+        int max = 0;
+        for (NhanVien nv : all) {
+            String tk = nv.getTaiKhoan();
+            if (tk == null) continue;
+
+            tk = tk.trim(); // quan trọng nếu DB lưu CHAR bị pad
+            if (tk.length() < 3) continue;
+
+            String last3 = tk.substring(tk.length() - 3);
+            if (isAllDigits(last3)) {
+                int val = Integer.parseInt(last3);
+                if (val > max) max = val;
+            }
+        }
+        return max + 1;
+    }
+
+    private boolean isAllDigits(String s) {
+        if (s == null || s.isEmpty()) return false;
+        for (int i = 0; i < s.length(); i++) {
+            if (!Character.isDigit(s.charAt(i))) return false;
+        }
+        return true;
     }
 
     @Override
@@ -51,19 +93,15 @@ public class NhanVienServiceImpl implements NhanVienService {
     @Override
     @Transactional
     public NhanVienResponse create(NhanVienRequest request) {
-        // Validate required password
-        if (request.getMatKhau() == null || request.getMatKhau().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+        // Email bắt buộc để gửi tài khoản/mật khẩu
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không được để trống để gửi thông tin tài khoản");
         }
 
-        // Uniqueness checks
         if (nhanVienRepository.existsByMaNhanVien(request.getMaNhanVien())) {
             throw new ApiException(HttpStatus.CONFLICT, "Mã nhân viên đã tồn tại");
         }
-        if (nhanVienRepository.existsByTaiKhoan(request.getTaiKhoan())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Tài khoản đã tồn tại");
-        }
-        if (request.getEmail() != null && nhanVienRepository.existsByEmail(request.getEmail())) {
+        if (nhanVienRepository.existsByEmail(request.getEmail())) {
             throw new ApiException(HttpStatus.CONFLICT, "Email đã tồn tại");
         }
         if (request.getCccd() != null && nhanVienRepository.existsByCccd(request.getCccd())) {
@@ -74,7 +112,43 @@ public class NhanVienServiceImpl implements NhanVienService {
         }
 
         QuyenHan quyenHan = quyenHanRepository.findById(request.getQuyenHanId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Không tìm thấy quyền hạn ID: " + request.getQuyenHanId()));
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                        "Không tìm thấy quyền hạn ID: " + request.getQuyenHanId()));
+
+        final String generatedTaiKhoan;
+        final String generatedMatKhau;
+
+        // ✅ Sinh tài khoản: base theo tên + đuôi số global tăng dần
+        synchronized (USERNAME_SEQ_LOCK) {
+            String base = CredentialUtil.buildUsernameBase(request.getTenNhanVien());
+
+            int next = nextGlobalSuffix3Digits();
+            if (next > 999) {
+                throw new ApiException(HttpStatus.CONFLICT, "Đã vượt quá giới hạn 999 tài khoản theo định dạng 3 số.");
+            }
+
+            String suffix = String.format("%03d", next);
+
+            // đảm bảo tổng length <= 80
+            int maxBaseLen = USERNAME_MAX_LEN - suffix.length(); // 80 - 3 = 77
+            if (maxBaseLen < 1) maxBaseLen = 1;
+            if (base.length() > maxBaseLen) base = base.substring(0, maxBaseLen);
+
+            String tk = base + suffix;
+
+            // an toàn: nếu trùng thì tăng tiếp
+            while (nhanVienRepository.existsByTaiKhoan(tk)) {
+                next++;
+                if (next > 999) {
+                    throw new ApiException(HttpStatus.CONFLICT, "Đã vượt quá giới hạn 999 tài khoản theo định dạng 3 số.");
+                }
+                suffix = String.format("%03d", next);
+                tk = base + suffix;
+            }
+
+            generatedTaiKhoan = tk;
+            generatedMatKhau = CredentialUtil.generateRandomPassword(10);
+        }
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -85,20 +159,28 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .soDienThoai(request.getSoDienThoai())
                 .cccd(request.getCccd())
                 .email(request.getEmail())
-                .taiKhoan(request.getTaiKhoan())
-                .matKhau(request.getMatKhau())
+                .taiKhoan(generatedTaiKhoan)
+                .matKhau(generatedMatKhau)
                 .ngaySinh(request.getNgaySinh())
                 .gioiTinh(request.getGioiTinh())
                 .diaChi(request.getDiaChi())
                 .ngayTao(now)
                 .ngayCapNhat(now)
                 .trangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE)
-
-                // ✅ set ảnh đại diện (nếu null/blank => default)
                 .anhDaiDien(normalizeAvatar(request.getAnhDaiDien()))
                 .build();
 
-        return mapToResponse(nhanVienRepository.save(nv));
+        NhanVien saved = nhanVienRepository.save(nv);
+
+        // ✅ gửi email (fail thì throw -> rollback)
+        emailService.sendNewNhanVienCredentials(
+                request.getEmail().trim(),
+                request.getTenNhanVien(),
+                generatedTaiKhoan,
+                generatedMatKhau
+        );
+
+        return mapToResponse(saved);
     }
 
     @Override
@@ -107,20 +189,21 @@ public class NhanVienServiceImpl implements NhanVienService {
         NhanVien nv = nhanVienRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên ID: " + id));
 
-        // Update role if changed
+        // ✅ KHÔNG cho sửa tài khoản / mật khẩu (đúng yêu cầu)
+        if (request.getTaiKhoan() != null && !request.getTaiKhoan().isBlank()
+                && !request.getTaiKhoan().trim().equals(String.valueOf(nv.getTaiKhoan()).trim())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Không được phép cập nhật tài khoản");
+        }
+        if (request.getMatKhau() != null && !request.getMatKhau().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Không được phép cập nhật mật khẩu");
+        }
+
         if (request.getQuyenHanId() != null
                 && (nv.getQuyenHan() == null || !request.getQuyenHanId().equals(nv.getQuyenHan().getId()))) {
             QuyenHan quyenHan = quyenHanRepository.findById(request.getQuyenHanId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Không tìm thấy quyền hạn ID: " + request.getQuyenHanId()));
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                            "Không tìm thấy quyền hạn ID: " + request.getQuyenHanId()));
             nv.setQuyenHan(quyenHan);
-        }
-
-        // Unique fields: taiKhoan, email, cccd, soDienThoai
-        if (request.getTaiKhoan() != null && !request.getTaiKhoan().equals(nv.getTaiKhoan())) {
-            nhanVienRepository.findByTaiKhoan(request.getTaiKhoan())
-                    .filter(other -> !other.getId().equals(id))
-                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "Tài khoản đã tồn tại"); });
-            nv.setTaiKhoan(request.getTaiKhoan());
         }
 
         if (request.getEmail() != null && !request.getEmail().equals(nv.getEmail())) {
@@ -150,16 +233,8 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (request.getDiaChi() != null) nv.setDiaChi(request.getDiaChi());
         if (request.getTrangThai() != null) nv.setTrangThai(request.getTrangThai());
 
-        // ✅ Update ảnh: chỉ cập nhật khi client có gửi field anhDaiDien
-        // - gửi "" => reset về default
-        // - gửi null => giữ nguyên ảnh cũ
         if (request.getAnhDaiDien() != null) {
             nv.setAnhDaiDien(normalizeAvatar(request.getAnhDaiDien()));
-        }
-
-        // Only update password when provided
-        if (request.getMatKhau() != null && !request.getMatKhau().isBlank()) {
-            nv.setMatKhau(request.getMatKhau());
         }
 
         nv.setNgayCapNhat(LocalDateTime.now());
@@ -171,8 +246,6 @@ public class NhanVienServiceImpl implements NhanVienService {
     public void delete(Long id) {
         NhanVien nv = nhanVienRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên ID: " + id));
-
-        // Soft delete
         nv.setTrangThai(Boolean.FALSE);
         nv.setNgayCapNhat(LocalDateTime.now());
         nhanVienRepository.save(nv);
@@ -196,11 +269,10 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .ngayTao(nv.getNgayTao())
                 .ngayCapNhat(nv.getNgayCapNhat())
                 .trangThai(nv.getTrangThai())
-
-                // ✅ trả ảnh ra FE
                 .anhDaiDien(normalizeAvatar(nv.getAnhDaiDien()))
                 .build();
     }
+
     @Override
     @Transactional
     public NhanVienResponse updateTrangThai(Long id, Boolean trangThai) {
@@ -209,7 +281,6 @@ public class NhanVienServiceImpl implements NhanVienService {
 
         nv.setTrangThai(trangThai);
         nv.setNgayCapNhat(LocalDateTime.now());
-
         return mapToResponse(nhanVienRepository.save(nv));
     }
 }

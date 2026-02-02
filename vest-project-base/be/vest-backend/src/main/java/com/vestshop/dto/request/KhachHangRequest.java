@@ -1,10 +1,12 @@
 package com.vestshop.dto.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import java.util.List;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class KhachHangRequest {
 
     // maKhachHang: FE có thể gửi/hiển thị nhưng BE sẽ tự sinh khi create
@@ -29,4 +31,9 @@ public class KhachHangRequest {
     private String quanHuyen;
     private String tinhThanh;
     private String quocGia;
+    // ✅ MỚI: danh sách địa chỉ
+    private List<DiaChiKhachHangRequest> diaChiList;
+
+    // ✅ MỚI: chọn địa chỉ mặc định khi update
+    private Long diaChiMacDinhId;
 }

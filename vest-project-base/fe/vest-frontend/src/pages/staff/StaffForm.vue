@@ -158,24 +158,32 @@
               <input class="form-control" v-model="addr.detail" placeholder="Số nhà, tên đường..." />
             </div>
 
-            <!-- 13) Tài khoản -->
+            <!-- 13) Tài khoản (tự động tạo) -->
             <div class="col-12 col-lg-6">
-              <label class="form-label">Tài khoản</label>
-              <input class="form-control" v-model="form.taiKhoan" :disabled="!isAdmin" />
+              <label class="form-label">
+                Tài khoản
+<!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
+              </label>
+              <input
+                  class="form-control"
+                  v-model="form.taiKhoan"
+                  disabled
+                  :placeholder="isEdit ? '' : 'Tự động tạo và gửi qua email'"
+              />
             </div>
 
-            <!-- 14) Mật khẩu -->
+            <!-- 14) Mật khẩu (tự động tạo) -->
             <div class="col-12 col-lg-6">
               <label class="form-label">
                 Mật khẩu
-                <span v-if="isEdit" class="small text-muted ms-1">(để trống = giữ nguyên)</span>
+<!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
               </label>
               <input
                   class="form-control"
                   type="password"
                   v-model="form.matKhau"
-                  :disabled="!isAdmin"
-                  :placeholder="isAdmin ? '' : 'Chỉ ADMIN được đổi mật khẩu'"
+                  disabled
+                  :placeholder="isEdit ? '******' : 'Tự động tạo và gửi qua email'"
               />
             </div>
           </div>
@@ -665,11 +673,11 @@ function isAtLeast18(dateStr) {
 async function validateDuplicates(all) {
   const excludeId = isEdit.value ? Number(route.params.id) : null
 
-  const username = safeStr(form.taiKhoan)
-  if (username) {
+  const email = safeStr(form.email)
+  if (email) {
     for (const it of (all || [])) {
       const s = normalizeStaff(it)
-      if (s.id !== excludeId && safeStr(s.taiKhoan) === username) return 'Tài khoản đã tồn tại'
+      if (s.id !== excludeId && safeStr(s.email) === email) return 'Email đã tồn tại'
     }
   }
 
@@ -688,6 +696,10 @@ function validateForm() {
   if (!String(form.maNhanVien || '').trim()) return 'Mã nhân viên không được trống'
   if (!String(form.tenNhanVien || '').trim()) return 'Tên nhân viên không được trống'
 
+  const email = String(form.email || '').trim()
+  if (!email) return 'Email không được trống'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Email không hợp lệ'
+
   if (!String(form.soDienThoai || '').trim() || !isDigitsOnly(form.soDienThoai)) return 'Số điện thoại phải là số'
   if (!String(form.cccd || '').trim() || !isDigitsOnly(form.cccd)) return 'CCCD phải là số'
   if (!form.ngaySinh || !isAtLeast18(form.ngaySinh)) return 'Nhân viên phải đủ 18 tuổi'
@@ -696,11 +708,9 @@ function validateForm() {
     return 'Vui lòng chọn đầy đủ Tỉnh/Quận/Xã và nhập tên đường'
   }
 
-  if (!String(form.taiKhoan || '').trim()) return 'Tài khoản không được trống'
-  if (!isEdit.value && !String(form.matKhau || '').trim()) return 'Mật khẩu không được trống khi thêm mới'
-
   return ''
 }
+
 
 function goBack() {
   router.push({ name: 'staff' })
@@ -795,8 +805,7 @@ async function submit() {
         tenNhanVien: String(form.tenNhanVien || '').trim(),
         soDienThoai: String(form.soDienThoai || '').trim(),
         cccd: String(form.cccd || '').trim(),
-        email: String(form.email || '').trim() ? String(form.email || '').trim() : null,
-        taiKhoan: String(form.taiKhoan || '').trim(),
+        email: String(form.email || '').trim(), // ✅ bắt buộc
         ngaySinh: form.ngaySinh,
         gioiTinh: (form.gioiTinh === true || form.gioiTinh === false) ? form.gioiTinh : null,
         diaChi: buildDiaChi(),
@@ -804,16 +813,17 @@ async function submit() {
         anhDaiDien: form.anhDaiDien
       }
 
+
       // chỉ gửi mật khẩu nếu user nhập (edit)
-      if (!isEdit.value) payload.matKhau = String(form.matKhau || '').trim()
-      else if (String(form.matKhau || '').trim()) payload.matKhau = String(form.matKhau || '').trim()
+      // if (!isEdit.value) payload.matKhau = String(form.matKhau || '').trim()
+      // else if (String(form.matKhau || '').trim()) payload.matKhau = String(form.matKhau || '').trim()
 
       if (isEdit.value) {
         await http.put('/api/nhan-vien/' + route.params.id, payload)
         toast.success('Cập nhật nhân viên thành công!')
       } else {
         await http.post('/api/nhan-vien', payload)
-        toast.success('Thêm nhân viên thành công!')
+        toast.success('Thêm nhân viên thành công! Thông tin tài khoản đã được gửi qua email.')
       }
 
       goBack()

@@ -6,6 +6,7 @@ import com.vestshop.Exception.ApiException;
 import com.vestshop.Repository.DiaChiKhachHangRepository;
 import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Service.KhachHangService;
+import com.vestshop.dto.request.DiaChiKhachHangRequest;
 import com.vestshop.dto.request.KhachHangRequest;
 import com.vestshop.dto.response.DiaChiKhachHangResponse;
 import com.vestshop.dto.response.KhachHangResponse;
@@ -15,8 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -27,11 +27,19 @@ public class KhachHangServiceImpl implements KhachHangService {
 
     private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
     private static final String MA_PREFIX_DEFAULT = "KH";
+    private static final int MAX_ADDRESS = 5;
 
     private String normalizeAvatar(String v) {
         if (v == null) return DEFAULT_AVATAR;
         String s = v.trim();
         return s.isEmpty() ? DEFAULT_AVATAR : s;
+    }
+
+    private void append(StringBuilder sb, String part) {
+        String s = part == null ? "" : part.trim();
+        if (s.isEmpty()) return;
+        if (sb.length() > 0) sb.append(", ");
+        sb.append(s);
     }
 
     private String joinAddress(DiaChiKhachHang d) {
@@ -45,11 +53,16 @@ public class KhachHangServiceImpl implements KhachHangService {
         return sb.toString();
     }
 
-    private void append(StringBuilder sb, String part) {
-        String s = part == null ? "" : part.trim();
-        if (s.isEmpty()) return;
-        if (sb.length() > 0) sb.append(", ");
-        sb.append(s);
+    private String trimToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private boolean isDigitsOnly(String s) {
+        if (s == null) return false;
+        String t = s.trim();
+        return !t.isEmpty() && t.matches("^\\d+$");
     }
 
     private DiaChiKhachHangResponse mapDiaChi(DiaChiKhachHang d) {
@@ -69,10 +82,27 @@ public class KhachHangServiceImpl implements KhachHangService {
                 .build();
     }
 
-    private KhachHangResponse mapToResponse(KhachHang kh) {
+    /**
+     * ✅ FIX list chưa có địa chỉ:
+     * - ưu tiên lấy default
+     * - nếu chưa có default => lấy địa chỉ active mới nhất làm fallback
+     */
+    private DiaChiKhachHang pickDefaultOrLatest(Long khachHangId) {
         DiaChiKhachHang dc = diaChiKhachHangRepository
-                .findFirstByKhachHangIdAndLaMacDinhTrueOrderByIdDesc(kh.getId())
+                .findFirstByKhachHangIdAndLaMacDinhTrueOrderByIdDesc(khachHangId)
                 .orElse(null);
+
+        if (dc != null) return dc;
+
+        // fallback: lấy địa chỉ active mới nhất (để list không bị trống)
+        List<DiaChiKhachHang> list = diaChiKhachHangRepository
+                .findByKhachHang_IdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(khachHangId);
+
+        return (list == null || list.isEmpty()) ? null : list.get(0);
+    }
+
+    private KhachHangResponse mapToResponse(KhachHang kh) {
+        DiaChiKhachHang dc = pickDefaultOrLatest(kh.getId());
 
         return KhachHangResponse.builder()
                 .id(kh.getId())
@@ -91,6 +121,8 @@ public class KhachHangServiceImpl implements KhachHangService {
                 .build();
     }
 
+    // ====================== LIST / DETAIL ======================
+
     @Override
     @Transactional(readOnly = true)
     public List<KhachHangResponse> getAll() {
@@ -106,6 +138,8 @@ public class KhachHangServiceImpl implements KhachHangService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + id));
         return mapToResponse(kh);
     }
+
+    // ====================== CRUD ======================
 
     @Override
     @Transactional
@@ -150,8 +184,9 @@ public class KhachHangServiceImpl implements KhachHangService {
 
         kh = khachHangRepository.save(kh);
 
-        // ✅ Lưu địa chỉ mặc định (nếu FE có gửi)
-        upsertDefaultAddress(kh, request);
+        // ✅ NEW: nếu FE gửi diaChiList / diaChiMacDinhId -> xử lý multi-address
+        // ✅ OLD: nếu FE gửi kiểu cũ -> upsert default
+        syncAddresses(kh, request);
 
         return mapToResponse(kh);
     }
@@ -200,23 +235,265 @@ public class KhachHangServiceImpl implements KhachHangService {
         kh.setNgayCapNhat(LocalDateTime.now());
         kh = khachHangRepository.save(kh);
 
-        // ✅ update/insert địa chỉ mặc định
-        upsertDefaultAddress(kh, request);
+        // ✅ Sync địa chỉ kiểu mới / kiểu cũ
+        syncAddresses(kh, request);
 
         return mapToResponse(kh);
     }
 
-    // ----------- FIX: UPSERT ĐỊA CHỈ MẶC ĐỊNH -----------
-    private void upsertDefaultAddress(KhachHang kh, KhachHangRequest request) {
+    // ====================== SWITCH TRẠNG THÁI ======================
 
-        // trim rỗng => null để tránh overwrite bằng ""
+    @Override
+    @Transactional
+    public KhachHangResponse updateTrangThai(Long id, Boolean trangThai) {
+        KhachHang kh = khachHangRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + id));
+
+        kh.setTrangThai(trangThai);
+        kh.setNgayCapNhat(LocalDateTime.now());
+
+        return mapToResponse(khachHangRepository.save(kh));
+    }
+
+    // ====================== NEXT CODE ======================
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getNextMaKhachHang(String prefix) {
+        String p = (prefix == null || prefix.isBlank()) ? MA_PREFIX_DEFAULT : prefix.trim().toUpperCase();
+
+        Optional<KhachHang> top = khachHangRepository.findTopByMaKhachHangStartingWithOrderByMaKhachHangDesc(p);
+        int next = 1;
+
+        if (top.isPresent()) {
+            String last = top.get().getMaKhachHang(); // KH012
+            String num = last.replaceAll("[^0-9]", "");
+            if (!num.isBlank()) {
+                try { next = Integer.parseInt(num) + 1; } catch (Exception ignored) {}
+            }
+        }
+        return p + String.format("%03d", next);
+    }
+
+    // ====================== ADDRESS APIs (✅ implement interface) ======================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DiaChiKhachHangResponse> getDiaChiList(Long khachHangId) {
+        // check KH tồn tại
+        if (!khachHangRepository.existsById(khachHangId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + khachHangId);
+        }
+
+        List<DiaChiKhachHang> list = diaChiKhachHangRepository
+                .findByKhachHang_IdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(khachHangId);
+
+        return (list == null ? List.<DiaChiKhachHang>of() : list).stream()
+                .map(this::mapDiaChi)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public DiaChiKhachHangResponse addDiaChi(Long khachHangId, DiaChiKhachHangRequest request) {
+        KhachHang kh = khachHangRepository.findById(khachHangId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + khachHangId));
+
+        long count = diaChiKhachHangRepository.countByKhachHang_IdAndTrangThaiTrue(khachHangId);
+        if (count >= MAX_ADDRESS) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Tối đa " + MAX_ADDRESS + " địa chỉ");
+        }
+
+        String tenNguoiNhan = trimToNull(request.getTenNguoiNhan());
+        String soDienThoai = trimToNull(request.getSoDienThoai());
+        String tinhThanh = trimToNull(request.getTinhThanh());
+        String quanHuyen = trimToNull(request.getQuanHuyen());
+        String phuongXa = trimToNull(request.getPhuongXa());
+        String diaChiChiTiet = trimToNull(request.getDiaChiChiTiet());
+        String quocGia = trimToNull(request.getQuocGia());
+
+        if (tenNguoiNhan == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu tên người nhận");
+        if (soDienThoai == null || !isDigitsOnly(soDienThoai)) throw new ApiException(HttpStatus.BAD_REQUEST, "SĐT người nhận phải là số");
+        if (tinhThanh == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Tỉnh/Thành phố");
+        if (quanHuyen == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Quận/Huyện");
+        if (phuongXa == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Phường/Xã");
+        if (diaChiChiTiet == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu địa chỉ chi tiết");
+        if (quocGia == null) quocGia = "Việt Nam";
+
+        DiaChiKhachHang dc = new DiaChiKhachHang();
+        dc.setKhachHang(kh);
+        dc.setTenNguoiNhan(tenNguoiNhan);
+        dc.setSoDienThoai(soDienThoai);
+        dc.setTinhThanh(tinhThanh);
+        dc.setQuanHuyen(quanHuyen);
+        dc.setPhuongXa(phuongXa);
+        dc.setDiaChiChiTiet(diaChiChiTiet);
+        dc.setQuocGia(quocGia);
+        dc.setTrangThai(Boolean.TRUE);
+
+        // nếu request.laMacDinh = true hoặc KH chưa có default => set default
+        boolean wantDefault = Boolean.TRUE.equals(request.getLaMacDinh());
+        boolean hasDefault = diaChiKhachHangRepository
+                .findFirstByKhachHangIdAndLaMacDinhTrueOrderByIdDesc(khachHangId)
+                .isPresent();
+
+        if (wantDefault || !hasDefault) {
+            diaChiKhachHangRepository.clearDefaultByKhachHangId(khachHangId);
+            dc.setLaMacDinh(Boolean.TRUE);
+        } else {
+            dc.setLaMacDinh(Boolean.FALSE);
+        }
+
+        dc = diaChiKhachHangRepository.save(dc);
+        return mapDiaChi(dc);
+    }
+
+    @Override
+    @Transactional
+    public DiaChiKhachHangResponse setDiaChiMacDinh(Long khachHangId, Long diaChiId) {
+        if (!khachHangRepository.existsById(khachHangId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + khachHangId);
+        }
+
+        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHang_Id(diaChiId, khachHangId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy địa chỉ ID: " + diaChiId));
+
+        diaChiKhachHangRepository.clearDefaultByKhachHangId(khachHangId);
+        dc.setLaMacDinh(Boolean.TRUE);
+        dc.setTrangThai(Boolean.TRUE);
+
+        dc = diaChiKhachHangRepository.save(dc);
+        return mapDiaChi(dc);
+    }
+
+    // ====================== INTERNAL: SYNC ADDRESS (NEW + OLD) ======================
+
+    /**
+     * ✅ Nếu FE dùng kiểu mới: request.diaChiList / request.diaChiMacDinhId
+     * ✅ Nếu FE dùng kiểu cũ: tenNguoiNhan/sdtNguoiNhan/... thì upsert default như logic cũ của bạn
+     */
+    private void syncAddresses(KhachHang kh, KhachHangRequest request) {
+
+        // 1) nếu chỉ muốn set default bằng diaChiMacDinhId
+        if (request.getDiaChiMacDinhId() != null) {
+            setDiaChiMacDinh(kh.getId(), request.getDiaChiMacDinhId());
+            return;
+        }
+
+        // 2) nếu có diaChiList (kiểu mới)
+        if (request.getDiaChiList() != null && !request.getDiaChiList().isEmpty()) {
+            if (request.getDiaChiList().size() > MAX_ADDRESS) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Tối đa " + MAX_ADDRESS + " địa chỉ");
+            }
+
+            // lấy địa chỉ active hiện có
+            List<DiaChiKhachHang> existing = diaChiKhachHangRepository
+                    .findByKhachHang_IdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(kh.getId());
+
+            Map<Long, DiaChiKhachHang> byId = new HashMap<>();
+            if (existing != null) {
+                for (DiaChiKhachHang d : existing) {
+                    if (d.getId() != null) byId.put(d.getId(), d);
+                }
+            }
+
+            int activeCount = existing == null ? 0 : existing.size();
+            Long chosenDefaultId = null;
+
+            // nếu item nào laMacDinh=true thì ưu tiên
+            for (DiaChiKhachHangRequest it : request.getDiaChiList()) {
+                if (Boolean.TRUE.equals(it.getLaMacDinh()) && it.getId() != null) {
+                    chosenDefaultId = it.getId();
+                    break;
+                }
+            }
+
+            // xử lý add/update từng địa chỉ
+            List<Long> touchedIds = new ArrayList<>();
+
+            for (DiaChiKhachHangRequest it : request.getDiaChiList()) {
+                DiaChiKhachHang entity = null;
+
+                if (it.getId() != null) entity = byId.get(it.getId());
+
+                if (entity == null) {
+                    // create new
+                    if (activeCount >= MAX_ADDRESS) {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "Tối đa " + MAX_ADDRESS + " địa chỉ");
+                    }
+                    entity = new DiaChiKhachHang();
+                    entity.setKhachHang(kh);
+                    entity.setTrangThai(Boolean.TRUE);
+                    entity.setLaMacDinh(Boolean.FALSE);
+                    activeCount++;
+                }
+
+                // validate required
+                String tenNguoiNhan = trimToNull(it.getTenNguoiNhan());
+                String soDienThoai = trimToNull(it.getSoDienThoai());
+                String tinhThanh = trimToNull(it.getTinhThanh());
+                String quanHuyen = trimToNull(it.getQuanHuyen());
+                String phuongXa = trimToNull(it.getPhuongXa());
+                String diaChiChiTiet = trimToNull(it.getDiaChiChiTiet());
+                String quocGia = trimToNull(it.getQuocGia());
+                if (quocGia == null) quocGia = "Việt Nam";
+
+                if (tenNguoiNhan == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu tên người nhận");
+                if (soDienThoai == null || !isDigitsOnly(soDienThoai)) throw new ApiException(HttpStatus.BAD_REQUEST, "SĐT người nhận phải là số");
+                if (tinhThanh == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Tỉnh/Thành phố");
+                if (quanHuyen == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Quận/Huyện");
+                if (phuongXa == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Phường/Xã");
+                if (diaChiChiTiet == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu địa chỉ chi tiết");
+
+                entity.setTenNguoiNhan(tenNguoiNhan);
+                entity.setSoDienThoai(soDienThoai);
+                entity.setTinhThanh(tinhThanh);
+                entity.setQuanHuyen(quanHuyen);
+                entity.setPhuongXa(phuongXa);
+                entity.setDiaChiChiTiet(diaChiChiTiet);
+                entity.setQuocGia(quocGia);
+                entity.setTrangThai(Boolean.TRUE);
+
+                entity = diaChiKhachHangRepository.save(entity);
+                touchedIds.add(entity.getId());
+
+                // nếu item mới được tạo và có laMacDinh=true thì chọn làm default
+                if (chosenDefaultId == null && Boolean.TRUE.equals(it.getLaMacDinh())) {
+                    chosenDefaultId = entity.getId();
+                }
+            }
+
+            // nếu vẫn chưa chọn default => giữ default cũ nếu có, không thì lấy item đầu tiên
+            if (chosenDefaultId == null) {
+                DiaChiKhachHang currentDefault = diaChiKhachHangRepository
+                        .findFirstByKhachHangIdAndLaMacDinhTrueOrderByIdDesc(kh.getId())
+                        .orElse(null);
+                if (currentDefault != null) chosenDefaultId = currentDefault.getId();
+            }
+            if (chosenDefaultId == null && !touchedIds.isEmpty()) chosenDefaultId = touchedIds.get(0);
+
+            if (chosenDefaultId != null) {
+                setDiaChiMacDinh(kh.getId(), chosenDefaultId);
+            }
+
+            return;
+        }
+
+        // 3) nếu không có diaChiList / diaChiMacDinhId => dùng kiểu cũ (default address)
+        upsertDefaultAddressOld(kh, request);
+    }
+
+    // ----------- OLD: UPSERT ĐỊA CHỈ MẶC ĐỊNH (giữ logic của bạn) -----------
+
+    private void upsertDefaultAddressOld(KhachHang kh, KhachHangRequest request) {
+
         String tenNguoiNhan  = trimToNull(request.getTenNguoiNhan());
         String sdtNguoiNhan  = trimToNull(request.getSdtNguoiNhan());
         String tinhThanh     = trimToNull(request.getTinhThanh());
         String quanHuyen     = trimToNull(request.getQuanHuyen());
         String phuongXa      = trimToNull(request.getPhuongXa());
         String diaChiChiTiet = trimToNull(request.getDiaChiChiTiet());
-        String quocGia       = trimToNull(request.getQuocGia()); // nếu FE không gửi thì null
+        String quocGia       = trimToNull(request.getQuocGia());
 
         boolean hasAnyAddr =
                 tenNguoiNhan != null ||
@@ -240,22 +517,26 @@ public class KhachHangServiceImpl implements KhachHangService {
             dc = new DiaChiKhachHang();
             dc.setKhachHang(kh);
 
-            // đảm bảo chỉ có 1 default
             diaChiKhachHangRepository.clearDefaultByKhachHangId(kh.getId());
 
             dc.setLaMacDinh(Boolean.TRUE);
             dc.setTrangThai(Boolean.TRUE);
         }
 
-        // ✅ CHỈ set khi có giá trị (tránh overwrite bằng null/"")
         if (tenNguoiNhan != null)  dc.setTenNguoiNhan(tenNguoiNhan);
-        if (sdtNguoiNhan != null)  dc.setSoDienThoai(sdtNguoiNhan); // ✅ đúng field
+
+        if (sdtNguoiNhan != null) {
+            if (!isDigitsOnly(sdtNguoiNhan)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "SĐT người nhận phải là số");
+            }
+            dc.setSoDienThoai(sdtNguoiNhan);
+        }
+
         if (diaChiChiTiet != null) dc.setDiaChiChiTiet(diaChiChiTiet);
         if (phuongXa != null)      dc.setPhuongXa(phuongXa);
         if (quanHuyen != null)     dc.setQuanHuyen(quanHuyen);
         if (tinhThanh != null)     dc.setTinhThanh(tinhThanh);
 
-        // quocGia: nếu FE có gửi thì set, không thì (tạo mới) set mặc định Việt Nam
         if (quocGia != null) {
             dc.setQuocGia(quocGia);
         } else if (isNew && (dc.getQuocGia() == null || dc.getQuocGia().isBlank())) {
@@ -263,42 +544,5 @@ public class KhachHangServiceImpl implements KhachHangService {
         }
 
         diaChiKhachHangRepository.save(dc);
-    }
-
-    private String trimToNull(String s) {
-        if (s == null) return null;
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
-    }
-
-    @Override
-    @Transactional
-    public KhachHangResponse updateTrangThai(Long id, Boolean trangThai) {
-        KhachHang kh = khachHangRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + id));
-
-        kh.setTrangThai(trangThai);
-        kh.setNgayCapNhat(LocalDateTime.now());
-
-        return mapToResponse(khachHangRepository.save(kh));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public String getNextMaKhachHang(String prefix) {
-        String p = (prefix == null || prefix.isBlank()) ? MA_PREFIX_DEFAULT : prefix.trim().toUpperCase();
-
-        Optional<KhachHang> top = khachHangRepository.findTopByMaKhachHangStartingWithOrderByMaKhachHangDesc(p);
-        int next = 1;
-
-        if (top.isPresent()) {
-            String last = top.get().getMaKhachHang(); // KH012
-            String num = last.replaceAll("[^0-9]", "");
-            if (!num.isBlank()) {
-                try { next = Integer.parseInt(num) + 1; } catch (Exception ignored) {}
-            }
-        }
-
-        return p + String.format("%03d", next);
     }
 }

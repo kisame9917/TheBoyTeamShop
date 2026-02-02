@@ -1,18 +1,29 @@
 package com.vestshop.Repository;
 
 import com.vestshop.Entity.DiaChiKhachHang;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface DiaChiKhachHangRepository extends JpaRepository<DiaChiKhachHang, Long> {
 
     Optional<DiaChiKhachHang> findFirstByKhachHangIdAndLaMacDinhTrueOrderByIdDesc(Long khachHangId);
 
+    List<DiaChiKhachHang> findByKhachHang_IdOrderByIdDesc(Long khachHangId);
+
+    List<DiaChiKhachHang> findByKhachHang_IdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(Long khachHangId);
+
+    long countByKhachHang_IdAndTrangThaiTrue(Long khachHangId);
+
+    Optional<DiaChiKhachHang> findByIdAndKhachHang_Id(Long id, Long khachHangId);
+
+    List<DiaChiKhachHang> findByKhachHangIdOrderByLaMacDinhDescIdDesc(Long khachHangId);
+
+    Optional<DiaChiKhachHang> findByIdAndKhachHangId(Long id, Long khachHangId);
+
     @Modifying
-    @Query("update DiaChiKhachHang d set d.laMacDinh = false where d.khachHang.id = :khachHangId")
+    @Query("UPDATE DiaChiKhachHang d SET d.laMacDinh = false WHERE d.khachHang.id = :khachHangId")
     void clearDefaultByKhachHangId(@Param("khachHangId") Long khachHangId);
 }
