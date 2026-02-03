@@ -32,25 +32,20 @@
               </div>
             </div>
 
-            <!-- ✅ Loại giảm -->
+            <!-- Loại giảm -->
             <div class="mt-3">
-              <label class="form-label">Loại giảm </label>
+              <label class="form-label">Loại giảm</label>
               <select class="form-select" v-model="form.loaiGiam">
                 <option :value="true">Giảm %</option>
                 <option :value="false">Giảm tiền (VND)</option>
               </select>
             </div>
 
-            <!-- ✅ Giảm tối đa NGAY DƯỚI Loại giảm -->
+            <!-- Giảm tối đa -->
             <div class="mt-3" v-if="form.loaiGiam">
-              <label class="form-label">Giảm tối đa (VND)<span class="req">*</span> </label>
+              <label class="form-label">Giảm tối đa (VND)<span class="req">*</span></label>
               <div class="input-group">
-                <input
-                  type="text"
-                  inputmode="numeric"
-                  class="form-control text-start"
-                  v-model="giaTriGiamToiDaVnd"
-                />
+                <input type="text" inputmode="numeric" class="form-control text-start" v-model="giaTriGiamToiDaVnd" />
                 <span class="input-group-text">VND</span>
               </div>
             </div>
@@ -60,7 +55,7 @@
           <div class="col-12 col-lg-6">
             <label class="form-label">Số lượng <span class="req">*</span></label>
 
-            <!-- Công khai: nhập tay -->
+            <!-- Công khai -->
             <input
               v-if="form.loaiPhieu !== 'CA_NHAN'"
               type="number"
@@ -69,8 +64,14 @@
               min="1"
             />
 
-            <!-- Cá nhân: tự động theo số khách hàng -->
-            <input v-else type="number" class="form-control bg-light text-start" :value="selectedCustomerIds.length" readonly />
+            <!-- Cá nhân -->
+            <input
+              v-else
+              type="number"
+              class="form-control bg-light text-start"
+              :value="selectedCustomerIds.length"
+              readonly
+            />
 
             <div class="mt-3">
               <label class="form-label">Ngày kết thúc <span class="req">*</span></label>
@@ -85,11 +86,10 @@
               </div>
             </div>
 
-            <!-- ✅ Giá trị giảm -->
+            <!-- Giá trị giảm -->
             <div class="mt-3">
               <label class="form-label">Giá trị giảm <span class="req">*</span></label>
               <div class="input-group">
-                <!-- % -->
                 <input
                   v-if="form.loaiGiam"
                   type="number"
@@ -99,7 +99,6 @@
                   max="100"
                   placeholder="Ví dụ: 20"
                 />
-                <!-- tiền -->
                 <input
                   v-else
                   type="text"
@@ -112,9 +111,9 @@
               </div>
             </div>
 
-            <!-- ✅ Đơn hàng tối thiểu: có hậu tố VND giống giá trị giảm -->
+            <!-- Đơn hàng tối thiểu -->
             <div class="mt-3">
-              <label class="form-label">Đơn hàng tối thiểu </label>
+              <label class="form-label">Đơn hàng tối thiểu</label>
               <div class="input-group">
                 <input
                   type="text"
@@ -232,7 +231,7 @@
       </div>
     </div>
 
-    <!-- ✅ POPUP (Confirm) -->
+    <!-- POPUP (Confirm) -->
     <teleport to="body">
       <div v-if="popup.open" class="modal-overlay" @click.self="closePopup">
         <div class="modal-card">
@@ -260,12 +259,11 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted, onBeforeUnmount } from "vue";
-import axios from "axios";
+import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "@/composables/useToast";
+import http from "@/services/http"; // ✅ dùng http để auto Bearer token
 
-/** ✅ flatpickr */
 import flatpickr from "flatpickr";
 import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
 import "flatpickr/dist/flatpickr.css";
@@ -273,8 +271,8 @@ import "flatpickr/dist/flatpickr.css";
 const toast = useToast();
 const router = useRouter();
 
-const API = "http://localhost:8080/api/pgg";
-const KH_API = "http://localhost:8080/api/khach-hang";
+const API = "/api/pgg";
+const KH_API = "/api/khach-hang";
 
 const saving = ref(false);
 const error = ref("");
@@ -325,10 +323,10 @@ const form = ref({
   soLuong: 1,
   loaiGiam: true, // true = %, false = tiền
   giaTriGiam: 1,
-  giaTriGiamToiDa: 0, // chỉ dùng khi %
+  giaTriGiamToiDa: 0,
   donHangToiThieu: 0,
-  ngayBatDau: "", // yyyy-MM-dd
-  ngayKetThuc: "", // yyyy-MM-dd
+  ngayBatDau: "",
+  ngayKetThuc: "",
   moTa: "",
   loaiPhieu: "CONG_KHAI",
 });
@@ -345,9 +343,7 @@ function goBack() {
   router.push("/vouchers");
 }
 
-/* =========================
-   ✅ Format tiền ngay khi nhập (vi-VN)
-   ========================= */
+// ===== Format tiền =====
 const nf = new Intl.NumberFormat("vi-VN");
 
 function formatVndInput(n, emptyIfZero = false) {
@@ -362,7 +358,6 @@ function parseVndInput(s) {
   return Number(digits);
 }
 
-// v-model string cho ô "Giá trị giảm" khi là TIỀN
 const giaTriGiamVnd = computed({
   get() {
     return formatVndInput(form.value.giaTriGiam, true);
@@ -372,7 +367,6 @@ const giaTriGiamVnd = computed({
   },
 });
 
-// v-model string cho "Giảm tối đa"
 const giaTriGiamToiDaVnd = computed({
   get() {
     return formatVndInput(form.value.giaTriGiamToiDa, true);
@@ -382,10 +376,8 @@ const giaTriGiamToiDaVnd = computed({
   },
 });
 
-// v-model string cho "Đơn hàng tối thiểu"
 const donHangToiThieuVnd = computed({
   get() {
-    // 0 là hợp lệ => vẫn cho hiện 0
     return formatVndInput(form.value.donHangToiThieu, false);
   },
   set(v) {
@@ -449,12 +441,8 @@ function initPickers() {
   if (fpStart) fpStart.set("maxDate", form.value.ngayKetThuc ? parseYMD(form.value.ngayKetThuc) : null);
 }
 
-function openStartPicker() {
-  fpStart?.open();
-}
-function openEndPicker() {
-  fpEnd?.open();
-}
+function openStartPicker() { fpStart?.open(); }
+function openEndPicker() { fpEnd?.open(); }
 
 function clearStartDate() {
   form.value.ngayBatDau = "";
@@ -478,8 +466,9 @@ async function loadCustomers() {
   loadingCustomers.value = true;
   customersError.value = "";
   try {
-    const res = await axios.get(KH_API);
-    customers.value = Array.isArray(res.data) ? res.data : [];
+    const res = await http.get(KH_API);
+    const data = res?.data ?? res; // ✅ chắc chắn lấy đúng mảng
+    customers.value = Array.isArray(data) ? data : [];
   } catch (e) {
     customersError.value = e?.response?.data?.message || e?.message || "Không tải được khách hàng";
   } finally {
@@ -551,9 +540,7 @@ watch(
 );
 
 watch(personalQty, (n) => {
-  if (form.value.loaiPhieu === "CA_NHAN") {
-    form.value.soLuong = n;
-  }
+  if (form.value.loaiPhieu === "CA_NHAN") form.value.soLuong = n;
 });
 
 // ===== Validate + Submit =====
@@ -587,13 +574,11 @@ function validate() {
     if (form.value.donHangToiThieu > 0 && form.value.giaTriGiam > form.value.donHangToiThieu) {
       return "Tiền giảm không được vượt đơn hàng tối thiểu";
     }
-
+  } else {
+    if (form.value.donHangToiThieu > 0 && form.value.giaTriGiamToiDa > form.value.donHangToiThieu) {
+      return "Giảm tối đa không được vượt đơn hàng tối thiểu";
+    }
   }
-  if (form.value.loaiGiam) { // giảm %
-  if (form.value.donHangToiThieu > 0 && form.value.giaTriGiamToiDa > form.value.donHangToiThieu) {
-    return "Giảm tối đa không được vượt đơn hàng tối thiểu";
-  }
-}
 
   if (!isBlank(form.value.moTa) && String(form.value.moTa).length > 500) return "Mô tả tối đa 500 ký tự";
 
@@ -610,6 +595,7 @@ async function doCreate() {
     moTa: form.value.moTa,
     donHangToiThieu: form.value.donHangToiThieu,
     loaiPhieu: form.value.loaiPhieu === "CA_NHAN",
+    trangThai: true, // ✅ QUAN TRỌNG: để list không bị lọc mất
   };
 
   if (payload.loaiGiam) {
@@ -622,11 +608,9 @@ async function doCreate() {
     payload.giaTriGiamToiDa = null;
   }
 
-  if (payload.loaiPhieu === true) {
-    payload.khachHangIds = [...selectedCustomerIds.value];
-  }
+  if (payload.loaiPhieu === true) payload.khachHangIds = [...selectedCustomerIds.value];
 
-  await axios.post(`${API}/create`, payload);
+  await http.post(`${API}/create`, payload);
 }
 
 async function submit() {
@@ -654,22 +638,18 @@ async function submit() {
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick();
   initPickers();
 });
 
 onBeforeUnmount(() => {
-  try {
-    fpStart?.destroy();
-  } catch {}
-  try {
-    fpEnd?.destroy();
-  } catch {}
+  try { fpStart?.destroy(); } catch {}
+  try { fpEnd?.destroy(); } catch {}
 });
 </script>
 
 <style scoped>
-/* date-group giống update */
 .date-group .form-control {
   height: 38px !important;
   border-radius: 8px 0 0 8px !important;
@@ -682,29 +662,18 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 }
-.date-group .btn:not(:last-child) {
-  border-radius: 0 !important;
-}
-.date-group .btn:last-child {
-  border-radius: 0 8px 8px 0 !important;
-}
+.date-group .btn:not(:last-child) { border-radius: 0 !important; }
+.date-group .btn:last-child { border-radius: 0 8px 8px 0 !important; }
 
-/* nút confirm */
 .btn-confirm {
   background: #1d4ed8;
   border-color: #1d4ed8;
   color: #fff;
   font-weight: 700;
 }
-.btn-confirm:hover {
-  filter: brightness(0.95);
-}
-.btn-confirm:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-confirm:hover { filter: brightness(0.95); }
+.btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* KH list */
 .kh-box {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -722,10 +691,7 @@ onBeforeUnmount(() => {
   color: #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
 }
-.kh-body {
-  max-height: 360px;
-  overflow: auto;
-}
+.kh-body { max-height: 360px; overflow: auto; }
 .kh-row {
   display: grid;
   grid-template-columns: 44px 140px 1.6fr 160px 2fr;
@@ -734,12 +700,8 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #e5e7eb;
   align-items: center;
 }
-.kh-row:hover {
-  background: #f8fafc;
-}
-.kh-col {
-  min-width: 0;
-}
+.kh-row:hover { background: #f8fafc; }
+.kh-col { min-width: 0; }
 .kh-ellipsis {
   display: inline-block;
   max-width: 100%;
@@ -754,7 +716,6 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-/* modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -773,10 +734,9 @@ onBeforeUnmount(() => {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
 }
 .req{
-  color: #dc2626;          /* đỏ */
+  color: #dc2626;
   font-weight: 600;
   margin-left: 4px;
-   font-size: 14px; 
+  font-size: 14px;
 }
-
 </style>

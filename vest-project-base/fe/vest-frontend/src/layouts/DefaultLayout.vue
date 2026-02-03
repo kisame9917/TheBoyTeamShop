@@ -13,4 +13,5 @@
 <script setup>
 import AppSidebar from '../components/AppSidebar.vue'
 import AppTopbar from '../components/AppTopbar.vue'
+import { RouterView } from 'vue-router'
 </script>

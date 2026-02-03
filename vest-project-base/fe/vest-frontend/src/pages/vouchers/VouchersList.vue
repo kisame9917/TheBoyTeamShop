@@ -373,7 +373,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, onBeforeUnmount, nextTick } from "vue";
-import axios from "axios";
+import http from "@/services/http";
 import { useRouter, useRoute } from "vue-router";
 import * as XLSX from "xlsx";
 import { useToast } from "@/composables/useToast";
@@ -386,18 +386,42 @@ const router = useRouter();
 const route = useRoute();
 const toast = useToast();
 
-const API = "http://localhost:8080/api/pgg";
-const getAllPhieuGiamGia = async () => (await axios.get(API)).data;
+const API = "/api/pgg";
 
-// ===== UI state =====
+// =====================
+// UI state
+// =====================
 const loading = ref(false);
 const error = ref("");
 const items = ref([]);
 
-// ✅ đang xử lý switch theo id (tránh bấm spam)
 const togglingIds = ref(new Set());
 
-// ===== Confirm modal =====
+// =====================
+// helpers (QUAN TRỌNG)
+// =====================
+function toBool(v, defaultVal = true) {
+  if (v === null || v === undefined) return defaultVal;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v === 1;
+  const s = String(v).toLowerCase();
+  if (s === "true" || s === "1") return true;
+  if (s === "false" || s === "0") return false;
+  return defaultVal;
+}
+
+// ăn được: Array | {content: Array} | {data: Array} | {success,data} (nếu interceptor không unwrap)
+function extractList(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.content)) return raw.content;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (raw && typeof raw === "object" && raw.success === true && Array.isArray(raw.data)) return raw.data;
+  return [];
+}
+
+// =====================
+// Confirm modal
+// =====================
 const showConfirm = ref(false);
 const confirmText = ref("Bạn chắc chắn chứ?");
 const confirmLoading = ref(false);
@@ -428,7 +452,9 @@ async function confirmYes() {
   }
 }
 
-// ===== Filters =====
+// =====================
+// Filters
+// =====================
 const filters = reactive({
   keyword: "",
   loai: "",
@@ -438,11 +464,15 @@ const filters = reactive({
   to: "",
 });
 
-// ===== Pagination =====
+// =====================
+// Pagination
+// =====================
 const page = reactive({ page: 0, size: 10 });
 const pageInput = ref(1);
 
-// ===== Query sync =====
+// =====================
+// Query sync
+// =====================
 let applyingQuery = false;
 
 function buildListQuery() {
@@ -514,7 +544,6 @@ function onChangeSize() {
   syncQueryToUrl();
 }
 
-// navigation
 function goCreate() {
   router.push({ path: "/vouchers/create", query: buildListQuery() });
 }
@@ -522,7 +551,9 @@ function goEdit(id) {
   router.push({ path: `/vouchers/update/${id}`, query: buildListQuery() });
 }
 
-// ===== Date helpers =====
+// =====================
+// Date helpers
+// =====================
 function toDate(v) {
   if (!v) return null;
   const d = new Date(String(v));
@@ -545,7 +576,9 @@ function dateFromYMD(ymd, endOfDay = false) {
   return d;
 }
 
-// ===== Biz status =====
+// =====================
+// Biz status
+// =====================
 function getBizStatusText(v) {
   const start = toDate(v.ngayBatDau);
   const end = toDate(v.ngayKetThuc);
@@ -582,26 +615,33 @@ function isPersonal(v) {
   return String(lp || "").toUpperCase() === "CA_NHAN";
 }
 
-// ===== normalize =====
+// =====================
+// normalize (ÉP BOOL Ở ĐÂY)
+// =====================
 function normalizeRow(x) {
   return {
     ...x,
-    id: x.id,
+    id: x.id ?? x.idPgg ?? x.id_phieu_giam_gia ?? x.idPhieuGiamGia,
     loaiPhieu: x.loaiPhieu ?? x.loai_phieu ?? "CONG_KHAI",
     ngayBatDau: x.ngayBatDau ?? x.ngay_bat_dau ?? null,
     ngayKetThuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
     ngayTao: x.ngayTao ?? x.ngay_tao ?? null,
     maGiamGia: x.maGiamGia ?? x.ma_giam_gia ?? x.ma ?? null,
     tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia ?? null,
-    trangThai: x.trangThai ?? x.trang_thai ?? true,
-    loaiGiam: x.loaiGiam ?? x.loai_giam ?? true,
+
+    // ✅ quan trọng: ép bool để không bị filter rớt sạch
+    trangThai: toBool(x.trangThai ?? x.trang_thai, true),
+    loaiGiam: toBool(x.loaiGiam ?? x.loai_giam, true),
+
     giaTriPhanTram: x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? null,
     giaTriTienMat: x.giaTriTienMat ?? x.gia_tri_tien_mat ?? null,
     soLuong: x.soLuong ?? x.so_luong ?? 0,
   };
 }
 
-// ===== Filtering =====
+// =====================
+// Filtering
+// =====================
 const filteredItems = computed(() => {
   const kw = String(filters.keyword || "").trim().toLowerCase();
   const loai = String(filters.loai || "");
@@ -612,6 +652,7 @@ const filteredItems = computed(() => {
   const now = new Date();
 
   return (items.value || [])
+    // ✅ giờ trangThai đã boolean rồi
     .filter((v) => v.trangThai === true)
     .filter((v) => {
       if (!kw) return true;
@@ -676,7 +717,9 @@ const pagedItems = computed(() => {
   return sortedItems.value.slice(start, start + page.size);
 });
 
-// ===== Pagination =====
+// =====================
+// Pagination actions
+// =====================
 function setPage(p) {
   if (p < 0) return;
   if (totalPages.value && p > totalPages.value - 1) return;
@@ -693,7 +736,9 @@ function jumpPage() {
   syncQueryToUrl();
 }
 
-// ===== Money render =====
+// =====================
+// Money render
+// =====================
 function formatMoney(v) {
   const n = Number(v);
   if (Number.isNaN(n)) return String(v ?? "-");
@@ -709,12 +754,16 @@ function renderGiaTriGiamRow(v) {
   return formatMoney(money);
 }
 
-// ===== Switch APIs =====
+// =====================
+// APIs
+// =====================
+const getAllPhieuGiamGia = async () => await http.get(API);
+
 async function apiStartNow(id) {
-  await axios.put(`${API}/start/${id}`);
+  await http.put(`${API}/start/${id}`);
 }
 async function apiEndNow(id) {
-  await axios.put(`${API}/end-pgg/${id}`);
+  await http.put(`${API}/end-pgg/${id}`);
 }
 
 async function onToggleBiz(v, evt) {
@@ -780,13 +829,13 @@ async function onToggleBiz(v, evt) {
   }
 }
 
-/* =========================
-   ✅ CHỈ SỬA XUẤT EXCEL (GIỐNG TRANG SẢN PHẨM)
-   ========================= */
+// =====================
+// Export Excel (giữ nguyên của bạn)
+// =====================
 const exportMode = ref(false);
 const exporting = ref(false);
 const selectedIds = ref([]);
-const selectedRows = reactive({}); // id -> row
+const selectedRows = reactive({});
 
 function openExportMode() {
   exportMode.value = true;
@@ -823,10 +872,6 @@ function toggleSelectAllVisible(checked) {
   pagedItems.value.forEach((v) => toggleSelect(v, checked));
 }
 
-function safeName(s) {
-  return String(s ?? "").trim().slice(0, 60).replace(/[^\w\-]+/g, "_");
-}
-
 function toExcelRow(v) {
   return {
     "Mã giảm giá": v.maGiamGia ?? "",
@@ -841,57 +886,44 @@ function toExcelRow(v) {
   };
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
 async function exportSelectedToExcel() {
   if (selectedIds.value.length === 0) return;
 
   exporting.value = true;
   try {
-    // 1) Gom tất cả dòng đã chọn
-    const rows = selectedIds.value
-      .map((id) => selectedRows[id])
-      .filter(Boolean);
+    const rows = selectedIds.value.map((id) => selectedRows[id]).filter(Boolean);
 
-    // 2) Map sang format export
     const data = rows.map((v, i) => ({
-      "STT": i + 1,
+      STT: i + 1,
       ...toExcelRow(v),
     }));
 
-    // 3) Tạo worksheet + workbook (CHỈ 1 sheet)
     const ws = XLSX.utils.json_to_sheet(data);
-
-    // (Tuỳ chọn) set độ rộng cột cho dễ nhìn
     ws["!cols"] = [
-      { wch: 6 },   // STT
-      { wch: 16 },  // Mã giảm giá
-      { wch: 28 },  // Tên giảm giá
-      { wch: 12 },  // Loại phiếu
-      { wch: 12 },  // Loại giảm
-      { wch: 14 },  // Giá trị giảm
-      { wch: 10 },  // Số lượng
-      { wch: 14 },  // Ngày bắt đầu
-      { wch: 14 },  // Ngày kết thúc
-      { wch: 14 },  // Trạng thái
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
     ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "PhieuGiamGia");
 
-    // 4) Download 1 file duy nhất
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([buf], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-const pad2 = (n) => String(n).padStart(2, "0");
-const now = new Date();
-const stamp = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
-
-const fileName = `pgg_${stamp}.xlsx`;
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const now = new Date();
+    const stamp = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
+    const fileName = `pgg_${stamp}.xlsx`;
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -912,7 +944,9 @@ const fileName = `pgg_${stamp}.xlsx`;
   }
 }
 
-// ===== Flatpickr =====
+// =====================
+// Flatpickr
+// =====================
 const fromPickerRef = ref(null);
 const toPickerRef = ref(null);
 let fpFrom = null;
@@ -985,7 +1019,9 @@ watch(
   }
 );
 
-// ===== Reset =====
+// =====================
+// Reset
+// =====================
 function resetFilters() {
   filters.keyword = "";
   filters.loai = "";
@@ -1005,13 +1041,16 @@ function resetFilters() {
   syncQueryToUrl();
 }
 
-// ===== Load data =====
+// =====================
+// Load data (ĂN content/page)
+// =====================
 async function reload() {
   loading.value = true;
   error.value = "";
   try {
-    const data = await getAllPhieuGiamGia();
-    items.value = (Array.isArray(data) ? data : []).map(normalizeRow);
+    const raw = await getAllPhieuGiamGia();
+    const list = extractList(raw);
+    items.value = list.map(normalizeRow);
   } catch (e) {
     error.value = e?.response?.data?.message || e?.message || "Không tải được dữ liệu";
   } finally {
@@ -1019,7 +1058,9 @@ async function reload() {
   }
 }
 
-// ===== mount =====
+// =====================
+// mount/unmount
+// =====================
 onMounted(async () => {
   restoreFromQuery(route.query);
 
@@ -1043,6 +1084,8 @@ onBeforeUnmount(() => {
   } catch {}
 });
 </script>
+
+
 
 <style scoped>
 /* ===== Filter ===== */
