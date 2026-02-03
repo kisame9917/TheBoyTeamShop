@@ -60,6 +60,9 @@ springdoc:
     path: /swagger
 
 app:
+  jwt:
+    secret: "OxE9dflKsBIH917VexCS34OORwmhBrXBEayGplMkbtQ="
+    expiration-ms: 86400000
   upload-dir: D:/2_DATN/vest-project-base/uploads
   mail:
     from-name: VestShop

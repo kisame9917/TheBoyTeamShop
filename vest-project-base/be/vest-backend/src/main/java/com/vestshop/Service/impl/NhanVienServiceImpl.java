@@ -283,4 +283,11 @@ public class NhanVienServiceImpl implements NhanVienService {
         nv.setNgayCapNhat(LocalDateTime.now());
         return mapToResponse(nhanVienRepository.save(nv));
     }
+
+    @Override
+    public NhanVien findEntityByTaiKhoan(String taiKhoan) {
+        return nhanVienRepository.findByTaiKhoan(taiKhoan)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+    }
 }
