@@ -1,6 +1,7 @@
 package com.vestshop.Repository;
 
 import com.vestshop.Entity.NhanVien;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +13,7 @@ import java.util.Optional;
 public interface NhanVienRepository extends JpaRepository<NhanVien, Long> {
 
     Optional<NhanVien> findByMaNhanVien(String maNhanVien);
+    @EntityGraph(attributePaths = "quyenHan")
     Optional<NhanVien> findByTaiKhoan(String taiKhoan);
     Optional<NhanVien> findByEmail(String email);
     Optional<NhanVien> findByCccd(String cccd);
