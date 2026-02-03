@@ -23,18 +23,18 @@
         <div v-if="showNoti" class="dropdown">
           <div class="dropdown-head">
             <div class="dropdown-title">Thông báo</div>
-            <button class="link-btn" type="button" @click="markAllRead" :disabled="notifications.length === 0">
+            <button class="link-btn" type="button" @click="markAllRead" :disabled="notificationsLocal.length === 0">
               Đã đọc tất cả
             </button>
           </div>
 
-          <div v-if="notifications.length === 0" class="empty">
+          <div v-if="notificationsLocal.length === 0" class="empty">
             Không có thông báo.
           </div>
 
           <ul v-else class="list">
             <li
-              v-for="n in notifications"
+              v-for="n in notificationsLocal"
               :key="n.id"
               class="item"
               :class="{ unread: !n.read }"
@@ -63,7 +63,7 @@
         </div>
       </div>
 
-      <!-- Admin User (always) -->
+      <!-- User -->
       <div class="dd-wrap">
         <button class="user-btn" type="button" @click.stop="toggleUser">
           <span class="avatar">{{ initials }}</span>
@@ -87,9 +87,9 @@
 
           <div class="divider"></div>
 
-          <!-- tạm thời chỉ là nút demo -->
-          <button class="menu danger" type="button" @click="fakeLogout">
-            Đăng xuất (demo)
+          <!-- ✅ Logout thật -->
+          <button class="menu danger" type="button" @click="logout">
+            Đăng xuất
           </button>
         </div>
       </div>
@@ -98,39 +98,66 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
-
-  // demo thông báo (sau này bạn thay bằng API)
   notifications: {
     type: Array,
     default: () => ([
-      { id: 1, title: 'Có đơn hàng mới', time: 'Vừa xong', read: false, link: '/admin/orders' },
-      { id: 2, title: 'Phiếu giảm giá sắp hết hạn', time: 'Hôm nay', read: true, link: '/admin/vouchers' }
+      { id: 1, title: 'Có đơn hàng mới', time: 'Vừa xong', read: false, link: '/app/orders' },
+      { id: 2, title: 'Phiếu giảm giá sắp hết hạn', time: 'Hôm nay', read: true, link: '/app/vouchers' }
     ])
   }
 })
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
-// Admin hard-code (sau này bạn thay bằng authen)
-const admin = ref({
-  name: 'Admin',
-  email: 'admin@vestshop.local'
+// ===== Role helper =====
+const role = computed(() => {
+  // ưu tiên lấy từ store nếu có
+  const storeRole = auth?.role
+  if (storeRole) return String(storeRole).toUpperCase()
+
+  // fallback localStorage (đổi key nếu bạn dùng key khác)
+  const lsRole = localStorage.getItem('role') || localStorage.getItem('vest_role') || ''
+  return String(lsRole).toUpperCase()
 })
+
+const displayNameByRole = computed(() => (role.value === 'STAFF' ? 'Staff' : 'Admin'))
+
+// Title hiển thị
+const resolvedTitle = computed(() => props.title || route.meta?.title || 'Vest Shop')
+
+// User hiển thị
+const admin = ref({
+  name: displayNameByRole.value,
+  email: role.value === 'STAFF' ? 'staff@vestshop.local' : 'admin@vestshop.local'
+})
+
+// Khi role thay đổi (login/logout), update lại user hiển thị
+watch(displayNameByRole, (name) => {
+  admin.value.name = name
+  admin.value.email = role.value === 'STAFF' ? 'staff@vestshop.local' : 'admin@vestshop.local'
+})
+
+// copy notifications để có thể mark read mà không mutate props trực tiếp
+const notificationsLocal = ref([...props.notifications])
+watch(
+  () => props.notifications,
+  (val) => (notificationsLocal.value = [...(val || [])]),
+  { deep: true }
+)
 
 const showNoti = ref(false)
 const showUser = ref(false)
 
-/** ====== TIME (Kiểu 1) ======
- * Ví dụ: "Thứ Sáu, 30/01/2026 • 14:05"
- * Cập nhật mỗi phút
- */
+// ===== TIME =====
 const now = ref(new Date())
 let timer
 
@@ -145,7 +172,6 @@ onBeforeUnmount(() => {
   clearInterval(timer)
   document.removeEventListener('click', closeAll)
 })
-
 
 const resolvedSubtitle = computed(() => {
   if (props.subtitle) return props.subtitle
@@ -167,10 +193,10 @@ const resolvedSubtitle = computed(() => {
   return `${datePart} • ${timePart}`
 })
 
-const unreadCount = computed(() => props.notifications.filter(n => !n.read).length)
+const unreadCount = computed(() => notificationsLocal.value.filter(n => !n.read).length)
 
 const initials = computed(() => {
-  const name = admin.value.name.trim() || 'AD'
+  const name = (admin.value.name || '').trim() || 'AD'
   const parts = name.split(/\s+/).slice(0, 2)
   return parts.map(p => p[0]?.toUpperCase()).join('')
 })
@@ -190,11 +216,11 @@ function closeAll() {
 }
 
 function markRead(id) {
-  const n = props.notifications.find(x => x.id === id)
+  const n = notificationsLocal.value.find(x => x.id === id)
   if (n) n.read = true
 }
 function markAllRead() {
-  props.notifications.forEach(n => (n.read = true))
+  notificationsLocal.value.forEach(n => (n.read = true))
 }
 
 function openNoti(n) {
@@ -203,9 +229,11 @@ function openNoti(n) {
   if (n.link) router.push(n.link)
 }
 
-function fakeLogout() {
+// Logout
+function logout() {
   closeAll()
-  alert('Demo: sau này bạn nối authentication/authorization vào đây.')
+  auth.logout()
+  router.replace('/login')
 }
 </script>
 

@@ -2,53 +2,67 @@
   <aside class="sidebar d-flex flex-column bg-white border-end">
     <!-- Logo -->
     <div class="brand-box p-3 border-bottom text-center">
-  <img
-    src="../images/logo.jpg"
-    alt="TheBoyTeam Logo"
-    class="brand-logo img-fluid"
-  />
+      <img
+        src="../images/logo.jpg"
+        alt="TheBoyTeam Logo"
+        class="brand-logo img-fluid"
+      />
 
-  <div class="brand-text mt-2">
-    <div class="brand-name">
-      <span class="brand-strong">TheBoyTeam</span>
+      <div class="brand-text mt-2">
+        <div class="brand-name">
+          <span class="brand-strong">TheBoyTeam</span>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-
 
     <!-- Nav -->
     <nav class="p-2 flex-grow-1">
-      <!-- Trang chủ -->
+      <!-- Trang chủ (role-based) -->
       <RouterLink
-        to="/"
+  to="/dashboard"
+  class="nav-link-item"
+  active-class="active"
+  exact-active-class="active"
+>
+  <i class="bi bi-house-door icon"></i>
+  <span class="label">Trang Chủ</span>
+</RouterLink>
+
+      <!-- ADMIN only: Thống kê -->
+      <RouterLink
+        v-if="isAdmin"
+        to="/statistic"
         class="nav-link-item"
         active-class="active"
-        exact-active-class="active"
       >
-        <i class="bi bi-house-door icon"></i>
-        <span class="label">Trang Chủ</span>
-      </RouterLink>
-
-      <!-- Placeholder -->
-      <RouterLink to="/statistic" class="nav-link-item" active-class="active">
         <i class="bi bi-bar-chart icon"></i>
         <span class="label">Thống kê</span>
       </RouterLink>
 
+      <!-- STAFF + ADMIN -->
       <RouterLink to="/sales" class="nav-link-item" active-class="active">
         <i class="bi bi-cart3 icon"></i>
         <span class="label">Bán Hàng</span>
       </RouterLink>
 
-
-      <!-- Orders -->
       <RouterLink to="/orders" class="nav-link-item" active-class="active">
         <i class="bi bi-receipt-cutoff icon"></i>
         <span class="label">Hóa đơn</span>
       </RouterLink>
 
-      <!-- Group: Products -->
-      <div class="nav-group">
+      <!-- STAFF + ADMIN: Khách hàng (staff chỉ thấy cái này trong "Tài khoản") -->
+      <RouterLink
+        v-if="isStaff"
+        to="/customers"
+        class="nav-link-item"
+        active-class="active"
+      >
+        <i class="bi bi-person-lines-fill icon"></i>
+        <span class="label">Khách hàng</span>
+      </RouterLink>
+
+      <!-- ADMIN only: Group Products -->
+      <div v-if="isAdmin" class="nav-group">
         <button
           type="button"
           class="nav-link-item w-100 justify-content-between"
@@ -74,8 +88,8 @@
         </div>
       </div>
 
-      <!-- Group: Attributes -->
-      <div class="nav-group">
+      <!-- ADMIN only: Group Attributes -->
+      <div v-if="isAdmin" class="nav-group">
         <button
           type="button"
           class="nav-link-item w-100 justify-content-between"
@@ -96,7 +110,7 @@
           <RouterLink to="/attributes/thuong-hieu" class="sub-link" active-class="active-sub">
             <i class="bi bi-award sub-icon"></i> Thương hiệu
           </RouterLink>
-           <RouterLink to="/attributes/so-khuy" class="sub-link" active-class="active-sub">
+          <RouterLink to="/attributes/so-khuy" class="sub-link" active-class="active-sub">
             <i class="bi bi-circle-square sub-icon"></i> Số khuy
           </RouterLink>
           <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">
@@ -108,40 +122,37 @@
           <RouterLink to="/attributes/xe-ta" class="sub-link" active-class="active-sub">
             <i class="bi bi-scissors sub-icon"></i> Xẻ tà
           </RouterLink>
-           <RouterLink to="/attributes/xuat-xu" class="sub-link" active-class="active-sub">
+          <RouterLink to="/attributes/xuat-xu" class="sub-link" active-class="active-sub">
             <i class="bi bi-globe-asia-australia sub-icon"></i> Xuất xứ
           </RouterLink>
-           <RouterLink to="/attributes/fit" class="sub-link" active-class="active-sub">
+          <RouterLink to="/attributes/fit" class="sub-link" active-class="active-sub">
             <i class="bi bi-person-arms-up sub-icon"></i> Kiểu dáng
           </RouterLink>
           <RouterLink to="/attributes/chat-lieu" class="sub-link" active-class="active-sub">
             <i class="bi bi-layers sub-icon"></i> Chất liệu
           </RouterLink>
-      
-        
-<!--          <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">-->
-<!--            <i class="bi bi-handbag sub-icon"></i> Kiểu túi-->
-<!--          </RouterLink>-->
-         
-            <RouterLink to="/attributes/mau-sac" class="sub-link" active-class="active-sub">
+          <RouterLink to="/attributes/mau-sac" class="sub-link" active-class="active-sub">
             <i class="bi bi-palette sub-icon"></i> Màu sắc
           </RouterLink>
-          
           <RouterLink to="/attributes/kich-co" class="sub-link" active-class="active-sub">
             <i class="bi bi-rulers sub-icon"></i> Kích cỡ
           </RouterLink>
-        
         </div>
       </div>
 
-      <!-- Vouchers -->
-      <RouterLink to="/vouchers" class="nav-link-item" active-class="active">
+      <!-- ADMIN only: Vouchers -->
+      <RouterLink
+        v-if="isAdmin"
+        to="/vouchers"
+        class="nav-link-item"
+        active-class="active"
+      >
         <i class="bi bi-ticket-perforated icon"></i>
         <span class="label">Phiếu Giảm giá</span>
       </RouterLink>
 
-      <!-- Group: Accounts -->
-      <div class="nav-group">
+      <!-- ADMIN only: Group Accounts -->
+      <div v-if="isAdmin" class="nav-group">
         <button
           type="button"
           class="nav-link-item w-100 justify-content-between"
@@ -168,11 +179,29 @@
   </aside>
 </template>
 
-<script setup>import { reactive, watch } from "vue";
+<script setup>
+import { reactive, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
+
+/** lấy role robust: store -> localStorage */
+const role = computed(() => {
+  const r = (auth.role || localStorage.getItem("role") || localStorage.getItem("vest_role") || "").toUpperCase();
+  if (r) return r;
+  if (auth.isAdmin) return "ADMIN";
+  if (auth.isAuthenticated) return "STAFF";
+  return "";
+});
+
+const isAdmin = computed(() => role.value === "ADMIN");
+const isStaff = computed(() => role.value === "STAFF");
+
+/** Trang chủ role-based */
+const homePath = computed(() => "/dashboard");
 
 const openGroups = reactive({
   products: false,
@@ -184,7 +213,7 @@ function closeAllGroups() {
   Object.keys(openGroups).forEach((k) => (openGroups[k] = false));
 }
 
-// route mặc định khi bấm vào group
+// route mặc định khi bấm vào group (ADMIN only)
 const groupDefaultRoute = {
   products: "/products",
   attributes: "/attributes/thuong-hieu",
@@ -192,12 +221,14 @@ const groupDefaultRoute = {
 };
 
 async function toggleGroup(key) {
+  // STAFF không có group (phòng trường hợp vẫn gọi được)
+  if (!isAdmin.value) return;
+
   const isOpening = !openGroups[key];
 
   closeAllGroups();
   openGroups[key] = isOpening;
 
-  // QUAN TRỌNG: nếu đang mở group => chuyển route sang group đó
   if (isOpening) {
     const target = groupDefaultRoute[key];
     if (target && route.path !== target) {
@@ -206,28 +237,28 @@ async function toggleGroup(key) {
   }
 }
 
-/** Mở đúng group theo route hiện tại */
+/** Mở đúng group theo route hiện tại (ADMIN only) */
 function syncGroupsWithRoute() {
   closeAllGroups();
-  const p = route.path;
+  if (!isAdmin.value) return;
 
+  const p = route.path;
   if (p.startsWith("/products") || p.startsWith("/variants")) openGroups.products = true;
   else if (p.startsWith("/attributes")) openGroups.attributes = true;
   else if (p.startsWith("/staff") || p.startsWith("/customers")) openGroups.accounts = true;
 }
 
 watch(() => route.path, syncGroupsWithRoute, { immediate: true });
-
 </script>
+
 <style scoped>
 /* ===== Sidebar ===== */
 .sidebar{
   position: sticky;
-  top: 0;                 /* dính lên trên */
-  height: 100vh;          /* cao full màn hình */
-  overflow-y: auto;       /* menu dài thì sidebar tự cuộn */
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
-
 
 /* ===== Menu item (cha) ===== */
 .nav-link-item{
@@ -259,7 +290,6 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   opacity: .85;
 }
 
-/* Hover/focus (cha) */
 .nav-link-item:is(:hover, :focus-visible){
   background: rgba(41,84,184,0.08);
   color:#1f2a44;
@@ -344,7 +374,7 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 }
 
 .sub-link:hover{
-  background: rgba(41,84,184,0.08);          /* ✅ đồng bộ hover */
+  background: rgba(41,84,184,0.08);
   color:#1f2a44;
   border-color: rgba(41,84,184,0.16);
 }
@@ -361,14 +391,13 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 
 /* Active sub (con) */
 .sub-link.active-sub{
-  background: rgba(41,84,184,0.12);          /* ✅ active nhạt */
-  color:#2954b8;                             /* ✅ chữ xanh đậm cùng tông */
+  background: rgba(41,84,184,0.12);
+  color:#2954b8;
   font-weight: 700;
   border-color: rgba(41,84,184,0.22);
   position: relative;
 }
 
-/* indicator cho sub active */
 .sub-link.active-sub::before{
   content:"";
   position:absolute;
@@ -388,21 +417,14 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   border-radius: 999px;
   border: 3px solid #fff;
 }
-.sidebar{
-  position: sticky;
-  top: 0;                 /* dính lên trên */
-  height: 100vh;          /* cao full màn hình */
-  overflow-y: auto;       /* menu dài thì sidebar tự cuộn */
-}
+
+/* Brand */
 .brand-box{
-  padding-top: px !important;
+  padding-top: 18px !important;   /* sửa lỗi "padding-top: px" */
   padding-bottom: 18px !important;
 }
 
-
-.brand-text{
-  line-height: 1.1;
-}
+.brand-text{ line-height: 1.1; }
 
 .brand-name{
   font-size: 25px;
@@ -410,9 +432,7 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   letter-spacing: 0.4px;
 }
 
-.brand-strong{
-  color:#0f172a;          /* đen-xanh sang */
-}
+.brand-strong{ color:#0f172a; }
 
 .brand-tagline{
   margin-top: 6px;
@@ -422,5 +442,4 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   letter-spacing: 1.2px;
   text-transform: uppercase;
 }
-
 </style>
