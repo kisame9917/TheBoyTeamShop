@@ -19,6 +19,6 @@ app.use(router)
 
 // hydrate sau khi pinia đã active
 const auth = useAuthStore()
-auth.hydrate()
+useAuthStore().hydrate()
 
 app.mount('#app')

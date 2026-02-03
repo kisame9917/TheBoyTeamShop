@@ -32,7 +32,7 @@ import { useAuthStore } from "../stores/auth";
 const routes = [
   {
     path: "/",
-    redirect: () => (localStorage.getItem("vest_token") ? "/dashboard" : "/login"),
+    redirect: "/login",
   },
 
   {
@@ -106,7 +106,7 @@ router.beforeEach((to) => {
   if (requiresAuth && !auth.isAuthenticated) return { name: "login" };
 
   // đã login mà vào login => về dashboard
-  if (to.name === "login" && auth.isAuthenticated) return { name: "dashboard" };
+  // if (to.name === "login" && auth.isAuthenticated) return { name: "dashboard" };
 
   // role check theo meta.roles
   const role = (auth.role || localStorage.getItem("role") || "").toUpperCase(); // tuỳ bạn lưu role ở đâu
