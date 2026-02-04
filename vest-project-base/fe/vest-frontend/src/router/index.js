@@ -9,6 +9,7 @@ import Login from "../pages/auth/Login.vue";
 // ✅ thêm 2 page auth mới
 import ForgotPassword from "../pages/auth/ForgotPassword.vue";
 import ResetPasswordOtp from "../pages/auth/ResetPasswordOtp.vue";
+import OtpVerify from "../pages/auth/OtpVerify.vue";
 
 import ProductsList from "../pages/products/ProductsList.vue";
 import ProductDetail from "../pages/products/ProductDetail.vue";
@@ -69,7 +70,11 @@ const routes = [
       { path: "", name: "reset-password", component: ResetPasswordOtp, meta: { public: true } },
     ],
   },
-
+{
+  path: "/otp",
+  component: BlankLayout,
+  children: [{ path: "", name: "otp", component: OtpVerify, meta: { public: true } }],
+},
   // ====== APP (Private) ======
   {
     path: "/",
