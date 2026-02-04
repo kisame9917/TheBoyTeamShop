@@ -67,3 +67,6 @@ app:
   mail:
     from-name: VestShop
 
+
+  otp:
+    secret=VESTSHOP_OTP_SECRET_CHANGE_ME_2026:
