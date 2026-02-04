@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/hoa-don/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/auth/forgot-password-otp", "/api/auth/reset-password-otp").permitAll()
 
                         // còn lại: ADMIN
                         .anyRequest().hasRole("ADMIN")
