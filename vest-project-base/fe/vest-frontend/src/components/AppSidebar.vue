@@ -218,7 +218,6 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
-/** lấy role robust: store -> localStorage */
 const role = computed(() => {
   const r = (auth.role || localStorage.getItem("role") || localStorage.getItem("vest_role") || "").toUpperCase();
   if (r) return r;
@@ -230,20 +229,19 @@ const role = computed(() => {
 const isAdmin = computed(() => role.value === "ADMIN");
 const isStaff = computed(() => role.value === "STAFF");
 
-/** Trang chủ role-based */
-const homePath = computed(() => "/dashboard");
-
+// ✅ thêm shifts
 const openGroups = reactive({
   products: false,
   attributes: false,
   accounts: false,
+  shifts: false,
 });
 
 function closeAllGroups() {
   Object.keys(openGroups).forEach((k) => (openGroups[k] = false));
 }
 
-// route mặc định khi bấm vào group (ADMIN only)
+// route mặc định cho ADMIN
 const groupDefaultRoute = {
   products: "/products",
   attributes: "/attributes/thuong-hieu",
@@ -251,43 +249,43 @@ const groupDefaultRoute = {
 };
 
 async function toggleGroup(key) {
-  // STAFF không có group (phòng trường hợp vẫn gọi được)
-  if (!isAdmin.value) return;
-
   const isOpening = !openGroups[key];
 
   closeAllGroups();
   openGroups[key] = isOpening;
 
-  if (isOpening) {
-    const target = groupDefaultRoute[key];
-    if (target && route.path !== target) {
-      await router.push(target);
-    }
+  if (!isOpening) return;
+
+  // ✅ Shifts: STAFF cũng được mở
+  if (key === "shifts") {
+    const target = isAdmin.value ? "/shift-templates" : "/my-schedule";
+    if (route.path !== target) await router.push(target);
+    return;
+  }
+
+  // các group khác: ADMIN only
+  if (!isAdmin.value) return;
+
+  const target = groupDefaultRoute[key];
+  if (target && route.path !== target) {
+    await router.push(target);
   }
 }
 
-/** Mở đúng group theo route hiện tại (ADMIN only) */
 function syncGroupsWithRoute() {
   closeAllGroups();
-  if (!isAdmin.value) return;
 
   const p = route.path;
+
   if (p.startsWith("/products") || p.startsWith("/variants")) openGroups.products = true;
   else if (p.startsWith("/attributes")) openGroups.attributes = true;
   else if (p.startsWith("/staff") || p.startsWith("/customers")) openGroups.accounts = true;
-  else if (
-      p.includes("/shift") ||        // Khớp /shift-templates, /shift-scheduler
-      p.includes("/my-schedule") ||  // Khớp /my-schedule
-      p.includes("/ca-lam-viec")     // Dự phòng
-  ) {
-    closeAllGroups();
-    openGroups.shifts = true;
-  }
+  else if (p.includes("/shift") || p.includes("/my-schedule") || p.includes("/ca-lam-viec")) openGroups.shifts = true;
 }
 
 watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 </script>
+
 
 <style scoped>
 /* ===== Sidebar ===== */
