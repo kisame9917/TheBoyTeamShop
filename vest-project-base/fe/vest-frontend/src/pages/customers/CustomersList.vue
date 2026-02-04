@@ -17,7 +17,7 @@
           <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
         </button>
 
-        <button class="btn btn-primary btn-sm text-white" type="button" @click="goCreate" title="Thêm mới">
+        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goCreate" title="Thêm mới">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>

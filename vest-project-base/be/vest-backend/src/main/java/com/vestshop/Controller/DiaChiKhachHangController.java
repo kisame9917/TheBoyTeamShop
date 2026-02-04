@@ -5,6 +5,7 @@ import com.vestshop.Entity.KhachHang;
 import com.vestshop.Exception.ApiException;
 import com.vestshop.Repository.DiaChiKhachHangRepository;
 import com.vestshop.Repository.KhachHangRepository;
+import com.vestshop.dto.response.DiaChiKhachHangResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,21 +22,39 @@ public class DiaChiKhachHangController {
     private final KhachHangRepository khachHangRepository;
     private final DiaChiKhachHangRepository diaChiKhachHangRepository;
 
-    // ========= LIST =========
+    private DiaChiKhachHangResponse map(DiaChiKhachHang d) {
+        if (d == null) return null;
+        return DiaChiKhachHangResponse.builder()
+                .id(d.getId())
+                .idKhachHang(d.getKhachHang() != null ? d.getKhachHang().getId() : null)
+                .tenNguoiNhan(d.getTenNguoiNhan())
+                .soDienThoai(d.getSoDienThoai())
+                .diaChiChiTiet(d.getDiaChiChiTiet())
+                .phuongXa(d.getPhuongXa())
+                .quanHuyen(d.getQuanHuyen())
+                .tinhThanh(d.getTinhThanh())
+                .quocGia(d.getQuocGia())
+                .laMacDinh(d.getLaMacDinh())
+                .trangThai(d.getTrangThai())
+                .build();
+    }
+
+    // ========= LIST (chỉ lấy địa chỉ còn hoạt động) =========
     @GetMapping({"", "/"})
     @Transactional(readOnly = true)
-    public List<DiaChiKhachHang> list(@PathVariable Long khId) {
-        // đảm bảo KH tồn tại
+    public List<DiaChiKhachHangResponse> list(@PathVariable Long khId) {
         khachHangRepository.findById(khId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + khId));
 
-        return diaChiKhachHangRepository.findByKhachHangIdOrderByLaMacDinhDescIdDesc(khId);
+        return diaChiKhachHangRepository
+                .findByKhachHangIdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(khId)
+                .stream().map(this::map).toList();
     }
 
     // ========= CREATE =========
     @PostMapping({"", "/"})
     @Transactional
-    public DiaChiKhachHang create(@PathVariable Long khId, @RequestBody DiaChiKhachHang body) {
+    public DiaChiKhachHangResponse create(@PathVariable Long khId, @RequestBody DiaChiKhachHang body) {
         KhachHang kh = khachHangRepository.findById(khId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy khách hàng ID: " + khId));
 
@@ -44,21 +63,22 @@ public class DiaChiKhachHangController {
 
         applyBody(dc, body, true);
 
-        // mặc định
         if (Boolean.TRUE.equals(dc.getLaMacDinh())) {
             diaChiKhachHangRepository.clearDefaultByKhachHangId(khId);
             dc.setLaMacDinh(true);
         }
 
-        return diaChiKhachHangRepository.save(dc);
+        return map(diaChiKhachHangRepository.save(dc));
     }
 
-    // ========= UPDATE =========
-    // ✅ hỗ trợ cả "/{dcId}" và "/{dcId}/" (fix đúng lỗi ảnh)
+    // ========= UPDATE (chỉ update địa chỉ còn hoạt động) =========
     @PutMapping({"/{dcId}", "/{dcId}/"})
     @Transactional
-    public DiaChiKhachHang update(@PathVariable Long khId, @PathVariable Long dcId, @RequestBody DiaChiKhachHang body) {
-        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHangId(dcId, khId)
+    public DiaChiKhachHangResponse update(@PathVariable Long khId,
+                                          @PathVariable Long dcId,
+                                          @RequestBody DiaChiKhachHang body) {
+
+        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHangIdAndTrangThaiTrue(dcId, khId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy địa chỉ ID: " + dcId));
 
         applyBody(dc, body, false);
@@ -68,27 +88,40 @@ public class DiaChiKhachHangController {
             dc.setLaMacDinh(true);
         }
 
-        return diaChiKhachHangRepository.save(dc);
+        return map(diaChiKhachHangRepository.save(dc));
     }
 
     // ========= DELETE (soft delete) =========
     @DeleteMapping({"/{dcId}", "/{dcId}/"})
     @Transactional
     public void delete(@PathVariable Long khId, @PathVariable Long dcId) {
-        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHangId(dcId, khId)
+
+        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHangIdAndTrangThaiTrue(dcId, khId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy địa chỉ ID: " + dcId));
 
-        // soft delete để an toàn
+        boolean wasDefault = Boolean.TRUE.equals(dc.getLaMacDinh());
+
         dc.setTrangThai(false);
         dc.setLaMacDinh(false);
         diaChiKhachHangRepository.save(dc);
+
+        // Nếu xóa địa chỉ mặc định → set mặc định mới (lấy địa chỉ mới nhất còn hoạt động)
+        if (wasDefault) {
+            diaChiKhachHangRepository.findFirstByKhachHangIdAndTrangThaiTrueOrderByIdDesc(khId)
+                    .ifPresent(next -> {
+                        diaChiKhachHangRepository.clearDefaultByKhachHangId(khId);
+                        next.setLaMacDinh(true);
+                        diaChiKhachHangRepository.save(next);
+                    });
+        }
     }
 
     // ========= SET DEFAULT =========
     @PutMapping({"/{dcId}/mac-dinh", "/{dcId}/mac-dinh/"})
     @Transactional
     public void setDefault(@PathVariable Long khId, @PathVariable Long dcId) {
-        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHangId(dcId, khId)
+
+        DiaChiKhachHang dc = diaChiKhachHangRepository.findByIdAndKhachHangIdAndTrangThaiTrue(dcId, khId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy địa chỉ ID: " + dcId));
 
         diaChiKhachHangRepository.clearDefaultByKhachHangId(khId);
@@ -105,10 +138,8 @@ public class DiaChiKhachHangController {
         target.setTinhThanh(body.getTinhThanh());
         target.setQuocGia(body.getQuocGia() != null ? body.getQuocGia() : "Việt Nam");
 
-        // nếu FE không gửi thì default true
         target.setTrangThai(body.getTrangThai() != null ? body.getTrangThai() : Boolean.TRUE);
 
-        // create: nếu không gửi mặc định thì false
         if (isCreate) {
             target.setLaMacDinh(body.getLaMacDinh() != null ? body.getLaMacDinh() : Boolean.FALSE);
         } else if (body.getLaMacDinh() != null) {

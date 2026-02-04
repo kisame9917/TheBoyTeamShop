@@ -3,6 +3,8 @@ package com.vestshop.Entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 @Getter
 @Setter
@@ -12,6 +14,8 @@ import lombok.*;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name="dia_chi_khach_hang")
+@SQLDelete(sql = "UPDATE dia_chi_khach_hang SET trang_thai = 0, la_mac_dinh = 0 WHERE id = ?")
+@Where(clause = "trang_thai = 1")
 public class DiaChiKhachHang {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

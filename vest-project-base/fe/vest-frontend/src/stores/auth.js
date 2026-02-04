@@ -34,6 +34,7 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (s) => !!normalizeToken(s.token),
     isAdmin: (s) => normalizeRole(s.role) === 'ADMIN',
     isStaff: (s) => normalizeRole(s.role) === 'STAFF',
+    userId: (s) => s.user?.id || null,
   },
 
   actions: {
@@ -57,7 +58,12 @@ export const useAuthStore = defineStore('auth', {
 
       this.token = token
       this.role = role
-      this.user = { taiKhoan, role }
+      // this.user = { taiKhoan, role }
+      this.user = {
+        ...payload,       // Lấy hết các trường (id, tenNhanVien, email...)
+        taiKhoan,         // Đảm bảo có tài khoản
+        role              // Đảm bảo có role chuẩn
+      }
 
       localStorage.setItem(TOKEN_KEY, token)
       localStorage.setItem(ROLE_KEY, role)

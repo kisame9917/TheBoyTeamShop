@@ -23,6 +23,12 @@ public interface DiaChiKhachHangRepository extends JpaRepository<DiaChiKhachHang
 
     Optional<DiaChiKhachHang> findByIdAndKhachHangId(Long id, Long khachHangId);
 
+    List<DiaChiKhachHang> findByKhachHangIdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(Long khachHangId);
+
+    Optional<DiaChiKhachHang> findByIdAndKhachHangIdAndTrangThaiTrue(Long id, Long khachHangId);
+
+    Optional<DiaChiKhachHang> findFirstByKhachHangIdAndTrangThaiTrueOrderByIdDesc(Long khachHangId);
+
     @Modifying
     @Query("UPDATE DiaChiKhachHang d SET d.laMacDinh = false WHERE d.khachHang.id = :khachHangId")
     void clearDefaultByKhachHangId(@Param("khachHangId") Long khachHangId);

@@ -140,7 +140,37 @@
         </div>
       </div>
 
-      <!-- ADMIN only: Vouchers -->
+      <div class="nav-group">
+        <button
+            type="button"
+            class="nav-link-item w-100 justify-content-between"
+            @click="toggleGroup('shifts')"
+            :class="{ active: openGroups.shifts }"
+        >
+    <span class="d-flex align-items-center gap-2">
+      <i class="bi bi-calendar-week icon"></i>
+      <span class="label">Lịch làm việc</span>
+    </span>
+          <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.shifts }"></i>
+        </button>
+
+        <div v-if="openGroups.shifts" class="sub-wrap">
+
+          <RouterLink v-if="isAdmin" to="/shift-templates" class="sub-link" active-class="active-sub">
+            <i class="bi bi-calendar2 sub-icon"></i> Ca làm việc
+          </RouterLink>
+
+          <RouterLink v-if="isAdmin" to="/shift-scheduler" class="sub-link" active-class="active-sub">
+            <i class="bi bi-calendar-check sub-icon"></i> Lịch nhân viên
+          </RouterLink>
+
+          <RouterLink to="/my-schedule" class="sub-link" active-class="active-sub">
+            <i class="bi bi-calendar-fill sub-icon"></i> Lịch của tôi
+          </RouterLink>
+
+        </div>
+      </div>
+
       <RouterLink
         v-if="isAdmin"
         to="/vouchers"
@@ -246,6 +276,14 @@ function syncGroupsWithRoute() {
   if (p.startsWith("/products") || p.startsWith("/variants")) openGroups.products = true;
   else if (p.startsWith("/attributes")) openGroups.attributes = true;
   else if (p.startsWith("/staff") || p.startsWith("/customers")) openGroups.accounts = true;
+  else if (
+      p.includes("/shift") ||        // Khớp /shift-templates, /shift-scheduler
+      p.includes("/my-schedule") ||  // Khớp /my-schedule
+      p.includes("/ca-lam-viec")     // Dự phòng
+  ) {
+    closeAllGroups();
+    openGroups.shifts = true;
+  }
 }
 
 watch(() => route.path, syncGroupsWithRoute, { immediate: true });

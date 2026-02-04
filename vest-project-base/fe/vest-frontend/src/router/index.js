@@ -23,6 +23,10 @@ import VouchersList from "../pages/vouchers/VouchersList.vue";
 import VoucherCreate from "../pages/vouchers/VoucherCreate.vue";
 import VoucherUpdate from "../pages/vouchers/VoucherUpdate.vue";
 
+import ShiftTemplateList from '@/pages/shifts/ShiftTemplateList.vue';
+import ShiftScheduler from '@/pages/shifts/ShiftScheduler.vue';
+import MySchedule from '@/pages/shifts/MySchedule.vue';
+
 import Statistic from "@/pages/statistic/Statistic.vue";
 import PaymentsList from "../pages/payments/PaymentsList.vue";
 import NotFound from "../pages/notfound/NotFound.vue";
@@ -65,6 +69,9 @@ const routes = [
       { path: "products/edit/:id", name: "product-edit", component: () => import("../pages/products/ProductAdd.vue"), props: true, meta: { roles: ["ADMIN"] } },
       { path: "products/:id", name: "product-detail", component: ProductDetail, props: true, meta: { roles: ["ADMIN"] } },
 
+      { path: 'shift-templates', name: 'shift-templates', component: ShiftTemplateList, meta: { roles: ["ADMIN"] }},
+      { path: 'shift-scheduler', name: 'shift-scheduler', component: ShiftScheduler, meta: { roles: ["ADMIN"] }},
+      { path: 'my-schedule', name: 'my-schedule', component: MySchedule, meta: { roles: ["ADMIN", "STAFF"] }},
       { path: "variants", name: "variants-list", component: () => import("../pages/products/VariantList.vue"), meta: { roles: ["ADMIN"] } },
       {
         path: "attributes/:type",
