@@ -1296,14 +1296,14 @@ function chooseCustomer(c) {
   box-shadow: 0 0 0 0.12rem rgba(31, 42, 68, 0.12) !important;
 }
 
-/* Active hover vẫn đảo màu giống yêu cầu */
+
 .nav-pills .nav-link.order-tab.active:hover {
   color: #ffffff !important;
   background: #1f2a44 !important;
   border-color: #1f2a44 !important;
 }
 
-/* nút X */
+
 .order-tab .tab-x {
   color: #1f2a44;
   opacity: 0.85;
