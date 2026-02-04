@@ -6,6 +6,10 @@ import BlankLayout from "../layouts/BlankLayout.vue";
 import Dashboard from "../pages/Dashboard.vue";
 import Login from "../pages/auth/Login.vue";
 
+// ✅ thêm 2 page auth mới
+import ForgotPassword from "../pages/auth/ForgotPassword.vue";
+import ResetPasswordOtp from "../pages/auth/ResetPasswordOtp.vue";
+
 import ProductsList from "../pages/products/ProductsList.vue";
 import ProductDetail from "../pages/products/ProductDetail.vue";
 import OrdersList from "../pages/orders/OrdersList.vue";
@@ -23,9 +27,9 @@ import VouchersList from "../pages/vouchers/VouchersList.vue";
 import VoucherCreate from "../pages/vouchers/VoucherCreate.vue";
 import VoucherUpdate from "../pages/vouchers/VoucherUpdate.vue";
 
-import ShiftTemplateList from '@/pages/shifts/ShiftTemplateList.vue';
-import ShiftScheduler from '@/pages/shifts/ShiftScheduler.vue';
-import MySchedule from '@/pages/shifts/MySchedule.vue';
+import ShiftTemplateList from "@/pages/shifts/ShiftTemplateList.vue";
+import ShiftScheduler from "@/pages/shifts/ShiftScheduler.vue";
+import MySchedule from "@/pages/shifts/MySchedule.vue";
 
 import Statistic from "@/pages/statistic/Statistic.vue";
 import PaymentsList from "../pages/payments/PaymentsList.vue";
@@ -39,12 +43,34 @@ const routes = [
     redirect: "/login",
   },
 
+  // ====== AUTH (Public) ======
   {
     path: "/login",
     component: BlankLayout,
-    children: [{ path: "", name: "login", component: Login, meta: { public: true } }],
+    children: [
+      { path: "", name: "login", component: Login, meta: { public: true } },
+    ],
   },
 
+  // ✅ Quên mật khẩu: nhập email gửi OTP
+  {
+    path: "/forgot-password",
+    component: BlankLayout,
+    children: [
+      { path: "", name: "forgot-password", component: ForgotPassword, meta: { public: true } },
+    ],
+  },
+
+  // ✅ Reset mật khẩu: nhập OTP + mật khẩu mới
+  {
+    path: "/reset-password",
+    component: BlankLayout,
+    children: [
+      { path: "", name: "reset-password", component: ResetPasswordOtp, meta: { public: true } },
+    ],
+  },
+
+  // ====== APP (Private) ======
   {
     path: "/",
     component: DefaultLayout,
@@ -61,7 +87,7 @@ const routes = [
       { path: "customers/:id/edit", name: "customer-edit", component: CustomersForm, props: true, meta: { roles: ["ADMIN", "STAFF"] } },
       { path: "customers/:id", name: "customer-detail", component: CustomerDetail, props: true, meta: { roles: ["ADMIN", "STAFF"] } },
 
-      // ✅ ADMIN-ONLY (bạn có thể đổi lại nếu STAFF được xem)
+      // ✅ ADMIN only
       { path: "statistic", name: "statistic", component: Statistic, meta: { roles: ["ADMIN"] } },
 
       { path: "products", name: "products", component: ProductsList, meta: { roles: ["ADMIN"] } },
@@ -69,9 +95,10 @@ const routes = [
       { path: "products/edit/:id", name: "product-edit", component: () => import("../pages/products/ProductAdd.vue"), props: true, meta: { roles: ["ADMIN"] } },
       { path: "products/:id", name: "product-detail", component: ProductDetail, props: true, meta: { roles: ["ADMIN"] } },
 
-      { path: 'shift-templates', name: 'shift-templates', component: ShiftTemplateList, meta: { roles: ["ADMIN"] }},
-      { path: 'shift-scheduler', name: 'shift-scheduler', component: ShiftScheduler, meta: { roles: ["ADMIN"] }},
-      { path: 'my-schedule', name: 'my-schedule', component: MySchedule, meta: { roles: ["ADMIN", "STAFF"] }},
+      { path: "shift-templates", name: "shift-templates", component: ShiftTemplateList, meta: { roles: ["ADMIN"] } },
+      { path: "shift-scheduler", name: "shift-scheduler", component: ShiftScheduler, meta: { roles: ["ADMIN"] } },
+      { path: "my-schedule", name: "my-schedule", component: MySchedule, meta: { roles: ["ADMIN", "STAFF"] } },
+
       { path: "variants", name: "variants-list", component: () => import("../pages/products/VariantList.vue"), meta: { roles: ["ADMIN"] } },
       {
         path: "attributes/:type",
@@ -86,7 +113,7 @@ const routes = [
       { path: "staff/:id/edit", name: "staff-edit", component: StaffForm, props: true, meta: { roles: ["ADMIN"] } },
       { path: "staff/:id", name: "staff-detail", component: StaffDetail, props: true, meta: { roles: ["ADMIN"] } },
 
-      // vouchers (PGG) => thường ADMIN-only
+      // vouchers (PGG) => ADMIN-only
       { path: "vouchers", name: "vouchers", component: VouchersList, meta: { roles: ["ADMIN"] } },
       { path: "vouchers/create", name: "voucher-create", component: VoucherCreate, meta: { roles: ["ADMIN"] } },
       { path: "vouchers/update/:id", name: "voucher-update", component: VoucherUpdate, props: true, meta: { roles: ["ADMIN"] } },
@@ -112,18 +139,15 @@ router.beforeEach((to) => {
   // chưa login mà vào route cần auth => về login
   if (requiresAuth && !auth.isAuthenticated) return { name: "login" };
 
-  // đã login mà vào login => về dashboard
-  // if (to.name === "login" && auth.isAuthenticated) return { name: "dashboard" };
-
   // role check theo meta.roles
-  const role = (auth.role || localStorage.getItem("role") || "").toUpperCase(); // tuỳ bạn lưu role ở đâu
+  const role = (auth.role || localStorage.getItem("role") || localStorage.getItem("vest_role") || "").toUpperCase();
   const allowedRoles = to.matched
     .map((r) => r.meta.roles)
     .filter(Boolean)
     .flat();
 
   if (!isPublic && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // STAFF bấm nhầm trang admin-only -> đá về dashboard (hoặc sales)
+    // STAFF bấm nhầm trang admin-only -> đá về dashboard
     return { name: "dashboard" };
   }
 
