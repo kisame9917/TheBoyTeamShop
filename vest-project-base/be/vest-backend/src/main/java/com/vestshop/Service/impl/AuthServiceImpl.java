@@ -12,7 +12,6 @@ import com.vestshop.dto.response.LoginResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,6 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
     private final PasswordResetOtpRepository otpRepo;
     private final NhanVienRepository nhanVienRepository;
     private final EmailService emailService;
@@ -51,7 +51,6 @@ public class AuthServiceImpl implements AuthService {
         UserDetails user = (UserDetails) auth.getPrincipal();
         String token = jwtService.generateToken(user);
 
-        // dự án bạn 1 user = 1 role => lấy role đầu tiên
         String role = user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
         return new LoginResponse(token, role);
     }
@@ -92,42 +91,36 @@ public class AuthServiceImpl implements AuthService {
         row.setLastSentAt(LocalDateTime.now());
         otpRepo.save(row);
 
-        // ✅ gửi mail OTP tới email nhân viên
+        // ✅ gửi mail OTP
         emailService.sendResetPasswordOtp(em, nv.getTenNhanVien(), otp);
+    }
+
+    @Override
+    public void verifyOtp(String email, String otp) {
+        // chỉ validate, không đổi mật khẩu
+        getValidOtpRowOrThrow(email, otp);
     }
 
     @Override
     @Transactional
     public void resetPassword(String email, String otp, String newPassword) {
-        if (email == null || email.isBlank()) throw new RuntimeException("Email không hợp lệ");
-        if (otp == null || otp.isBlank()) throw new RuntimeException("OTP không hợp lệ");
-        if (newPassword == null || newPassword.length() < 6) throw new RuntimeException("Mật khẩu tối thiểu 6 ký tự");
-
-        String em = email.trim();
-
-        PasswordResetOtp row = otpRepo.findTopByEmailOrderByIdDesc(em)
-                .orElseThrow(() -> new RuntimeException("OTP không tồn tại hoặc đã hết hạn"));
-
-        if (Boolean.TRUE.equals(row.getUsed())) throw new RuntimeException("OTP đã được sử dụng");
-        if (row.getExpiresAt().isBefore(LocalDateTime.now())) throw new RuntimeException("OTP đã hết hạn");
-        if (row.getAttempts() != null && row.getAttempts() >= OTP_MAX_ATTEMPTS) {
-            throw new RuntimeException("Bạn đã nhập sai quá nhiều lần");
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("Mật khẩu tối thiểu 6 ký tự");
         }
 
-        String inputHash = hashOtp(em.toLowerCase(), otp.trim());
-        if (!inputHash.equals(row.getOtpHash())) {
-            row.setAttempts((row.getAttempts() == null ? 0 : row.getAttempts()) + 1);
-            otpRepo.save(row);
-            throw new RuntimeException("OTP không đúng");
-        }
+        String em = email == null ? "" : email.trim();
 
-        // ✅ update mật khẩu PLAIN (đúng hệ thống bạn đang lưu)
+        // ✅ validate OTP (có tăng attempts nếu sai)
+        PasswordResetOtp row = getValidOtpRowOrThrow(em, otp);
+
+        // ✅ đổi mật khẩu (plain)
         NhanVien nv = nhanVienRepository.findByEmail(em)
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
 
-        nv.setMatKhau(newPassword);   // <-- plain
+        nv.setMatKhau(newPassword);
         nhanVienRepository.save(nv);
 
+        // ✅ đánh dấu OTP đã dùng
         row.setUsed(true);
         otpRepo.save(row);
     }
@@ -150,6 +143,36 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * ✅ Validate OTP dùng chung cho verify/reset
+     * - có tăng attempts nếu OTP sai
+     */
+    private PasswordResetOtp getValidOtpRowOrThrow(String email, String otp) {
+        if (email == null || email.isBlank()) throw new RuntimeException("Email không hợp lệ");
+        if (otp == null || otp.isBlank()) throw new RuntimeException("OTP không hợp lệ");
+
+        String em = email.trim();
+
+        PasswordResetOtp row = otpRepo.findTopByEmailOrderByIdDesc(em)
+                .orElseThrow(() -> new RuntimeException("OTP không tồn tại hoặc đã hết hạn"));
+
+        if (Boolean.TRUE.equals(row.getUsed())) throw new RuntimeException("OTP đã được sử dụng");
+        if (row.getExpiresAt() != null && row.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("OTP đã hết hạn");
+        }
+
+        int attempts = (row.getAttempts() == null) ? 0 : row.getAttempts();
+        if (attempts >= OTP_MAX_ATTEMPTS) {
+            throw new RuntimeException("Bạn đã nhập sai quá nhiều lần");
+        }
+
+        String inputHash = hashOtp(em.toLowerCase(), otp.trim());
+        if (!inputHash.equals(row.getOtpHash())) {
+            row.setAttempts(attempts + 1);
+            otpRepo.save(row);
+            throw new RuntimeException("OTP không đúng");
+        }
+
+        return row;
+    }
 }
-
-

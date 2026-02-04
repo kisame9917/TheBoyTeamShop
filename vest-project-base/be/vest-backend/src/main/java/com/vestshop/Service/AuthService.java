@@ -9,4 +9,6 @@ public interface AuthService {
     void resetPassword(String email, String otp, String newPassword);
     String genOtp6();
     String hashOtp(String emailLower, String otp);
+    void verifyOtp(String email, String otp);
+
 }

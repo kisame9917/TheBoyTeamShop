@@ -49,14 +49,11 @@ async function onSendOtp() {
   try {
     await http.post("/api/auth/forgot-password-otp", { email: email.value });
 
-    success.value = "Nếu email đúng, OTP đã được gửi. Vui lòng kiểm tra hộp thư.";
-    // chuyển sang trang nhập OTP + mật khẩu mới
-    setTimeout(() => {
-      router.push({ path: "/reset-password", query: { email: email.value } });
-    }, 600);
+    success.value = " Vui lòng kiểm tra Email.";
+        router.push({ path: "/otp", query: { email: email.value } });
   } catch (e) {
-    error.value = e?.response?.data || e?.message || "Gửi OTP thất bại";
-  } finally {
+    error.value = e?.response?.data?.message || e?.response?.data || e?.message || "Gửi OTP thất bại";
+  }finally {
     loading.value = false;
   }
 }

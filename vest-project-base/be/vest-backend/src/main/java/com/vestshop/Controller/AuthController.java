@@ -36,4 +36,10 @@ public class AuthController {
         authService.resetPassword(req.getEmail(), req.getOtp(), req.getNewPassword());
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verify(@RequestBody ResetPasswordOtpRequest req) {
+        authService.verifyOtp(req.getEmail(), req.getOtp());
+        return ResponseEntity.ok("OTP hợp lệ");
+    }
+
 }
