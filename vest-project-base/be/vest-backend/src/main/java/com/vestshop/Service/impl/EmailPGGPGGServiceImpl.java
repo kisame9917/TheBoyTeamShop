@@ -66,11 +66,7 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         return formatMoney(pgg.getGiaTriTienMat());
     }
 
-    /**
-     * ✅ Lấy đúng field entity bạn: getGiaTriGiamToiDa()
-     * - nếu giảm tiền: "Không áp dụng"
-     * - nếu giảm % và null/<=0: "Không giới hạn"
-     */
+
     private String renderGiamToiDa(PhieuGiamGia pgg) {
         if (pgg == null) return "-";
 
@@ -84,10 +80,7 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         return formatMoney(max);
     }
 
-    /**
-     * ✅ Lấy đúng field entity bạn: getDonHangToiThieu()
-     * - null/<=0: "Không yêu cầu"
-     */
+
     private String renderDonToiThieu(PhieuGiamGia pgg) {
         if (pgg == null) return "-";
 
@@ -373,6 +366,8 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         String to = getTo(kh);
         String name = getName(kh);
 
+        String maGiamGia = resolveMaGiamGia(pgg, maPhieuCaNhan); // ✅ dùng maGiamGia
+
         String tenPhieu = (pgg == null || pgg.getTenGiamGia() == null) ? "" : pgg.getTenGiamGia();
         String subject = "[TheBoyTeam] Bạn nhận được phiếu giảm giá: " + tenPhieu;
 
@@ -385,9 +380,9 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         String messageLine = "Bạn vừa nhận được phiếu giảm giá. Vui lòng dùng mã bên dưới khi thanh toán.";
         String title = "🎁 Tặng bạn phiếu giảm giá!";
 
-        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
+        String html = buildVoucherHtml(title, name, messageLine, maGiamGia,
                 uuDai, giamToiDa, donToiThieu, batDau, ketThuc, "");
-        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan,
+        String plain = buildVoucherPlain(name, messageLine, maGiamGia,
                 uuDai, giamToiDa, donToiThieu, batDau, ketThuc);
 
         try {
@@ -396,11 +391,20 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
             throw new RuntimeException(e);
         }
     }
+    private String resolveMaGiamGia(PhieuGiamGia pgg, String fallback) {
+        if (pgg != null && pgg.getMaGiamGia() != null && !pgg.getMaGiamGia().isBlank()) {
+            return pgg.getMaGiamGia();
+        }
+        return fallback; // phòng khi pgg null
+    }
+
 
     @Override
     public void sendPersonalVoucherStartedEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan) {
         String to = getTo(kh);
         String name = getName(kh);
+
+        String maGiamGia = resolveMaGiamGia(pgg, maPhieuCaNhan); // ✅
 
         String tenPhieu = (pgg == null || pgg.getTenGiamGia() == null) ? "" : pgg.getTenGiamGia();
         String subject = "[TheBoyTeam] Phiếu đã bắt đầu áp dụng: " + tenPhieu;
@@ -411,12 +415,12 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         String batDau = (pgg == null) ? "-" : fmtDate(pgg.getNgayBatDau());
         String ketThuc = (pgg == null) ? "-" : fmtDate(pgg.getNgayKetThuc());
 
-        String messageLine = "Phiếu giảm giá cá nhân của bạn đã bắt đầu áp dụng. Dùng mã bên dưới khi thanh toán nhé!";
+        String messageLine = "Phiếu giảm giá của bạn đã bắt đầu áp dụng. Dùng mã bên dưới khi thanh toán nhé!";
         String title = "✅ Phiếu giảm giá đã bắt đầu!";
 
-        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
+        String html = buildVoucherHtml(title, name, messageLine, maGiamGia,
                 uuDai, giamToiDa, donToiThieu, batDau, ketThuc, "");
-        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan,
+        String plain = buildVoucherPlain(name, messageLine, maGiamGia,
                 uuDai, giamToiDa, donToiThieu, batDau, ketThuc);
 
         try {
@@ -426,10 +430,13 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         }
     }
 
+
     @Override
     public void sendPersonalVoucherEndedEmail(KhachHang kh, PhieuGiamGia pgg, String maPhieuCaNhan) {
         String to = getTo(kh);
         String name = getName(kh);
+
+        String maGiamGia = resolveMaGiamGia(pgg, maPhieuCaNhan); // ✅
 
         String tenPhieu = (pgg == null || pgg.getTenGiamGia() == null) ? "" : pgg.getTenGiamGia();
         String subject = "[TheBoyTeam] Phiếu đã kết thúc: " + tenPhieu;
@@ -443,9 +450,9 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         String messageLine = "Chúng tôi rất tiếc phải thông báo rằng mã giảm giá của bạn đã không khả dụng nữa.";
         String title = "⏳ Phiếu giảm giá đã kết thúc";
 
-        String html = buildVoucherHtml(title, name, messageLine, maPhieuCaNhan,
+        String html = buildVoucherHtml(title, name, messageLine, maGiamGia,
                 uuDai, giamToiDa, donToiThieu, batDau, ketThuc, "");
-        String plain = buildVoucherPlain(name, messageLine, maPhieuCaNhan,
+        String plain = buildVoucherPlain(name, messageLine, maGiamGia,
                 uuDai, giamToiDa, donToiThieu, batDau, ketThuc);
 
         try {
@@ -454,6 +461,7 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
             throw new RuntimeException(e);
         }
     }
+
 
 
 
@@ -472,7 +480,7 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
 
         String tenPhieu = (newPgg == null || newPgg.getTenGiamGia() == null) ? "" : newPgg.getTenGiamGia();
         String subject = "[TheBoyTeam] Voucher của bạn đã được cập nhật: " + tenPhieu;
-
+        String maGiamGia = resolveMaGiamGia(newPgg, maPhieuCaNhan);
         // NEW
         String newTen = (newPgg == null || newPgg.getTenGiamGia() == null) ? "-" : newPgg.getTenGiamGia();
         String newUuDai = renderUuDai(newPgg);
@@ -503,13 +511,13 @@ public class EmailPGGPGGServiceImpl implements EmailPGGService {
         String changesHtml = buildChangesHtml(changes);
 
         String html = buildVoucherHtml(
-                title, name, messageLine, maPhieuCaNhan,
+                title, name, messageLine, maGiamGia,
                 newUuDai, newMax, newMin, newBatDau, newKetThuc,
                 changesHtml
         );
 
         String plain = buildVoucherPlain(
-                name, messageLine, maPhieuCaNhan,
+                name, messageLine, maGiamGia,
                 newUuDai, newMax, newMin, newBatDau, newKetThuc
         ) + buildChangesPlain(changes);
 

@@ -38,6 +38,7 @@ public class SecurityConfig {
                         // STAFF + ADMIN: hóa đơn, khách hàng
                         .requestMatchers("/api/hoa-don/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
 
                         // còn lại: ADMIN
                         .anyRequest().hasRole("ADMIN")
