@@ -147,7 +147,7 @@
                     </div>
 
                     <div class="col-12">
-                      <textarea class="form-control" rows="2" placeholder="Ghi chú..." v-model="activeOrder.note"></textarea>
+                      <textarea class="form-control" rows="2" placeholder="Địa Chỉ (nếu có)" v-model="activeOrder.note"></textarea>
                     </div>
                   </div>
                 </div>
@@ -169,7 +169,7 @@
                   <div class="mb-3">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                       <label class="form-label fw-bold m-0">
-                        Mã Giảm Giá <span class="text-danger">*</span>
+                        Mã giảm giá <span class="text-danger">*</span>
                       </label>
 
                       <div class="d-flex gap-2">
@@ -191,17 +191,17 @@
                           :class="{ active: activeOrder.voucherTab === 'best' }"
                           @click="activeOrder.voucherTab = 'best'"
                         >
-                          Mã Tốt Nhất
+                          Mã tốt nhất
                         </button>
                       </li>
-                      <li class="nav-item">
+                      <li class="nav-item ">
                         <button
                           class="nav-link"
                           type="button"
                           :class="{ active: activeOrder.voucherTab === 'alt' }"
                           @click="activeOrder.voucherTab = 'alt'"
                         >
-                          Mã Thay Thế
+                          Mã thay thế
                         </button>
                       </li>
                     </ul>
@@ -218,8 +218,8 @@
                           <div class="d-flex align-items-start justify-content-between gap-2">
                             <div>
                               <div class="d-flex gap-2 flex-wrap">
-                                <span class="badge text-bg-success">PGG</span>
-                                <span class="badge text-bg-dark">Mã Tốt Nhất</span>
+                                <span class="badge text-bg-secondary">PGG</span>
+                                <span class="badge text-bg-secondary">Mã tốt nhất</span>
                                 <span class="badge text-bg-secondary">{{ bestVoucherEntry.v.ma_giam_gia }}</span>
                               </div>
 
@@ -295,7 +295,7 @@
                             <div class="d-flex align-items-start justify-content-between gap-2">
                               <div>
                                 <div class="d-flex gap-2 flex-wrap">
-                                  <span class="badge text-bg-success">PGG</span>
+                                  <span class="badge text-bg-primary">PGG</span>
                                   <span class="badge text-bg-secondary">Mã thay thế</span>
                                   <span class="badge text-bg-dark">{{ e.v.ma_giam_gia }}</span>
 
@@ -326,7 +326,7 @@
 
                               <div class="text-end">
                                 <button
-                                  class="btn btn-success btn-sm"
+                                  class="btn btn-outline-primary btn-sm"
                                   type="button"
                                   @click="applyVoucherManual(e.v)"
                                 >
@@ -357,7 +357,7 @@
 
                     <!-- Suggestions -->
                     <div class="mt-3">
-                      <div class="fw-bold">Gợi Ý Mã Giảm Giá <span class="text-danger">*</span></div>
+                      <div class="fw-bold">Gợi ý mã giảm giá <span class="text-danger">*</span></div>
 
                       <div v-if="altVoucherEntries.length === 0" class="text-muted small mt-1">
                         Không có mã giảm giá gợi ý khả dụng
@@ -367,7 +367,7 @@
                         <button
                           v-for="e in altVoucherEntries.slice(0, 6)"
                           :key="'chip-' + e.v.id"
-                          class="btn btn-outline-success btn-sm"
+                          class="btn btn-outline-secondary btn-sm"
                           type="button"
                           @click="applyVoucherManual(e.v)"
                         >
