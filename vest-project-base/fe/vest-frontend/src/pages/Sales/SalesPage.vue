@@ -218,9 +218,9 @@
                           <div class="d-flex align-items-start justify-content-between gap-2">
                             <div>
                               <div class="d-flex gap-2 flex-wrap">
-                                <span class="badge text-bg-secondary">PGG</span>
+                                <span class="badge text-bg-primary">PGG</span>
                                 <span class="badge text-bg-secondary">Mã tốt nhất</span>
-                                <span class="badge text-bg-secondary">{{ bestVoucherEntry.v.ma_giam_gia }}</span>
+                                <span class="badge text-bg-dark">{{ bestVoucherEntry.v.ma_giam_gia }}</span>
                               </div>
 
                               <div class="mt-2 fw-bold">{{ bestVoucherEntry.v.ten_giam_gia }}</div>
@@ -296,7 +296,7 @@
                               <div>
                                 <div class="d-flex gap-2 flex-wrap">
                                   <span class="badge text-bg-primary">PGG</span>
-                                  <span class="badge text-bg-secondary">Mã thay thế</span>
+                                  <span class="badge text-bg-secondary">Mã thay thế</span>1
                                   <span class="badge text-bg-dark">{{ e.v.ma_giam_gia }}</span>
 
                                   <span
