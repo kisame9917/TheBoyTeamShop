@@ -19,12 +19,12 @@ public interface SanPhamRepository extends JpaRepository<SanPham, Long> {
             "FROM SanPham sp " +
             "JOIN sp.sanPhamChiTiets spct " +
             "WHERE sp.id NOT IN (" +
-            "SELECT DISTINCT sp2.id FROM HoaDonChiTiet hdct " +
-            "JOIN hdct.sanPhamChiTiet spct2 " +
-            "JOIN spct2.sanPham sp2 " +
-            "JOIN hdct.hoaDon hd " +
-            "WHERE hd.ngayTao BETWEEN :startDate AND :endDate " +
-            "AND hd.trangThaiDon = :status" +
+            "   SELECT DISTINCT sp2.id FROM HoaDonChiTiet hdct " +
+            "   JOIN hdct.sanPhamChiTiet spct2 " +
+            "   JOIN spct2.sanPham sp2 " +
+            "   JOIN hdct.hoaDon hd " +
+            "   WHERE hd.ngayTao BETWEEN :startDate AND :endDate " +
+            "   AND hd.trangThaiDon = :status" +
             ") " +
             "GROUP BY sp.id, sp.tenSanPham")
     List<SanPhamThongKeResponse> findSlowMovingProducts(@Param("startDate") LocalDateTime startDate,

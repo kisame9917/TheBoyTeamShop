@@ -6,8 +6,33 @@
         <h5 class="mb-0">Danh sách nhân viên</h5>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-primary btn-sm" type="button" @click="exportExcel">
+        <!-- ✅ Export Excel mode -->
+        <button
+            v-if="!exportMode"
+            class="btn btn-outline-primary btn-sm"
+            type="button"
+            @click="startExportMode"
+        >
           <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+        </button>
+
+        <button
+            v-else
+            class="btn btn-primary btn-sm text-white"
+            type="button"
+            @click="doExportExcel"
+            :disabled="selectedCount === 0"
+        >
+          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel ({{ selectedCount }})
+        </button>
+
+        <button
+            v-if="exportMode"
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            @click="cancelExportMode"
+        >
+          <i class="bi bi-x-lg me-1"></i> Hủy
         </button>
         <button
             class="btn btn-outline-secondary btn-sm"
@@ -116,6 +141,15 @@
             <table class="table align-middle table-hover">
               <thead class="table-head-dark">
               <tr>
+                <th v-if="exportMode" style="width: 44px" class="text-center">
+                  <input
+                      type="checkbox"
+                      :checked="isAllSelected"
+                      :indeterminate.prop="isSomeSelected"
+                      @change="toggleSelectAll"
+                      title="Chọn tất cả"
+                  />
+                </th>
                 <th style="width: 60px">#</th>
                 <th style="width: 80px">Ảnh</th>
                 <th style="width: 110px">Mã NV</th>
@@ -131,10 +165,19 @@
 
               <tbody class="table-body-normal">
               <tr v-if="paged.length === 0">
-                <td colspan="10" class="text-center text-muted py-4">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 11 : 10" class="text-center text-muted py-4">Không có dữ liệu</td>
               </tr>
 
               <tr v-for="(s, idx) in paged" :key="s.id">
+                <td v-if="exportMode" class="text-center">
+                  <input
+                      class="form-check-input m-0"
+                      type="checkbox"
+                      :checked="isSelected(s.id)"
+                      @change="onSelectRow($event, s.id)"
+                      title="Chọn dòng"
+                  />
+                </td>
                 <td>{{ page.page * page.size + idx + 1 }}</td>
 
                 <td>
@@ -199,15 +242,6 @@
                           :checked="!!s.trangThai"
                           :disabled="!isAdmin"
                           @change="onSwitchAttempt($event, s)"
-                      />
-                    </div>
-                    <!-- ✅ Checkbox chọn để xuất Excel (đặt sau switch) -->
-                    <div class="form-check m-0" title="Chọn để xuất Excel">
-                      <input
-                          class="form-check-input"
-                          type="checkbox"
-                          :checked="isSelected(s.id)"
-                          @change="onSelectRow($event, s.id)"
                       />
                     </div>
                   </div>
@@ -348,55 +382,122 @@ function buildFileName() {
   return `Danh_sach_nhan_vien_${y}${m}${day}_${hh}${mm}.xlsx`;
 }
 
-function exportExcel() {
-  const picked = selectedIds.value;
-  const hasPicked = picked && picked.size > 0;
+const exportMode = ref(false); // ✅ NEW
+const selectedCount = computed(() => selectedIds.value.size);
 
-  // ✅ Có tick -> export đúng các hàng đã tick (lấy từ list để tick qua nhiều trang vẫn xuất được)
-  // ✅ Không tick -> dùng logic hiện tại: xuất toàn bộ các hàng (theo filter hiện tại)
-  const source = hasPicked
-      ? (list.value || []).filter((s) => picked.has(s.id))
-      : (filtered.value || []);
+function startExportMode() {
+  exportMode.value = true;
+  selectedIds.value = new Set(); // reset chọn
+}
+
+function cancelExportMode() {
+  exportMode.value = false;
+  selectedIds.value = new Set();
+}
+
+function doExportExcel() {
+  const picked = selectedIds.value;
+  const source = (list.value || []).filter((s) => picked.has(s.id));
+
+  if (!source.length) {
+    toast.warning("Bạn chưa chọn dòng nào để xuất.");
+    return;
+  }
 
   const rows = source.map((s, idx) => ({
-    "STT": idx + 1,
+    STT: idx + 1,
     "Mã NV": s.maNhanVien || "",
     "Họ tên": s.tenNhanVien || "",
-    "Email": s.email || "",
+    Email: s.email || "",
     "SĐT": s.soDienThoai || "",
     "Tài khoản": s.taiKhoan || "",
     "Chức vụ": getRoleText(s),
     "Trạng thái": s.trangThai ? "Đang làm" : "Đã nghỉ",
     "Địa chỉ": s.diaChi || "",
     "Ảnh đại diện": s.anhDaiDien ? resolveFileUrl(s.anhDaiDien) : "",
-    "ID": s.id ?? "",
+    ID: s.id ?? "",
   }));
-
-  if (!rows.length) {
-    toast.warning(hasPicked ? "Bạn chưa chọn dòng nào để xuất." : "Không có dữ liệu để xuất.");
-    return;
-  }
 
   const ws = XLSX.utils.json_to_sheet(rows);
 
   ws["!cols"] = [
-    { wch: 6 },   // STT
-    { wch: 14 },  // Mã NV
-    { wch: 24 },  // Họ tên
-    { wch: 28 },  // Email
-    { wch: 14 },  // SĐT
-    { wch: 18 },  // Tài khoản
-    { wch: 12 },  // Chức vụ
-    { wch: 14 },  // Trạng thái
-    { wch: 40 },  // Địa chỉ
-    { wch: 40 },  // Ảnh đại diện
-    { wch: 10 },  // ID
+    { wch: 6 },
+    { wch: 14 },
+    { wch: 24 },
+    { wch: 28 },
+    { wch: 14 },
+    { wch: 18 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 40 },
+    { wch: 40 },
+    { wch: 10 },
   ];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "NhanVien");
   XLSX.writeFile(wb, buildFileName());
+
+  // ✅ export xong thì tắt mode như ảnh mẫu
+  cancelExportMode();
 }
+
+function exportExcel() {
+  // ✅ Lần 1: bật chế độ chọn (hiện checkbox)
+  if (!exportMode.value) {
+    exportMode.value = true;
+    selectedIds.value = new Set(); // reset chọn
+    return;
+  }
+
+  // ✅ Lần 2: tải excel các dòng đã chọn
+  const picked = selectedIds.value;
+  const source = (list.value || []).filter((s) => picked.has(s.id));
+
+  if (!source.length) {
+    toast.warning("Bạn chưa chọn dòng nào để xuất.");
+    return;
+  }
+
+  const rows = source.map((s, idx) => ({
+    STT: idx + 1,
+    "Mã NV": s.maNhanVien || "",
+    "Họ tên": s.tenNhanVien || "",
+    Email: s.email || "",
+    "SĐT": s.soDienThoai || "",
+    "Tài khoản": s.taiKhoan || "",
+    "Chức vụ": getRoleText(s),
+    "Trạng thái": s.trangThai ? "Đang làm" : "Đã nghỉ",
+    "Địa chỉ": s.diaChi || "",
+    "Ảnh đại diện": s.anhDaiDien ? resolveFileUrl(s.anhDaiDien) : "",
+    ID: s.id ?? "",
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  ws["!cols"] = [
+    { wch: 6 },  // STT
+    { wch: 14 }, // Mã NV
+    { wch: 24 }, // Họ tên
+    { wch: 28 }, // Email
+    { wch: 14 }, // SĐT
+    { wch: 18 }, // Tài khoản
+    { wch: 12 }, // Chức vụ
+    { wch: 14 }, // Trạng thái
+    { wch: 40 }, // Địa chỉ
+    { wch: 40 }, // Ảnh đại diện
+    { wch: 10 }, // ID
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "NhanVien");
+  XLSX.writeFile(wb, buildFileName());
+
+  // ✅ tắt chế độ chọn sau khi export
+  exportMode.value = false;
+  selectedIds.value = new Set();
+}
+
 
 
 /** ✅ Không dùng filtersDraft nữa */
@@ -563,6 +664,31 @@ const filtered = computed(() => {
     return true;
   });
 });
+
+const isAllSelected = computed(() => {
+  const ids = (paged.value || []).map((x) => x.id);
+  if (!ids.length) return false;
+  return ids.every((id) => selectedIds.value.has(id));
+});
+
+const isSomeSelected = computed(() => {
+  const ids = (paged.value || []).map((x) => x.id);
+  if (!ids.length) return false;
+  const any = ids.some((id) => selectedIds.value.has(id));
+  const all = ids.every((id) => selectedIds.value.has(id));
+  return any && !all;
+});
+
+function toggleSelectAll(e) {
+  const checked = !!e?.target?.checked;
+  const ids = (paged.value || []).map((x) => x.id);
+
+  const next = new Set(selectedIds.value);
+  if (checked) ids.forEach((id) => next.add(id));
+  else ids.forEach((id) => next.delete(id));
+
+  selectedIds.value = next;
+}
 
 const paged = computed(() => {
   const start = page.page * page.size;

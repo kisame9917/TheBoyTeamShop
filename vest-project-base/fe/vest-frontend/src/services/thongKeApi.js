@@ -1,23 +1,44 @@
 import http from "./http";
 
+function unwrap(res) {
+    const body = res?.data;
+    // Backend trả ApiResponse { success, data, ... }
+    if (body && typeof body === "object" && "success" in body) return body.data;
+    return body;
+}
+
 export default {
-    // 1. So sánh doanh thu Quý
-    compareQuarter() {
-        return http.get("/api/thong-ke/so-sanh-quy");
+    // Doanh thu: THANG | QUY | NAM
+    async getDoanhThu(params) {
+        // params:
+        // - THANG: { type:'THANG', month:2, year:2026 }
+        // - QUY  : { type:'QUY', quarter:3, year:2025 }
+        // - NAM  : { type:'NAM', year:2025 }
+        const res = await http.get("/api/thong-ke/doanh-thu", { params });
+        return unwrap(res) || [];
     },
 
-    // 2. Top sản phẩm bán chạy
-    getTopSelling(from, to) {
-        return http.get("/api/thong-ke/top-ban-chay", { params: { from, to } });
+    // Đơn hàng theo range ngày (filter from/to)
+    async getThongKeDonHangRange(from, to) {
+        const res = await http.get("/api/thong-ke/don-hang-range", { params: { from, to } });
+        return unwrap(res) || [];
     },
 
-    // 3. Sản phẩm bán chậm (tồn kho)
-    getSlowMoving(from, to) {
-        return http.get("/api/thong-ke/ban-cham", { params: { from, to } });
+    // Top bán chạy
+    async getTopSelling(from, to) {
+        const res = await http.get("/api/thong-ke/top-ban-chay", { params: { from, to } });
+        return unwrap(res) || [];
     },
 
-    // 4. Khách hàng VIP
-    getTopCustomers(from, to) {
-        return http.get("/api/thong-ke/khach-hang-vip", { params: { from, to } });
+    // Bán chậm / tồn kho
+    async getSlowMoving(from, to) {
+        const res = await http.get("/api/thong-ke/ban-cham", { params: { from, to } });
+        return unwrap(res) || [];
+    },
+
+    // Khách hàng tiềm năng (VIP)
+    async getTopCustomers(from, to) {
+        const res = await http.get("/api/thong-ke/khach-hang-vip", { params: { from, to } });
+        return unwrap(res) || [];
     },
 };

@@ -424,7 +424,7 @@
                   </ul>
 
                   <button class="btn btn-success w-100" :disabled="activeOrder.cart.length === 0" @click="confirmOrder">
-                    XÁC NHẬN (LOG PAYLOAD)
+                    Thanh toán
                   </button>
 
                   <div v-if="confirmHint" class="small text-muted mt-2">{{ confirmHint }}</div>
@@ -1233,7 +1233,7 @@ async function confirmOrder() {
   };
 
   console.log("ORDER PAYLOAD (STORE ONLY):", payload);
-  toastShow("Đã tạo payload (chưa lưu DB). Xem console.", "info");
+  toastShow("Chức năng đang làm.", "info");
 }
 
 /** ========= LIFECYCLE ========= */

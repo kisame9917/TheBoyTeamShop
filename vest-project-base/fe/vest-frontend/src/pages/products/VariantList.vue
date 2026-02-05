@@ -235,18 +235,19 @@
       </div>
 
       <!-- Pagination -->
+      <!-- Pagination -->
       <div class="p-3" v-if="totalPages > 0">
         <div class="paging-bar">
           <div class="paging-left">
-            Hiển thị {{ filteredItems.length }} / tổng {{ totalElements }} bản ghi
+            Hiển thị: {{ filteredItems.length }} / tổng {{ totalElements }} bản ghi
           </div>
 
           <div class="paging-center">
             <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="currentPage === 0"
-              @click="changePage(currentPage - 1)"
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                :disabled="currentPage === 0"
+                @click="changePage(currentPage - 1)"
             >
               <i class="bi bi-chevron-left"></i>
             </button>
@@ -254,27 +255,31 @@
             <div class="input-group input-group-sm paging-page">
               <span class="input-group-text">Trang</span>
               <input
-                type="number"
-                min="1"
-                :max="totalPages || 1"
-                class="form-control"
-                v-model.number="pageInput"
-                @keyup.enter="jumpPage"
+                  type="number"
+                  min="1"
+                  :max="totalPages || 1"
+                  class="form-control"
+                  v-model.number="pageInput"
+                  @keyup.enter="jumpPage"
               />
             </div>
 
             <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="currentPage >= totalPages - 1"
-              @click="changePage(currentPage + 1)"
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                :disabled="currentPage >= totalPages - 1"
+                @click="changePage(currentPage + 1)"
             >
               <i class="bi bi-chevron-right"></i>
             </button>
           </div>
 
           <div class="paging-right">
-            <select class="form-select form-select-sm paging-size" v-model.number="pageSize" @change="onChangeSize">
+            <select
+                class="form-select form-select-sm paging-size"
+                v-model.number="pageSize"
+                @change="onChangeSize"
+            >
               <option :value="10">10 bản ghi / trang</option>
               <option :value="20">20 bản ghi / trang</option>
               <option :value="50">50 bản ghi / trang</option>
@@ -879,5 +884,70 @@ function formatPrice(val) {
   border-radius: 8px;
   border: 1px solid #e5e7eb;
 }
+/* ===== Paging giống ảnh mẫu ===== */
+.paging-bar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
 
+.paging-left{
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.paging-center{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.paging-center .btn{
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paging-page{
+  width: 120px;
+}
+
+.paging-page .form-control{
+  text-align: center;
+}
+
+.paging-right{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.paging-size{
+  width: 170px;
+  max-width: 200px;
+}
+
+/* responsive: mobile thì tự xuống dòng gọn gàng */
+@media (max-width: 768px){
+  .paging-bar{
+    flex-wrap: wrap;
+  }
+  .paging-center{
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .paging-right{
+    order: 2;
+    margin-left: auto;
+  }
+}
 </style>

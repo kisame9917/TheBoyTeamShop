@@ -8,13 +8,35 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
+        <!-- ✅ Export Excel mode -->
         <button
+            v-if="!exportMode"
             class="btn btn-outline-primary btn-sm"
             type="button"
-            @click="exportExcel"
+            @click="startExportMode"
             :disabled="loading || paged.length === 0"
         >
           <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+        </button>
+
+        <button
+            v-else
+            class="btn btn-primary btn-sm text-white"
+            type="button"
+            @click="doExportExcel"
+            :disabled="loading || selectedCount === 0"
+        >
+          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel ({{ selectedCount }})
+        </button>
+
+        <button
+            v-if="exportMode"
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            @click="cancelExportMode"
+            :disabled="loading"
+        >
+          <i class="bi bi-x-lg me-1"></i> Hủy
         </button>
 
         <button class="btn btn-outline-secondary btn-sm" type="button" @click="goCreate" title="Thêm mới">
@@ -123,6 +145,15 @@
             <table class="table align-middle table-hover">
               <thead class="table-head-dark">
               <tr>
+                <th v-if="exportMode" style="width: 44px" class="text-center">
+                  <input
+                      type="checkbox"
+                      :checked="isAllSelected"
+                      :indeterminate.prop="isSomeSelected"
+                      @change="toggleSelectAll"
+                      title="Chọn tất cả (trang hiện tại)"
+                  />
+                </th>
                 <th style="width: 60px">#</th>
                 <th style="width: 80px">Ảnh</th>
                 <th style="width: 110px">Mã KH</th>
@@ -137,10 +168,19 @@
 
               <tbody class="table-body-normal">
               <tr v-if="paged.length === 0">
-                <td colspan="9" class="text-center text-muted py-4">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 10 : 9" class="text-center text-muted py-4">Không có dữ liệu</td>
               </tr>
 
               <tr v-for="(c, idx) in paged" :key="c.id">
+                <td v-if="exportMode" class="text-center">
+                  <input
+                      class="form-check-input m-0"
+                      type="checkbox"
+                      :checked="isSelected(c.id)"
+                      @change="onSelectRow($event, c.id)"
+                      title="Chọn dòng"
+                  />
+                </td>
                 <td>{{ page.page * page.size + idx + 1 }}</td>
 
                 <td>
@@ -393,6 +433,22 @@ const page = reactive({
 });
 const pageInput = ref(1);
 
+/** ✅ Export Excel selection mode */
+const exportMode = ref(false);
+const selectedIds = ref(new Set());
+
+const selectedCount = computed(() => selectedIds.value.size);
+
+function isSelected(id) {
+  return selectedIds.value.has(id);
+}
+
+function onSelectRow(e, id) {
+  const next = new Set(selectedIds.value);
+  if (e?.target?.checked) next.add(id);
+  else next.delete(id);
+  selectedIds.value = next;
+}
 /** ===== Helpers ===== */
 function unwrapList(data) {
   if (!data) return [];
@@ -551,7 +607,30 @@ const paged = computed(() => {
   const start = page.page * page.size;
   return filtered.value.slice(start, start + page.size);
 });
+const isAllSelected = computed(() => {
+  const ids = (paged.value || []).map((x) => x.id);
+  if (!ids.length) return false;
+  return ids.every((id) => selectedIds.value.has(id));
+});
 
+const isSomeSelected = computed(() => {
+  const ids = (paged.value || []).map((x) => x.id);
+  if (!ids.length) return false;
+  const any = ids.some((id) => selectedIds.value.has(id));
+  const all = ids.every((id) => selectedIds.value.has(id));
+  return any && !all;
+});
+
+function toggleSelectAll(e) {
+  const checked = !!e?.target?.checked;
+  const ids = (paged.value || []).map((x) => x.id);
+
+  const next = new Set(selectedIds.value);
+  if (checked) ids.forEach((id) => next.add(id));
+  else ids.forEach((id) => next.delete(id));
+
+  selectedIds.value = next;
+}
 function recalcPaging() {
   page.totalPages = Math.max(1, Math.ceil(filtered.value.length / page.size));
   if (page.page > page.totalPages - 1) page.page = Math.max(0, page.totalPages - 1);
@@ -761,10 +840,28 @@ async function saveDefaultAddress() {
 }
 
 /** ✅ Export Excel */
-function exportExcel() {
+function startExportMode() {
+  exportMode.value = true;
+  selectedIds.value = new Set();
+}
+
+function cancelExportMode() {
+  exportMode.value = false;
+  selectedIds.value = new Set();
+}
+
+function doExportExcel() {
   try {
-    const rows = (paged.value || []).map((c, i) => ({
-      STT: page.page * page.size + i + 1,
+    const picked = selectedIds.value;
+    const source = (list.value || []).filter((c) => picked.has(c.id));
+
+    if (!source.length) {
+      toast.warning("Bạn chưa chọn dòng nào để xuất.");
+      return;
+    }
+
+    const rows = source.map((c, i) => ({
+      STT: i + 1,
       "Mã KH": c.maKhachHang || "",
       "Họ tên": c.tenKhachHang || "",
       "Giới tính": c.gioiTinh === true ? "Nam" : c.gioiTinh === false ? "Nữ" : "",
@@ -779,9 +876,11 @@ function exportExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Customers");
 
-    const filename = `customers_page_${page.page + 1}_size_${page.size}.xlsx`;
+    const filename = `customers_selected_${Date.now()}.xlsx`;
     XLSX.writeFile(wb, filename);
+
     toast.success("Xuất Excel thành công!");
+    cancelExportMode(); // ✅ export xong -> ẩn checkbox + về nút Xuất Excel ban đầu
   } catch (e) {
     console.error(e);
     toast.error("Xuất Excel thất bại! (Kiểm tra thư viện xlsx)");

@@ -1,4 +1,5 @@
 package com.vestshop.dto.response;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,5 +11,5 @@ public class SanPhamThongKeResponse {
     private Long idSanPham;
     private String tenSanPham;
     private Long soLuongDaBan;
-    private Long soLuongTonKho; // Để phân tích hàng tồn
+    private Long soLuongTonKho;
 }

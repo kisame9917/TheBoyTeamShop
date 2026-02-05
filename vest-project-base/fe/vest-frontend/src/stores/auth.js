@@ -51,6 +51,8 @@ export const useAuthStore = defineStore('auth', {
       const res = await http.post('/api/auth/login', { taiKhoan, matKhau })
       const payload = res?.data ?? res
 
+      console.log('🔥 BACKEND TRẢ VỀ:', payload);
+
       const token = normalizeToken(payload?.token)
       const role  = normalizeRole(payload?.role)
 
@@ -64,7 +66,7 @@ export const useAuthStore = defineStore('auth', {
         taiKhoan,         // Đảm bảo có tài khoản
         role              // Đảm bảo có role chuẩn
       }
-
+      console.log('💾 USER ĐƯỢC LƯU VÀO STORE:', this.user);
       localStorage.setItem(TOKEN_KEY, token)
       localStorage.setItem(ROLE_KEY, role)
       localStorage.setItem(USER_KEY, JSON.stringify(this.user))

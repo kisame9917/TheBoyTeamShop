@@ -3,7 +3,7 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-clock-history fs-4"></i>
-        <h5 class="mb-0">Cấu hình Ca Mẫu</h5>
+        <h5 class="mb-0">Ca làm việc</h5>
       </div>
 
       <div class="d-flex align-items-center gap-2">
@@ -37,7 +37,7 @@
           </button>
         </template>
 
-        <button class="btn btn-primary btn-sm fw-bold" @click="openModal()">
+        <button class="btn btn-outline-secondary btn-sm" @click="openModal()">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>
@@ -190,7 +190,7 @@
 
               <td class="text-center">{{ (page.page - 1) * page.size + index + 1 }}</td>
 
-              <td class="fw-bold text-primary">{{ item.tenCa }}</td>
+              <td >{{ item.tenCa }}</td>
               <td>{{ formatTime(item.gioBatDau) }}</td>
               <td>{{ formatTime(item.gioKetThuc) }}</td>
               <td>
@@ -262,18 +262,20 @@
       </div>
     </div>
 
-    <div v-if="showConfirm" class="modal-overlay" @click.self="closeConfirm">
-      <div class="modal-card">
-        <h3 class="modal-title">Xác nhận</h3>
-        <p class="modal-desc">{{ confirmText }}</p>
-        <div class="modal-actions">
-          <button class="btn btn-outline-secondary" :disabled="confirmLoading" @click="closeConfirm">Hủy</button>
-          <button class="btn btn-primary" :disabled="confirmLoading" @click="confirmYes">
-            {{ confirmLoading ? "Đang xử lý..." : "Đồng ý" }}
-          </button>
+    <teleport to="body">
+      <div v-if="showConfirm" class="modal-overlay modal-overlay--confirm" @click.self="closeConfirm">
+        <div class="modal-card">
+          <h3 class="modal-title">Xác nhận</h3>
+          <p class="modal-desc">{{ confirmText }}</p>
+          <div class="modal-actions">
+            <button class="btn btn-outline-secondary" :disabled="confirmLoading" @click="closeConfirm">Hủy</button>
+            <button class="btn btn-primary" :disabled="confirmLoading" @click="confirmYes">
+              {{ confirmLoading ? "Đang xử lý..." : "Đồng ý" }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </teleport>
 
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-card shadow-lg" style="width: 500px;">
@@ -748,6 +750,8 @@ const formatTime = (t) => t ? t.substring(0, 5) : '-';
   color: #374151;
 }
 
+.badge{    --bs-badge-font-weight: 600;}
+
 /* Switch Button */
 .switch {
   position: relative;
@@ -816,5 +820,11 @@ const formatTime = (t) => t ? t.substring(0, 5) : '-';
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+.modal-overlay--confirm {
+  z-index: 10050; /* cao hơn modal form */
+}
+.fw-bold {
+  font-weight: 500 !important;
 }
 </style>

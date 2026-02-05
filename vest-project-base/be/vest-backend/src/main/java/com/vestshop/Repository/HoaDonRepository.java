@@ -18,15 +18,16 @@ import java.util.List;
 public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecificationExecutor<HoaDon> {
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
-    // ✅ Sửa: h.trangThaiDon = :status
-    @Query("SELECT COALESCE(SUM(h.tongTien), 0) FROM HoaDon h " +
+    // ✅ Doanh thu trong range theo status int (trangThaiDon)
+    @Query("SELECT COALESCE(SUM(h.tongTien), 0) " +
+            "FROM HoaDon h " +
             "WHERE h.ngayTao BETWEEN :startDate AND :endDate " +
             "AND h.trangThaiDon = :status")
     BigDecimal sumDoanhThuInRange(@Param("startDate") LocalDateTime startDate,
                                   @Param("endDate") LocalDateTime endDate,
                                   @Param("status") Integer status);
 
-    // ✅ Sửa: h.trangThaiDon = :status
+    // ✅ Top khách hàng theo chi tiêu trong range
     @Query("SELECT new com.vestshop.dto.response.TopKhachHangResponse(" +
             "kh.id, kh.tenKhachHang, kh.soDienThoai, COUNT(h), SUM(h.tongTien)) " +
             "FROM HoaDon h JOIN h.khachHang kh " +
@@ -37,4 +38,61 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     List<TopKhachHangResponse> findTopKhachHang(@Param("startDate") LocalDateTime startDate,
                                                 @Param("endDate") LocalDateTime endDate,
                                                 @Param("status") Integer status);
+
+    // ==============================
+    // DOANH THU (JPQL + FUNCTION)
+    // ==============================
+
+    // Theo ngày trong tháng
+    @Query("SELECT FUNCTION('day', h.ngayTao), COALESCE(SUM(h.tongTien), 0) " +
+            "FROM HoaDon h " +
+            "WHERE FUNCTION('month', h.ngayTao) = :month " +
+            "AND FUNCTION('year', h.ngayTao) = :year " +
+            "AND h.trangThaiDon = :status " +
+            "GROUP BY FUNCTION('day', h.ngayTao) " +
+            "ORDER BY FUNCTION('day', h.ngayTao)")
+    List<Object[]> getDoanhThuNgayInMonth(@Param("month") int month,
+                                          @Param("year") int year,
+                                          @Param("status") Integer status);
+
+    // Theo tháng trong năm
+    @Query("SELECT FUNCTION('month', h.ngayTao), COALESCE(SUM(h.tongTien), 0) " +
+            "FROM HoaDon h " +
+            "WHERE FUNCTION('year', h.ngayTao) = :year " +
+            "AND h.trangThaiDon = :status " +
+            "GROUP BY FUNCTION('month', h.ngayTao) " +
+            "ORDER BY FUNCTION('month', h.ngayTao)")
+    List<Object[]> getDoanhThuThangInYear(@Param("year") int year,
+                                          @Param("status") Integer status);
+
+    // Theo tháng trong quý (startMonth..endMonth)
+    @Query("SELECT FUNCTION('month', h.ngayTao), COALESCE(SUM(h.tongTien), 0) " +
+            "FROM HoaDon h " +
+            "WHERE FUNCTION('year', h.ngayTao) = :year " +
+            "AND FUNCTION('month', h.ngayTao) BETWEEN :startMonth AND :endMonth " +
+            "AND h.trangThaiDon = :status " +
+            "GROUP BY FUNCTION('month', h.ngayTao) " +
+            "ORDER BY FUNCTION('month', h.ngayTao)")
+    List<Object[]> getDoanhThuThangInQuarter(@Param("year") int year,
+                                             @Param("startMonth") int startMonth,
+                                             @Param("endMonth") int endMonth,
+                                             @Param("status") Integer status);
+
+    // ==============================
+    // ĐƠN HÀNG THEO TRẠNG THÁI
+    // ==============================
+
+    @Query("SELECT h.trangThaiDon, COUNT(h) " +
+            "FROM HoaDon h " +
+            "WHERE (:month IS NULL OR FUNCTION('month', h.ngayTao) = :month) " +
+            "AND FUNCTION('year', h.ngayTao) = :year " +
+            "GROUP BY h.trangThaiDon")
+    List<Object[]> getThongKeDonHang(@Param("month") Integer month, @Param("year") int year);
+
+    @Query("SELECT h.trangThaiDon, COUNT(h) " +
+            "FROM HoaDon h " +
+            "WHERE h.ngayTao BETWEEN :from AND :to " +
+            "GROUP BY h.trangThaiDon")
+    List<Object[]> countDonHangByTrangThaiInRange(@Param("from") LocalDateTime from,
+                                                  @Param("to") LocalDateTime to);
 }

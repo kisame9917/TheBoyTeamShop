@@ -64,7 +64,7 @@ public class CaLamViecService {
 
     // 2. Xếp lịch cho nhân viên (Check trùng giờ)
     @Transactional
-    public LichLamViec taoLichLamViec(LichLamViecRequest req) {
+    public LichLamViecResponse taoLichLamViec(LichLamViecRequest req) {
         NhanVien nv = nhanVienRepo.findById(req.getIdNhanVien())
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
         CaLamViec caMoi = caRepo.findById(req.getIdCaLamViec())
@@ -75,7 +75,6 @@ public class CaLamViecService {
 
         for (LichLamViec lichCu : lichDaCo) {
             CaLamViec caCu = lichCu.getCaLamViec();
-            // Logic check trùng: (StartA < EndB) && (EndA > StartB)
             boolean isOverlap = caMoi.getGioBatDau().isBefore(caCu.getGioKetThuc())
                     && caMoi.getGioKetThuc().isAfter(caCu.getGioBatDau());
 
@@ -94,7 +93,8 @@ public class CaLamViecService {
                 .ghiChu(req.getGhiChu())
                 .build();
 
-        return lichRepo.save(lich);
+        LichLamViec saved = lichRepo.save(lich);
+        return mapToResponse(saved);
     }
 
     // 3. Xóa lịch làm việc
@@ -126,7 +126,7 @@ public class CaLamViecService {
     }
 
     @Transactional
-    public LichLamViec updateLichLamViec(Long id, LichLamViecRequest req) {
+    public LichLamViecResponse updateLichLamViec(Long id, LichLamViecRequest req) {
         LichLamViec lich = lichRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lịch làm việc không tồn tại"));
 
@@ -137,9 +137,7 @@ public class CaLamViecService {
 
         // Validate trùng lịch (Loại trừ chính lịch đang sửa)
         List<LichLamViec> lichDaCo = lichRepo.findByNhanVienIdAndNgayLamViec(nv.getId(), req.getNgayLamViec());
-
         for (LichLamViec lichCu : lichDaCo) {
-            // Nếu là chính nó thì bỏ qua không check
             if (lichCu.getId().equals(id)) continue;
 
             CaLamViec caCu = lichCu.getCaLamViec();
@@ -152,12 +150,12 @@ public class CaLamViecService {
             }
         }
 
-        // Cập nhật thông tin
         lich.setNhanVien(nv);
         lich.setCaLamViec(caMoi);
         lich.setNgayLamViec(req.getNgayLamViec());
         lich.setGhiChu(req.getGhiChu());
 
-        return lichRepo.save(lich);
+        LichLamViec saved = lichRepo.save(lich);
+        return mapToResponse(saved);
     }
 }

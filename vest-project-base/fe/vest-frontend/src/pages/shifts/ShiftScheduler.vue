@@ -31,7 +31,7 @@
           </button>
         </template>
 
-        <button class="btn btn-primary btn-sm fw-bold" @click="openModal()">
+        <button class="btn btn-outline-secondary btn-sm" @click="openModal()">
           <i class="bi bi-plus-lg me-1"></i> Phân Ca Mới
         </button>
       </div>
@@ -42,17 +42,22 @@
           class="filter-header d-flex align-items-center justify-content-between"
           data-bs-toggle="collapse"
           data-bs-target="#filterBody"
+          role="button"
+          aria-expanded="true"
+          aria-controls="filterBody"
       >
         <div class="d-flex align-items-center gap-2">
           <span class="filter-icon">▼</span>
           <span class="filter-title">Bộ lọc tìm kiếm</span>
         </div>
+        <small class="filter-hint">Nhấn để thu gọn/mở rộng</small>
       </div>
 
       <div id="filterBody" class="collapse show">
         <div class="card-body filter-body">
           <div class="row g-3">
-            <div class="col-12 col-md-4">
+            <!-- Tìm nhân viên -->
+            <div class="col-12 col-lg-3">
               <label class="form-label">Tìm nhân viên</label>
               <input
                   v-model.trim="filters.keyword"
@@ -62,21 +67,45 @@
                   @input="applyFilters"
               />
             </div>
-            <div class="col-12 col-md-4">
+
+            <!-- Ca làm việc -->
+            <div class="col-12 col-lg-3">
               <label class="form-label">Ca làm việc</label>
               <select v-model="filters.shiftId" class="form-select" @change="applyFilters">
                 <option :value="null">Tất cả ca</option>
                 <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.tenCa }}</option>
               </select>
             </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Thời gian</label>
+
+            <!-- Từ ngày (giống voucher / lịch của tôi) -->
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Từ ngày</label>
               <div class="input-group">
-                <input type="date" class="form-control" v-model="filters.from" @change="loadSchedule">
-                <span class="input-group-text bg-white">-</span>
-                <input type="date" class="form-control" v-model="filters.to" @change="loadSchedule">
+                <input ref="fromPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" />
+                <button class="btn btn-outline-secondary" type="button" @click="openFromPicker" title="Chọn ngày">
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" @click="clearFromDate" title="Xóa">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               </div>
             </div>
+
+            <!-- Đến ngày (giống voucher / lịch của tôi) -->
+            <div class="col-12 col-lg-3">
+              <label class="form-label">Đến ngày</label>
+              <div class="input-group">
+                <input ref="toPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" />
+                <button class="btn btn-outline-secondary" type="button" @click="openToPicker" title="Chọn ngày">
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" @click="clearToDate" title="Xóa">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Đặt lại góc dưới phải -->
             <div class="col-12 d-flex justify-content-end">
               <button class="btn btn-light btn-sm" @click="resetFilters">
                 <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
@@ -97,9 +126,26 @@
         <div v-else class="table-wrap">
           <table class="custom-table">
             <colgroup>
-              <col style="width: 50px" /> <col style="width: 100px" /> <col style="width: 80px" />  <col style="width: 100px" /> <col style="width: 180px" /> <col style="width: 120px" /> <col style="width: 130px" /> <col style="width: 180px" /> <col style="width: 100px" /> <col v-if="exportMode" style="width: 40px" /> </colgroup>
+              <col v-if="exportMode" style="width: 40px" />
+              <col style="width: 50px" />
+              <col style="width: 100px" />
+              <col style="width: 80px" />
+              <col style="width: 120px" />
+              <col style="width: 200px" />
+              <col style="width: 120px" />
+              <col style="width: 130px" />
+              <col style="width: 150px" />
+              <col style="width: 100px" />
+            </colgroup>
             <thead>
             <tr>
+              <th v-if="exportMode" class="text-center">
+                <input
+                    type="checkbox"
+                    :checked="allVisibleSelected"
+                    @change="toggleSelectAllVisible($event.target.checked)"
+                />
+              </th>
               <th class="text-center">STT</th>
               <th>Ngày làm</th>
               <th>Thứ</th>
@@ -108,69 +154,86 @@
               <th>Tên Ca</th>
               <th>Khung giờ</th>
               <th>Ghi chú</th>
-              <th class="text-end pe-3">Hành động</th>
+              <th class="text-center pe-3">Hành động</th>
 
-              <th v-if="exportMode" class="text-center">
-                <input
-                    type="checkbox"
-                    :checked="allVisibleSelected"
-                    @change="toggleSelectAllVisible($event.target.checked)"
-                />
-              </th>
+
             </tr>
             </thead>
             <tbody>
+
             <tr v-if="pagedItems.length === 0">
               <td :colspan="exportMode ? 10 : 9" class="empty">Không có dữ liệu</td>
             </tr>
+
             <tr v-for="(item, index) in pagedItems" :key="item.id">
+              <td v-if="exportMode" class="text-center">
+                <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item, $event.target.checked)" />
+              </td>
               <td class="text-center">{{ (page.page - 1) * page.size + index + 1 }}</td>
 
-              <td class="fw-bold">{{ formatDate(item.ngayLamViec) }}</td>
-              <td class="text-muted small">{{ getDayOfWeek(item.ngayLamViec) }}</td>
+              <td >{{ formatDate(item.ngayLamViec) }}</td>
+              <td >{{ getDayOfWeek(item.ngayLamViec) }}</td>
 
               <td><span class="badge badge-muted text-dark border">{{ item.maNhanVien }}</span></td>
-              <td class="fw-bold text-primary">{{ item.tenNhanVien }}</td>
+              <td >{{ item.tenNhanVien }}</td>
 
-              <td><span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25">{{ item.tenCa }}</span></td>
+              <td><span class="badge bg-primary border">{{ item.tenCa }}</span></td>
 
-              <td class="text-primary fw-semibold text-small">
+              <td >
                 {{ formatTime(item.gioBatDau) }} - {{ formatTime(item.gioKetThuc) }}
               </td>
 
               <td><span class="ellipsis" :title="item.ghiChu">{{ item.ghiChu || '-' }}</span></td>
 
               <td class="text-end pe-3">
-                <div class="d-flex justify-content-end gap-2">
-                  <button class="btn btn-outline-warning btn-sm border-0" @click="openModal(item)" title="Sửa">
+                <div class="d-flex justify-content-center gap-2">
+                  <button class="btn btn-outline-warning btn-sm" @click="openModal(item)" title="Sửa">
                     <i class="bi bi-pencil-square"></i>
                   </button>
-                  <button class="btn btn-outline-danger btn-sm border-0" @click="confirmDelete(item.id)" title="Xóa">
-                    <i class="bi bi-trash"></i>
-                  </button>
+<!--                  <button class="btn btn-outline-danger btn-sm" @click="confirmDelete(item.id)" title="Xóa">-->
+<!--                    <i class="bi bi-trash"></i>-->
+<!--                  </button>-->
                 </div>
               </td>
 
-              <td v-if="exportMode" class="text-center">
-                <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item, $event.target.checked)" />
-              </td>
+
             </tr>
             </tbody>
           </table>
         </div>
 
         <div class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2" v-if="totalElements > 0">
-          <div class="text-muted flex-grow-1">Hiển thị {{ pagedItems.length }} / {{ totalElements }} bản ghi</div>
-          <div class="d-flex align-items-center gap-2 justify-content-center flex-grow-1">
-            <button class="btn btn-outline-secondary btn-sm" :disabled="page.page === 1" @click="setPage(page.page - 1)"><i class="bi bi-chevron-left"></i></button>
-            <span class="mx-2">Trang {{ page.page }} / {{ totalPages }}</span>
-            <button class="btn btn-outline-secondary btn-sm" :disabled="page.page >= totalPages" @click="setPage(page.page + 1)"><i class="bi bi-chevron-right"></i></button>
+          <div class="text-muted flex-grow-1">
+            Hiển thị {{ pagedItems.length }} / tổng {{ totalElements }} bản ghi
           </div>
+
+          <div class="d-flex align-items-center gap-2 justify-content-center flex-grow-1">
+            <button class="btn btn-outline-secondary btn-sm" :disabled="page.page === 1" @click="setPage(page.page - 1)">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <div class="input-group input-group-sm" style="width: 110px">
+              <span class="input-group-text">Trang</span>
+              <input
+                  type="number"
+                  min="1"
+                  :max="totalPages"
+                  class="form-control"
+                  v-model.number="pageInput"
+                  @keyup.enter="jumpPage"
+              />
+            </div>
+
+            <button class="btn btn-outline-secondary btn-sm" :disabled="page.page >= totalPages" @click="setPage(page.page + 1)">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+
           <div class="d-flex justify-content-md-end flex-grow-1">
-            <select class="form-select form-select-sm" style="width: 120px" v-model.number="page.size">
-              <option :value="10">10 / trang</option>
-              <option :value="20">20 / trang</option>
-              <option :value="50">50 / trang</option>
+            <select class="form-select form-select-sm" style="width: 180px" v-model.number="page.size">
+              <option :value="10">10 bản ghi / trang</option>
+              <option :value="20">20 bản ghi / trang</option>
+              <option :value="50">50 bản ghi / trang</option>
             </select>
           </div>
         </div>
@@ -244,7 +307,9 @@ import shiftApi from '@/services/shiftApi';
 import * as nhanVienApi from '@/services/nhanVienApi';
 import { useToast } from "@/composables/useToast";
 import * as XLSX from "xlsx";
-
+import flatpickr from "flatpickr";
+import "flatpickr/dist/flatpickr.css";
+import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
 const toast = useToast();
 
 // State
@@ -269,9 +334,46 @@ const filters = reactive({
   to: toDateStr(lastDay)
 });
 
+const fromPickerRef = ref(null);
+const toPickerRef = ref(null);
+let fromPickerInstance = null;
+let toPickerInstance = null;
+
+const isoToLocalDate = (iso) => {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
+function openFromPicker() {
+  fromPickerInstance?.open();
+}
+function openToPicker() {
+  toPickerInstance?.open();
+}
+
+function clearFromDate() {
+  filters.from = "";
+  fromPickerInstance?.clear();
+  page.page = 1;
+  loadSchedule();
+}
+
+function clearToDate() {
+  filters.to = "";
+  toPickerInstance?.clear();
+  page.page = 1;
+  loadSchedule();
+}
+
+// (Template đang gọi applyFilters cho keyword/ca -> chỉ reset trang)
+function applyFilters() {
+  page.page = 1;
+}
+
 // Pagination
 const page = reactive({ page: 1, size: 10 });
-
+const pageInput = ref(1);
 // Form
 const form = reactive({
   idNhanVien: null,
@@ -292,6 +394,31 @@ const exporting = ref(false);
 const selectedIds = ref([]);
 
 onMounted(() => {
+  // Init pickers
+  fromPickerInstance = flatpickr(fromPickerRef.value, {
+    locale: Vietnamese,
+    allowInput: true,
+    dateFormat: "d/m/Y",
+    defaultDate: isoToLocalDate(filters.from),
+    onChange: (selectedDates) => {
+      filters.from = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
+      page.page = 1;
+      loadSchedule();
+    },
+  });
+
+  toPickerInstance = flatpickr(toPickerRef.value, {
+    locale: Vietnamese,
+    allowInput: true,
+    dateFormat: "d/m/Y",
+    defaultDate: isoToLocalDate(filters.to),
+    onChange: (selectedDates) => {
+      filters.to = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
+      page.page = 1;
+      loadSchedule();
+    },
+  });
+
   loadSchedule();
   loadResources();
 });
@@ -345,9 +472,17 @@ const pagedItems = computed(() => filteredItems.value.slice((page.page - 1) * pa
 
 // --- ACTIONS ---
 function resetFilters() {
-  filters.keyword = ""; filters.shiftId = null;
-  filters.from = toDateStr(firstDay); filters.to = toDateStr(lastDay);
-  page.page = 1; loadSchedule();
+  filters.keyword = "";
+  filters.shiftId = null;
+  filters.from = toDateStr(firstDay);
+  filters.to = toDateStr(lastDay);
+
+  // set lại UI picker (không trigger onChange để khỏi gọi loadSchedule 2 lần)
+  fromPickerInstance?.setDate(isoToLocalDate(filters.from), false);
+  toPickerInstance?.setDate(isoToLocalDate(filters.to), false);
+
+  page.page = 1;
+  loadSchedule();
 }
 
 function openModal(item = null) {
@@ -444,7 +579,7 @@ async function exportSelectedToExcel() {
 function setPage(p) { if(p >= 1 && p <= totalPages.value) page.page = p; }
 const formatTime = (t) => t ? t.substring(0, 5) : '-';
 const formatDate = (d) => { if(!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
-const getDayOfWeek = (d) => ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy'][new Date(d).getDay()];
+const getDayOfWeek = (d) => ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'][new Date(d).getDay()];
 </script>
 
 <style scoped>
@@ -454,15 +589,34 @@ const getDayOfWeek = (d) => ['CN', 'Hai', 'Ba', 'Tư', 'Năm', 'Sáu', 'Bảy'][
 .filter-title { font-weight: 700; }
 .filter-body { background: #f8fafc; }
 .filter-card .form-control, .filter-card .form-select { border-radius: 10px; }
+.filter-hint {
+  opacity: 0.75;
+}
 
+.filter-icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+/* Khi collapse => aria-expanded="false" => xoay icon giống MySchedule */
+.filter-header[aria-expanded="false"] .filter-icon {
+  transform: rotate(-90deg);
+}
 .table-wrap { border: 1px solid #dee2e6; border-radius: 12px; overflow: auto; background: #fff; text-align: center; }
 .custom-table { width: 100%; min-width: 1000px; border-collapse: separate; border-spacing: 0; }
 .custom-table th, .custom-table td { padding: 12px; border-bottom: 1px solid #e9ecef; vertical-align: middle; white-space: nowrap; }
 .custom-table thead th { background: #1f2a44; color: #fff; font-weight: 700; }
 .ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .empty { text-align: center; padding: 20px; color: #6c757d; }
-.badge-muted { background: #f8f9fa; color: #212529; }
-
+.badge-muted { background: #f8f9fa; color: #212529; font-weight: 500}
+.badge{font-weight: 500}
 /* Modal Styles */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; }
 .modal-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); min-width: 400px; }
