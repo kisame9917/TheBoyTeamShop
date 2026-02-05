@@ -489,7 +489,7 @@ const statusOptions = [
 ];
 // ===== Range tổng tiền (theo mẫu) =====
 const TOTAL_MIN = 0;
-const TOTAL_MAX = 500_000_000;
+const TOTAL_MAX = 100000000;
 const TOTAL_STEP = 50_000;
 
 const filters = reactive({
