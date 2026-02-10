@@ -19,7 +19,6 @@ public interface PhieuGiamGiaService {
     PhieuGiamGia update(Long id, PhieuGiamGiaUpdateRequest dto) throws Exception;
     void delete(Long id);
     void endpgg(Long id) throws Exception;
-    List<PhieuGiamGiaCaNhanResponse> getKhachHangNhanPhieu(Long pggId);
     void updateKhachHangNhanPhieu(Long pggId, UpdateKhachHangNhanPhieuRequest req) throws Exception;
     void startpgg(Long id) throws Exception;
 

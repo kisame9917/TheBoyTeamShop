@@ -294,10 +294,7 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         }
     }
 
-    @Override
-    public List<PhieuGiamGiaCaNhanResponse> getKhachHangNhanPhieu(Long pggId) {
-        return cnrepo.findDsKhachHangNhanPhieu(pggId);
-    }
+
 
     @Override
     public void updateKhachHangNhanPhieu(Long pggId, UpdateKhachHangNhanPhieuRequest req) throws Exception {

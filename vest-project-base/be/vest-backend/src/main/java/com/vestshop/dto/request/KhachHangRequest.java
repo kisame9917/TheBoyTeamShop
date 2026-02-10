@@ -1,6 +1,8 @@
 package com.vestshop.dto.request;
 
 import lombok.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -22,7 +24,7 @@ public class KhachHangRequest {
 
     private Boolean trangThai; // true: hoạt động, false: không hoạt động
     private String anhDaiDien; // /uploads/khachhang/xxx.jpg
-
+    private LocalDate ngaySinh;
     // ===== ĐỊA CHỈ MẶC ĐỊNH =====
     private String tenNguoiNhan;
     private String sdtNguoiNhan;

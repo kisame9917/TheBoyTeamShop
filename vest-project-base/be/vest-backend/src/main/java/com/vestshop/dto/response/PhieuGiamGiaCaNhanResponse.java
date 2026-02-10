@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -11,7 +13,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class PhieuGiamGiaCaNhanResponse {
     private Long idPggCaNhan;
-
+    private LocalDate ngaySinh;
+    private Long soDonThangHienTai;
+    private BigDecimal tongTienDaTieu;
     private Long idKhachHang;
     private String maKhachHang;
     private String tenKhachHang;

@@ -95,4 +95,49 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
             "GROUP BY h.trangThaiDon")
     List<Object[]> countDonHangByTrangThaiInRange(@Param("from") LocalDateTime from,
                                                   @Param("to") LocalDateTime to);
+
+    @Query("""
+      select sum(
+        case when :includeShip = true
+             then (h.tongTienSauGiam + h.phiVanChuyen)
+             else h.tongTienSauGiam
+        end
+      )
+      from HoaDon h
+      where h.khachHang.id = :khId
+        and h.trangThai = true
+        and h.trangThaiDon = 4
+    """)
+    BigDecimal totalSpent(@Param("khId") Long khId,
+                          @Param("includeShip") boolean includeShip);
+
+    @Query("""
+      select count(h)
+      from HoaDon h
+      where h.khachHang.id = :khId
+        and h.trangThai = true
+        and h.trangThaiDon = 4
+        and h.ngayTao >= :from and h.ngayTao < :to
+    """)
+    long monthlyOrderCount(@Param("khId") Long khId,
+                           @Param("from") LocalDateTime from,
+                           @Param("to") LocalDateTime to);
+
+    @Query("""
+      select sum(
+        case when :includeShip = true
+             then (h.tongTienSauGiam + h.phiVanChuyen)
+             else h.tongTienSauGiam
+        end
+      )
+      from HoaDon h
+      where h.khachHang.id = :khId
+        and h.trangThai = true
+        and h.trangThaiDon = 4
+        and h.ngayTao >= :from and h.ngayTao < :to
+    """)
+    BigDecimal monthlySpent(@Param("khId") Long khId,
+                            @Param("from") LocalDateTime from,
+                            @Param("to") LocalDateTime to,
+                            @Param("includeShip") boolean includeShip);
 }

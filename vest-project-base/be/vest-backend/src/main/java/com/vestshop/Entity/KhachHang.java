@@ -3,6 +3,8 @@ package com.vestshop.Entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import lombok.*;
@@ -50,6 +52,9 @@ public class KhachHang {
 
     @Column(name="email", length=255)
     private String email;
+
+    @Column(name = "ngay_sinh")
+    private LocalDate ngaySinh;
 
     @Column(name = "anh_dai_dien", length = 500)
     private String anhDaiDien;

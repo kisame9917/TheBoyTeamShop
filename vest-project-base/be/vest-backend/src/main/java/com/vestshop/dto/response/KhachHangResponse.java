@@ -2,6 +2,7 @@ package com.vestshop.dto.response;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -17,7 +18,7 @@ public class KhachHangResponse {
     private Boolean gioiTinh;  // true=Nam, false=Nữ
     private String email;
     private String soDienThoai;
-
+    private LocalDate ngaySinh;
     private String taiKhoan;
 
     private LocalDateTime ngayTao;

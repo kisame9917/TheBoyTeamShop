@@ -1,9 +1,11 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Exception.ApiException;
+import com.vestshop.Service.KhachHangChiTietService;
 import com.vestshop.Service.KhachHangService;
 import com.vestshop.dto.request.KhachHangRequest;
 import com.vestshop.dto.request.KhachHangTrangThaiRequest;
+import com.vestshop.dto.response.KhachHangChiTietResponse;
 import com.vestshop.dto.response.KhachHangResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,7 +35,7 @@ import java.util.*;
 )
 @RequiredArgsConstructor
 public class KhachHangController {
-
+    private final KhachHangChiTietService khachHangChiTietService;
     private final KhachHangService khachHangService;
 
     // ========= LIST / DETAIL =========
@@ -111,5 +113,11 @@ public class KhachHangController {
         } catch (Exception e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload ảnh thất bại: " + e.getMessage());
         }
+    }
+    @GetMapping("/{id}/stats")
+    public KhachHangChiTietResponse stats(@PathVariable Long id,
+                                          @RequestParam(required = false) String month,
+                                          @RequestParam(required = false) Boolean includeShip) {
+        return khachHangChiTietService.getStats(id, month, includeShip);
     }
 }
