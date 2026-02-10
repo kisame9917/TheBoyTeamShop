@@ -179,32 +179,50 @@
                 <div v-else-if="customersError" class="text-danger mt-3">{{ customersError }}</div>
 
                 <div v-else class="kh-box mt-3">
-                  <div class="kh-head">
-                    <div class="kh-col kh-check"></div>
-                    <div class="kh-col kh-ma">Mã KH</div>
-                    <div class="kh-col kh-ten">Tên KH</div>
-                    <div class="kh-col kh-sdt">SĐT</div>
-                    <div class="kh-col kh-email">Email</div>
-                  </div>
+                  <!-- ✅ scroll chung để header/body luôn căn thẳng (không lệch vì scrollbar) -->
+                  <div class="kh-scroll">
+                    <div class="kh-head">
+                      <div class="kh-col kh-check"></div>
+                      <div class="kh-col kh-ma">Mã KH</div>
+                      <div class="kh-col kh-ten">Tên KH</div>
+                      <div class="kh-col kh-sdt">SĐT</div>
+                      <div class="kh-col kh-email">Email</div>
 
-                  <div class="kh-body">
-                    <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
+                      <div class="kh-col kh-ngaysinh">Ngày sinh</div>
+                      <div class="kh-col kh-donthang">Số đơn(tháng)</div>
+                      <div class="kh-col kh-datieu">Số tiền đã tiêu</div>
+                    </div>
 
-                    <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
-                      <div class="kh-col kh-check">
-                        <input
-                          type="checkbox"
-                          class="form-check-input"
-                          :checked="selectedCustomerIds.includes(c.id)"
-                          @change="toggleCustomer(c.id)"
-                        />
-                      </div>
+                    <div class="kh-body">
+                      <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
 
-                      <div class="kh-col kh-ma">{{ c.maKhachHang ?? c.ma ?? "-" }}</div>
-                      <div class="kh-col kh-ten fw-semibold">{{ c.tenKhachHang ?? c.ten ?? "-" }}</div>
-                      <div class="kh-col kh-sdt">{{ c.soDienThoai ?? c.sdt ?? "-" }}</div>
-                      <div class="kh-col kh-email">
-                        <span class="kh-ellipsis" :title="c.email ?? ''">{{ c.email ?? "-" }}</span>
+                      <!-- ✅ list đã sort theo id tăng dần -->
+                      <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
+                        <div class="kh-col kh-check">
+                          <input
+                            type="checkbox"
+                            class="form-check-input"
+                            :checked="selectedCustomerIds.includes(c.id)"
+                            @change="toggleCustomer(c.id)"
+                          />
+                        </div>
+
+                        <div class="kh-col kh-ma">{{ c.maKhachHang ?? "-" }}</div>
+                        <div class="kh-col kh-ten fw-semibold">{{ c.tenKhachHang ?? "-" }}</div>
+                        <div class="kh-col kh-sdt">{{ c.soDienThoai ?? "-" }}</div>
+                        <div class="kh-col kh-email">
+                          <span class="kh-ellipsis" :title="c.email ?? ''">{{ c.email ?? "-" }}</span>
+                        </div>
+
+                        <div class="kh-col kh-ngaysinh">{{ formatDob(c.ngaySinh) }}</div>
+
+                        <div class="kh-col kh-donthang">{{ c.soDonThangHienTai ?? 0 }}</div>
+
+                        <div class="kh-col kh-datieu">
+                          <span class="kh-ellipsis" :title="formatMoney(c.tongTienDaTieu)">
+                            {{ formatMoney(c.tongTienDaTieu) }}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -262,7 +280,7 @@
 import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "@/composables/useToast";
-import http from "@/services/http"; // ✅ dùng http để auto Bearer token
+import http from "@/services/http";
 
 import flatpickr from "flatpickr";
 import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
@@ -272,7 +290,7 @@ const toast = useToast();
 const router = useRouter();
 
 const API = "/api/pgg";
-const KH_API = "/api/khach-hang";
+const KH_API = "/api/pgg/khach-hang-with-stats"; // ✅ đổi sang endpoint nằm trong PGG (có ngaySinh + stats)
 
 const saving = ref(false);
 const error = ref("");
@@ -331,7 +349,6 @@ const form = ref({
   loaiPhieu: "CONG_KHAI",
 });
 
-// đổi sang giảm tiền thì reset giảm tối đa
 watch(
   () => form.value.loaiGiam,
   (isPercent) => {
@@ -462,12 +479,26 @@ const customersError = ref("");
 const customerKeyword = ref("");
 const selectedCustomerIds = ref([]);
 
+function formatDob(ymd) {
+  if (!ymd) return "-";
+  const s = String(ymd).slice(0, 10);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return "-";
+  return `${d}/${m}/${y}`;
+}
+
+function formatMoney(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "0";
+  return nf.format(n);
+}
+
 async function loadCustomers() {
   loadingCustomers.value = true;
   customersError.value = "";
   try {
-    const res = await http.get(KH_API);
-    const data = res?.data ?? res; // ✅ chắc chắn lấy đúng mảng
+    const res = await http.get(KH_API, { params: { includeShip: true } });
+    const data = res?.data ?? res;
     customers.value = Array.isArray(data) ? data : [];
   } catch (e) {
     customersError.value = e?.response?.data?.message || e?.message || "Không tải được khách hàng";
@@ -476,13 +507,21 @@ async function loadCustomers() {
   }
 }
 
+/**
+ * ✅ Filter + sort theo id tăng dần
+ * - Dù có search hay không vẫn sort
+ * - Đảm bảo list hiển thị từ id nhỏ -> lớn
+ */
 const filteredCustomers = computed(() => {
   const kw = String(customerKeyword.value || "").trim().toLowerCase();
-  if (!kw) return customers.value;
-  return customers.value.filter((c) => {
-    const s = `${c.maKhachHang ?? c.ma ?? ""} ${c.tenKhachHang ?? c.ten ?? ""} ${c.soDienThoai ?? c.sdt ?? ""} ${c.email ?? ""}`.toLowerCase();
-    return s.includes(kw);
-  });
+  const base = !kw
+    ? customers.value
+    : customers.value.filter((c) => {
+        const s = `${c.maKhachHang ?? ""} ${c.tenKhachHang ?? ""} ${c.soDienThoai ?? ""} ${c.email ?? ""}`.toLowerCase();
+        return s.includes(kw);
+      });
+
+  return [...base].sort((a, b) => Number(a.id) - Number(b.id));
 });
 
 const isAllSelected = computed(() => {
@@ -595,7 +634,7 @@ async function doCreate() {
     moTa: form.value.moTa,
     donHangToiThieu: form.value.donHangToiThieu,
     loaiPhieu: form.value.loaiPhieu === "CA_NHAN",
-    trangThai: true, // ✅ QUAN TRỌNG: để list không bị lọc mất
+    trangThai: true,
   };
 
   if (payload.loaiGiam) {
@@ -679,10 +718,23 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
+  width: 100%;
 }
+
+/* ✅ scroll chung (header sticky) để không bị lệch cột khi có scrollbar */
+.kh-scroll {
+  max-height: 360px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
 .kh-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
   display: grid;
-  grid-template-columns: 44px 140px 1.6fr 160px 2fr;
+  grid-template-columns: 44px 140px 1.6fr 160px 2fr 120px 110px 160px;
   gap: 0;
   padding: 10px 12px;
   background: #1f2a44;
@@ -690,16 +742,28 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
+  
+  /* ✅ tránh header bị co lại khi scroll ngang */
+  min-width: 980px;
 }
-.kh-body { max-height: 360px; overflow: auto; }
+
+.kh-body {
+  /* để body nằm trong kh-scroll, không tự overflow riêng */
+  overflow: visible;
+}
+
 .kh-row {
   display: grid;
-  grid-template-columns: 44px 140px 1.6fr 160px 2fr;
+  grid-template-columns: 44px 140px 1.6fr 160px 2fr 120px 110px 160px;
   padding: 10px 12px;
   font-size: 13px;
   border-bottom: 1px solid #e5e7eb;
   align-items: center;
+
+  /* ✅ đồng bộ min-width với header để căn thẳng */
+  min-width: 980px;
 }
+
 .kh-row:hover { background: #f8fafc; }
 .kh-col { min-width: 0; }
 .kh-ellipsis {

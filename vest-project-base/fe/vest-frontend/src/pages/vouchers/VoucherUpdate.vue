@@ -40,10 +40,22 @@
                     placeholder="dd/mm/yyyy"
                     :disabled="isEnded"
                   />
-                  <button class="btn btn-outline-secondary" type="button" @click="openStartPicker" :disabled="isEnded" title="Chọn ngày">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="openStartPicker"
+                    :disabled="isEnded"
+                    title="Chọn ngày"
+                  >
                     <i class="bi bi-calendar3"></i>
                   </button>
-                  <button class="btn btn-outline-secondary" type="button" @click="clearStartDate" :disabled="isEnded" title="Xóa">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="clearStartDate"
+                    :disabled="isEnded"
+                    title="Xóa"
+                  >
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
@@ -96,11 +108,29 @@
               <div class="mt-3">
                 <label class="form-label">Ngày kết thúc <span class="req">*</span></label>
                 <div class="input-group date-group">
-                  <input ref="endPickerRef" type="text" class="form-control text-start" placeholder="dd/mm/yyyy" :disabled="isEnded" />
-                  <button class="btn btn-outline-secondary" type="button" @click="openEndPicker" :disabled="isEnded" title="Chọn ngày">
+                  <input
+                    ref="endPickerRef"
+                    type="text"
+                    class="form-control text-start"
+                    placeholder="dd/mm/yyyy"
+                    :disabled="isEnded"
+                  />
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="openEndPicker"
+                    :disabled="isEnded"
+                    title="Chọn ngày"
+                  >
                     <i class="bi bi-calendar3"></i>
                   </button>
-                  <button class="btn btn-outline-secondary" type="button" @click="clearEndDate" :disabled="isEnded" title="Xóa">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="clearEndDate"
+                    :disabled="isEnded"
+                    title="Xóa"
+                  >
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
@@ -190,7 +220,7 @@
               </div>
             </div>
 
-            <!-- KHÁCH HÀNG -->
+            <!-- KHÁCH HÀNG (CÁ NHÂN) -->
             <div class="col-12" v-if="form.loaiPhieu === 'CA_NHAN'">
               <div class="card shadow-sm">
                 <div class="card-body">
@@ -211,7 +241,12 @@
                         :disabled="isEnded"
                       />
 
-                      <button class="btn btn-outline-secondary btn-sm" type="button" @click="toggleSelectAll" :disabled="isEnded || loadingCustomers">
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
+                        type="button"
+                        @click="toggleSelectAll"
+                        :disabled="isEnded || loadingCustomers"
+                      >
                         {{ isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả" }}
                       </button>
                     </div>
@@ -221,33 +256,50 @@
                   <div v-else-if="customersError" class="text-danger mt-3">{{ customersError }}</div>
 
                   <div v-else class="kh-box mt-3">
-                    <div class="kh-head">
-                      <div class="kh-col kh-check"></div>
-                      <div class="kh-col kh-ma">Mã KH</div>
-                      <div class="kh-col kh-ten">Tên KH</div>
-                      <div class="kh-col kh-sdt">SĐT</div>
-                      <div class="kh-col kh-email">Email</div>
-                    </div>
+                    <!-- ✅ giống create: scroll chung để header/body không lệch cột -->
+                    <div class="kh-scroll">
+                      <div class="kh-head">
+                        <div class="kh-col kh-check"></div>
+                        <div class="kh-col kh-ma">Mã KH</div>
+                        <div class="kh-col kh-ten">Tên KH</div>
+                        <div class="kh-col kh-sdt">SĐT</div>
+                        <div class="kh-col kh-email">Email</div>
 
-                    <div class="kh-body">
-                      <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
+                        <div class="kh-col kh-ngaysinh">Ngày sinh</div>
+                        <div class="kh-col kh-donthang">Đơn tháng</div>
+                        <div class="kh-col kh-datieu">Đã tiêu</div>
+                      </div>
 
-                      <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
-                        <div class="kh-col kh-check">
-                          <input
-                            type="checkbox"
-                            class="form-check-input"
-                            :checked="selectedCustomerIds.includes(c.id)"
-                            @change="toggleCustomer(c.id)"
-                            :disabled="isEnded"
-                          />
-                        </div>
+                      <div class="kh-body">
+                        <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
 
-                        <div class="kh-col kh-ma">{{ c.maKhachHang ?? c.ma ?? "-" }}</div>
-                        <div class="kh-col kh-ten fw-semibold">{{ c.tenKhachHang ?? c.ten ?? "-" }}</div>
-                        <div class="kh-col kh-sdt">{{ c.soDienThoai ?? c.sdt ?? "-" }}</div>
-                        <div class="kh-col kh-email">
-                          <span class="kh-ellipsis" :title="c.email ?? ''">{{ c.email ?? "-" }}</span>
+                        <!-- ✅ list sort theo id tăng dần -->
+                        <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
+                          <div class="kh-col kh-check">
+                            <input
+                              type="checkbox"
+                              class="form-check-input"
+                              :checked="selectedCustomerIds.includes(Number(c.id))"
+                              @change="toggleCustomer(c.id)"
+                              :disabled="isEnded"
+                            />
+                          </div>
+
+                          <div class="kh-col kh-ma">{{ c.maKhachHang ?? c.ma ?? "-" }}</div>
+                          <div class="kh-col kh-ten fw-semibold">{{ c.tenKhachHang ?? c.ten ?? "-" }}</div>
+                          <div class="kh-col kh-sdt">{{ c.soDienThoai ?? c.sdt ?? "-" }}</div>
+                          <div class="kh-col kh-email">
+                            <span class="kh-ellipsis" :title="c.email ?? ''">{{ c.email ?? "-" }}</span>
+                          </div>
+
+                          <div class="kh-col kh-ngaysinh">{{ formatDob(c.ngaySinh) }}</div>
+                          <div class="kh-col kh-donthang">{{ c.soDonThangHienTai ?? 0 }}</div>
+
+                          <div class="kh-col kh-datieu">
+                            <span class="kh-ellipsis" :title="formatMoney(c.tongTienDaTieu)">
+                              {{ formatMoney(c.tongTienDaTieu) }}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -323,7 +375,7 @@ const router = useRouter();
 const route = useRoute();
 
 const API = "/api/pgg";
-const KH_API = "/api/khach-hang";
+const KH_API = "/api/pgg/khach-hang-with-stats"; // ✅ giống create: có ngaySinh + stats
 
 const id = route.params.id;
 
@@ -532,13 +584,26 @@ const customers = ref([]);
 const loadingCustomers = ref(false);
 const customersError = ref("");
 const customerKeyword = ref("");
-const selectedCustomerIds = ref([]);
+const selectedCustomerIds = ref([]); // ✅ luôn lưu số (Number)
+
+function formatDob(ymd) {
+  if (!ymd) return "-";
+  const s = String(ymd).slice(0, 10);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return "-";
+  return `${d}/${m}/${y}`;
+}
+function formatMoney(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "0";
+  return nf.format(n);
+}
 
 async function loadCustomers() {
   loadingCustomers.value = true;
   customersError.value = "";
   try {
-    const res = await http.get(KH_API);
+    const res = await http.get(KH_API, { params: { includeShip: true } });
     const data = res?.data ?? res;
     customers.value = Array.isArray(data) ? data : [];
   } catch (e) {
@@ -555,47 +620,62 @@ async function loadSelectedCustomerIds() {
     const arr = Array.isArray(ds) ? ds : [];
     const ids = arr
       .map((r) => r.idKhachHang ?? r.id_khach_hang ?? r.id)
-      .filter((x) => x !== null && x !== undefined);
-    selectedCustomerIds.value = Array.from(new Set(ids));
+      .filter((x) => x !== null && x !== undefined)
+      .map((x) => Number(x))
+      .filter((x) => Number.isFinite(x));
+    selectedCustomerIds.value = Array.from(new Set(ids)).sort((a, b) => a - b);
   } catch {
     selectedCustomerIds.value = [];
   }
 }
 
+/**
+ * ✅ Filter + sort theo id tăng dần (giống create)
+ */
 const filteredCustomers = computed(() => {
   const kw = String(customerKeyword.value || "").trim().toLowerCase();
-  if (!kw) return customers.value;
-  return customers.value.filter((c) => {
-    const s = `${c.maKhachHang ?? c.ma ?? ""} ${c.tenKhachHang ?? c.ten ?? ""} ${c.soDienThoai ?? c.sdt ?? ""} ${c.email ?? ""}`.toLowerCase();
-    return s.includes(kw);
-  });
+
+  const base = !kw
+    ? customers.value
+    : customers.value.filter((c) => {
+        const s = `${c.maKhachHang ?? c.ma ?? ""} ${c.tenKhachHang ?? c.ten ?? ""} ${c.soDienThoai ?? c.sdt ?? ""} ${c.email ?? ""}`.toLowerCase();
+        return s.includes(kw);
+      });
+
+  return [...base].sort((a, b) => Number(a.id) - Number(b.id));
 });
 
 const isAllSelected = computed(() => {
-  const ids = filteredCustomers.value.map((x) => x.id);
+  const ids = filteredCustomers.value.map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
   if (ids.length === 0) return false;
-  return ids.every((id) => selectedCustomerIds.value.includes(id));
+  return ids.every((cid) => selectedCustomerIds.value.includes(cid));
 });
 
-function toggleCustomer(id) {
+function toggleCustomer(idVal) {
+  const idNum = Number(idVal);
+  if (!Number.isFinite(idNum)) return;
+
   const arr = [...selectedCustomerIds.value];
-  const idx = arr.indexOf(id);
+  const idx = arr.indexOf(idNum);
   if (idx >= 0) arr.splice(idx, 1);
-  else arr.push(id);
-  selectedCustomerIds.value = arr;
+  else arr.push(idNum);
+
+  selectedCustomerIds.value = arr.sort((a, b) => a - b);
 }
 
 function toggleSelectAll() {
-  const ids = filteredCustomers.value.map((x) => x.id);
+  const ids = filteredCustomers.value.map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
   if (ids.length === 0) return;
 
   if (isAllSelected.value) {
-    selectedCustomerIds.value = selectedCustomerIds.value.filter((id) => !ids.includes(id));
+    selectedCustomerIds.value = selectedCustomerIds.value.filter((cid) => !ids.includes(cid));
   } else {
     const set = new Set(selectedCustomerIds.value);
-    ids.forEach((id) => set.add(id));
+    ids.forEach((cid) => set.add(cid));
     selectedCustomerIds.value = Array.from(set);
   }
+
+  selectedCustomerIds.value = selectedCustomerIds.value.sort((a, b) => a - b);
 }
 
 watch(
@@ -748,6 +828,7 @@ onMounted(async () => {
   initPickers();
 
   if (form.value.loaiPhieu === "CA_NHAN") {
+    // ✅ load ds KH + ids đã chọn, rồi tự fill số lượng
     await loadCustomers();
     await loadSelectedCustomerIds();
     form.value.soLuong = selectedCustomerIds.value.length;
@@ -791,26 +872,52 @@ onBeforeUnmount(() => {
 .btn-confirm:hover { filter: brightness(0.95); }
 .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.kh-box { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; }
+.kh-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  width: 100%;
+}
+
+/* ✅ giống create: scroll chung + header sticky => không lệch cột */
+.kh-scroll {
+  max-height: 360px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
 .kh-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
   display: grid;
-  grid-template-columns: 44px 140px 1.6fr 160px 2fr;
+  grid-template-columns: 44px 140px 1.6fr 160px 2fr 120px 110px 160px;
+  gap: 0;
   padding: 10px 12px;
   background: #1f2a44;
   font-weight: 700;
   font-size: 13px;
   color: #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
+
+  min-width: 980px;
 }
-.kh-body { max-height: 360px; overflow: auto; }
+
+.kh-body { overflow: visible; }
+
 .kh-row {
   display: grid;
-  grid-template-columns: 44px 140px 1.6fr 160px 2fr;
+  grid-template-columns: 44px 140px 1.6fr 160px 2fr 120px 110px 160px;
   padding: 10px 12px;
   font-size: 13px;
   border-bottom: 1px solid #e5e7eb;
   align-items: center;
+
+  min-width: 980px;
 }
+
 .kh-row:hover { background: #f8fafc; }
 .kh-col { min-width: 0; }
 .kh-ellipsis { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
