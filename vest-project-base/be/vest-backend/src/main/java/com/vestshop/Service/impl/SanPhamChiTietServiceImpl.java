@@ -99,6 +99,7 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         return SanPhamChiTietResponse.builder()
                 .id(entity.getId())
                 .idSanPham(entity.getSanPham().getId())
+                .maSanPham(entity.getSanPham().getMaSanPham()) // ✅ thêm dòng này
                 .tenSanPham(entity.getSanPham().getTenSanPham())
                 .idKichCo(entity.getKichCo().getId())
                 .tenKichCo(entity.getKichCo().getSoSize())
@@ -112,4 +113,5 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
                 .anh(entity.getAnh())
                 .build();
     }
+
 }
