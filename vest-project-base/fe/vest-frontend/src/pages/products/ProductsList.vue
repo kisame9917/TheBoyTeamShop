@@ -144,11 +144,20 @@
           </div>
 
           <div class="form-group fg-status">
-            <label>Trạng thái</label>
+            <label>Trạng thái </label>
             <div class="radio-group compact">
-              <label><input type="radio" value="" v-model="filters.status" @change="onFilterChanged" /> Tất cả</label>
-              <label><input type="radio" value="true" v-model="filters.status" @change="onFilterChanged" /> Còn hàng</label>
-              <label><input type="radio" value="false" v-model="filters.status" @change="onFilterChanged" /> Hết hàng</label>
+              <label>
+                <input type="radio" value="" v-model="filters.status" @change="onFilterChanged" />
+                Tất cả
+              </label>
+              <label>
+                <input type="radio" value="true" v-model="filters.status" @change="onFilterChanged" />
+                Còn hàng
+              </label>
+              <label>
+                <input type="radio" value="false" v-model="filters.status" @change="onFilterChanged" />
+                Hết hàng
+              </label>
             </div>
           </div>
 
@@ -208,17 +217,20 @@
               </td>
 
               <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
-              <td class="text-center">{{ p.maSanPham }}</td>
+              <td class="text-center"><b>{{ p.maSanPham }}</b></td>
               <td class="text-bold">{{ p.tenSanPham }}</td>
               <td class="text-center">{{ p.tenLoaiSanPham || '-' }}</td>
               <td class="text-center">{{ p.tenThuongHieu || '-' }}</td>
-              <td class="text-center">{{ p.soLuongTon }}</td>
+              <td class="text-center">{{ Number(p.soLuongTon ?? 0) }}</td>
               <td class="text-center">{{ formatPriceRange(p.giaMin, p.giaMax) }}</td>
+
+              <!-- ✅ trạng thái theo tồn kho -->
               <td class="text-center">
-                <span :class="['badge', p.trangThai ? 'badge-success' : 'badge-danger']">
-                  {{ p.trangThai ? 'Còn hàng' : 'Hết hàng' }}
+                <span :class="['badge', badgeClassByStock(p)]">
+                  {{ stockText(p) }}
                 </span>
               </td>
+
               <td class="text-center">
                 <button
                   type="button"
@@ -246,7 +258,11 @@
         <div class="paging-left">Hiển thị {{ items.length }} / tổng {{ totalElements }} bản ghi</div>
 
         <div class="paging-center">
-          <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            :disabled="currentPage === 0"
+            @click="changePage(currentPage - 1)"
+          >
             <i class="bi bi-chevron-left"></i>
           </button>
 
@@ -327,21 +343,31 @@ const filters = reactive({
   thuongHieu: '',
   soLuong: '',
   loai: '',
-  status: '',
+  status: '', // "" | "true" | "false"  (theo tồn kho)
   priceMin: 0,
   priceMax: DEFAULT_MAX
 })
 
+/** ✅ Helpers: tồn kho */
+function isInStock(p) {
+  return Number(p?.soLuongTon ?? 0) > 0
+}
+function stockText(p) {
+  return isInStock(p) ? 'Còn hàng' : 'Hết hàng'
+}
+function badgeClassByStock(p) {
+  return isInStock(p) ? 'badge-success' : 'badge-danger'
+}
+
 /** Export Mode (FE only) */
 const exportMode = ref(false)
 const exporting = ref(false)
-const selectedIds = ref([])          // [id1, id2,...]
-const selectedRows = reactive({})    // { [id]: productObject }
+const selectedIds = ref([])       // [id1, id2,...]
+const selectedRows = reactive({}) // { [id]: productObject }
 
 function openExportMode() {
   exportMode.value = true
 }
-
 function cancelExportMode() {
   exportMode.value = false
   selectedIds.value = []
@@ -353,7 +379,6 @@ const tableColspan = computed(() => (exportMode.value ? 10 : 9))
 function isSelected(id) {
   return selectedIds.value.includes(id)
 }
-
 function toggleSelect(row, checked) {
   const id = row.id
   if (checked) {
@@ -364,12 +389,10 @@ function toggleSelect(row, checked) {
     delete selectedRows[id]
   }
 }
-
 const allVisibleSelected = computed(() => {
   if (!exportMode.value || items.value.length === 0) return false
   return items.value.every((p) => selectedIds.value.includes(p.id))
 })
-
 function toggleSelectAllVisible(checked) {
   items.value.forEach((p) => toggleSelect(p, checked))
 }
@@ -379,7 +402,7 @@ const createProduct = () => router.push('/products/add')
 const goDetail = (id) => router.push(`/products/${id}`)
 const scanQr = () => console.log('scan qr')
 
-/** Helpers */
+/** Price helpers */
 function formatPrice(val) {
   const v = Number(val || 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
@@ -394,7 +417,6 @@ function roundUpToStep(n, step) {
   if (x <= 0) return 0
   return Math.ceil(x / step) * step
 }
-
 function clampMinPrice() {
   if (filters.priceMin < 0) filters.priceMin = 0
   if (filters.priceMin > filters.priceMax) filters.priceMin = filters.priceMax
@@ -404,7 +426,6 @@ function clampMaxPrice() {
   if (filters.priceMax > max) filters.priceMax = max
   if (filters.priceMax < filters.priceMin) filters.priceMax = filters.priceMin
 }
-
 const rangeStyle = computed(() => {
   const max = Number(priceMaxDb.value || 1)
   const minV = Math.max(0, Math.min(filters.priceMin, max))
@@ -506,7 +527,11 @@ async function reload() {
       const ma = (it.maSanPham || '').toLowerCase()
 
       const matchesKeyword = !kw || ten.includes(kw) || ma.includes(kw)
-      const matchesStatus = filters.status === '' || String(!!it.trangThai) === filters.status
+
+      // ✅ Trạng thái theo tồn kho (0 => hết hàng)
+      const matchesStatus =
+        filters.status === '' || String(isInStock(it)) === String(filters.status)
+
       const matchesLoai = !filters.loai || String(it.loaiSanPhamId) === String(filters.loai)
       const matchesBrand = !filters.thuongHieu || String(it.thuongHieuId) === String(filters.thuongHieu)
 
@@ -550,7 +575,8 @@ function toExcelRow(p) {
     'Hàng tồn': Number(p.soLuongTon ?? 0),
     'Giá min': giaMin,
     'Giá max': giaMax,
-    'Trạng thái': p.trangThai ? 'Còn hàng' : 'Hết hàng'
+    // ✅ export theo tồn kho
+    'Trạng thái': isInStock(p) ? 'Còn hàng' : 'Hết hàng'
   }
 }
 
@@ -565,7 +591,6 @@ async function exportSelectedToExcel() {
   error.value = ''
 
   try {
-    // Tải lần lượt để hạn chế browser chặn multiple downloads
     for (const id of selectedIds.value) {
       const p = selectedRows[id]
       if (!p) continue
@@ -574,7 +599,6 @@ async function exportSelectedToExcel() {
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'SanPham')
 
-      // tạo file excel dạng blob
       const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
       const blob = new Blob([arrayBuffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -596,7 +620,6 @@ async function exportSelectedToExcel() {
       await sleep(120)
     }
 
-    // xong thì tắt chế độ chọn
     cancelExportMode()
   } catch (e) {
     console.error(e)
@@ -798,9 +821,12 @@ onMounted(async () => {
 
 .text-bold { font-weight: 600; color: #1f2937; text-align: center; }
 .text-center { text-align: center; }
+
+/* badges */
 .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
 .badge-success { background-color: #d1fae5; color: #047857; }
 .badge-danger { background-color: #fee2e2; color: #b91c1c; }
+
 .action-btn { width: 34px; height: 34px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
 
 /* pagination */

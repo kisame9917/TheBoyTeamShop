@@ -6,10 +6,10 @@
         <h2 class="page-title-text">
           Quản lý sản phẩm / Chi tiết biến thể
           <span v-if="productCode || productName" class="title-sep">-</span>
-<span v-if="productCode" class="title-code">{{ productCode }}</span>
-<span v-if="productName" class="title-name">({{ productName }})</span>
-
+          <span v-if="productCode" class="title-code">{{ productCode }}</span>
+          <span v-if="productName" class="title-name">({{ productName }})</span>
         </h2>
+
         <div class="page-sub" v-if="productName">
           <span class="sub-label">Tên:</span> <b>{{ productName }}</b>
         </div>
@@ -66,7 +66,8 @@
         </div>
 
         <div v-show="filterOpen" class="filter-body">
-          <div class="row g-3 align-items-end">
+          <!-- ✅ mx-0 để bỏ margin âm của bootstrap row (hay làm lệch viền) -->
+          <div class="row g-3 align-items-end mx-0">
             <div class="col-12 col-lg-6">
               <label class="form-label">Tìm kiếm</label>
               <input
@@ -197,7 +198,6 @@
                 <th class="text-center col-stt">STT</th>
                 <th class="text-center col-img">Ảnh</th>
 
-                <!-- ✅ thứ tự yêu cầu -->
                 <th class="text-center col-pcode">Mã sản phẩm</th>
                 <th class="text-center col-name">Tên sản phẩm</th>
                 <th class="text-center col-code">Mã SP chi tiết</th>
@@ -247,6 +247,7 @@
                 <td class="text-center">{{ v.soLuongTon ?? 0 }}</td>
                 <td class="text-center text-highlight">{{ formatPrice(v.donGia ?? 0) }}</td>
 
+                <!-- ✅ tồn = 0 => hết hàng -->
                 <td class="text-center">
                   <span class="badge-pill" :class="v.trangThai ? 'badge-success' : 'badge-danger'">
                     {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
@@ -255,15 +256,23 @@
 
                 <td class="text-center">
                   <div class="action-buttons">
-                    <button class="btn btn-outline-warning btn-sm edit-btn" type="button" title="Sửa" @click="openEditModal(v)">
+                    <button
+                      class="btn btn-outline-warning btn-sm edit-btn"
+                      type="button"
+                      title="Sửa"
+                      @click="openEditModal(v)"
+                    >
                       <i class="bi bi-pencil-square"></i>
                     </button>
 
-                    <label class="switch" title="Đổi trạng thái">
+                    <label
+                      class="switch"
+                      :title="isOutOfStock(v) ? 'Số lượng tồn = 0 nên luôn Hết hàng' : 'Đổi trạng thái'"
+                    >
                       <input
                         type="checkbox"
                         :checked="!!v.trangThai"
-                        :disabled="togglingIds.has(v.id)"
+                        :disabled="togglingIds.has(v.id) || isOutOfStock(v)"
                         @click.prevent="openConfirmToggle(v)"
                       />
                       <span class="slider"></span>
@@ -322,7 +331,8 @@
         </div>
 
         <div class="modal-body">
-          <div class="row g-3">
+          <!-- ✅ mx-0 để modal không bị tràn/lệch viền -->
+          <div class="row g-3 mx-0">
             <div class="col-6">
               <label class="form-label">Kích cỡ</label>
               <select v-model="edit.idKichCo" class="form-select">
@@ -364,9 +374,10 @@
             <div class="col-12">
               <label class="form-label">Trạng thái</label>
               <div class="status-radio">
-                <label class="me-3"><input type="radio" :value="true" v-model="edit.trangThai" /> Còn hàng</label>
+                <label class="me-3"><input type="radio" :value="true" v-model="edit.trangThai" :disabled="Number(edit.soLuongTon||0) <= 0" /> Còn hàng</label>
                 <label><input type="radio" :value="false" v-model="edit.trangThai" /> Hết hàng</label>
               </div>
+              <small v-if="Number(edit.soLuongTon||0) <= 0" class="hint">Số lượng tồn = 0 ⇒ trạng thái tự động là “Hết hàng”.</small>
             </div>
 
             <div class="col-12">
@@ -402,6 +413,9 @@
             <b>{{ confirmToggle.target?.maSanPhamChiTiet }}</b>
             thành <b>{{ confirmToggle.next ? 'Còn hàng' : 'Hết hàng' }}</b> không?
           </p>
+          <small v-if="confirmToggle.target && isOutOfStock(confirmToggle.target)" class="hint">
+            Biến thể đang có số lượng tồn = 0 ⇒ không thể bật “Còn hàng”.
+          </small>
         </div>
 
         <div class="modal-footer">
@@ -450,6 +464,17 @@ const filterOpen = ref(true)
 const variants = ref([])
 const attributes = reactive({ kichCo: [], mauSac: [] })
 
+/** ===== helpers: tồn kho -> trạng thái ===== */
+function isOutOfStock(v) {
+  return Number(v?.soLuongTon ?? 0) <= 0
+}
+function normalizeVariant(v) {
+  const sl = Number(v?.soLuongTon ?? 0)
+  // ✅ nếu tồn = 0 => luôn hết hàng
+  const trangThai = sl > 0 ? !!v?.trangThai : false
+  return { ...v, trangThai, __imgErr: false }
+}
+
 /** ===== product info ===== */
 function getProductCode(v) {
   return (
@@ -467,7 +492,6 @@ const productName = computed(() => {
   const first = variants.value?.[0]
   return first?.tenSanPham || first?.sanPhamTen || ''
 })
-
 const productCode = computed(() => {
   const first = variants.value?.[0]
   return getProductCode(first) || ''
@@ -475,7 +499,7 @@ const productCode = computed(() => {
 
 /** ===== PRICE slider ===== */
 const PRICE_STEP = 10000
-const priceMaxDb = ref(null) // null = chưa sẵn sàng
+const priceMaxDb = ref(null)
 const isPriceReady = computed(() => Number(priceMaxDb.value || 0) > 0)
 const priceMaxSafe = computed(() => (isPriceReady.value ? Number(priceMaxDb.value) : 0))
 
@@ -543,10 +567,10 @@ const filteredVariants = computed(() => {
     const ten = String(v.tenSanPham || '').toLowerCase()
 
     const okKw = !kw || code.includes(kw) || spct.includes(kw) || ten.includes(kw) || mau.includes(kw) || size.includes(kw)
-
     const okColor = !filters.colorId || String(v.idMauSac ?? '') === String(filters.colorId)
     const okSize = !filters.sizeId || String(v.idKichCo ?? '') === String(filters.sizeId)
 
+    // ✅ status lọc theo trạng thái đã normalize (tồn=0 => false)
     const okStatus = filters.status === '' || String(!!v.trangThai) === String(filters.status)
 
     const sl = Number(v.soLuongTon ?? 0)
@@ -584,7 +608,6 @@ function applyFilters() {
   currentPage.value = 0
   pageInput.value = 1
 }
-
 function resetFilters() {
   filters.keyword = ''
   filters.colorId = ''
@@ -595,19 +618,16 @@ function resetFilters() {
   filters.priceMax = isPriceReady.value ? priceMaxSafe.value : 0
   applyFilters()
 }
-
 function onChangeSize() {
   currentPage.value = 0
   pageInput.value = 1
 }
-
 function setPage(p) {
   if (p < 0) return
   if (p > totalPages.value - 1) return
   currentPage.value = p
   pageInput.value = currentPage.value + 1
 }
-
 function jumpPage() {
   const max = Math.max(1, totalPages.value || 1)
   const target = Math.min(Math.max(1, pageInput.value || 1), max)
@@ -647,7 +667,7 @@ async function loadAttributes() {
 async function loadVariants() {
   const res = await getByProductId(props.id)
   const arr = res?.data || res || []
-  variants.value = (arr || []).map((v) => ({ ...v, __imgErr: false }))
+  variants.value = (arr || []).map(normalizeVariant)
 }
 
 async function loadPriceMaxFromDb() {
@@ -663,9 +683,7 @@ async function loadPriceMaxFromDb() {
       priceMaxDb.value = maxDb
       return
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
 
   const localMax = Math.max(...(variants.value || []).map(v => Number(v.donGia ?? 0)), 0)
   const maxLocal = roundUpToStep(localMax, PRICE_STEP)
@@ -673,15 +691,9 @@ async function loadPriceMaxFromDb() {
 }
 
 /** ===== nav ===== */
-function goBack() {
-  router.push('/products')
-}
-function goToGlobalList() {
-  router.push('/variants')
-}
-function scanQr() {
-  console.log('scan qr')
-}
+function goBack() { router.push('/products') }
+function goToGlobalList() { router.push('/variants') }
+function scanQr() { console.log('scan qr') }
 
 /** ===== format ===== */
 function formatPrice(val) {
@@ -697,18 +709,13 @@ const selectedRows = reactive({})
 
 const tableColspan = computed(() => (exportMode.value ? 12 : 11))
 
-function openExportMode() {
-  exportMode.value = true
-}
+function openExportMode() { exportMode.value = true }
 function cancelExportMode() {
   exportMode.value = false
   selectedIds.value = []
   Object.keys(selectedRows).forEach((k) => delete selectedRows[k])
 }
-
-function isSelected(id) {
-  return selectedIds.value.includes(id)
-}
+function isSelected(id) { return selectedIds.value.includes(id) }
 
 function toggleSelect(row, checked) {
   const id = row?.id
@@ -726,15 +733,12 @@ const allVisibleSelected = computed(() => {
   if (!exportMode.value || pagedVariants.value.length === 0) return false
   return pagedVariants.value.every((v) => selectedIds.value.includes(v.id))
 })
-
 function toggleSelectAllVisible(checked) {
   pagedVariants.value.forEach((v) => toggleSelect(v, checked))
 }
-
 function safeName(s) {
   return String(s ?? '').trim().slice(0, 60).replace(/[^\w\-]+/g, '_')
 }
-
 function toExcelRow(v) {
   return {
     'Mã sản phẩm': getProductCode(v) ?? '',
@@ -748,7 +752,6 @@ function toExcelRow(v) {
     'Ảnh': v.anh ? buildImgUrl(v.anh) : ''
   }
 }
-
 async function exportSelectedToExcel() {
   if (selectedIds.value.length === 0) return
   exporting.value = true
@@ -808,6 +811,11 @@ const edit = reactive({
   anh: ''
 })
 
+watch(() => edit.soLuongTon, (sl) => {
+  // ✅ nếu tồn = 0 thì ép trạng thái false
+  if (Number(sl ?? 0) <= 0) edit.trangThai = false
+})
+
 function openEditModal(v) {
   edit.open = true
   edit.saving = false
@@ -827,10 +835,7 @@ function openEditModal(v) {
   edit.trangThai = !!v.trangThai
   edit.anh = v.anh ?? ''
 }
-
-function closeEditModal() {
-  edit.open = false
-}
+function closeEditModal() { edit.open = false }
 
 function parseDigits(text) {
   const digits = String(text || '').replace(/[^\d]/g, '')
@@ -875,6 +880,9 @@ async function submitEdit() {
   if (!Number.isFinite(sl) || sl < 0) return error('Số lượng không hợp lệ')
   if (!Number.isFinite(edit.donGia) || edit.donGia < 0) return error('Đơn giá không hợp lệ')
 
+  // ✅ tồn = 0 => ép trangThai false
+  const fixedTrangThai = sl > 0 ? !!edit.trangThai : false
+
   edit.saving = true
   try {
     await updateDetail(edit.id, {
@@ -884,7 +892,7 @@ async function submitEdit() {
       soLuongTon: Math.floor(sl),
       donGia: Number(edit.donGia),
       ghiChu: edit.ghiChu,
-      trangThai: !!edit.trangThai,
+      trangThai: fixedTrangThai,
       anh: edit.anh
     })
     success('Cập nhật thành công')
@@ -908,12 +916,16 @@ const confirmToggle = reactive({
 })
 
 function openConfirmToggle(v) {
+  if (!v?.id) return
   if (togglingIds.has(v.id)) return
+  if (isOutOfStock(v)) {
+    error('Số lượng tồn = 0 nên không thể bật “Còn hàng”.')
+    return
+  }
   confirmToggle.open = true
   confirmToggle.target = v
   confirmToggle.next = !v.trangThai
 }
-
 function closeConfirmToggle() {
   confirmToggle.open = false
   confirmToggle.target = null
@@ -922,6 +934,12 @@ function closeConfirmToggle() {
 async function confirmToggleNow() {
   const v = confirmToggle.target
   if (!v) return
+
+  if (isOutOfStock(v) && confirmToggle.next === true) {
+    closeConfirmToggle()
+    error('Số lượng tồn = 0 nên không thể bật “Còn hàng”.')
+    return
+  }
 
   confirmToggle.open = false
   togglingIds.add(v.id)
@@ -960,7 +978,6 @@ function normalizeColorName(name) {
     .replace(/\s+/g, ' ')
     .trim()
 }
-
 const COLOR_MAP = {
   den: '#111827',
   trang: '#ffffff',
@@ -982,7 +999,6 @@ const COLOR_MAP = {
   'xanh than': '#1e3a8a',
   navy: '#1e3a8a'
 }
-
 function getColorCode(colorName) {
   if (!colorName) return '#9ca3af'
   const key = normalizeColorName(colorName)
@@ -998,11 +1014,28 @@ function getColorCode(colorName) {
 </script>
 
 <style scoped>
+/* ✅ FIX LỆCH VIỀN BÊN PHẢI (đặc biệt khi layout cha là flex) */
 .product-detail-page{
-  padding: 20px;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   background:#ffffff;
   min-height: 100vh;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+.content-wrapper{
+  width:100%;
+  min-width:0;
+}
+.card{
+  width:100%;
+  min-width:0;
+  background:#fff;
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+  overflow:hidden;
 }
 
 /* header */
@@ -1015,8 +1048,6 @@ function getColorCode(colorName) {
 .sub-label{ color:#9ca3af; }
 .page-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
-.card{ background:#fff; border-radius:8px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; }
-
 /* filter */
 .filter-head{ background:#1e293b; color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
 .filter-head-left{ display:flex; align-items:center; gap:10px; font-weight:800; }
@@ -1024,7 +1055,6 @@ function getColorCode(colorName) {
 .filter-body{ padding:14px; }
 
 .form-label{ font-size:13px; font-weight:800; color:#111827; margin-bottom:6px; }
-
 .status-radio{ display:flex; align-items:center; gap:10px; font-size:13px; color:#111827; }
 .status-radio input{ transform: translateY(1px); margin-right:6px; }
 
@@ -1085,10 +1115,17 @@ function getColorCode(colorName) {
 .filter-reset .btn:hover{ background:#f3f4f6; border-radius:6px; }
 
 /* table */
-.table-card{ padding:0; border-radius:8px; overflow:hidden; margin-top: 12px; }
-.table-responsive{ overflow-x:auto; overflow-y:hidden; }
+.table-card{ padding:0; margin-top: 12px; }
+.table-responsive{ width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; }
 
-.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; min-width: 1720px; }
+.variants-table{
+  width:100%;
+  table-layout:fixed;
+  border-collapse:separate;
+  border-spacing:0;
+  margin:0;
+  min-width: 1720px;
+}
 .variants-table thead th{
   background:#1e293b; color:#fff;
   padding:10px 12px; text-align:center;
