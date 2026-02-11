@@ -147,7 +147,8 @@
                     </div>
 
                     <div class="col-12">
-                      <textarea class="form-control" rows="2" placeholder="Địa Chỉ (nếu có)" v-model="activeOrder.note"></textarea>
+                      <!-- ✅ SỬA: ghi chú -> địa chỉ -->
+                      <textarea class="form-control" rows="2" placeholder="Địa chỉ (nếu có)" v-model="activeOrder.diaChi"></textarea>
                     </div>
                   </div>
                 </div>
@@ -702,7 +703,9 @@ function normalizeOrder(o, idx = 1) {
     // ==============================
 
     paid: Number(o?.paid || 0),
-    note: o?.note || "",
+
+    // ✅ SỬA: ghi chú -> địa chỉ (fallback đọc note cũ để không mất draft)
+    diaChi: o?.diaChi || o?.note || "",
   };
 }
 
@@ -730,7 +733,9 @@ function createOrder() {
         voucherTab: "best",
 
         paid: 0,
-        note: "",
+
+        // ✅ SỬA: note -> diaChi
+        diaChi: "",
       },
       orderSeq.value
     )
@@ -995,6 +1000,9 @@ function chooseCustomer(c) {
   o.customerDraft.phone = c.phone || "";
   o.customerDraft.email = c.email || "";
 
+  // ✅ SỬA: nếu chưa nhập địa chỉ thì auto fill theo khách hàng
+  if (!String(o.diaChi || "").trim()) o.diaChi = c.address || "";
+
   closeCustomerModal();
 }
 
@@ -1226,8 +1234,11 @@ async function confirmOrder() {
     tenKhachHang: o.customer?.name || "Khách lẻ",
     soDienThoai: o.customerDraft.phone || o.customer?.phone || "",
     emailKhachHang: o.customerDraft.email || o.customer?.email || "",
-    diaChiKhachHang: "",
-    ghiChu: o.note || "",
+
+    // ✅ SỬA: ghi chú -> địa chỉ
+    diaChiKhachHang: o.diaChi || o.customer?.address || "",
+    ghiChu: "",
+
     paid: Number(o.paid || 0),
     items: o.cart.map((it) => ({ idSanPhamChiTiet: it.idSpct, soLuong: it.qty })),
   };

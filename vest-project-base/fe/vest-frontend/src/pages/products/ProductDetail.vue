@@ -3,7 +3,16 @@
     <!-- Header -->
     <div class="page-header">
       <div class="page-title">
-        <h2>Quản lý sản phẩm / Chi tiết biến thể</h2>
+        <h2 class="page-title-text">
+          Quản lý sản phẩm / Chi tiết biến thể
+          <span v-if="productCode || productName" class="title-sep">-</span>
+<span v-if="productCode" class="title-code">{{ productCode }}</span>
+<span v-if="productName" class="title-name">({{ productName }})</span>
+
+        </h2>
+        <div class="page-sub" v-if="productName">
+          <span class="sub-label">Tên:</span> <b>{{ productName }}</b>
+        </div>
       </div>
 
       <div class="page-actions">
@@ -12,12 +21,7 @@
         </button>
 
         <!-- EXCEL -->
-        <button
-          v-if="!exportMode"
-          class="btn btn-outline-primary btn-sm"
-          type="button"
-          @click="openExportMode"
-        >
+        <button v-if="!exportMode" class="btn btn-outline-primary btn-sm" type="button" @click="openExportMode">
           <i class="bi bi-download me-1"></i> Tải Excel
         </button>
 
@@ -69,7 +73,7 @@
                 v-model="filters.keyword"
                 type="text"
                 class="form-control"
-                placeholder="Tìm theo mã, màu, kích cỡ..."
+                placeholder="Tìm theo mã SP, mã SPCT, màu, kích cỡ..."
                 @input="onKeywordInput"
                 @keyup.enter="applyFilters"
               />
@@ -192,8 +196,12 @@
 
                 <th class="text-center col-stt">STT</th>
                 <th class="text-center col-img">Ảnh</th>
-                <th class="text-center col-code">Mã SP chi tiết</th>
+
+                <!-- ✅ thứ tự yêu cầu -->
+                <th class="text-center col-pcode">Mã sản phẩm</th>
                 <th class="text-center col-name">Tên sản phẩm</th>
+                <th class="text-center col-code">Mã SP chi tiết</th>
+
                 <th class="text-center col-color">Màu sắc</th>
                 <th class="text-center col-size">Kích cỡ</th>
                 <th class="text-center col-stock">Số lượng tồn</th>
@@ -224,8 +232,9 @@
                   </div>
                 </td>
 
+                <td class="text-center">{{ getProductCode(v) || '-' }}</td>
+                <td class="text-center text-bold">{{ v.tenSanPham || productName || '-' }}</td>
                 <td class="text-center">{{ v.maSanPhamChiTiet || '-' }}</td>
-                <td class="text-center text-bold">{{ productName || '-' }}</td>
 
                 <td class="text-center">
                   <div class="color-cell">
@@ -421,7 +430,7 @@ const props = defineProps({
   id: { type: [String, Number], required: true }
 })
 
-/** base url */
+/** ===== base url ảnh ===== */
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, '')
 
@@ -433,7 +442,7 @@ function buildImgUrl(path) {
   return b + (p.startsWith('/') ? p : `/${p}`)
 }
 
-/** state */
+/** ===== state ===== */
 const loading = ref(false)
 const globalError = ref('')
 const filterOpen = ref(true)
@@ -441,19 +450,42 @@ const filterOpen = ref(true)
 const variants = ref([])
 const attributes = reactive({ kichCo: [], mauSac: [] })
 
-/** product name (lấy từ dữ liệu biến thể cho chắc) */
+/** ===== product info ===== */
+function getProductCode(v) {
+  return (
+    v?.maSanPham ||
+    v?.sanPhamMa ||
+    v?.maSP ||
+    v?.sanPham?.maSanPham ||
+    v?.sanPham?.ma ||
+    v?.productCode ||
+    ''
+  )
+}
+
 const productName = computed(() => {
   const first = variants.value?.[0]
   return first?.tenSanPham || first?.sanPhamTen || ''
 })
 
-/** PRICE: không default, chờ DB */
+const productCode = computed(() => {
+  const first = variants.value?.[0]
+  return getProductCode(first) || ''
+})
+
+/** ===== PRICE slider ===== */
 const PRICE_STEP = 10000
-const priceMaxDb = ref(null) // null -> chưa sẵn sàng
+const priceMaxDb = ref(null) // null = chưa sẵn sàng
 const isPriceReady = computed(() => Number(priceMaxDb.value || 0) > 0)
 const priceMaxSafe = computed(() => (isPriceReady.value ? Number(priceMaxDb.value) : 0))
 
-/** filters */
+function roundUpToStep(n, step) {
+  const x = Number(n || 0)
+  if (!Number.isFinite(x) || x <= 0) return 0
+  return Math.ceil(x / step) * step
+}
+
+/** ===== filters ===== */
 const filters = reactive({
   keyword: '',
   colorId: '',
@@ -465,14 +497,7 @@ const filters = reactive({
 })
 
 function onKeywordInput() {
-  // chặn khoảng trắng đầu
   filters.keyword = String(filters.keyword ?? '').replace(/^\s+/, '')
-}
-
-function roundUpToStep(n, step) {
-  const x = Number(n || 0)
-  if (!Number.isFinite(x) || x <= 0) return 0
-  return Math.ceil(x / step) * step
 }
 
 function syncPriceFilterToMax() {
@@ -494,10 +519,8 @@ function onPriceInput(which) {
   }
 }
 
-/** rangeStyle: left + width (không bị lỗi thanh) */
 const rangeStyle = computed(() => {
   if (!isPriceReady.value) return { left: '0%', width: '0%' }
-
   const max = Math.max(1, priceMaxSafe.value)
   const minV = Math.max(0, Math.min(filters.priceMin, max))
   const maxV = Math.max(0, Math.min(filters.priceMax, max))
@@ -506,23 +529,25 @@ const rangeStyle = computed(() => {
   return { left: left + '%', width: width + '%' }
 })
 
-/** filtering + paging */
+/** ===== filtering + paging ===== */
 const filteredVariants = computed(() => {
   const kw = String(filters.keyword || '').toLowerCase().trim()
   const fMin = Number(filters.priceMin || 0)
   const fMax = Number(filters.priceMax || 0)
 
   return (variants.value || []).filter((v) => {
-    const okKw =
-      !kw ||
-      String(v.maSanPhamChiTiet || '').toLowerCase().includes(kw) ||
-      String(v.tenMauSac || '').toLowerCase().includes(kw) ||
-      String(v.tenKichCo || '').toLowerCase().includes(kw)
+    const code = String(getProductCode(v) || '').toLowerCase()
+    const spct = String(v.maSanPhamChiTiet || '').toLowerCase()
+    const mau = String(v.tenMauSac || '').toLowerCase()
+    const size = String(v.tenKichCo || '').toLowerCase()
+    const ten = String(v.tenSanPham || '').toLowerCase()
+
+    const okKw = !kw || code.includes(kw) || spct.includes(kw) || ten.includes(kw) || mau.includes(kw) || size.includes(kw)
 
     const okColor = !filters.colorId || String(v.idMauSac ?? '') === String(filters.colorId)
     const okSize = !filters.sizeId || String(v.idKichCo ?? '') === String(filters.sizeId)
 
-    const okStatus = filters.status === '' || (String(!!v.trangThai) === String(filters.status))
+    const okStatus = filters.status === '' || String(!!v.trangThai) === String(filters.status)
 
     const sl = Number(v.soLuongTon ?? 0)
     let okStock = true
@@ -532,7 +557,7 @@ const filteredVariants = computed(() => {
     if (filters.stock === 'gte100') okStock = sl >= 100
 
     const gia = Number(v.donGia ?? 0)
-    const okPrice = !isPriceReady.value ? true : (gia >= fMin && gia <= fMax)
+    const okPrice = !isPriceReady.value ? true : gia >= fMin && gia <= fMax
 
     return okKw && okColor && okSize && okStatus && okStock && okPrice
   })
@@ -566,10 +591,8 @@ function resetFilters() {
   filters.sizeId = ''
   filters.stock = ''
   filters.status = ''
-
   filters.priceMin = 0
   filters.priceMax = isPriceReady.value ? priceMaxSafe.value : 0
-
   applyFilters()
 }
 
@@ -591,7 +614,7 @@ function jumpPage() {
   setPage(target - 1)
 }
 
-/** load */
+/** ===== load data ===== */
 onMounted(getData)
 watch(() => props.id, () => getData())
 
@@ -615,37 +638,41 @@ async function loadAttributes() {
     attributeService.getAllList('kich-co'),
     attributeService.getAllList('mau-sac')
   ])
-  attributes.kichCo = (resSize?.data || resSize || []).filter((x) => x?.trangThai !== false)
-  attributes.mauSac = (resColor?.data || resColor || []).filter((x) => x?.trangThai !== false)
+  const sizeArr = resSize?.data || resSize || []
+  const colorArr = resColor?.data || resColor || []
+  attributes.kichCo = (sizeArr || []).filter((x) => x?.trangThai !== false)
+  attributes.mauSac = (colorArr || []).filter((x) => x?.trangThai !== false)
 }
 
 async function loadVariants() {
   const res = await getByProductId(props.id)
-  variants.value = (res?.data || res || []).map((v) => ({ ...v, __imgErr: false }))
+  const arr = res?.data || res || []
+  variants.value = (arr || []).map((v) => ({ ...v, __imgErr: false }))
 }
 
 async function loadPriceMaxFromDb() {
   try {
     const res = await getGiaMaxDb()
     const raw = res?.data ?? res
-    const maxNum = typeof raw === 'object' ? Number(raw?.max ?? raw?.giaMax ?? raw?.value ?? 0) : Number(raw ?? 0)
-    const maxDb = roundUpToStep(maxNum, PRICE_STEP)
+    const maxNum = typeof raw === 'object'
+      ? Number(raw?.max ?? raw?.giaMax ?? raw?.value ?? 0)
+      : Number(raw ?? 0)
 
+    const maxDb = roundUpToStep(maxNum, PRICE_STEP)
     if (maxDb > 0) {
       priceMaxDb.value = maxDb
       return
     }
   } catch (e) {
-    // ignore -> fallback dưới
+    // ignore
   }
 
-  // fallback: lấy max từ list biến thể (không default)
-  const localMax = Math.max(...variants.value.map(v => Number(v.donGia ?? 0)), 0)
+  const localMax = Math.max(...(variants.value || []).map(v => Number(v.donGia ?? 0)), 0)
   const maxLocal = roundUpToStep(localMax, PRICE_STEP)
   priceMaxDb.value = maxLocal > 0 ? maxLocal : 0
 }
 
-/** nav */
+/** ===== nav ===== */
 function goBack() {
   router.push('/products')
 }
@@ -656,24 +683,23 @@ function scanQr() {
   console.log('scan qr')
 }
 
-/** format */
+/** ===== format ===== */
 function formatPrice(val) {
   const n = Number(val ?? 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
 }
 
-/** ================== EXCEL EXPORT (FE) ================== */
+/** ================== EXCEL EXPORT ================== */
 const exportMode = ref(false)
 const exporting = ref(false)
 const selectedIds = ref([])
 const selectedRows = reactive({})
 
-const tableColspan = computed(() => (exportMode.value ? 11 : 10))
+const tableColspan = computed(() => (exportMode.value ? 12 : 11))
 
 function openExportMode() {
   exportMode.value = true
 }
-
 function cancelExportMode() {
   exportMode.value = false
   selectedIds.value = []
@@ -687,7 +713,6 @@ function isSelected(id) {
 function toggleSelect(row, checked) {
   const id = row?.id
   if (!id) return
-
   if (checked) {
     if (!selectedIds.value.includes(id)) selectedIds.value.push(id)
     selectedRows[id] = { ...row }
@@ -712,8 +737,9 @@ function safeName(s) {
 
 function toExcelRow(v) {
   return {
+    'Mã sản phẩm': getProductCode(v) ?? '',
+    'Tên sản phẩm': v.tenSanPham || productName.value || '',
     'Mã SP chi tiết': v.maSanPhamChiTiet ?? '',
-    'Tên sản phẩm': productName.value ?? '',
     'Màu sắc': v.tenMauSac ?? '',
     'Kích cỡ': v.tenKichCo ?? '',
     'Số lượng tồn': Number(v.soLuongTon ?? 0),
@@ -723,49 +749,39 @@ function toExcelRow(v) {
   }
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms))
-}
-
 async function exportSelectedToExcel() {
   if (selectedIds.value.length === 0) return
-
   exporting.value = true
   try {
-    for (const id of selectedIds.value) {
-      const v = selectedRows[id]
-      if (!v) continue
+    const rows = selectedIds.value
+      .map((id) => selectedRows[id])
+      .filter(Boolean)
+      .map(toExcelRow)
 
-      const ws = XLSX.utils.json_to_sheet([toExcelRow(v)])
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'BienThe')
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'BienThe')
 
-      const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-      const blob = new Blob([buf], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      })
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 
-      const code = safeName(v.maSanPhamChiTiet ?? id)
-      const fileName = `bien-the_${code}.xlsx`
+    const code = safeName(productCode.value || `sp_${props.id}`)
+    const fileName = `bien-the_${code}.xlsx`
 
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = fileName
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-
-      // tránh browser chặn tải nhiều file quá nhanh
-      await sleep(120)
-    }
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
 
     cancelExportMode()
     success('Xuất Excel thành công')
   } catch (e) {
     console.error(e)
-    error('Xuất Excel thất bại (có thể bị trình duyệt chặn nhiều download).')
+    error('Xuất Excel thất bại')
   } finally {
     exporting.value = false
   }
@@ -825,7 +841,6 @@ function formatDots(n) {
   if (!Number.isFinite(x) || x <= 0) return ''
   return String(Math.floor(x)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
-
 function onEditMoneyTyping() {
   const num = parseDigits(edit.donGiaText)
   edit.donGia = num
@@ -991,25 +1006,30 @@ function getColorCode(colorName) {
 }
 
 /* header */
-.page-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-.page-title h2{ margin:0; font-size:1.25rem; font-weight:700; color:#111827; }
+.page-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.page-title{ display:flex; flex-direction:column; gap:6px; }
+.page-title-text{ margin:0; font-size:1.25rem; font-weight:800; color:#111827; }
+.title-sep{ margin:0 8px; color:#9ca3af; font-weight:800; }
+.title-code{ color:#111827; font-weight:900; }
+.page-sub{ color:#6b7280; font-size:13px; }
+.sub-label{ color:#9ca3af; }
 .page-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
 .card{ background:#fff; border-radius:8px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; }
 
 /* filter */
 .filter-head{ background:#1e293b; color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
-.filter-head-left{ display:flex; align-items:center; gap:10px; font-weight:700; }
+.filter-head-left{ display:flex; align-items:center; gap:10px; font-weight:800; }
 .filter-head-right{ font-size:12px; opacity:.9; }
 .filter-body{ padding:14px; }
 
-.form-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
+.form-label{ font-size:13px; font-weight:800; color:#111827; margin-bottom:6px; }
 
 .status-radio{ display:flex; align-items:center; gap:10px; font-size:13px; color:#111827; }
 .status-radio input{ transform: translateY(1px); margin-right:6px; }
 
-.price-label{ font-size:13px; font-weight:700; color:#111827; margin-bottom:6px; }
-.price-green{ color:#059669; font-weight:800; }
+.price-label{ font-size:13px; font-weight:800; color:#111827; margin-bottom:6px; }
+.price-green{ color:#059669; font-weight:900; }
 .hint{ display:block; margin-top:6px; color:#6b7280; }
 
 /* slider */
@@ -1068,11 +1088,11 @@ function getColorCode(colorName) {
 .table-card{ padding:0; border-radius:8px; overflow:hidden; margin-top: 12px; }
 .table-responsive{ overflow-x:auto; overflow-y:hidden; }
 
-.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; min-width: 1580px; }
+.variants-table{ width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; min-width: 1720px; }
 .variants-table thead th{
   background:#1e293b; color:#fff;
   padding:10px 12px; text-align:center;
-  font-weight:600; border-bottom:1px solid #e5e7eb;
+  font-weight:700; border-bottom:1px solid #e5e7eb;
   white-space:nowrap;
 }
 .variants-table td{
@@ -1085,8 +1105,9 @@ function getColorCode(colorName) {
 .col-check{ width:46px; min-width:46px; }
 .col-stt{ width:70px; }
 .col-img{ width:260px; }
-.col-code{ width:160px; }
+.col-pcode{ width:160px; }
 .col-name{ width:220px; }
+.col-code{ width:170px; }
 .col-color{ width:170px; }
 .col-size{ width:120px; }
 .col-stock{ width:120px; }
@@ -1095,8 +1116,8 @@ function getColorCode(colorName) {
 .col-action{ width:150px; }
 
 .text-center{ text-align:center; }
-.text-bold{ font-weight:700; color:#111827; }
-.text-highlight{ color:#0f766e; font-weight:700; }
+.text-bold{ font-weight:800; color:#111827; }
+.text-highlight{ color:#0f766e; font-weight:800; }
 
 /* image */
 .img-cell{ display:flex; align-items:center; justify-content:center; }
@@ -1124,7 +1145,7 @@ function getColorCode(colorName) {
 .badge-pill{
   display:inline-flex; align-items:center; justify-content:center;
   padding:4px 10px; border-radius:999px;
-  font-size:12px; font-weight:800; white-space:nowrap;
+  font-size:12px; font-weight:900; white-space:nowrap;
 }
 .badge-success{ background:#d1fae5; color:#065f46; }
 .badge-danger{ background:#fee2e2; color:#991b1b; }
@@ -1161,7 +1182,7 @@ function getColorCode(colorName) {
 .paging-page{ width:120px; }
 .paging-size{ width:160px; }
 
-.error-text{ color:#b02a37; font-weight:800; }
+.error-text{ color:#b02a37; font-weight:900; }
 
 /* modal */
 .modal-overlay{
@@ -1184,7 +1205,7 @@ function getColorCode(colorName) {
   display:flex; justify-content:space-between; align-items:center;
   padding:12px 14px; border-bottom:1px solid #eef2f7;
 }
-.modal-header h3{ margin:0; font-size:16px; font-weight:800; color:#111827; }
+.modal-header h3{ margin:0; font-size:16px; font-weight:900; color:#111827; }
 .close-btn{ border:none; background:transparent; font-size:22px; line-height:1; cursor:pointer; color:#6b7280; }
 .modal-body{ padding:14px; }
 .modal-footer{

@@ -150,8 +150,12 @@
             <tr>
               <th class="text-center">STT</th>
               <th class="text-center">Ảnh</th>
-              <th class="text-center">Mã SP chi tiết</th>
+
+              <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
+              <th class="text-center">Mã sản phẩm</th>
               <th class="text-center">Tên sản phẩm</th>
+              <th class="text-center">Mã SP chi tiết</th>
+
               <th class="text-center">Màu sắc</th>
               <th class="text-center">Kích cỡ</th>
               <th class="text-center">Số lượng tồn</th>
@@ -174,8 +178,10 @@
                 <span v-else class="no-img">Ảnh biến thể</span>
               </td>
 
-              <td class="text-center">{{ v.maSanPhamChiTiet }}</td>
+              <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
+              <td class="text-center">{{ v.maSanPham || '-' }}</td>
               <td class="text-center fw-semibold">{{ v.tenSanPham }}</td>
+              <td class="text-center">{{ v.maSanPhamChiTiet }}</td>
 
               <!-- ✅ chấm màu theo tên (Cách 2) -->
               <td class="text-center">
@@ -225,16 +231,17 @@
             </tr>
 
             <tr v-if="loading">
-              <td colspan="10" class="text-center py-4">Đang tải dữ liệu...</td>
+              <!-- ✅ colspan tăng 1 -->
+              <td colspan="11" class="text-center py-4">Đang tải dữ liệu...</td>
             </tr>
             <tr v-if="!loading && filteredItems.length === 0">
-              <td colspan="10" class="text-center py-4">Không có dữ liệu</td>
+              <!-- ✅ colspan tăng 1 -->
+              <td colspan="11" class="text-center py-4">Không có dữ liệu</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination -->
       <!-- Pagination -->
       <div class="p-3" v-if="totalPages > 0">
         <div class="paging-bar">
@@ -291,99 +298,100 @@
 
     <!-- (Các modal giữ nguyên như bạn, mình không sửa) -->
   </div>
+
   <!-- Edit Modal -->
-<div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h6 class="mb-0">Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h6>
-      <button class="btn-close" type="button" @click="closeEditModal"></button>
-    </div>
+  <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h6 class="mb-0">Sửa biến thể: {{ editingVariant.maSanPhamChiTiet }}</h6>
+        <button class="btn-close" type="button" @click="closeEditModal"></button>
+      </div>
 
-    <div class="modal-body p-3">
-      <div class="row g-3">
-        <div class="col-6">
-          <label class="form-label small fw-semibold">Kích cỡ</label>
-          <select v-model="editingVariant.idKichCo" class="form-select">
-            <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
-              {{ s.soSize }}
-            </option>
-          </select>
-        </div>
-
-        <div class="col-6">
-          <label class="form-label small fw-semibold">Màu sắc</label>
-          <select v-model="editingVariant.idMauSac" class="form-select">
-            <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
-              {{ c.ten }}
-            </option>
-          </select>
-        </div>
-
-        <div class="col-6">
-          <label class="form-label small fw-semibold">Số lượng tồn</label>
-          <input type="number" min="0" class="form-control" v-model.number="editingVariant.soLuongTon" />
-        </div>
-
-        <div class="col-6">
-          <label class="form-label small fw-semibold">Giá bán</label>
-          <input type="number" min="0" class="form-control" v-model.number="editingVariant.donGia" />
-        </div>
-
-        <div class="col-12">
-          <label class="form-label small fw-semibold">Trạng thái</label>
-          <div class="d-flex gap-3">
-            <label class="d-flex align-items-center gap-2 small mb-0">
-              <input type="radio" :value="true" v-model="editingVariant.trangThai" /> Còn hàng
-            </label>
-            <label class="d-flex align-items-center gap-2 small mb-0">
-              <input type="radio" :value="false" v-model="editingVariant.trangThai" /> Hết hàng
-            </label>
+      <div class="modal-body p-3">
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Kích cỡ</label>
+            <select v-model="editingVariant.idKichCo" class="form-select">
+              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
+                {{ s.soSize }}
+              </option>
+            </select>
           </div>
-        </div>
 
-        <div class="col-12">
-          <label class="form-label small fw-semibold">Ảnh biến thể</label>
-          <input type="file" class="form-control" accept="image/*" @change="handleFileUpload" />
-          <div v-if="editingVariant.anh" class="mt-2">
-            <img :src="'http://localhost:8080' + editingVariant.anh" class="preview-img" />
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Màu sắc</label>
+            <select v-model="editingVariant.idMauSac" class="form-select">
+              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
+                {{ c.ten }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Số lượng tồn</label>
+            <input type="number" min="0" class="form-control" v-model.number="editingVariant.soLuongTon" />
+          </div>
+
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Giá bán</label>
+            <input type="number" min="0" class="form-control" v-model.number="editingVariant.donGia" />
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Trạng thái</label>
+            <div class="d-flex gap-3">
+              <label class="d-flex align-items-center gap-2 small mb-0">
+                <input type="radio" :value="true" v-model="editingVariant.trangThai" /> Còn hàng
+              </label>
+              <label class="d-flex align-items-center gap-2 small mb-0">
+                <input type="radio" :value="false" v-model="editingVariant.trangThai" /> Hết hàng
+              </label>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Ảnh biến thể</label>
+            <input type="file" class="form-control" accept="image/*" @change="handleFileUpload" />
+            <div v-if="editingVariant.anh" class="mt-2">
+              <img :src="'http://localhost:8080' + editingVariant.anh" class="preview-img" />
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" type="button" @click="closeEditModal">Hủy</button>
-      <button class="btn btn-primary btn-sm" type="button" @click="submitEdit">Lưu</button>
-    </div>
-  </div>
-</div>
-
-<!-- Confirm Toggle Modal -->
-<div v-if="showConfirmToggle" class="modal-overlay" @click.self="closeToggleModal">
-  <div class="modal-box modal-confirm">
-    <div class="modal-head">
-      <h6 class="mb-0">Xác nhận đổi trạng thái</h6>
-      <button class="btn-close" type="button" @click="closeToggleModal"></button>
-    </div>
-
-    <div class="modal-body p-3">
-      <div>
-        Bạn có chắc muốn đổi trạng thái biến thể
-        <b>{{ pendingVariant?.maSanPhamChiTiet }}</b>
-        thành <b>{{ pendingNext ? 'Còn hàng' : 'Hết hàng' }}</b> không?
+      <div class="modal-foot">
+        <button class="btn btn-secondary btn-sm" type="button" @click="closeEditModal">Hủy</button>
+        <button class="btn btn-primary btn-sm" type="button" @click="submitEdit">Lưu</button>
       </div>
     </div>
+  </div>
 
-    <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" type="button" @click="closeToggleModal" :disabled="toggleLoading">
-        Hủy
-      </button>
-      <button class="btn btn-primary btn-sm" type="button" @click="confirmToggleStatus" :disabled="toggleLoading">
-        {{ toggleLoading ? 'Đang xử lý...' : 'Xác nhận' }}
-      </button>
+  <!-- Confirm Toggle Modal -->
+  <div v-if="showConfirmToggle" class="modal-overlay" @click.self="closeToggleModal">
+    <div class="modal-box modal-confirm">
+      <div class="modal-head">
+        <h6 class="mb-0">Xác nhận đổi trạng thái</h6>
+        <button class="btn-close" type="button" @click="closeToggleModal"></button>
+      </div>
+
+      <div class="modal-body p-3">
+        <div>
+          Bạn có chắc muốn đổi trạng thái biến thể
+          <b>{{ pendingVariant?.maSanPhamChiTiet }}</b>
+          thành <b>{{ pendingNext ? 'Còn hàng' : 'Hết hàng' }}</b> không?
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-secondary btn-sm" type="button" @click="closeToggleModal" :disabled="toggleLoading">
+          Hủy
+        </button>
+        <button class="btn btn-primary btn-sm" type="button" @click="confirmToggleStatus" :disabled="toggleLoading">
+          {{ toggleLoading ? 'Đang xử lý...' : 'Xác nhận' }}
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
 </template>
 
@@ -488,6 +496,8 @@ const filteredItems = computed(() => {
   return (items.value || []).filter(v => {
     const matchKeyword =
       !kw ||
+      // ✅ thêm maSanPham vào search
+      (v.maSanPham && String(v.maSanPham).toLowerCase().includes(kw)) ||
       (v.maSanPhamChiTiet && v.maSanPhamChiTiet.toLowerCase().includes(kw)) ||
       (v.tenSanPham && v.tenSanPham.toLowerCase().includes(kw)) ||
       (v.tenMauSac && v.tenMauSac.toLowerCase().includes(kw)) ||
@@ -663,8 +673,10 @@ function downloadCsv() {
   try {
     const rows = filteredItems.value.map((v, i) => ({
       STT: currentPage.value * pageSize.value + i + 1,
-      MaSPCT: v.maSanPhamChiTiet ?? '',
+      // ✅ thêm maSanPham + chỉnh thứ tự cho đúng yêu cầu
+      MaSP: v.maSanPham ?? '',
       TenSanPham: v.tenSanPham ?? '',
+      MaSPCT: v.maSanPhamChiTiet ?? '',
       MauSac: v.tenMauSac ?? '',
       KichCo: v.tenKichCo ?? '',
       SoLuongTon: v.soLuongTon ?? 0,
@@ -673,7 +685,7 @@ function downloadCsv() {
     }))
 
     const header = Object.keys(rows[0] || {
-      STT: '', MaSPCT: '', TenSanPham: '', MauSac: '', KichCo: '', SoLuongTon: '', GiaBan: '', TrangThai: ''
+      STT: '', MaSP: '', TenSanPham: '', MaSPCT: '', MauSac: '', KichCo: '', SoLuongTon: '', GiaBan: '', TrangThai: ''
     })
 
     const csv = [
@@ -706,55 +718,43 @@ function normalizeColorName(name) {
   return String(name || '')
     .trim()
     .toLowerCase()
-    .replace(/đ/g, 'd')              // ✅ quan trọng: đ -> d
+    .replace(/đ/g, 'd')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // bỏ dấu còn lại
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\(.*?\)/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
-
-/** 2) Bảng map: thêm đủ theo DB của bạn */
 const COLOR_MAP = {
-  // basic
   den: '#111827',
   trang: '#ffffff',
   xam: '#9ca3af',
   ghi: '#9ca3af',
-
   do: '#ef4444',
   vang: '#f59e0b',
   cam: '#f97316',
-
   hong: '#ec4899',
   tim: '#a855f7',
-
   nau: '#92400e',
   be: '#f5f5dc',
   kem: '#fff7ed',
-
   'xanh la': '#22c55e',
   'xanh luc': '#16a34a',
   'xanh ngoc': '#14b8a6',
-
   'xanh duong': '#3b82f6',
   'xanh navy': '#1e3a8a',
   'xanh than': '#1e3a8a',
-  'navy': '#1e3a8a',
-
+  navy: '#1e3a8a',
   cyan: '#06b6d4'
 }
 
-/** 3) Lấy mã màu theo tên, có fallback theo keyword */
 function getColorCode(colorName) {
   if (!colorName) return '#ccc'
   const key = normalizeColorName(colorName)
 
-  // match exact
   if (COLOR_MAP[key]) return COLOR_MAP[key]
 
-  // fallback theo từ khoá (đỡ phải liệt kê hết 100% biến thể)
   if (key.includes('navy') || key.includes('than')) return COLOR_MAP['xanh navy']
   if (key.includes('xanh') && key.includes('la')) return COLOR_MAP['xanh la']
   if (key.includes('xanh') && key.includes('duong')) return COLOR_MAP['xanh duong']
@@ -767,7 +767,6 @@ function getColorCode(colorName) {
   if (key.includes('trang')) return COLOR_MAP.trang
   if (key.includes('den')) return COLOR_MAP.den
 
-  // không biết -> màu mặc định
   return '#3b82f6'
 }
 
