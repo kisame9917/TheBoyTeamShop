@@ -1,11 +1,26 @@
 package com.vestshop.Service;
 
 import com.vestshop.dto.response.PhieuGiamGiaCaNhanProjection;
-import com.vestshop.dto.response.PhieuGiamGiaCaNhanResponse;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 public interface PhieuGiamGiaCaNhanService {
-    List<PhieuGiamGiaCaNhanProjection> getKhachHangNhanPhieu(Long pggId,Boolean includeShip);
+
+    List<PhieuGiamGiaCaNhanProjection> getKhachHangNhanPhieu(
+            Long pggId,
+            Boolean includeShip,
+            String statsMode,
+            String month,
+            Integer year,
+            String from,
+            String to
+    );
+
+    List<PhieuGiamGiaCaNhanProjection> getAllKhachHangWithStats(
+            Boolean includeShip,
+            String statsMode,
+            String month,
+            Integer year,
+            String from,
+            String to
+    );
 }

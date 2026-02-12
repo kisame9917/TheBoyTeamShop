@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGiaCaNhan, Long> {
 
-    // ✅ 1) Danh sách KH đã nhận phiếu (theo PGG) + stats
+    // ✅ 1) Danh sách KH đã nhận phiếu (theo PGG) + stats (lọc theo fromDate/toDate)
     @Query("""
         select
             kh.id as id,
@@ -24,13 +24,13 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
             kh.ngaySinh as ngaySinh,
 
             (select count(distinct hd.id)
-                                   from HoaDon hd
-                                   where hd.khachHang.id = kh.id
-                                     and hd.trangThai = true
-                                     and hd.trangThaiDon = 4
-                                     and coalesce(hd.ngayCapNhat, hd.ngayTao) >= :fromDate
-                                     and coalesce(hd.ngayCapNhat, hd.ngayTao) <  :toDate
-                                  ) as soDonThangHienTai,
+             from HoaDon hd
+             where hd.khachHang.id = kh.id
+               and hd.trangThai = true
+               and hd.trangThaiDon = 4
+               and coalesce(hd.ngayCapNhat, hd.ngayTao) >= :fromDate
+               and coalesce(hd.ngayCapNhat, hd.ngayTao) <  :toDate
+            ) as soDonThangHienTai,
 
             (select coalesce(sum(
                 case when :includeShip = true
@@ -42,6 +42,8 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
              where hd2.khachHang.id = kh.id
                and hd2.trangThai = true
                and hd2.trangThaiDon = 4
+               and coalesce(hd2.ngayCapNhat, hd2.ngayTao) >= :fromDate
+               and coalesce(hd2.ngayCapNhat, hd2.ngayTao) <  :toDate
             ) as tongTienDaTieu
 
         from PhieuGiamGiaCaNhan cn
@@ -57,7 +59,7 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
             @Param("includeShip") boolean includeShip
     );
 
-    // ✅ 2) Danh sách KH để CHỌN khi tạo PGG cá nhân (không theo pggId) + stats
+    // ✅ 2) Danh sách KH để CHỌN khi tạo PGG cá nhân (không theo pggId) + stats (lọc theo fromDate/toDate)
     @Query("""
         select
             kh.id as id,
@@ -68,13 +70,13 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
             kh.ngaySinh as ngaySinh,
 
             (select count(distinct hd.id)
-                                    from HoaDon hd
-                                    where hd.khachHang.id = kh.id
-                                      and hd.trangThai = true
-                                      and hd.trangThaiDon = 4
-                                      and coalesce(hd.ngayCapNhat, hd.ngayTao) >= :fromDate
-                                      and coalesce(hd.ngayCapNhat, hd.ngayTao) <  :toDate
-                                   ) as soDonThangHienTai,
+             from HoaDon hd
+             where hd.khachHang.id = kh.id
+               and hd.trangThai = true
+               and hd.trangThaiDon = 4
+               and coalesce(hd.ngayCapNhat, hd.ngayTao) >= :fromDate
+               and coalesce(hd.ngayCapNhat, hd.ngayTao) <  :toDate
+            ) as soDonThangHienTai,
 
             (select coalesce(sum(
                 case when :includeShip = true
@@ -86,6 +88,8 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
              where hd2.khachHang.id = kh.id
                and hd2.trangThai = true
                and hd2.trangThaiDon = 4
+               and coalesce(hd2.ngayCapNhat, hd2.ngayTao) >= :fromDate
+               and coalesce(hd2.ngayCapNhat, hd2.ngayTao) <  :toDate
             ) as tongTienDaTieu
 
         from KhachHang kh

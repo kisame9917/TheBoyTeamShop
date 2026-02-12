@@ -1,7 +1,6 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Entity.PhieuGiamGia;
-import com.vestshop.Repository.PhieuGiamGiaCaNhanRepository;
 import com.vestshop.Service.PhieuGiamGiaCaNhanService;
 import com.vestshop.Service.PhieuGiamGiaService;
 import com.vestshop.dto.request.PhieuGiamGiaCreateRequest;
@@ -14,17 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/pgg")
 public class PhieuGiamGiaController {
-
-    @Autowired
-    private PhieuGiamGiaCaNhanRepository cnRepo;
 
     @Autowired
     private PhieuGiamGiaService service;
@@ -72,29 +65,46 @@ public class PhieuGiamGiaController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * ✅ DS KH để chọn khi tạo PGG cá nhân + stats theo MONTH/YEAR/RANGE
+     *
+     * FE gửi:
+     *  - statsMode=MONTH&month=YYYY-MM
+     *  - statsMode=YEAR&year=YYYY
+     *  - statsMode=RANGE&from=YYYY-MM-DD&to=YYYY-MM-DD
+     */
     @GetMapping("/khach-hang-with-stats")
     public List<PhieuGiamGiaCaNhanProjection> allKhWithStats(
-            @RequestParam(required = false) Boolean includeShip
+            @RequestParam(required = false) Boolean includeShip,
+            @RequestParam(required = false) String statsMode,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to
     ) {
-        boolean incShip = (includeShip == null) ? true : includeShip;
-
-        YearMonth ym = YearMonth.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        LocalDateTime from = ym.atDay(1).atStartOfDay();
-        LocalDateTime to = ym.plusMonths(1).atDay(1).atStartOfDay();
-
-        return cnRepo.findAllKhachHangWithStats(from, to, incShip);
+        return phieuGiamGiaCaNhanService.getAllKhachHangWithStats(
+                includeShip, statsMode, month, year, from, to
+        );
     }
 
-    // ✅ THÊM: DS KH đã nhận phiếu (để FE fill checkbox)
+    /**
+     * ✅ DS KH đã nhận phiếu theo pggId + stats theo MONTH/YEAR/RANGE
+     */
     @GetMapping("/{id}/khach-hang")
     public List<PhieuGiamGiaCaNhanProjection> getKhachHangNhanPhieu(
             @PathVariable("id") Long id,
-            @RequestParam(required = false) Boolean includeShip
+            @RequestParam(required = false) Boolean includeShip,
+            @RequestParam(required = false) String statsMode,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to
     ) {
-        return phieuGiamGiaCaNhanService.getKhachHangNhanPhieu(id, includeShip);
+        return phieuGiamGiaCaNhanService.getKhachHangNhanPhieu(
+                id, includeShip, statsMode, month, year, from, to
+        );
     }
 
-    // ✅ THÊM: Lưu danh sách KH nhận phiếu khi update (gọi đúng service bạn đã viết)
     @PutMapping("/{id}/khach-hang")
     public ResponseEntity<?> updateKhachHangNhanPhieu(
             @PathVariable("id") Long id,
