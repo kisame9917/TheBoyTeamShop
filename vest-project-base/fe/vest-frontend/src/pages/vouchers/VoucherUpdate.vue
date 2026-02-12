@@ -241,6 +241,64 @@
                         :disabled="isEnded"
                       />
 
+                      <!-- ✅ Giống create: label + bộ lọc thống kê -->
+                      <span class="text-muted small fw-semibold ms-1">Bộ lọc:</span>
+
+                      <select
+                        class="form-select form-select-sm"
+                        style="width: 170px"
+                        v-model="statsMode"
+                        @change="onStatsModeChange"
+                        :disabled="isEnded"
+                      >
+                        <option value="MONTH">Theo tháng</option>
+                        <option value="YEAR">Theo năm</option>
+                        <option value="RANGE">Khoảng thời gian</option>
+                      </select>
+
+                      <!-- Theo tháng (YYYY-MM) -->
+                      <input
+                        v-if="statsMode === 'MONTH'"
+                        type="month"
+                        class="form-control form-control-sm"
+                        style="width: 170px"
+                        v-model="statsMonth"
+                        @change="reloadCustomersWithStats"
+                        :disabled="isEnded"
+                      />
+
+                      <!-- Theo năm -->
+                      <select
+                        v-if="statsMode === 'YEAR'"
+                        class="form-select form-select-sm"
+                        style="width: 120px"
+                        v-model.number="statsYear"
+                        @change="reloadCustomersWithStats"
+                        :disabled="isEnded"
+                      >
+                        <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+                      </select>
+
+                      <!-- Khoảng thời gian -->
+                      <template v-if="statsMode === 'RANGE'">
+                        <input
+                          type="date"
+                          class="form-control form-control-sm"
+                          style="width: 150px"
+                          v-model="statsFrom"
+                          @change="reloadCustomersWithStats"
+                          :disabled="isEnded"
+                        />
+                        <input
+                          type="date"
+                          class="form-control form-control-sm"
+                          style="width: 150px"
+                          v-model="statsTo"
+                          @change="reloadCustomersWithStats"
+                          :disabled="isEnded"
+                        />
+                      </template>
+
                       <button
                         class="btn btn-outline-secondary btn-sm"
                         type="button"
@@ -266,14 +324,37 @@
                         <div class="kh-col kh-email">Email</div>
 
                         <div class="kh-col kh-ngaysinh">Ngày sinh</div>
-                        <div class="kh-col kh-donthang">Đơn tháng</div>
-                        <div class="kh-col kh-datieu">Đã tiêu</div>
+
+                        <!-- ✅ Sort (tuỳ chọn) theo số đơn -->
+                        <div
+                          class="kh-col kh-donthang kh-sort"
+                          role="button"
+                          tabindex="0"
+                          @click="toggleSort('soDonThangHienTai')"
+                          @keydown.enter.prevent="toggleSort('soDonThangHienTai')"
+                          title="Sắp xếp theo số đơn"
+                        >
+                          Số đơn
+                          <i class="bi ms-1" :class="sortIcon('soDonThangHienTai')"></i>
+                        </div>
+
+                        <!-- ✅ Sort theo số tiền đã tiêu -->
+                        <div
+                          class="kh-col kh-datieu kh-sort"
+                          role="button"
+                          tabindex="0"
+                          @click="toggleSort('tongTienDaTieu')"
+                          @keydown.enter.prevent="toggleSort('tongTienDaTieu')"
+                          title="Sắp xếp theo số tiền đã tiêu"
+                        >
+                          Số tiền đã tiêu
+                          <i class="bi ms-1" :class="sortIcon('tongTienDaTieu')"></i>
+                        </div>
                       </div>
 
                       <div class="kh-body">
                         <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
 
-                        <!-- ✅ list sort theo id tăng dần -->
                         <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
                           <div class="kh-col kh-check">
                             <input
@@ -324,9 +405,7 @@
             </div>
 
             <div class="col-12" v-if="isEnded">
-              <div class="alert alert-warning mb-0">
-                Phiếu đã <b>kết thúc</b> nên không thể chỉnh sửa.
-              </div>
+              <div class="alert alert-warning mb-0">Phiếu đã <b>kết thúc</b> nên không thể chỉnh sửa.</div>
             </div>
           </div>
         </div>
@@ -488,18 +567,30 @@ function parseVndInput(s) {
 }
 
 const giaTriGiamVnd = computed({
-  get() { return formatVndInput(form.value.giaTriGiam, true); },
-  set(v) { form.value.giaTriGiam = parseVndInput(v); },
+  get() {
+    return formatVndInput(form.value.giaTriGiam, true);
+  },
+  set(v) {
+    form.value.giaTriGiam = parseVndInput(v);
+  },
 });
 
 const giaTriGiamToiDaVnd = computed({
-  get() { return formatVndInput(form.value.giaTriGiamToiDa, true); },
-  set(v) { form.value.giaTriGiamToiDa = parseVndInput(v); },
+  get() {
+    return formatVndInput(form.value.giaTriGiamToiDa, true);
+  },
+  set(v) {
+    form.value.giaTriGiamToiDa = parseVndInput(v);
+  },
 });
 
 const donHangToiThieuVnd = computed({
-  get() { return formatVndInput(form.value.donHangToiThieu, false); },
-  set(v) { form.value.donHangToiThieu = parseVndInput(v); },
+  get() {
+    return formatVndInput(form.value.donHangToiThieu, false);
+  },
+  set(v) {
+    form.value.donHangToiThieu = parseVndInput(v);
+  },
 });
 
 // ===== Date helpers =====
@@ -565,8 +656,12 @@ function initPickers() {
   fpEnd?.setDate(parseYMD(form.value.ngayKetThuc), false);
 }
 
-function openStartPicker() { fpStart?.open(); }
-function openEndPicker() { fpEnd?.open(); }
+function openStartPicker() {
+  fpStart?.open();
+}
+function openEndPicker() {
+  fpEnd?.open();
+}
 
 function clearStartDate() {
   form.value.ngayBatDau = "";
@@ -578,6 +673,60 @@ function clearEndDate() {
   fpEnd?.clear();
   if (fpStart) fpStart.set("maxDate", null);
 }
+
+// ===== Stats filter (giống create) =====
+const statsMode = ref("MONTH"); // MONTH | YEAR | RANGE
+const now = new Date();
+const pad2 = (n) => String(n).padStart(2, "0");
+const statsMonth = ref(`${now.getFullYear()}-${pad2(now.getMonth() + 1)}`); // YYYY-MM
+const statsYear = ref(now.getFullYear());
+const statsFrom = ref(""); // YYYY-MM-DD
+const statsTo = ref("");
+
+const yearOptions = computed(() => {
+  const y = now.getFullYear();
+  return [y - 3, y - 2, y - 1, y, y + 1];
+});
+
+function onStatsModeChange() {
+  if (statsMode.value === "RANGE") {
+    const d2 = new Date();
+    const d1 = new Date();
+    d1.setDate(d2.getDate() - 30);
+    statsFrom.value = d1.toISOString().slice(0, 10);
+    statsTo.value = d2.toISOString().slice(0, 10);
+  }
+  reloadCustomersWithStats();
+}
+
+function buildStatsParams() {
+  if (statsMode.value === "MONTH") return { statsMode: "MONTH", month: statsMonth.value };
+  if (statsMode.value === "YEAR") return { statsMode: "YEAR", year: statsYear.value };
+  return { statsMode: "RANGE", from: statsFrom.value, to: statsTo.value };
+}
+
+async function reloadCustomersWithStats() {
+  if (form.value.loaiPhieu !== "CA_NHAN") return;
+  await loadCustomers();
+}
+
+// ===== Sort state (giống create) =====
+const sortKey = ref("tongTienDaTieu"); // "tongTienDaTieu" | "soDonThangHienTai"
+const sortDir = ref("desc"); // "asc" | "desc"
+
+function toggleSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+  } else {
+    sortKey.value = key;
+    sortDir.value = "desc";
+  }
+}
+
+const sortIcon = (key) => {
+  if (sortKey.value !== key) return "bi-arrow-down-up";
+  return sortDir.value === "asc" ? "bi-sort-up" : "bi-sort-down";
+};
 
 // ===== KH state =====
 const customers = ref([]);
@@ -603,7 +752,8 @@ async function loadCustomers() {
   loadingCustomers.value = true;
   customersError.value = "";
   try {
-    const res = await http.get(KH_API, { params: { includeShip: true } });
+    const statsParams = buildStatsParams();
+    const res = await http.get(KH_API, { params: { includeShip: true, ...statsParams } });
     const data = res?.data ?? res;
     customers.value = Array.isArray(data) ? data : [];
   } catch (e) {
@@ -630,7 +780,10 @@ async function loadSelectedCustomerIds() {
 }
 
 /**
- * ✅ Filter + sort theo id tăng dần (giống create)
+ * ✅ Filter + sort (giống create)
+ * - search keyword trước
+ * - sort theo state (tongTienDaTieu / soDonThangHienTai) + asc/desc
+ * - nếu bằng nhau: id ASC
  */
 const filteredCustomers = computed(() => {
   const kw = String(customerKeyword.value || "").trim().toLowerCase();
@@ -638,11 +791,27 @@ const filteredCustomers = computed(() => {
   const base = !kw
     ? customers.value
     : customers.value.filter((c) => {
-        const s = `${c.maKhachHang ?? c.ma ?? ""} ${c.tenKhachHang ?? c.ten ?? ""} ${c.soDienThoai ?? c.sdt ?? ""} ${c.email ?? ""}`.toLowerCase();
+        const s = `${c.maKhachHang ?? c.ma ?? ""} ${c.tenKhachHang ?? c.ten ?? ""} ${c.soDienThoai ?? c.sdt ?? ""} ${
+          c.email ?? ""
+        }`.toLowerCase();
         return s.includes(kw);
       });
 
-  return [...base].sort((a, b) => Number(a.id) - Number(b.id));
+  const getVal = (c) => {
+    if (sortKey.value === "soDonThangHienTai") return Number(c.soDonThangHienTai ?? 0);
+    return Number(c.tongTienDaTieu ?? 0);
+  };
+
+  return [...base].sort((a, b) => {
+    const av = getVal(a);
+    const bv = getVal(b);
+
+    let diff = bv - av; // default desc
+    if (sortDir.value === "asc") diff = av - bv;
+
+    if (diff !== 0) return diff;
+    return Number(a.id) - Number(b.id);
+  });
 });
 
 const isAllSelected = computed(() => {
@@ -828,7 +997,7 @@ onMounted(async () => {
   initPickers();
 
   if (form.value.loaiPhieu === "CA_NHAN") {
-    // ✅ load ds KH + ids đã chọn, rồi tự fill số lượng
+    // ✅ giống create: load ds KH theo stats + ids đã chọn, rồi tự fill số lượng
     await loadCustomers();
     await loadSelectedCustomerIds();
     form.value.soLuong = selectedCustomerIds.value.length;
@@ -836,13 +1005,17 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  try { fpStart?.destroy(); } catch {}
-  try { fpEnd?.destroy(); } catch {}
+  try {
+    fpStart?.destroy();
+  } catch {}
+  try {
+    fpEnd?.destroy();
+  } catch {}
 });
 </script>
 
 <style scoped>
-.req{
+.req {
   color: #dc2626;
   font-weight: 600;
   margin-left: 4px;
@@ -860,8 +1033,12 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 }
-.date-group .btn:not(:last-child) { border-radius: 0 !important; }
-.date-group .btn:last-child { border-radius: 0 8px 8px 0 !important; }
+.date-group .btn:not(:last-child) {
+  border-radius: 0 !important;
+}
+.date-group .btn:last-child {
+  border-radius: 0 8px 8px 0 !important;
+}
 
 .btn-confirm {
   background: #1d4ed8;
@@ -869,8 +1046,13 @@ onBeforeUnmount(() => {
   color: #fff;
   font-weight: 700;
 }
-.btn-confirm:hover { filter: brightness(0.95); }
-.btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-confirm:hover {
+  filter: brightness(0.95);
+}
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .kh-box {
   border: 1px solid #e5e7eb;
@@ -905,7 +1087,9 @@ onBeforeUnmount(() => {
   min-width: 980px;
 }
 
-.kh-body { overflow: visible; }
+.kh-body {
+  overflow: visible;
+}
 
 .kh-row {
   display: grid;
@@ -918,10 +1102,36 @@ onBeforeUnmount(() => {
   min-width: 980px;
 }
 
-.kh-row:hover { background: #f8fafc; }
-.kh-col { min-width: 0; }
-.kh-ellipsis { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kh-empty { padding: 16px 12px; text-align: center; color: #6b7280; font-weight: 600; }
+.kh-row:hover {
+  background: #f8fafc;
+}
+.kh-col {
+  min-width: 0;
+}
+.kh-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kh-empty {
+  padding: 16px 12px;
+  text-align: center;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* ✅ header sortable (giống create) */
+.kh-sort {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+}
+.kh-sort:hover {
+  opacity: 0.9;
+}
 
 .modal-overlay {
   position: fixed;
