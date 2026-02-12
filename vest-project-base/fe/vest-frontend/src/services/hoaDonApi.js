@@ -38,6 +38,11 @@ export default {
   },
   returnOrder(id, body) {
   return http.patch(`/api/hoa-don/${id}/hoan-hang`, body);
+},
+
+createPos(payload) {
+  return request.post("/api/hoa-don/pos", payload);
 }
+
 
 };

@@ -424,7 +424,8 @@
                     </li>
                   </ul>
 
-                  <button class="btn btn-success w-100" :disabled="activeOrder.cart.length === 0" @click="confirmOrder">
+                  <!-- ✅ UI giữ nguyên, chỉ thêm submitting vào disable (khuyến nghị) -->
+                  <button class="btn btn-success w-100" :disabled="activeOrder.cart.length === 0 || submitting" @click="confirmOrder">
                     Thanh toán
                   </button>
 
@@ -658,6 +659,9 @@ const orders = ref([]);
 const activeId = ref(null);
 const orderSeq = ref(1);
 
+// ✅ thêm để chống bấm double khi đang gọi BE
+const submitting = ref(false);
+
 const activeOrder = computed(() => orders.value.find((o) => o.id === activeId.value) || null);
 
 function randInt(max) {
@@ -693,18 +697,15 @@ function normalizeOrder(o, idx = 1) {
     customer: o?.customer ?? null,
     customerDraft: o?.customerDraft ?? { phone: "", email: "" },
 
-    // ====== PGG (đã nâng cấp) ======
     voucherCode: String(o?.voucherCode || ""),
     pggId: o?.pggId ?? null,
     discountPercent: Number(o?.discountPercent || 0),
 
     voucherMode: o?.voucherMode ?? "best", // best | manual | none
     voucherTab: o?.voucherTab ?? "best",   // best | alt
-    // ==============================
 
     paid: Number(o?.paid || 0),
 
-    // ✅ SỬA: ghi chú -> địa chỉ (fallback đọc note cũ để không mất draft)
     diaChi: o?.diaChi || o?.note || "",
   };
 }
@@ -733,8 +734,6 @@ function createOrder() {
         voucherTab: "best",
 
         paid: 0,
-
-        // ✅ SỬA: note -> diaChi
         diaChi: "",
       },
       orderSeq.value
@@ -1000,7 +999,6 @@ function chooseCustomer(c) {
   o.customerDraft.phone = c.phone || "";
   o.customerDraft.email = c.email || "";
 
-  // ✅ SỬA: nếu chưa nhập địa chỉ thì auto fill theo khách hàng
   if (!String(o.diaChi || "").trim()) o.diaChi = c.address || "";
 
   closeCustomerModal();
@@ -1043,11 +1041,8 @@ function calcVoucherDiscount(subtotal, v) {
   if (st < (Number(v.don_hang_toi_thieu) || 0)) return 0;
 
   let disc = 0;
-  if (v.loai_giam) {
-    disc = (st * (Number(v.gia_tri_phan_tram) || 0)) / 100;
-  } else {
-    disc = Number(v.gia_tri_tien_mat) || 0;
-  }
+  if (v.loai_giam) disc = (st * (Number(v.gia_tri_phan_tram) || 0)) / 100;
+  else disc = Number(v.gia_tri_tien_mat) || 0;
 
   const cap = Number(v.gia_tri_giam_toi_da) || 0;
   if (cap > 0) disc = Math.min(disc, cap);
@@ -1073,7 +1068,6 @@ const appliedVoucher = computed(() => {
   return vouchers.value.find((x) => x.id === o.pggId) || null;
 });
 
-// Auto áp dụng mã tốt nhất (mặc định)
 watch(
   [subTotal, vouchers, activeId],
   () => {
@@ -1086,18 +1080,14 @@ watch(
       return;
     }
 
-    // best: luôn bám theo best
     if (o.voucherMode === "best") {
       const best = bestVoucherEntry.value?.v || null;
       o.pggId = best?.id ?? null;
       o.voucherCode = best?.ma_giam_gia || "";
-
-      // khóa giảm thủ công -> set theo % nếu là % (giống behavior cũ)
       if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
       return;
     }
 
-    // manual: nếu mã manual không còn hợp lệ -> quay về best
     if (o.voucherMode === "manual") {
       const stillValid = !!eligibleVoucherEntries.value.find((e) => e.v.id === o.pggId);
       if (!stillValid) {
@@ -1146,7 +1136,6 @@ function clearVoucherManual() {
   const o = activeOrder.value;
   if (!o) return;
   o.voucherCode = "";
-  // về best thay vì null (vì yêu cầu mặc định best)
   o.voucherMode = "best";
   useBestVoucher();
 }
@@ -1157,7 +1146,6 @@ async function applyPggByCode() {
 
   const code = (o.voucherCode || "").trim().toUpperCase();
   if (!code) {
-    // nếu xóa input thì quay về best
     o.voucherMode = "best";
     useBestVoucher();
     return;
@@ -1171,7 +1159,6 @@ async function applyPggByCode() {
     return;
   }
 
-  // kiểm tra hợp lệ với subtotal
   const disc = calcVoucherDiscount(subTotal.value, found);
   if (disc <= 0) {
     toastShow("Mã không áp dụng được cho đơn hiện tại", "warning");
@@ -1196,7 +1183,6 @@ const discountMoney = computed(() => {
     return calcVoucherDiscount(st, v);
   }
 
-  // không có voucher -> dùng giảm thủ công %
   const percent = Math.max(0, Math.min(100, Number(o.discountPercent || 0)));
   return Math.floor((st * percent) / 100);
 });
@@ -1209,42 +1195,97 @@ const changeMoney = computed(() => {
   return Math.max(0, Number(o.paid || 0) - grandTotal.value);
 });
 
-/** ========= CONFIRM (CHỈ LOG) ========= */
-async function confirmOrder() {
-  const o = activeOrder.value;
-  if (!o) return;
+/** =========================================================
+ * ✅ PHẦN THANH TOÁN - VIẾT LẠI (CALL BE /api/hoa-don/pos)
+ * ========================================================= */
+function clampInt(n, min, max) {
+  n = Number.isFinite(Number(n)) ? Math.floor(Number(n)) : 0;
+  return Math.max(min, Math.min(max, n));
+}
 
-  confirmHint.value = "";
-
-  if (o.cart.length === 0) return toastShow("Giỏ hàng trống", "danger");
+function validateCheckout(o) {
+  if (!o) return "Không có đơn hàng đang chọn";
+  if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";
 
   for (const it of o.cart) {
-    if (Number.isFinite(it.stock) && it.qty > it.stock) {
-      return toastShow(`Sản phẩm ${it.code} vượt tồn kho`, "danger");
-    }
+    const qty = Number(it.qty || 0);
+    if (qty <= 0) return `Số lượng không hợp lệ: ${it.code}`;
+    if (Number.isFinite(it.stock) && qty > Number(it.stock)) return `Sản phẩm ${it.code} vượt tồn kho`;
   }
 
-  const payload = {
+  const paid = Number(o.paid || 0);
+  if (paid < grandTotal.value) return "Khách thanh toán chưa đủ";
+
+  return null;
+}
+
+function buildPosPayload(o) {
+  return {
     maHoaDon: o.maHoaDon,
     loaiDon: false,
     phiVanChuyen: 0,
+
     idKhachHang: o.customer?.id ?? null,
     idPhieuGiamGia: o.pggId ?? null,
-    giamThuCongPercent: o.pggId ? 0 : Number(o.discountPercent || 0),
+
+    // ✅ đúng DTO BE: nếu có PGG -> null, không có -> % thủ công
+    giamThuCongPercent: o.pggId ? null : clampInt(o.discountPercent, 0, 100),
+
     tenKhachHang: o.customer?.name || "Khách lẻ",
-    soDienThoai: o.customerDraft.phone || o.customer?.phone || "",
-    emailKhachHang: o.customerDraft.email || o.customer?.email || "",
+    soDienThoai: (o.customerDraft.phone || o.customer?.phone || "").trim(),
+    emailKhachHang: (o.customerDraft.email || o.customer?.email || "").trim(),
+    diaChiKhachHang: (o.diaChi || o.customer?.address || "").trim(),
 
-    // ✅ SỬA: ghi chú -> địa chỉ
-    diaChiKhachHang: o.diaChi || o.customer?.address || "",
-    ghiChu: "",
-
+    ghiChu: "POS checkout",
     paid: Number(o.paid || 0),
-    items: o.cart.map((it) => ({ idSanPhamChiTiet: it.idSpct, soLuong: it.qty })),
-  };
 
-  console.log("ORDER PAYLOAD (STORE ONLY):", payload);
-  toastShow("Chức năng đang làm.", "info");
+    items: o.cart.map((it) => ({
+      idSanPhamChiTiet: Number(it.idSpct),
+      soLuong: clampInt(it.qty, 1, 999999),
+    })),
+  };
+}
+
+function resetOrderAfterPaid(o) {
+  o.cart = [];
+  o.customer = null;
+  o.customerDraft = { phone: "", email: "" };
+  o.diaChi = "";
+
+  o.voucherCode = "";
+  o.pggId = null;
+  o.voucherMode = "best";
+  o.voucherTab = "best";
+
+  o.discountPercent = 0;
+  o.paid = 0;
+
+  o.maHoaDon = genUniqueMaHoaDon();
+  o.label = `Đơn hàng ${orderSeq.value} - ${o.maHoaDon}`;
+}
+
+async function confirmOrder() {
+  const o = activeOrder.value;
+  confirmHint.value = "";
+
+  const err = validateCheckout(o);
+  if (err) return toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
+
+  const payload = buildPosPayload(o);
+
+  submitting.value = true;
+  try {
+    const res = await http.post("/api/hoa-don/pos", payload);
+    const ma = res?.data?.maHoaDon || payload.maHoaDon || "Hóa đơn";
+    toastShow(`Tạo hóa đơn thành công: ${ma}`, "success");
+    resetOrderAfterPaid(o);
+  } catch (e) {
+    console.error(e);
+    const msg = e?.response?.data?.message || e?.response?.data?.error || "Tạo hóa đơn thất bại";
+    toastShow(msg, "danger");
+  } finally {
+    submitting.value = false;
+  }
 }
 
 /** ========= LIFECYCLE ========= */
