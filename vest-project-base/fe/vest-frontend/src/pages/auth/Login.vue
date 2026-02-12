@@ -90,7 +90,7 @@ async function onSubmit() {
       matKhau: matKhau.value,
     });
 
-    await router.replace(data.role === "ADMIN" ? { name: "dashboard" } : { name: "sales" });
+    await router.replace(data.role === "ADMIN" ? { name: "dashboard" } : { name: "dashboard" });
   } catch (e) {
     error.value = e?.response?.data?.message || e?.message || "Đăng nhập thất bại";
   } finally {
