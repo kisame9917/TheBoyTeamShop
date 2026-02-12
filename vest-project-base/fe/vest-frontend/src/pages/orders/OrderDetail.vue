@@ -7,166 +7,203 @@
         <h5 class="mb-0">Chi tiết hóa đơn</h5>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          @click="goBack"
-        >
-          <i class="bi bi-arrow-left me-1"></i> Quay lại
-        </button>
-      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại
+      </button>
     </div>
+<!-- Stepper (giống ảnh, xịn hơn) -->
+<!-- Stepper -->
+<div class="order-stepper mb-3" v-if="hd">
+  <div class="order-stepper__track" :style="{ '--progress': progressPercent }">
+    <div
+      v-for="s in stepperSteps"
+      :key="s.code"
+      class="os-step"
+      :class="stepStateClass(s.code)"
+    >
+      <!-- chữ nằm trên line -->
+      <div class="os-label">
+        <div class="os-text">{{ s.label }}</div>
+        <div class="os-time" v-if="s.timeText">{{ s.timeText }}</div>
+      </div>
 
-    <!-- Stepper -->
-    <div class="card shadow-sm mb-3">
-      <div class="card-body">
-        <div class="d-flex flex-wrap gap-3 align-items-center">
-          <div v-for="st in stepper" :key="st.code" class="step-item">
-            <div class="d-flex align-items-center gap-2">
-              <div class="step-dot" :class="{ active: isStepActive(st.code) }">
-                <i v-if="isStepActive(st.code)" class="bi bi-check-lg"></i>
-              </div>
-              <div>
-                <div class="fw-semibold">{{ st.label }}</div>
-                <div class="text-muted small">{{ st.timeText }}</div>
-              </div>
-            </div>
-            <div class="step-line"></div>
-          </div>
-        </div>
+      <!-- circle nằm đúng trên thanh progress -->
+      <div class="os-circle">
+        <i v-if="isDoneStep(s.code)" class="bi bi-check-lg"></i>
+        <span v-else class="os-dot"></span>
       </div>
     </div>
+  </div>
+</div>
+
 
     <!-- Actions -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div class="d-flex flex-wrap gap-2">
         <button
           type="button"
           class="btn btn-primary btn-sm"
-          :disabled="!canConfirmDeliver"
-          @click="confirmDeliver"
+          :disabled="!canAdvanceStatus"
+          @click="openConfirmAdvanceModal"
         >
-          Xác nhận đã giao hàng
+          <i class="bi bi-arrow-right-circle me-1"></i>
+          {{ advanceBtnText }}
+        </button>
+
+        <button
+          v-if="canCancel"
+          type="button"
+          class="btn btn-outline-danger btn-sm"
+          @click="openConfirmCancelModal"
+        >
+          <i class="bi bi-x-circle me-1"></i> Huỷ đơn
+        </button>
+
+        <button
+          v-if="canRequestRefund"
+          type="button"
+          class="btn btn-outline-warning btn-sm text-dark"
+          @click="openConfirmRefundModal"
+        >
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Hoàn đơn
         </button>
       </div>
 
       <div class="d-flex gap-2">
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          @click="openHistoryModal"
-        >
-          Chi tiết
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="openHistoryModal">
+          <i class="bi bi-clock-history me-1"></i> Chi tiết
         </button>
-        <button
-          type="button"
-          class="btn btn-outline-success btn-sm"
-          @click="openPrintModal"
-        >
-          Xuất hóa đơn
+
+        <button type="button" class="btn btn-outline-success btn-sm" @click="openPrintModal">
+          <i class="bi bi-printer me-1"></i> Xuất hóa đơn
         </button>
       </div>
     </div>
 
-    <!-- Info -->
+    <!-- Order Info (professional) -->
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between">
-          <h6 class="mb-0">
-            Thông tin đơn hàng -
-            {{ hd?.loaiDon ? "Đơn hàng Online" : "Đơn hàng Tại quầy" }}
-          </h6>
-          <span class="badge" :class="statusBadgeClass(hd?.trangThaiDon)">
-            {{ hd?.tenTrangThaiDon || "-" }}
-          </span>
-        </div>
-        <hr />
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+          <div>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <h6 class="mb-0">Thông tin đơn hàng</h6>
+              <span class="badge" :class="statusBadgeClass(hd?.trangThaiDon)">
+                {{ statusLabel(hd?.trangThaiDon) }}
+              </span>
+              <span class="badge text-bg-light border">
+                {{ orderTypeText }}
+              </span>
+            </div>
 
-        <div class="row g-3">
-          <div class="col-12 col-lg-6">
-            <div class="mb-2">
-              <span class="text-muted">Mã:</span>
-              <span class="fw-semibold">{{ hd?.maHoaDon }}</span>
-            </div>
-            <div class="mb-2">
-              <span class="text-muted">Tên khách hàng:</span>
-              {{ hd?.tenKhachHang || "Khách lẻ" }}
-            </div>
-            <div class="mb-2">
-              <span class="text-muted">Trạng thái:</span>
-              {{ hd?.tenTrangThaiDon }}
-            </div>
-            <div class="mb-2">
-              <span class="text-muted">Ghi chú:</span>
-              {{ hd?.ghiChu || "-" }}
+            <div class="text-muted small mt-1">
+              Mã: <b>{{ hd?.maHoaDon || "-" }}</b>
+              <span class="mx-1">•</span>
+              Tạo lúc: <b>{{ formatDateTimeVN(hd?.ngayTao) || "-" }}</b>
             </div>
           </div>
 
-          <div class="col-12 col-lg-6">
-            <div class="mb-2">
-              <span class="text-muted">SĐT người nhận:</span>
-              {{ hd?.soDienThoai || "-" }}
+          <div class="text-end">
+            <div class="text-muted small">Tổng thanh toán</div>
+            <div class="fs-5 fw-bold text-danger">
+              {{ formatCurrency(hd?.tongTienSauGiam) }}
             </div>
-            <div class="mb-2">
-              <span class="text-muted">Địa chỉ người nhận:</span>
-              {{ hd?.diaChiKhachHang || "-" }}
-            </div>
-            <div class="mb-2">
-              <span class="text-muted">Email:</span>
-              {{ hd?.emailKhachHang || "-" }}
-            </div>
-
-            <div class="d-flex align-items-center gap-2 mt-3">
-              <select
-                class="form-select form-select-sm"
-                style="max-width: 260px"
-                v-model.number="changeStatusCode"
-              >
-                <option
-                  v-for="s in statusOptions"
-                  :key="s.code"
-                  :value="s.code"
-                >
-                  {{ s.label }}
-                </option>
-              </select>
-
-              <!-- ✅ ĐỔI: bấm cập nhật sẽ mở popup confirm -->
-              <button
-                type="button"
-                class="btn btn-outline-primary  btn-sm"
-                :disabled="!hd"
-                @click="openConfirmStatusModal"
-              >
-                Cập nhật
-              </button>
+            <div class="text-muted small">
+              Đã thanh toán: <b>{{ formatCurrency(paidTotal) }}</b>
             </div>
           </div>
         </div>
 
-        <hr />
+        <hr class="my-3" />
+
         <div class="row g-3">
+          <div class="col-12 col-lg-4">
+            <div class="info-box h-100">
+              <div class="info-title">
+                <i class="bi bi-person me-2"></i>Khách hàng
+              </div>
+
+              <div class="info-row">
+                <span>Họ tên</span>
+                <b>{{ hd?.tenKhachHang || "Khách lẻ" }}</b>
+              </div>
+              <div class="info-row">
+                <span>SĐT</span>
+                <b>{{ hd?.soDienThoai || "-" }}</b>
+              </div>
+              <div class="info-row">
+                <span>Email</span>
+                <b class="text-end text-truncate d-inline-block" style="max-width: 210px">
+                  {{ hd?.emailKhachHang || "-" }}
+                </b>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-5">
+            <div class="info-box h-100">
+              <div class="info-title">
+                <i class="bi bi-truck me-2"></i>Giao nhận
+              </div>
+
+              <div class="info-row align-items-start">
+                <span>Địa chỉ</span>
+                <b class="text-end">
+                  {{ hd?.diaChiKhachHang || "-" }}
+                </b>
+              </div>
+
+              <div class="info-row">
+                <span>Phí vận chuyển</span>
+                <b>{{ formatCurrency(hd?.phiVanChuyen) }}</b>
+              </div>
+
+              <div class="info-row align-items-start">
+                <span>Ghi chú</span>
+                <b class="text-end">{{ hd?.ghiChu || "-" }}</b>
+              </div>
+            </div>
+          </div>
+
           <div class="col-12 col-lg-3">
-            <div class="text-muted small">Tổng tiền</div>
+            <div class="info-box h-100">
+              <div class="info-title">
+                <i class="bi bi-cash-coin me-2"></i>Giá trị đơn
+              </div>
+
+              <div class="info-row">
+                <span>Tổng tiền</span>
+                <b>{{ formatCurrency(hd?.tongTien) }}</b>
+              </div>
+              <div class="info-row">
+                <span>Giảm giá</span>
+                <b>{{ formatCurrency(hd?.tongTienGiam) }}</b>
+              </div>
+              <div class="info-row">
+                <span>Phải trả</span>
+                <b class="text-danger">{{ formatCurrency(hd?.tongTienSauGiam) }}</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick summary chips -->
+        <div class="summary-grid mt-3">
+          <div class="summary-item">
+            <div class="text-muted small">Trạng thái hiện tại</div>
+            <div class="fw-semibold">{{ statusLabel(hd?.trangThaiDon) }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="text-muted small">Số SP</div>
+            <div class="fw-semibold">{{ (hd?.items || []).length }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="text-muted small">Đơn giá trị</div>
             <div class="fw-semibold">{{ formatCurrency(hd?.tongTien) }}</div>
           </div>
-          <div class="col-12 col-lg-3">
-            <div class="text-muted small">Giảm</div>
+          <div class="summary-item">
+            <div class="text-muted small">Còn lại</div>
             <div class="fw-semibold">
-              {{ formatCurrency(hd?.tongTienGiam) }}
-            </div>
-          </div>
-          <div class="col-12 col-lg-3">
-            <div class="text-muted small">Phí vận chuyển</div>
-            <div class="fw-semibold">
-              {{ formatCurrency(hd?.phiVanChuyen) }}
-            </div>
-          </div>
-          <div class="col-12 col-lg-3">
-            <div class="text-muted small">Tổng sau giảm</div>
-            <div class="fw-semibold">
-              {{ formatCurrency(hd?.tongTienSauGiam) }}
+              {{ formatCurrency(Math.max(0, Number(hd?.tongTienSauGiam ?? 0) - Number(paidTotal ?? 0))) }}
             </div>
           </div>
         </div>
@@ -176,30 +213,33 @@
     <!-- Payment history -->
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h6 class="mb-3">Lịch sử thanh toán</h6>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0">Lịch sử thanh toán</h6>
+        </div>
+
         <div class="table-responsive table-wrap">
-          <table class="table align-middle mb-0">
+          <table class="table table-fixed align-middle mb-0">
             <thead class="thead-dark-custom">
               <tr>
-                <th style="width: 140px">Số tiền</th>
-                <th style="width: 180px">Thời gian</th>
-                <th style="width: 160px">Mã giao dịch</th>
-                <th>Phương thức thanh toán</th>
-                <th>Ghi chú</th>
+                <th class="col-money">Số tiền</th>
+                <th class="col-time">Thời gian</th>
+                <th class="col-code">Mã giao dịch</th>
+                <th class="col-method">Phương thức</th>
+                <th class="col-note">Ghi chú</th>
               </tr>
             </thead>
+
             <tbody>
               <tr v-if="(hd?.lichSuThanhToan || []).length === 0">
-                <td colspan="5" class="text-center text-muted py-4">
-                  Chưa có thanh toán
-                </td>
+                <td colspan="5" class="text-center text-muted py-4">Chưa có thanh toán</td>
               </tr>
+
               <tr v-for="p in hd?.lichSuThanhToan || []" :key="p.id">
                 <td class="fw-semibold">{{ formatCurrency(p.soTien) }}</td>
                 <td>{{ formatDateTimeVN(p.ngayThanhToan) }}</td>
-                <td>{{ p.maGiaoDich || "-" }}</td>
-                <td>{{ p.hinhThucThanhToan || "-" }}</td>
-                <td>{{ p.ghiChu || "-" }}</td>
+                <td class="text-truncate">{{ p.maGiaoDich || "-" }}</td>
+                <td class="text-truncate">{{ p.hinhThucThanhToan || "-" }}</td>
+                <td class="text-truncate">{{ p.ghiChu || "-" }}</td>
               </tr>
             </tbody>
           </table>
@@ -210,45 +250,48 @@
     <!-- Items -->
     <div class="card shadow-sm">
       <div class="card-body">
-        <h6 class="mb-3">Sản phẩm</h6>
+        <h6 class="mb-2">Sản phẩm</h6>
+
         <div class="table-responsive table-wrap">
-          <table class="table align-middle mb-0">
+          <table class="table table-fixed align-middle mb-0">
             <thead class="thead-dark-custom">
               <tr>
-                <th style="width: 60px">STT</th>
-                <th style="width: 110px">Ảnh</th>
-                <th>Sản phẩm</th>
-                <th style="width: 120px">Số lượng</th>
-                <th style="width: 160px">Thành tiền</th>
+                <th class="col-stt">STT</th>
+                <th class="col-img">Ảnh</th>
+                <th class="col-product">Sản phẩm</th>
+                <th class="col-qty">Số lượng</th>
+                <th class="col-total">Thành tiền</th>
               </tr>
             </thead>
+
             <tbody>
               <tr v-if="(hd?.items || []).length === 0">
-                <td colspan="5" class="text-center text-muted py-4">
-                  Không có sản phẩm
-                </td>
+                <td colspan="5" class="text-center text-muted py-4">Không có sản phẩm</td>
               </tr>
+
               <tr v-for="(it, idx) in hd?.items || []" :key="idx">
                 <td>{{ idx + 1 }}</td>
+
                 <td>
                   <div class="img-box">
                     <img v-if="it.anhDaiDien" :src="it.anhDaiDien" alt="img" />
                     <div v-else class="text-muted small">No image</div>
                   </div>
                 </td>
+
                 <td>
-                  <div class="fw-semibold">{{ it.tenSanPham || "-" }}</div>
-                  <div class="text-muted small">
+                  <div class="fw-semibold text-truncate">{{ it.tenSanPham || "-" }}</div>
+                  <div class="text-muted small text-truncate">
                     {{ it.mauSac || "-" }} - {{ it.kichCo || "-" }}
-                    <span v-if="it.maSanPhamChiTiet">
-                      • {{ it.maSanPhamChiTiet }}</span
-                    >
+                    <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
                   </div>
                   <div class="text-danger fw-semibold mt-1">
                     {{ formatCurrency(it.donGia) }}
                   </div>
                 </td>
-                <td>{{ it.soLuong }}</td>
+
+                <td class="fw-semibold">{{ it.soLuong }}</td>
+
                 <td class="fw-semibold text-danger">
                   {{ formatCurrency(it.thanhTien) }}
                 </td>
@@ -260,23 +303,12 @@
     </div>
 
     <!-- History modal -->
-    <div
-      class="modal fade"
-      id="historyModal"
-      tabindex="-1"
-      aria-hidden="true"
-      ref="historyModalRef"
-    >
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true" ref="historyModalRef">
       <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">Chi tiết lịch sử</h6>
-            <button
-              type="button"
-              class="btn-close"
-              aria-label="Close"
-              @click="closeHistoryModal"
-            ></button>
+            <button type="button" class="btn-close" aria-label="Close" @click="closeHistoryModal"></button>
           </div>
 
           <div class="modal-body">
@@ -290,11 +322,10 @@
                     <th>Mô tả</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   <tr v-if="(hd?.lichSuHoaDon || []).length === 0">
-                    <td colspan="4" class="text-center text-muted py-4">
-                      Chưa có lịch sử
-                    </td>
+                    <td colspan="4" class="text-center text-muted py-4">Chưa có lịch sử</td>
                   </tr>
 
                   <tr v-for="h in hd?.lichSuHoaDon || []" :key="h.id">
@@ -313,81 +344,44 @@
           </div>
 
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-light"
-              @click="closeHistoryModal"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click="closeHistoryModal"
-            >
-              OK
-            </button>
+            <button type="button" class="btn btn-light" @click="closeHistoryModal">Đóng</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ✅ Confirm Change Status Modal -->
-    <div
-      class="modal fade"
-      id="confirmStatusModal"
-      tabindex="-1"
-      aria-hidden="true"
-      ref="confirmStatusModalRef"
-    >
+    <!-- Confirm Action Modal (advance/cancel/refund) -->
+    <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true" ref="confirmActionModalRef">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">
-              <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng
-              thái
+              <i class="bi bi-exclamation-triangle me-2"></i>{{ confirmTitle }}
             </h6>
-            <button
-              type="button"
-              class="btn-close"
-              aria-label="Close"
-              @click="closeConfirmStatusModal"
-            ></button>
+            <button type="button" class="btn-close" aria-label="Close" @click="closeConfirmActionModal"></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-2">
-              Bạn muốn đổi trạng thái hóa đơn
-              <b>{{ hd?.maHoaDon }}</b>
-              từ
-              <span class="badge bg-secondary">{{
-                hd?.tenTrangThaiDon || "-"
-              }}</span>
-              sang
-              <span class="badge bg-primary">{{
-                statusLabel(changeStatusCode)
-              }}</span>
-              ?
+              Hóa đơn: <b>{{ hd?.maHoaDon }}</b>
+            </div>
+
+            <div class="mb-2">
+              Trạng thái hiện tại:
+              <span class="badge bg-secondary">{{ statusLabel(hd?.trangThaiDon) }}</span>
+              <i class="bi bi-arrow-right mx-2"></i>
+              Trạng thái mới:
+              <span class="badge bg-primary">{{ statusLabel(confirmTargetStatus) }}</span>
             </div>
 
             <div class="small text-muted">
-              Hành động này sẽ cập nhật trạng thái và ghi lịch sử hóa đơn.
+              {{ confirmDesc }}
             </div>
           </div>
 
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-light"
-              @click="closeConfirmStatusModal"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary text-dark"
-              @click="confirmChangeStatus"
-            >
+            <button type="button" class="btn btn-light" @click="closeConfirmActionModal">Hủy</button>
+            <button type="button" class="btn btn-primary text-dark" @click="confirmDoAction">
               Xác nhận
             </button>
           </div>
@@ -396,31 +390,18 @@
     </div>
 
     <!-- Print modal (thermal receipt) -->
-    <div
-      class="modal fade"
-      id="printModal"
-      tabindex="-1"
-      aria-hidden="true"
-      ref="printModalRef"
-    >
+    <div class="modal fade" id="printModal" tabindex="-1" aria-hidden="true" ref="printModalRef">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">Xem trước hóa đơn (in nhiệt)</h6>
-            <button
-              type="button"
-              class="btn-close"
-              aria-label="Close"
-              @click="closePrintModal"
-            ></button>
+            <button type="button" class="btn-close" aria-label="Close" @click="closePrintModal"></button>
           </div>
 
           <div class="modal-body">
             <div ref="printAreaRef" class="receipt">
               <div class="center bold big">VEST SHOP</div>
-              <div class="center">
-                37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy
-              </div>
+              <div class="center">37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy</div>
               <div class="center">Hà Nội, Việt Nam</div>
               <div class="center">Hotline: 0968038313</div>
               <div class="hr"></div>
@@ -453,18 +434,12 @@
                   <div class="bold">{{ it.tenSanPham || "-" }}</div>
                   <div class="muted small">
                     {{ it.mauSac || "-" }} / {{ it.kichCo || "-" }}
-                    <span v-if="it.maSanPhamChiTiet">
-                      • {{ it.maSanPhamChiTiet }}</span
-                    >
+                    <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
                   </div>
-                  <div class="small">
-                    ĐG: {{ formatMoneyNumber(it.donGia) }} đ
-                  </div>
+                  <div class="small">ĐG: {{ formatMoneyNumber(it.donGia) }} đ</div>
                 </div>
                 <div class="w-qty right">{{ it.soLuong ?? 0 }}</div>
-                <div class="w-price right">
-                  {{ formatMoneyNumber(it.thanhTien) }} đ
-                </div>
+                <div class="w-price right">{{ formatMoneyNumber(it.thanhTien) }} đ</div>
               </div>
 
               <div class="hr"></div>
@@ -475,33 +450,25 @@
               </div>
               <div class="row2">
                 <div>Giảm giá</div>
-                <div class="right">
-                  {{ formatMoneyNumber(hd?.tongTienGiam) }} đ
-                </div>
+                <div class="right">{{ formatMoneyNumber(hd?.tongTienGiam) }} đ</div>
               </div>
               <div class="row2">
                 <div>Phí vận chuyển</div>
-                <div class="right">
-                  {{ formatMoneyNumber(hd?.phiVanChuyen) }} đ
-                </div>
+                <div class="right">{{ formatMoneyNumber(hd?.phiVanChuyen) }} đ</div>
               </div>
 
               <div class="hr"></div>
 
               <div class="row2 bold">
                 <div>TỔNG THANH TOÁN</div>
-                <div class="right">
-                  {{ formatMoneyNumber(hd?.tongTienSauGiam) }} đ
-                </div>
+                <div class="right">{{ formatMoneyNumber(hd?.tongTienSauGiam) }} đ</div>
               </div>
 
               <div class="hr"></div>
 
               <div class="center mt8">
                 <img v-if="qrDataUrl" :src="qrDataUrl" class="qr" alt="qr" />
-                <div class="small muted mt2">
-                  Quét để tra cứu: {{ hd?.maHoaDon }}
-                </div>
+                <div class="small muted mt2">Quét để tra cứu: {{ hd?.maHoaDon }}</div>
               </div>
 
               <div class="center mt10">Cảm ơn quý khách!</div>
@@ -509,18 +476,8 @@
           </div>
 
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-light"
-              @click="closePrintModal"
-            >
-              Đóng
-            </button>
-            <button
-              type="button"
-              class="btn btn-warning text-dark"
-              @click="printInvoice"
-            >
+            <button type="button" class="btn btn-light" @click="closePrintModal">Đóng</button>
+            <button type="button" class="btn btn-warning text-dark" @click="printInvoice">
               In / Lưu PDF
             </button>
           </div>
@@ -529,10 +486,7 @@
     </div>
 
     <!-- Toast -->
-    <div
-      class="toast-container position-fixed top-0 end-0 p-3"
-      style="z-index: 9999"
-    >
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
       <div
         class="toast align-items-center text-bg-success border-0"
         ref="toastRef"
@@ -542,11 +496,7 @@
       >
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
-          <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            @click="hideToast"
-          ></button>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="hideToast"></button>
         </div>
       </div>
     </div>
@@ -556,7 +506,6 @@
 <script setup>
 import { computed, onMounted, ref, nextTick } from "vue";
 import { useRouter, useRoute } from "vue-router";
-
 import QRCode from "qrcode";
 import hoaDonApi from "@/services/hoaDonApi";
 
@@ -566,85 +515,38 @@ const props = defineProps({
 const router = useRouter();
 const route = useRoute();
 
-
 const hd = ref(null);
-const changeStatusCode = ref(0);
 
-const statusOptions = [
-  { code: 0, label: "Chờ xác nhận" },
-  { code: 1, label: "Đang xử lý" },
-  { code: 2, label: "Đang giao" },
-  { code: 3, label: "Đã giao" },
-  { code: 4, label: "Hoàn thành" },
-  { code: 5, label: "Đã huỷ" },
-  { code: 6, label: "Yêu cầu hoàn" },
-  { code: 7, label: "Đã hoàn" },
-];
-
-const stepper = computed(() => {
-  const list = [
-    { code: 0, label: "Hóa đơn chờ" },
-    { code: 1, label: "Đang xử lý" },
-    { code: 2, label: "Đang giao" },
-    { code: 3, label: "Đã giao" },
-    { code: 4, label: "Hoàn thành" },
-  ];
-
-  const history = hd.value?.lichSuHoaDon || [];
-  const mapActionToCode = (hanhDong) => {
-    const m = {
-      CHO_XAC_NHAN: 0,
-      DANG_XU_LY: 1,
-      DANG_GIAO: 2,
-      DA_GIAO: 3,
-      HOAN_THANH: 4,
-    };
-    return m[hanhDong];
+/** ====== STATUS LABELS ====== */
+function statusLabel(code) {
+  const m = {
+    0: "Chờ xác nhận",
+    1: "Đang xử lý",
+    2: "Đang giao",
+    3: "Đã giao",
+    4: "Hoàn thành",
+    5: "Đã huỷ",
+    6: "Yêu cầu hoàn",
+    7: "Đã hoàn",
   };
-
-  const byCodeTime = (code) => {
-    const found = history.find((h) => mapActionToCode(h.hanhDong) === code);
-    return found?.thoiGian || null;
-  };
-
-  return list.map((x) => ({
-    ...x,
-    timeText: byCodeTime(x.code) ? formatDateTimeVN(byCodeTime(x.code)) : "",
-  }));
-});
-
-const canConfirmDeliver = computed(
-  () => Number(hd.value?.trangThaiDon ?? -1) === 2,
-);
-
-function isStepActive(code) {
-  const st = Number(hd.value?.trangThaiDon ?? 0);
-  return st >= code;
+  return m[Number(code)] ?? "-";
 }
 
 function statusBadgeClass(code) {
   switch (Number(code)) {
-    case 4:
-      return "text-bg-success";
-    case 3:
-      return "text-bg-primary";
-    case 2:
-      return "text-bg-info";
-    case 1:
-      return "text-bg-warning";
-    case 0:
-      return "text-bg-secondary";
-    case 5:
-      return "text-bg-dark";
-    case 6:
-      return "text-bg-warning";
-    case 7:
-      return "text-bg-secondary";
-    default:
-      return "text-bg-secondary";
+    case 4: return "text-bg-success";
+    case 3: return "text-bg-primary";
+    case 2: return "text-bg-info";
+    case 1: return "text-bg-warning";
+    case 0: return "text-bg-secondary";
+    case 5: return "text-bg-dark";
+    case 6: return "text-bg-warning";
+    case 7: return "text-bg-secondary";
+    default: return "text-bg-secondary";
   }
 }
 
+/** ====== FORMATTERS ====== */
 function formatMoneyNumber(v) {
   const n = Number(v ?? 0);
   return n.toLocaleString("vi-VN");
@@ -677,72 +579,172 @@ function formatTimeOnlyVN(dateObj) {
   return `${hh}:${mi}`;
 }
 
+/** ====== DATA FETCH ====== */
 async function fetchDetail() {
-  const res = await hoaDonApi.detail(props.id);
-  hd.value = res.data;
-  changeStatusCode.value = Number(hd.value?.trangThaiDon ?? 0);
+  try {
+    const res = await hoaDonApi.detail(props.id);
+    hd.value = res.data;
+  } catch (e) {
+    console.error(e);
+    showToast("Không tải được chi tiết hóa đơn!");
+  }
 }
 
 function goBack() {
   router.back();
 }
 
-async function confirmDeliver() {
-  await hoaDonApi.changeStatus(props.id, {
-    trangThaiDon: 3,
-    ghiChu: "Xác nhận đã giao hàng",
-  });
-  await fetchDetail();
-  showToast("Cập nhật trạng thái thành công!");
-}
+/** ====== COMPUTEDS ====== */
+const currentStatus = computed(() => Number(hd.value?.trangThaiDon ?? -1));
 
-/** ====== ĐỔI TRẠNG THÁI: POPUP CONFIRM ====== */
-const confirmStatusModalRef = ref(null);
-let bsConfirmStatusModal = null;
+const orderTypeText = computed(() => {
+  return hd.value?.loaiDon ? "Đơn hàng Online" : "Đơn hàng Tại quầy";
+});
 
-function statusLabel(code) {
-  const found = statusOptions.find((x) => Number(x.code) === Number(code));
-  return found?.label || String(code ?? "-");
-}
+const paidTotal = computed(() => {
+  const list = hd.value?.lichSuThanhToan || [];
+  return list.reduce((s, p) => s + Number(p?.soTien ?? 0), 0);
+});
 
-function openConfirmStatusModal() {
-  if (!hd.value) return;
+/**
+ * Advance logic:
+ * 0 -> 1 -> 2 -> 3 -> 4
+ * 6 -> 7 (refund flow)
+ */
+const nextStatus = computed(() => {
+  const map = { 0: 1, 1: 2, 2: 3, 3: 4, 6: 7 };
+  return map[currentStatus.value] ?? null;
+});
 
-  // nếu không đổi trạng thái thì khỏi hỏi
-  if (Number(changeStatusCode.value) === Number(hd.value?.trangThaiDon)) {
-    showToast("Trạng thái không thay đổi!");
-    return;
+const canAdvanceStatus = computed(() => nextStatus.value !== null);
+
+const advanceBtnText = computed(() => {
+  const ns = nextStatus.value;
+  if (ns === null) return "Đổi trạng thái đơn";
+  return `Đổi trạng thái: ${statusLabel(ns)}`;
+});
+
+const canCancel = computed(() => [0, 1, 2].includes(currentStatus.value));
+const canRequestRefund = computed(() => [3, 4].includes(currentStatus.value));
+/** ===== STEPPER (giống ảnh) ===== */
+const baseStepper = [
+  { code: 1, label: "Đang xử lý" },
+  { code: 2, label: "Đang giao" },
+  { code: 3, label: "Đã giao" },
+  { code: 4, label: "Hoàn thành" },
+];
+
+const actionToStepCode = (hanhDong) => {
+  const m = {
+    DANG_XU_LY: 1,
+    DANG_GIAO: 2,
+    DA_GIAO: 3,
+    HOAN_THANH: 4,
+  };
+  return m[hanhDong];
+};
+const stepCodes = computed(() => baseStepper.map((s) => s.code));
+// step hiện tại để tô stepper (0..4)
+// nếu trạng thái là hủy/hoàn (5/6/7) thì lấy “bước cao nhất” từ lịch sử để hiển thị hợp lý
+const currentStepIndex = computed(() => {
+  const st = Number(hd.value?.trangThaiDon ?? 0);
+
+  if (stepCodes.value.includes(st)) return stepCodes.value.indexOf(st);
+
+  if ([5, 6, 7].includes(st)) {
+    const history = hd.value?.lichSuHoaDon || [];
+    const codes = history
+      .map((h) => actionToStepCode(h.hanhDong))
+      .filter((c) => stepCodes.value.includes(c));
+    if (codes.length) return stepCodes.value.indexOf(Math.max(...codes));
   }
 
-  const el = confirmStatusModalRef.value;
+  return -1; // 0 hoặc không có -> chưa vào stepper
+});
+
+const stepperSteps = computed(() => {
+  const history = hd.value?.lichSuHoaDon || [];
+  const latestTimeByStep = (code) => {
+    const matched = history
+      .filter((h) => actionToStepCode(h.hanhDong) === code && h.thoiGian)
+      .sort((a, b) => new Date(b.thoiGian) - new Date(a.thoiGian));
+    return matched[0]?.thoiGian || null;
+  };
+
+  return baseStepper.map((s) => ({
+    ...s,
+    timeText: latestTimeByStep(s.code)
+      ? formatDateTimeVN(latestTimeByStep(s.code))
+      : "",
+  }));
+});
+
+// progress theo index (0..3) => 0..100
+const progressPercent = computed(() => {
+  const idx = currentStepIndex.value;
+  if (idx < 0) return 0;
+
+  const n = baseStepper.length; // 4 step
+  // chia theo (n-1) đoạn: 0..(n-1) => 0..100
+  return (idx / (n - 1)) * 100;
+});
+
+
+const isDoneStep = (code) => {
+  const idx = currentStepIndex.value;
+  if (idx < 0) return false;
+  return stepCodes.value.indexOf(code) < idx;
+};
+
+const isCurrentStep = (code) => stepCodes.value.indexOf(code) === currentStepIndex.value;
+
+const stepStateClass = (code) => {
+  if (isDoneStep(code)) return "is-done";
+  if (isCurrentStep(code)) return "is-current";
+  return "is-todo";
+};
+
+/** ====== CONFIRM ACTION MODAL (ONE FOR ALL) ====== */
+const confirmActionModalRef = ref(null);
+let bsConfirmActionModal = null;
+
+const confirmTitle = ref("Xác nhận");
+const confirmDesc = ref("");
+const confirmTargetStatus = ref(null);
+const confirmNote = ref("");
+
+function openConfirmActionModal({ title, desc, targetStatus, note }) {
+  if (!hd.value) return;
+
+  confirmTitle.value = title;
+  confirmDesc.value = desc;
+  confirmTargetStatus.value = targetStatus;
+  confirmNote.value = note;
+
+  const el = confirmActionModalRef.value;
   if (!el) return;
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsConfirmStatusModal = Modal.getOrCreateInstance(el, {
-      backdrop: true,
-      keyboard: true,
-    });
-    bsConfirmStatusModal.show();
+    bsConfirmActionModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsConfirmActionModal.show();
   } else {
     el.classList.add("show");
     el.style.display = "block";
     el.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
-
-    // tạo backdrop fallback
     const backdrop = document.createElement("div");
     backdrop.className = "modal-backdrop fade show";
     document.body.appendChild(backdrop);
   }
 }
 
-function closeConfirmStatusModal() {
-  const el = confirmStatusModalRef.value;
+function closeConfirmActionModal() {
+  const el = confirmActionModalRef.value;
   if (!el) return;
 
-  if (bsConfirmStatusModal) {
-    bsConfirmStatusModal.hide();
+  if (bsConfirmActionModal) {
+    bsConfirmActionModal.hide();
   } else {
     el.classList.remove("show");
     el.style.display = "none";
@@ -752,43 +754,70 @@ function closeConfirmStatusModal() {
   }
 }
 
-async function confirmChangeStatus() {
+async function confirmDoAction() {
   try {
-    closeConfirmStatusModal();
+    closeConfirmActionModal();
 
     await hoaDonApi.changeStatus(props.id, {
-      trangThaiDon: changeStatusCode.value,
-      ghiChu: "Cập nhật trạng thái",
+      trangThaiDon: confirmTargetStatus.value,
+      ghiChu: confirmNote.value || "Cập nhật trạng thái",
     });
 
     await fetchDetail();
     showToast("Cập nhật trạng thái thành công!");
   } catch (e) {
     console.error(e);
+    showToast("Cập nhật trạng thái thất bại!");
   }
 }
 
-/** ===== History Modal (open/close chắc chắn) ===== */
+/** Buttons handlers */
+function openConfirmAdvanceModal() {
+  const ns = nextStatus.value;
+  if (ns === null) return;
+
+  openConfirmActionModal({
+    title: "Xác nhận đổi trạng thái",
+    desc: "Hành động này sẽ cập nhật trạng thái và ghi lịch sử hóa đơn.",
+    targetStatus: ns,
+    note: `Chuyển trạng thái: ${statusLabel(currentStatus.value)} -> ${statusLabel(ns)}`,
+  });
+}
+
+function openConfirmCancelModal() {
+  openConfirmActionModal({
+    title: "Xác nhận huỷ đơn",
+    desc: "Đơn sẽ chuyển sang trạng thái 'Đã huỷ'. Hãy chắc chắn trước khi thực hiện.",
+    targetStatus: 5,
+    note: "Huỷ đơn",
+  });
+}
+
+function openConfirmRefundModal() {
+  openConfirmActionModal({
+    title: "Xác nhận hoàn đơn",
+    desc: "Đơn sẽ chuyển sang trạng thái 'Yêu cầu hoàn'. Sau đó bấm 'Đổi trạng thái đơn' để xác nhận 'Đã hoàn'.",
+    targetStatus: 6,
+    note: "Yêu cầu hoàn đơn",
+  });
+}
+
+/** ===== History Modal ===== */
 const historyModalRef = ref(null);
 let bsHistoryModal = null;
 
 function openHistoryModal() {
   const el = historyModalRef.value;
   if (!el) return;
-
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsHistoryModal = Modal.getOrCreateInstance(el, {
-      backdrop: true,
-      keyboard: true,
-    });
+    bsHistoryModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
     bsHistoryModal.show();
   } else {
     el.classList.add("show");
     el.style.display = "block";
     el.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
-
     const backdrop = document.createElement("div");
     backdrop.className = "modal-backdrop fade show";
     document.body.appendChild(backdrop);
@@ -798,10 +827,8 @@ function openHistoryModal() {
 function closeHistoryModal() {
   const el = historyModalRef.value;
   if (!el) return;
-
-  if (bsHistoryModal) {
-    bsHistoryModal.hide();
-  } else {
+  if (bsHistoryModal) bsHistoryModal.hide();
+  else {
     el.classList.remove("show");
     el.style.display = "none";
     el.setAttribute("aria-hidden", "true");
@@ -829,33 +856,32 @@ function mapHistoryToStatusLabel(hanhDong) {
 const printModalRef = ref(null);
 const printAreaRef = ref(null);
 let bsPrintModal = null;
-
 const qrDataUrl = ref("");
 
 async function openPrintModal() {
   if (!hd.value) return;
 
-  qrDataUrl.value = await QRCode.toDataURL(String(hd.value.maHoaDon || ""), {
-    margin: 1,
-    width: 220,
-  });
+  try {
+    qrDataUrl.value = await QRCode.toDataURL(String(hd.value.maHoaDon || ""), {
+      margin: 1,
+      width: 220,
+    });
+  } catch {
+    qrDataUrl.value = "";
+  }
 
   const el = printModalRef.value;
   if (!el) return;
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsPrintModal = Modal.getOrCreateInstance(el, {
-      backdrop: true,
-      keyboard: true,
-    });
+    bsPrintModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
     bsPrintModal.show();
   } else {
     el.classList.add("show");
     el.style.display = "block";
     el.removeAttribute("aria-hidden");
     document.body.classList.add("modal-open");
-
     const backdrop = document.createElement("div");
     backdrop.className = "modal-backdrop fade show";
     document.body.appendChild(backdrop);
@@ -865,10 +891,8 @@ async function openPrintModal() {
 function closePrintModal() {
   const el = printModalRef.value;
   if (!el) return;
-
-  if (bsPrintModal) {
-    bsPrintModal.hide();
-  } else {
+  if (bsPrintModal) bsPrintModal.hide();
+  else {
     el.classList.remove("show");
     el.style.display = "none";
     el.setAttribute("aria-hidden", "true");
@@ -917,8 +941,8 @@ function printInvoice() {
 
   w.document.close();
   w.focus();
-  w.print(); // Ctrl+P -> Save as PDF
-  w.close();
+  w.onafterprint = () => w.close();
+  w.print();
 
   showToast("Đã mở cửa sổ in / lưu PDF!");
 }
@@ -932,33 +956,27 @@ function showToast(msg) {
   toastMsg.value = msg;
   const el = toastRef.value;
   if (!el) return;
-
   const Toast = window.bootstrap?.Toast;
   if (Toast) {
     bsToast = Toast.getOrCreateInstance(el, { delay: 2000 });
     bsToast.show();
   }
 }
-
 function hideToast() {
-  try {
-    bsToast?.hide?.();
-  } catch {}
+  try { bsToast?.hide?.(); } catch {}
 }
 
+/** Mount */
 onMounted(async () => {
   await fetchDetail();
 
   if (route.query.print === "1") {
-    await nextTick();        // đảm bảo modal ref đã sẵn sàng
-    await openPrintModal();  // mở popup xuất hóa đơn
-
-    // Xóa query để tránh reload lại tự mở
+    await nextTick();
+    await openPrintModal();
     const { print, ...rest } = route.query;
     router.replace({ query: rest });
   }
 });
-
 </script>
 
 <style scoped>
@@ -966,37 +984,93 @@ onMounted(async () => {
   border-radius: 14px;
 }
 
-.step-item {
-  position: relative;
+/* Info blocks */
+.info-box {
+  border: 1px solid #eef1f5;
+  border-radius: 14px;
+  padding: 12px 12px;
+  background: #fbfcfe;
+}
+.info-title {
+  font-weight: 700;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 240px;
 }
-.step-dot {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #cfd4da;
+.info-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: #cfd4da;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px dashed #e8edf3;
 }
-.step-dot.active {
-  border-color: #0d6efd;
-  background: #0d6efd;
+.info-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
 }
-.step-line {
-  position: absolute;
-  left: 36px;
-  right: -20px;
-  top: 14px;
-  height: 2px;
-  background: #e9ecef;
-  z-index: -1;
+.info-row span {
+  color: #6c757d;
+  font-size: 12px;
+  min-width: 90px;
 }
+
+/* Summary line */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.summary-item {
+  border: 1px solid #eef1f5;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+}
+@media (max-width: 992px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tables */
+.table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.table-fixed {
+  table-layout: fixed;
+  width: 100%;
+}
+.thead-dark-custom th {
+  background-color: #1f2a44 !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.table td,
+.table th {
+  border-color: #e9ecef;
+  vertical-align: middle;
+}
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Payment columns (even) */
+.col-money { width: 16%; }
+.col-time { width: 18%; }
+.col-code { width: 20%; }
+.col-method { width: 20%; }
+.col-note { width: 26%; }
+
+/* Items columns (even) */
+.col-stt { width: 6%; }
+.col-img { width: 12%; }
+.col-product { width: 52%; }
+.col-qty { width: 12%; }
+.col-total { width: 18%; }
 
 .img-box {
   width: 84px;
@@ -1022,81 +1096,164 @@ onMounted(async () => {
   font-family: Arial, sans-serif;
   font-size: 12px;
 }
-.receipt .center {
-  text-align: center;
-}
-.receipt .right {
-  text-align: right;
-}
-.receipt .bold {
-  font-weight: 700;
-}
-.receipt .big {
-  font-size: 16px;
-}
-.receipt .small {
-  font-size: 11px;
-}
-.receipt .muted {
-  color: #555;
-}
-.receipt .hr {
-  border-top: 1px dashed #000;
-  margin: 6px 0;
-}
-.receipt .row2 {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-.receipt .mt2 {
-  margin-top: 2px;
-}
-.receipt .mt6 {
-  margin-top: 6px;
-}
-.receipt .mt8 {
-  margin-top: 8px;
-}
-.receipt .mt10 {
-  margin-top: 10px;
-}
-.receipt .items-head,
-.receipt .item {
-  display: flex;
-  gap: 6px;
-}
-.receipt .w-name {
-  flex: 1;
-}
-.receipt .w-qty {
-  width: 10mm;
-}
-.receipt .w-price {
-  width: 22mm;
-}
-.receipt .qr {
-  width: 28mm;
-  height: 28mm;
-}
-.thead-dark-custom th {
-  background-color: #1f2a44 !important;
-  color: #fff !important;
-}
-.table-wrap{
-  border: 1px solid #dee2e6;
+.receipt .center { text-align: center; }
+.receipt .right { text-align: right; }
+.receipt .bold { font-weight: 700; }
+.receipt .big { font-size: 16px; }
+.receipt .small { font-size: 11px; }
+.receipt .muted { color: #555; }
+.receipt .hr { border-top: 1px dashed #000; margin: 6px 0; }
+.receipt .row2 { display: flex; justify-content: space-between; gap: 10px; }
+.receipt .mt2 { margin-top: 2px; }
+.receipt .mt6 { margin-top: 6px; }
+.receipt .mt8 { margin-top: 8px; }
+.receipt .mt10 { margin-top: 10px; }
+.receipt .items-head, .receipt .item { display: flex; gap: 6px; }
+.receipt .w-name { flex: 1; }
+.receipt .w-qty { width: 10mm; }
+.receipt .w-price { width: 22mm; }
+.receipt .qr { width: 28mm; height: 28mm; }
+/* ===== Stepper: chữ ở trên thanh progress xanh ===== */
+.order-stepper {
+  background: #fff;
+  border: 1px solid #e6e9ef;
   border-radius: 12px;
-  overflow: hidden; /* để bo góc ăn cả thead */
+  padding: 12px 14px;
+  box-shadow: 0 8px 22px rgba(31, 42, 68, 0.06);
 }
 
-/* header màu #1f2a44 */
-.thead-dark-custom th{
-  background-color: #1f2a44 !important;
-  color: #fff !important;
-  border-color: rgba(255,255,255,0.15) !important;
+/* 4 step cố định: 1-2-3-4 */
+.order-stepper__track {
+  --progress: 0;        /* 0..100 (JS set) */
+  --label-h: 44px;      /* chiều cao vùng chữ */
+  --gap: 8px;           /* khoảng cách chữ -> circle */
+  --dot: 30px;
+  --dot-half: 15px;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  padding: 6px 8px 6px;
 }
-/* (tuỳ chọn) đường kẻ trong bảng nhìn gọn */
-.table td, .table th{
-  border-color: #e9ecef;
+
+/* line nền: chạy từ tâm step 1 tới tâm step 4 */
+.order-stepper__track::before {
+  content: "";
+  position: absolute;
+  left: 12.5%;
+  right: 12.5%;
+  top: calc(var(--label-h) + var(--gap) + var(--dot-half));
+  height: 4px;
+  border-radius: 999px;
+  background: #e9ecef;
+  z-index: 0;
 }
-</style>
+
+/* line progress xanh: theo từng trạng thái */
+.order-stepper__track::after {
+  content: "";
+  position: absolute;
+  left: 12.5%;
+  top: calc(var(--label-h) + var(--gap) + var(--dot-half));
+  height: 4px;
+  width: calc(75% * var(--progress) / 100);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0d6efd, #20c997);
+  box-shadow: 0 10px 18px rgba(13, 110, 253, 0.15);
+  z-index: 0;
+}
+
+.os-step {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* chữ nằm trên line */
+.os-label {
+  min-height: var(--label-h);
+  text-align: center;
+  padding: 0 6px;
+}
+
+.os-text {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1f2a44;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.os-time {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #8a93a1;
+  line-height: 1.1;
+  min-height: 14px;
+}
+
+/* circle nằm đúng trên thanh progress */
+.os-circle {
+  margin-top: var(--gap);
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 999px;
+  border: 2px solid #cfd4da;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+  flex: 0 0 auto;
+}
+
+.os-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+/* states */
+.os-step.is-done .os-circle {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+.os-step.is-current .os-circle {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+  box-shadow: 0 0 0 6px rgba(13, 110, 253, 0.14), 0 14px 28px rgba(13, 110, 253, 0.22);
+}
+.os-step.is-current .os-dot { background: #fff; }
+
+.os-step.is-todo .os-text {
+  color: #6c757d;
+  font-weight: 600;
+}
+.os-step.is-todo .os-circle {
+  background: #f7f8fa;
+}
+
+/* responsive: nhỏ thì wrap và tắt line cho gọn */
+@media (max-width: 992px) {
+  .order-stepper__track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 0;
+  }
+  .order-stepper__track::before,
+  .order-stepper__track::after {
+    display: none;
+  }
+  .os-text { white-space: normal; }
+}
+
+
+</style>  
