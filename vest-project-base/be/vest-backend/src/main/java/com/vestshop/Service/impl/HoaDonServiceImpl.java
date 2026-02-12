@@ -4,6 +4,7 @@ import com.vestshop.Entity.*;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.HoaDonService;
 import com.vestshop.common.TrangThaiDonHang;
+import com.vestshop.dto.request.BanHangRequest;
 import com.vestshop.dto.request.HoaDonChangeStatusRequest;
 import com.vestshop.dto.request.HoaDonReturnRequest;
 import com.vestshop.dto.response.*;
@@ -30,7 +31,137 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final LichSuThanhToanRepository lichSuThanhToanRepository;
     private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
+    private final KhachHangRepository khachHangRepository;
+    private final PhieuGiamGiaRepository phieuGiamGiaRepository;
 
+    @Override
+    @Transactional
+    public HoaDonDetailResponse createPos(BanHangRequest req) {
+
+        // 1) Load SPCT + check tồn kho
+        Map<Long, Integer> buyMap = new HashMap<>();
+        for (var it : req.getItems()) {
+            buyMap.merge(it.getIdSanPhamChiTiet(), it.getSoLuong(), Integer::sum);
+        }
+
+        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(buyMap.keySet());
+        if (spcts.size() != buyMap.size()) {
+            throw new IllegalArgumentException("Có sản phẩm chi tiết không tồn tại");
+        }
+
+        for (SanPhamChiTiet spct : spcts) {
+            int need = buyMap.get(spct.getId());
+            int stock = spct.getSoLuongTon() == null ? 0 : spct.getSoLuongTon();
+            if (need > stock) {
+                throw new IllegalArgumentException("Vượt tồn kho: " + spct.getMaSanPhamChiTiet());
+            }
+        }
+
+        // 2) Tính tiền gốc
+        BigDecimal tongTien = BigDecimal.ZERO;
+        for (SanPhamChiTiet spct : spcts) {
+            int sl = buyMap.get(spct.getId());
+            tongTien = tongTien.add(spct.getDonGia().multiply(BigDecimal.valueOf(sl)));
+        }
+
+        // 3) Tính giảm giá (voucher hoặc % thủ công)
+        BigDecimal tongTienGiam = BigDecimal.ZERO;
+        PhieuGiamGia pgg = null;
+
+        if (req.getIdPhieuGiamGia() != null) {
+            pgg = phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
+                    .orElseThrow(() -> new IllegalArgumentException("Phiếu giảm giá không tồn tại"));
+
+            // Check cơ bản
+            if (Boolean.FALSE.equals(pgg.getTrangThai())) throw new IllegalArgumentException("Voucher không hoạt động");
+            if (pgg.getSoLuong() != null && pgg.getSoLuong() <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
+            if (pgg.getDonHangToiThieu() != null && tongTien.compareTo(pgg.getDonHangToiThieu()) < 0)
+                throw new IllegalArgumentException("Chưa đạt đơn tối thiểu để dùng voucher");
+
+            // Tính giảm theo cấu trúc entity của bạn
+            // loaiGiam: true=%, false=tiền mặt (suy luận theo field)
+            if (Boolean.TRUE.equals(pgg.getLoaiGiam())) {
+                BigDecimal pt = pgg.getGiaTriPhanTram() == null ? BigDecimal.ZERO : pgg.getGiaTriPhanTram();
+                tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
+                if (pgg.getGiaTriGiamToiDa() != null && tongTienGiam.compareTo(pgg.getGiaTriGiamToiDa()) > 0) {
+                    tongTienGiam = pgg.getGiaTriGiamToiDa();
+                }
+            } else {
+                tongTienGiam = pgg.getGiaTriTienMat() == null ? BigDecimal.ZERO : pgg.getGiaTriTienMat();
+            }
+
+            if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
+
+            // trừ lượt voucher (nếu bạn muốn quản lý số lượng)
+            pgg.setSoLuong(pgg.getSoLuong() - 1);
+            phieuGiamGiaRepository.save(pgg);
+
+        } else {
+            int percent = req.getGiamThuCongPercent() == null ? 0 : req.getGiamThuCongPercent();
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
+            tongTienGiam = tongTien.multiply(BigDecimal.valueOf(percent)).divide(BigDecimal.valueOf(100));
+        }
+
+        BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
+        if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
+
+        // 4) Tạo HoaDon
+        HoaDon hd = new HoaDon();
+        hd.setMaHoaDon(req.getMaHoaDon() == null ? ("HD" + System.currentTimeMillis()) : req.getMaHoaDon());
+        hd.setLoaiDon(req.getLoaiDon() == null ? false : req.getLoaiDon());
+        hd.setPhiVanChuyen(req.getPhiVanChuyen()); // POS: 0
+
+        hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode()); // bán tại quầy -> hoàn thành luôn
+        hd.setTongTien(tongTien);
+        hd.setTongTienGiam(tongTienGiam);
+        hd.setTongTienSauGiam(tongTienSauGiam);
+
+        hd.setTenKhachHang(req.getTenKhachHang());
+        hd.setSoDienThoai(req.getSoDienThoai());
+        hd.setEmailKhachHang(req.getEmailKhachHang());
+        hd.setDiaChiKhachHang(req.getDiaChiKhachHang());
+        hd.setGhiChu(req.getGhiChu());
+
+        hd.setNgayTao(LocalDateTime.now());
+        hd.setNguoiTao(currentUser());
+        hd.setTrangThai(true);
+
+        if (req.getIdKhachHang() != null) {
+            hd.setKhachHang(khachHangRepository.findById(req.getIdKhachHang()).orElse(null));
+        }
+        if (pgg != null) hd.setPhieuGiamGia(pgg);
+
+        hd = hoaDonRepository.save(hd);
+
+        // 5) Tạo chi tiết + trừ kho
+        for (SanPhamChiTiet spct : spcts) {
+            int sl = buyMap.get(spct.getId());
+
+            spct.setSoLuongTon(spct.getSoLuongTon() - sl);
+            sanPhamChiTietRepository.save(spct);
+
+            HoaDonChiTiet ct = new HoaDonChiTiet();
+            ct.setHoaDon(hd);
+            ct.setSanPhamChiTiet(spct);
+            ct.setSoLuong(sl);
+            ct.setNgayTao(LocalDateTime.now());
+            ct.setNguoiTao(currentUser());
+            ct.setTrangThai(true);
+            hoaDonChiTietRepository.save(ct);
+        }
+
+        // 6) Lịch sử hoá đơn (nên có)
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setHoaDon(hd);
+        ls.setHanhDong("Tạo đơn tại quầy");
+        ls.setGhiChu("POS checkout");
+        ls.setThoiGian(LocalDateTime.now());
+        ls.setTrangThai(true);
+        lichSuHoaDonRepository.save(ls);
+
+        return buildDetail(hd);
+    }
     // TODO: nếu bạn có Security/JWT thì thay bằng user hiện tại
     private String currentUser() {
         return "system";

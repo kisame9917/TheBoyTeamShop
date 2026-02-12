@@ -1,9 +1,11 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Service.HoaDonService;
+import com.vestshop.dto.request.BanHangRequest;
 import com.vestshop.dto.request.HoaDonChangeStatusRequest;
 import com.vestshop.dto.request.HoaDonReturnRequest;
 import com.vestshop.dto.response.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -55,6 +57,11 @@ public class HoaDonController {
                         fromDT, toDT, minTotal, maxTotal, hasVoucher, idNhanVien, active, pageable
                 )
         );
+    }
+
+    @PostMapping("/pos")
+    public ResponseEntity<HoaDonDetailResponse> createPos(@Valid @RequestBody BanHangRequest req) {
+        return ResponseEntity.ok(hoaDonService.createPos(req));
     }
 
     @GetMapping("/{id}")
