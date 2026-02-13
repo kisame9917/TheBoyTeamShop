@@ -31,6 +31,7 @@ import VoucherUpdate from "../pages/vouchers/VoucherUpdate.vue";
 import ShiftTemplateList from "@/pages/shifts/ShiftTemplateList.vue";
 import ShiftScheduler from "@/pages/shifts/ShiftScheduler.vue";
 import MySchedule from "@/pages/shifts/MySchedule.vue";
+import ShiftHandover from "@/pages/shifts/ShiftHandover.vue";
 
 import Statistic from "@/pages/statistic/Statistic.vue";
 import PaymentsList from "../pages/payments/PaymentsList.vue";
@@ -83,7 +84,8 @@ const routes = [
     children: [
       // ✅ STAFF + ADMIN
       { path: "dashboard", name: "dashboard", component: Dashboard, meta: { roles: ["ADMIN", "STAFF"] } },
-      { path: "sales", name: "sales", component: () => import("../pages/sales/SalesPage.vue"), meta: { roles: ["ADMIN", "STAFF"] } },
+      // ⚠️ Windows/Linux phân biệt hoa thường -> folder là pages/Sales
+      { path: "sales", name: "sales", component: () => import("../pages/Sales/SalesPage.vue"), meta: { roles: ["ADMIN", "STAFF"] } },
       { path: "orders", name: "orders", component: OrdersList, meta: { roles: ["ADMIN", "STAFF"] } },
       { path: "orders/:id", name: "order-detail", component: OrderDetail, props: true, meta: { roles: ["ADMIN", "STAFF"] } },
 
@@ -103,6 +105,7 @@ const routes = [
       { path: "shift-templates", name: "shift-templates", component: ShiftTemplateList, meta: { roles: ["ADMIN"] } },
       { path: "shift-scheduler", name: "shift-scheduler", component: ShiftScheduler, meta: { roles: ["ADMIN"] } },
       { path: "my-schedule", name: "my-schedule", component: MySchedule, meta: { roles: ["ADMIN", "STAFF"] } },
+      { path: "shift-handover", name: "shift-handover", component: ShiftHandover, meta: { roles: ["ADMIN", "STAFF"] } },
 
       { path: "variants", name: "variants-list", component: () => import("../pages/products/VariantList.vue"), meta: { roles: ["ADMIN"] } },
       {

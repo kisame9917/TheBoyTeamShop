@@ -41,7 +41,10 @@ public class SecurityConfig {
                         // STAFF + ADMIN: hóa đơn, khách hàng
                         .requestMatchers("/api/hoa-don/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
-                        .requestMatchers("/api/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/ca-lam-viec/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
+                        // STAFF + ADMIN: giao ca & kế toán
+                        .requestMatchers("/api/giao-ca/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/giao-ca/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/forgot-password-otp",

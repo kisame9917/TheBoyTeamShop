@@ -39,7 +39,7 @@
           <i class="bi bi-x-lg me-1"></i> Hủy
         </button>
 
-        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goCreate" title="Thêm mới">
+        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goCreate" title="Thêm mới" :disabled="isViewLocked">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>
@@ -158,6 +158,7 @@
                 <th style="width: 80px">Ảnh</th>
                 <th style="width: 110px">Mã KH</th>
                 <th style="width: 220px">Họ tên</th>
+                <th style="width: 140px">Ngày sinh</th>
                 <th style="width: 260px">Email</th>
                 <th style="width: 140px">SĐT</th>
                 <th class="col-address">Địa chỉ</th>
@@ -168,7 +169,7 @@
 
               <tbody class="table-body-normal">
               <tr v-if="paged.length === 0">
-                <td :colspan="exportMode ? 10 : 9" class="text-center text-muted py-4">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 11 : 10" class="text-center text-muted py-4">Không có dữ liệu</td>
               </tr>
 
               <tr v-for="(c, idx) in paged" :key="c.id">
@@ -206,6 +207,8 @@
                 <td class="fw-semibold">{{ c.maKhachHang || "-" }}</td>
                 <td>{{ c.tenKhachHang || "-" }}</td>
 
+                <td>{{ formatNgaySinh(c.ngaySinh) }}</td>
+
                 <td class="text-truncate" style="max-width: 260px" :title="c.email || ''">
                   {{ c.email || "-" }}
                 </td>
@@ -229,11 +232,12 @@
                         type="button"
                         title="Đổi địa chỉ"
                         @click="openAddressModal(c)"
+                        :disabled="isViewLocked"
                     >
                       <i class="bi bi-geo-alt"></i>
                     </button>
 
-                    <button class="btn btn-outline-warning btn-sm" type="button" title="Sửa" @click="goEdit(c.id)">
+                    <button class="btn btn-outline-warning btn-sm" type="button" title="Sửa" @click="goEdit(c.id)" :disabled="isViewLocked">
                       <i class="bi bi-pencil-square"></i>
                     </button>
 
@@ -244,6 +248,7 @@
                           role="switch"
                           :checked="asBool(c.trangThai)"
                           @change="onSwitchAttempt($event, c)"
+                          :disabled="isViewLocked"
                       />
                     </div>
                   </div>
@@ -352,15 +357,16 @@
                   name="addr_pick"
                   :value="a.id"
                   v-model="addrModal.selectedId"
+                  :disabled="isViewLocked || addrModal.saving"
               />
               <div class="addr-radio-content">
                 <div class="fw-semibold">
-                  {{ a.tenNguoiNhan || "Người nhận" }}
-                  <span class="text-muted fw-normal">• {{ a.soDienThoai || "-" }}</span>
-                  <span v-if="asBool(a.laMacDinh)" class="badge text-bg-primary ms-2">Mặc định</span>
+<!--                  {{ a.tenNguoiNhan || "Người nhận" }}-->
+<!--                  <span class="text-muted fw-normal">• {{ a.soDienThoai || "-" }}</span>-->
                 </div>
-                <div class="text-muted small">
+                <div class="text-muted ">
                   {{ formatDiaChiText(a) }}
+                  <span v-if="asBool(a.laMacDinh)" class="badge text-bg-primary ms-2">Mặc định</span>
                 </div>
               </div>
             </label>
@@ -369,7 +375,7 @@
 
         <div class="modal-actions" style="margin-top: 14px">
           <button class="btn btn-outline" type="button" @click="closeAddressModal" :disabled="addrModal.saving">Hủy</button>
-          <button class="btn btn-confirm" type="button" @click="saveDefaultAddress" :disabled="addrModal.saving || !addrModal.selectedId">
+          <button class="btn btn-confirm" type="button" @click="saveDefaultAddress" :disabled="isViewLocked || addrModal.saving || !addrModal.selectedId">
             {{ addrModal.saving ? "Đang lưu..." : "Lưu" }}
           </button>
         </div>
@@ -404,10 +410,22 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import http from "../../services/http";
 import { useToast } from "@/composables/useToast";
+import { useAuthStore } from "@/stores/auth";
+import { useShiftStore } from "@/stores/shift";
 import * as XLSX from "xlsx";
 
 const router = useRouter();
 const toast = useToast();
+
+const auth = useAuthStore();
+const shift = useShiftStore();
+const isViewLocked = computed(() => auth.isStaff && shift.isLocked);
+
+function blockIfViewMode() {
+  if (!isViewLocked.value) return false;
+  toast.info("Bạn đang ở chế độ xem. Không thể thao tác khách hàng.");
+  return true;
+}
 
 const loading = ref(false);
 const list = ref([]);
@@ -476,6 +494,7 @@ function normalizeCustomer(x) {
     id: x.id,
     maKhachHang: x.maKhachHang ?? x.ma_khach_hang ?? "",
     tenKhachHang: x.tenKhachHang ?? x.ten_khach_hang ?? "",
+    ngaySinh: x.ngaySinh ?? x.ngay_sinh ?? "",
     gioiTinh: x.gioiTinh ?? x.gioi_tinh ?? null,
     email: x.email ?? "",
     soDienThoai: x.soDienThoai ?? x.so_dien_thoai ?? "",
@@ -485,6 +504,20 @@ function normalizeCustomer(x) {
     diaChi: x.diaChi ?? "",
     diaChiMacDinh: x.diaChiMacDinh ?? null,
   };
+}
+
+function formatNgaySinh(v) {
+  const raw = String(v || "").trim();
+  if (!raw) return "-";
+
+  // BE thường trả LocalDate dạng "YYYY-MM-DD". Nếu có time thì cắt phần date.
+  const ymd = raw.includes("T") ? raw.split("T")[0] : raw;
+  const parts = ymd.split("-");
+  if (parts.length !== 3) return raw;
+  const [y, m, d] = parts;
+  const dd = String(d).padStart(2, "0");
+  const mm = String(m).padStart(2, "0");
+  return `${dd}/${mm}/${y}`;
 }
 
 function safeStr(v) {
@@ -677,9 +710,11 @@ function jumpPage() {
 
 /** ===== Routing ===== */
 function goCreate() {
+  if (blockIfViewMode()) return;
   router.push({ name: "customer-new" });
 }
 function goEdit(id) {
+  if (blockIfViewMode()) return;
   router.push({ name: "customer-edit", params: { id } });
 }
 
@@ -712,6 +747,10 @@ function closeConfirm(force = false) {
 }
 
 function onSwitchAttempt(e, customer) {
+  if (blockIfViewMode()) {
+    if (e?.target) e.target.checked = asBool(customer?.trangThai);
+    return;
+  }
   if (e?.target) e.target.checked = asBool(customer.trangThai);
   const current = asBool(customer.trangThai);
   const next = !current;
@@ -767,6 +806,7 @@ function formatDiaChiText(a) {
 }
 
 async function openAddressModal(customer) {
+  if (blockIfViewMode()) return;
   addrModal.open = true;
   addrModal.customer = customer;
   addrModal.list = [];
@@ -800,6 +840,7 @@ function closeAddressModal() {
 }
 
 async function saveDefaultAddress() {
+  if (blockIfViewMode()) return;
   if (!addrModal.customer || !addrModal.selectedId) return;
 
   addrModal.saving = true;
@@ -864,6 +905,7 @@ function doExportExcel() {
       STT: i + 1,
       "Mã KH": c.maKhachHang || "",
       "Họ tên": c.tenKhachHang || "",
+      "Ngày sinh": formatNgaySinh(c.ngaySinh) === "-" ? "" : formatNgaySinh(c.ngaySinh),
       "Giới tính": c.gioiTinh === true ? "Nam" : c.gioiTinh === false ? "Nữ" : "",
       Email: c.email || "",
       "SĐT": c.soDienThoai || "",

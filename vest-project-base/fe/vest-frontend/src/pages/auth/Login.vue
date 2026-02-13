@@ -66,12 +66,12 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-
+import { useShiftStore } from "@/stores/shift";
 import logo from "../../images/logo.jpg";
 
 const router = useRouter();
 const auth = useAuthStore();
-
+const shift = useShiftStore();
 const taiKhoan = ref("");
 const matKhau = ref("");
 const loading = ref(false);
@@ -89,7 +89,7 @@ async function onSubmit() {
       taiKhoan: taiKhoan.value,
       matKhau: matKhau.value,
     });
-
+    await shift.bootstrap(true);
     await router.replace(data.role === "ADMIN" ? { name: "dashboard" } : { name: "dashboard" });
   } catch (e) {
     error.value = e?.response?.data?.message || e?.message || "Đăng nhập thất bại";

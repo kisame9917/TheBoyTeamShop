@@ -8,13 +8,25 @@
 
     <!-- RIGHT -->
     <div class="right">
+      <!-- STAFF chế độ xem (tách khỏi icon chuông) -->
+      <!-- ✅ Nhấn để mở lại modal vào ca (tránh trường hợp user lỡ bấm 'Chế độ xem' rồi không biết mở lại) -->
+      <button
+          v-if="showViewBadge"
+          class="view-mode-pill"
+          type="button"
+          title="Nhấn để mở lại màn hình vào ca"
+          @click="openGate"
+      >
+        Chế độ xem
+      </button>
+
       <!-- Bell / Notifications -->
       <div class="dd-wrap">
         <button class="icon-btn" type="button" @click.stop="toggleNoti" aria-label="Thông báo">
           <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
             <path
-              d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"
-              fill="currentColor"
+                d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"
+                fill="currentColor"
             />
           </svg>
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
@@ -34,11 +46,11 @@
 
           <ul v-else class="list">
             <li
-              v-for="n in notificationsLocal"
-              :key="n.id"
-              class="item"
-              :class="{ unread: !n.read }"
-              @click="openNoti(n)"
+                v-for="n in notificationsLocal"
+                :key="n.id"
+                class="item"
+                :class="{ unread: !n.read }"
+                @click="openNoti(n)"
             >
               <div class="item-main">
                 <div class="item-title">{{ n.title }}</div>
@@ -46,11 +58,11 @@
               </div>
 
               <button
-                v-if="!n.read"
-                class="mini"
-                type="button"
-                title="Đánh dấu đã đọc"
-                @click.stop="markRead(n.id)"
+                  v-if="!n.read"
+                  class="mini"
+                  type="button"
+                  title="Đánh dấu đã đọc"
+                  @click.stop="markRead(n.id)"
               >
                 ✓
               </button>
@@ -101,6 +113,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useShiftStore } from '@/stores/shift'
 
 const props = defineProps({
   title: { type: String, default: '' },
@@ -117,6 +130,19 @@ const props = defineProps({
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const shift = useShiftStore()
+
+const showViewBadge = computed(() => auth.isStaff && shift.isLocked)
+
+function openGate() {
+  // mở gate ngay (modal hiện tức thì) và đồng thời refresh trạng thái từ BE
+  shift.bootstrap(true)
+}
+
+// function openGate() {
+//   // mở gate ngay + sync lại state từ BE
+//   shift.bootstrap(true)
+// }
 
 // ===== Role helper =====
 const role = computed(() => {
@@ -149,9 +175,9 @@ watch(displayNameByRole, (name) => {
 // copy notifications để có thể mark read mà không mutate props trực tiếp
 const notificationsLocal = ref([...props.notifications])
 watch(
-  () => props.notifications,
-  (val) => (notificationsLocal.value = [...(val || [])]),
-  { deep: true }
+    () => props.notifications,
+    (val) => (notificationsLocal.value = [...(val || [])]),
+    { deep: true }
 )
 
 const showNoti = ref(false)
@@ -259,6 +285,21 @@ function logout() {
 .subtitle{ margin-top:4px; font-size: 12.5px; color:#6b7280; }
 
 .right{ display:flex; align-items:center; gap: 10px; }
+
+.view-mode-pill{
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #0ea5e9;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display:flex;
+  align-items:center;
+  border: none;
+  cursor: pointer;
+}
+.view-mode-pill:hover{ filter: brightness(0.95); }
 .dd-wrap{ position: relative; }
 
 .icon-btn{
@@ -287,6 +328,23 @@ function logout() {
   background:#ef4444;
   color:#fff;
   font-size: 11px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border: 2px solid #fff;
+}
+
+.mode-badge{
+  position:absolute;
+  top: -6px;
+  left: -6px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background:#0ea5e9;
+  color:#fff;
+  font-size: 11px;
+  font-weight: 800;
   display:flex;
   align-items:center;
   justify-content:center;

@@ -15,6 +15,9 @@ public class LichLamViecResponse {
     private String tenNhanVien;
     private String maNhanVien;
 
+    // Avatar (để hiển thị trong lịch biểu)
+    private String anhDaiDien;
+
     // Thông tin ca
     private Long idCaLamViec;
     private String tenCa;

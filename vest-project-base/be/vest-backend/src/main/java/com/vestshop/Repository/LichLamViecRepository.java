@@ -21,4 +21,20 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Long> 
 
     // Lấy danh sách lịch của 1 nhân viên trong 1 ngày cụ thể (Dùng để check trùng giờ)
     List<LichLamViec> findByNhanVienIdAndNgayLamViec(Long idNv, LocalDate ngayLamViec);
+
+    // ================== BỔ SUNG PHỤC VỤ "LỊCH BIỂU" ==================
+    // Đếm số nhân viên đã được xếp vào 1 ca trong 1 ngày (để giới hạn tối đa 3)
+    long countByCaLamViecIdAndNgayLamViec(Long idCaLamViec, LocalDate ngayLamViec);
+
+    // Check trùng đúng "nhân viên + ca + ngày"
+    boolean existsByNhanVienIdAndCaLamViecIdAndNgayLamViec(Long idNhanVien, Long idCaLamViec, LocalDate ngayLamViec);
+
+    // Update: loại trừ chính bản ghi đang sửa
+    long countByCaLamViecIdAndNgayLamViecAndIdNot(Long idCaLamViec, LocalDate ngayLamViec, Long id);
+
+    boolean existsByNhanVienIdAndCaLamViecIdAndNgayLamViecAndIdNot(Long idNhanVien, Long idCaLamViec, LocalDate ngayLamViec, Long id);
+
+    // Check: 1 ca / 1 ngày chỉ có 1 nhân viên (trangThai=1)
+    List<LichLamViec> findByCaLamViec_IdAndNgayLamViecAndTrangThai(Long idCaLamViec, LocalDate ngayLamViec, Integer trangThai);
+
 }

@@ -10,8 +10,26 @@ const http = axios.create({
 
 http.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token"); // nếu bạn có login thì gắn
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    // ✅ đồng bộ với auth store (vest_token / vest_role)
+    const token = localStorage.getItem("vest_token") || localStorage.getItem("token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // ✅ backend dùng RoleId header (theo BE đã fix)
+      const roleRaw = (localStorage.getItem("vest_role") || localStorage.getItem("role") || "").toUpperCase();
+
+// map chuỗi role -> roleId mà BE đang check
+      const roleId =
+          roleRaw === "ADMIN" ? "1" :
+              roleRaw === "STAFF" ? "2" :
+                  roleRaw; // fallback nếu BE trả sẵn số
+
+      if (roleId) {
+          config.headers = config.headers || {};
+          config.headers["X-ROLE-ID"] = roleId;
+      }
     return config;
   },
   (err) => Promise.reject(err)

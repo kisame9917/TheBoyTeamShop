@@ -18,8 +18,10 @@ function normalizeToken(t) {
 
 function normalizeRole(r) {
   if (!r) return ''
-  const s = String(r).trim().toUpperCase()
+  let s = String(r).trim().toUpperCase()
   if (s === 'NULL' || s === 'UNDEFINED') return ''
+  // ✅ strip prefix ROLE_ để FE nhận đúng STAFF/ADMIN
+  if (s.startsWith('ROLE_')) s = s.slice(5)
   return s
 }
 

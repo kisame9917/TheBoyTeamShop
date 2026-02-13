@@ -29,6 +29,9 @@ public class PhuongThucThanhToan {
     @Column(name="nha_cung_cap", length=255)
     private String nhaCungCap;
 
+    @Column(name="hinh_thuc")
+    private Integer hinhThuc;
+
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
 

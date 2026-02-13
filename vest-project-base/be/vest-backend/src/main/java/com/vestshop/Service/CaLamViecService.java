@@ -70,6 +70,7 @@ public class CaLamViecService {
         CaLamViec caMoi = caRepo.findById(req.getIdCaLamViec())
                 .orElseThrow(() -> new RuntimeException("Ca làm việc không tồn tại"));
 
+
         // Validate trùng lịch trong ngày
         List<LichLamViec> lichDaCo = lichRepo.findByNhanVienIdAndNgayLamViec(nv.getId(), req.getNgayLamViec());
 
@@ -134,6 +135,18 @@ public class CaLamViecService {
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
         CaLamViec caMoi = caRepo.findById(req.getIdCaLamViec())
                 .orElseThrow(() -> new RuntimeException("Ca làm việc không tồn tại"));
+
+        // ✅ Rule mới: 1 ca / 1 ngày chỉ được 1 nhân viên (loại trừ lịch đang sửa)
+        List<LichLamViec> lichTrungCa2 = lichRepo.findByCaLamViec_IdAndNgayLamViecAndTrangThai(
+                caMoi.getId(), req.getNgayLamViec(), 1
+        );
+        for (LichLamViec x : lichTrungCa2) {
+            if (!x.getId().equals(id)) {
+                throw new RuntimeException("Ca " + caMoi.getTenCa() + " ngày " + req.getNgayLamViec() +
+                        " đã được xếp cho nhân viên: " + x.getNhanVien().getTenNhanVien());
+            }
+        }
+
 
         // Validate trùng lịch (Loại trừ chính lịch đang sửa)
         List<LichLamViec> lichDaCo = lichRepo.findByNhanVienIdAndNgayLamViec(nv.getId(), req.getNgayLamViec());

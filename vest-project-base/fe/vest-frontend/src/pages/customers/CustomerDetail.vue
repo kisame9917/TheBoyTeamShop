@@ -12,11 +12,11 @@
           <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
         </button>
 
-        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goEdit">
+        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goEdit" :disabled="isViewLocked" :title="isViewLocked ? 'Chế độ xem: không thể chỉnh sửa' : 'Sửa'">
           <i class="bi bi-pencil-square me-1"></i> Sửa
         </button>
 
-        <button class="btn btn-primary btn-sm text-white" type="button" @click="openConfirmToggle">
+        <button class="btn btn-primary btn-sm text-white" type="button" @click="openConfirmToggle" :disabled="isViewLocked" :title="isViewLocked ? 'Chế độ xem: không thể đổi trạng thái' : 'Đổi trạng thái'">
           <i class="bi bi-toggle-on me-1"></i> Đổi trạng thái
         </button>
       </div>
@@ -129,7 +129,7 @@
 
           <div class="modal-footer">
             <button class="btn btn-light" type="button" @click="closeConfirmModal">Hủy</button>
-            <button class="btn btn-agree" type="button" @click="confirmToggleStatus">Đồng ý</button>
+            <button class="btn btn-agree" type="button" @click="confirmToggleStatus" :disabled="isViewLocked">Đồng ý</button>
           </div>
         </div>
       </div>
@@ -138,14 +138,26 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import http from "../../services/http";
 import { useToast } from "@/composables/useToast";
+import { useAuthStore } from "@/stores/auth";
+import { useShiftStore } from "@/stores/shift";
 
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+
+const auth = useAuthStore();
+const shift = useShiftStore();
+const isViewLocked = computed(() => auth.isStaff && shift.isLocked);
+
+function blockIfViewMode() {
+  if (!isViewLocked.value) return false;
+  toast.info("Bạn đang ở chế độ xem. Không thể chỉnh sửa khách hàng.");
+  return true;
+}
 
 const loading = ref(false);
 const customer = ref(null);
@@ -165,6 +177,7 @@ function goBack() {
 }
 
 function goEdit() {
+  if (blockIfViewMode()) return;
   router.push({ name: "customer-edit", params: { id: route.params.id } });
 }
 
@@ -253,6 +266,7 @@ const confirmModalRef = ref(null);
 let bsModal = null;
 
 function openConfirmToggle() {
+  if (blockIfViewMode()) return;
   const modalEl = confirmModalRef.value;
   if (!modalEl) return;
 
@@ -285,6 +299,7 @@ function closeConfirmModal() {
 }
 
 async function confirmToggleStatus() {
+  if (blockIfViewMode()) return;
   try {
     const c = customer.value;
     if (!c) return;

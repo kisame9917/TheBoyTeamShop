@@ -23,7 +23,9 @@ export default {
     deleteSchedule(id) {
         return http.delete(`/api/ca-lam-viec/lich/${id}`);
     },
-    getMySchedule(idNhanVien, from, to) {return http.get("/api/ca-lam-viec/lich-ca-nhan", {
+    // Lịch cá nhân (đúng theo CaLamViecController)
+    getMySchedule(idNhanVien, from, to) {
+        return http.get("/api/ca-lam-viec/lich-ca-nhan", {
             params: { idNhanVien, from, to }
         });
     },

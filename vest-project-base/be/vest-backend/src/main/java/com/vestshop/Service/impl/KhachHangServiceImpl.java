@@ -111,6 +111,7 @@ public class KhachHangServiceImpl implements KhachHangService {
                 .gioiTinh(kh.getGioiTinh())
                 .email(kh.getEmail())
                 .soDienThoai(kh.getSoDienThoai())
+                .ngaySinh(kh.getNgaySinh()) // ✅ ADD
                 .taiKhoan(kh.getTaiKhoan())
                 .ngayTao(kh.getNgayTao())
                 .ngayCapNhat(kh.getNgayCapNhat())
@@ -175,6 +176,7 @@ public class KhachHangServiceImpl implements KhachHangService {
         kh.setGioiTinh(request.getGioiTinh());
         kh.setEmail(request.getEmail());
         kh.setSoDienThoai(request.getSoDienThoai());
+        kh.setNgaySinh(request.getNgaySinh()); // ✅ ADD
         kh.setTaiKhoan(request.getTaiKhoan());
         kh.setMatKhau(request.getMatKhau());
         kh.setNgayTao(now);
@@ -221,6 +223,11 @@ public class KhachHangServiceImpl implements KhachHangService {
         if (request.getTenKhachHang() != null) kh.setTenKhachHang(request.getTenKhachHang());
         if (request.getGioiTinh() != null) kh.setGioiTinh(request.getGioiTinh());
         if (request.getTrangThai() != null) kh.setTrangThai(request.getTrangThai());
+
+        // ✅ ADD: ngày sinh (chỉ update khi có gửi)
+        if (request.getNgaySinh() != null) {
+            kh.setNgaySinh(request.getNgaySinh());
+        }
 
         // ảnh: null => giữ, "" => default
         if (request.getAnhDaiDien() != null) {

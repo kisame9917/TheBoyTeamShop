@@ -168,6 +168,10 @@
             <i class="bi bi-calendar-fill sub-icon"></i> Lịch của tôi
           </RouterLink>
 
+          <RouterLink to="/shift-handover" class="sub-link" active-class="active-sub">
+            <i class="bi bi-arrow-left-right sub-icon"></i> Giao ca &amp; Kết toán
+          </RouterLink>
+
         </div>
       </div>
 

@@ -12,7 +12,7 @@
     <div class="card">
       <form @submit.prevent="submit">
         <div class="avatar-zone">
-          <div class="avatar-wrap" @click="openFilePicker" title="Bấm để chọn ảnh">
+          <div class="avatar-wrap" :class="{ 'avatar-wrap--disabled': isViewLocked }" @click="openFilePicker" title="Bấm để chọn ảnh">
             <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="avatar" />
             <div v-else class="avatar-fallback">👤</div>
           </div>
@@ -24,49 +24,75 @@
               accept="image/png,image/jpeg,image/jpg,image/webp"
               class="hidden-file"
               @change="onFileChange"
+              :disabled="isViewLocked"
           />
         </div>
 
         <div class="form-grid">
-          <div class="form-group">
+          <!-- Row 1: Mã KH, Tên KH -->
+          <div class="form-group span-3">
             <label>Mã khách hàng</label>
             <input class="form-input input-disabled" v-model="form.maKhachHang" disabled />
           </div>
 
-          <div class="form-group">
-            <label>Trạng thái</label>
-            <select class="form-input" v-model="form.trangThai">
-              <option :value="true">Hoạt động</option>
-              <option :value="false">Không hoạt động</option>
-            </select>
-          </div>
-
-          <div class="form-group">
+          <div class="form-group span-3">
             <label>Tên khách hàng <span class="req">*</span></label>
-            <input class="form-input" v-model="form.tenKhachHang" placeholder="Nhập tên khách hàng" />
+            <input class="form-input" v-model="form.tenKhachHang" placeholder="Nhập tên khách hàng" :disabled="isViewLocked" />
           </div>
 
-          <div class="form-group">
-            <label>Giới tính</label>
-            <div class="radio-row">
-              <label class="radio-item">
-                <input type="radio" :value="true" v-model="form.gioiTinh" /> Nam
-              </label>
-              <label class="radio-item">
-                <input type="radio" :value="false" v-model="form.gioiTinh" /> Nữ
-              </label>
+          <!-- Row 2: SĐT, Email -->
+          <div class="form-group span-3">
+            <label>Số điện thoại <span class="req">*</span></label>
+            <input class="form-input" v-model="form.soDienThoai" placeholder="VD: 0912345678" :disabled="isViewLocked" />
+          </div>
+
+          <div class="form-group span-3">
+            <label>Email</label>
+            <input class="form-input" v-model="form.email" placeholder="VD: abc@gmail.com" :disabled="isViewLocked" />
+          </div>
+
+          <!-- Row 3 -->
+          <div class="form-group span-3 row3-item">
+            <label>Ngày sinh</label>
+            <div class="input-group date-input-group">
+              <input ref="dobPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" :disabled="isViewLocked" />
+              <button class="btn btn-outline-secondary" type="button" @click="openDobPicker" title="Chọn ngày" :disabled="isViewLocked">
+                <i class="bi bi-calendar3"></i>
+              </button>
+              <button class="btn btn-outline-secondary" type="button" @click="clearDob" title="Xóa" :disabled="isViewLocked">
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Số điện thoại <span class="req">*</span></label>
-            <input class="form-input" v-model="form.soDienThoai" placeholder="VD: 0912345678" />
+          <div class="form-group span-3 row3-item group-right">
+            <div class="gs-row">
+              <div class="gs-item">
+                <label>Giới tính</label>
+                <div class="radio-row">
+                  <label class="radio-item">
+                    <input type="radio" :value="true" v-model="form.gioiTinh" :disabled="isViewLocked" /> Nam
+                  </label>
+                  <label class="radio-item">
+                    <input type="radio" :value="false" v-model="form.gioiTinh" :disabled="isViewLocked" /> Nữ
+                  </label>
+                </div>
+              </div>
+
+              <div class="gs-item">
+                <label>Trạng thái</label>
+                <div class="radio-row">
+                  <label class="radio-item">
+                    <input type="radio" :value="true" v-model="form.trangThai" :disabled="isViewLocked" /> Hoạt động
+                  </label>
+                  <label class="radio-item">
+                    <input type="radio" :value="false" v-model="form.trangThai" :disabled="isViewLocked" /> Không hoạt động
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label>Email</label>
-            <input class="form-input" v-model="form.email" placeholder="VD: abc@gmail.com" />
-          </div>
         </div>
 
         <div class="section-title">Quản lý địa chỉ</div>
@@ -78,7 +104,7 @@
               <div class="addr-head-sub">Nhập thông tin địa chỉ để lưu và danh sách bên dưới.</div>
             </div>
 
-            <button class="btn-add-addr" type="button" @click="openAddDiaChi" :disabled="addrBusy || diaChiList.length >= 5">
+            <button class="btn-add-addr" type="button" @click="openAddDiaChi" :disabled="isViewLocked || addrBusy || diaChiList.length >= 5">
               Thêm địa chỉ
             </button>
           </div>
@@ -101,6 +127,7 @@
                     :value="a.id"
                     v-model="selectedDiaChiId"
                     @change="onPickDiaChi(a)"
+                    :disabled="isViewLocked"
                 />
 
                 <div class="addr-content">
@@ -118,10 +145,10 @@
 
               <!-- ✅ yêu cầu: mỗi địa chỉ đều có nút Sửa & Xóa -->
               <div class="addr-actions">
-                <button type="button" class="icon-btn" title="Sửa địa chỉ" @click.stop="openEditDiaChi(a)">
+                <button type="button" class="icon-btn" title="Sửa địa chỉ" @click.stop="openEditDiaChi(a)" :disabled="isViewLocked">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <button type="button" class="icon-btn icon-btn-danger" title="Xóa địa chỉ" @click.stop="deleteDiaChi(a)">
+                <button type="button" class="icon-btn icon-btn-danger" title="Xóa địa chỉ" @click.stop="deleteDiaChi(a)" :disabled="isViewLocked">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -141,7 +168,7 @@
             <!-- ✅ yêu cầu: hủy có confirm -->
             <button type="button" class="btn btn-ghost" @click="onCancel" :disabled="saving">Hủy</button>
 
-            <button type="submit" class="btn btn-primary" :disabled="saving">
+            <button type="submit" class="btn btn-primary" :disabled="isViewLocked || saving">
               {{ saving ? "Đang lưu..." : (isEdit ? "Lưu thay đổi" : "Thêm mới") }}
             </button>
           </div>
@@ -157,17 +184,17 @@
         <div class="addr-form-grid">
           <div class="form-group">
             <label>Người nhận <span class="req">*</span></label>
-            <input class="form-input" v-model="addrModal.form.tenNguoiNhan" placeholder="Tên người nhận" />
+            <input class="form-input" v-model="addrModal.form.tenNguoiNhan" placeholder="Tên người nhận" :disabled="isViewLocked" />
           </div>
 
           <div class="form-group">
             <label>SĐT người nhận <span class="req">*</span></label>
-            <input class="form-input" v-model="addrModal.form.soDienThoai" placeholder="Chỉ nhập số" />
+            <input class="form-input" v-model="addrModal.form.soDienThoai" placeholder="Chỉ nhập số" :disabled="isViewLocked" />
           </div>
 
           <div class="form-group">
             <label>Tỉnh/Thành phố <span class="req">*</span></label>
-            <select class="form-input" v-model="addrModal.form.tinhThanh" @change="onAddrProvinceChange">
+            <select class="form-input" v-model="addrModal.form.tinhThanh" @change="onAddrProvinceChange" :disabled="isViewLocked">
               <option value="">-- Chọn Tỉnh/Thành phố --</option>
               <option v-for="p in provinces" :key="p.code" :value="p.name">{{ p.name }}</option>
             </select>
@@ -175,7 +202,7 @@
 
           <div class="form-group">
             <label>Quận/Huyện <span class="req">*</span></label>
-            <select class="form-input" v-model="addrModal.form.quanHuyen" @change="onAddrDistrictChange" :disabled="addrDistricts.length === 0">
+            <select class="form-input" v-model="addrModal.form.quanHuyen" @change="onAddrDistrictChange" :disabled="isViewLocked || addrDistricts.length === 0">
               <option value="">-- Chọn Quận/Huyện --</option>
               <option v-for="d in addrDistricts" :key="d.code" :value="d.name">{{ d.name }}</option>
             </select>
@@ -183,7 +210,7 @@
 
           <div class="form-group">
             <label>Phường/Xã <span class="req">*</span></label>
-            <select class="form-input" v-model="addrModal.form.phuongXa" :disabled="addrWards.length === 0">
+            <select class="form-input" v-model="addrModal.form.phuongXa" :disabled="isViewLocked || addrWards.length === 0">
               <option value="">-- Chọn Phường/Xã --</option>
               <option v-for="w in addrWards" :key="w.code" :value="w.name">{{ w.name }}</option>
             </select>
@@ -191,20 +218,20 @@
 
           <div class="form-group">
             <label>Địa chỉ chi tiết <span class="req">*</span></label>
-            <input class="form-input" v-model="addrModal.form.diaChiChiTiet" placeholder="VD: 12 Cầu Giấy" />
+            <input class="form-input" v-model="addrModal.form.diaChiChiTiet" placeholder="VD: 12 Cầu Giấy" :disabled="isViewLocked" />
           </div>
         </div>
 
         <div class="check-row">
           <label class="check-item">
-            <input type="checkbox" v-model="addrModal.form.isDefault" />
+            <input type="checkbox" v-model="addrModal.form.isDefault" :disabled="isViewLocked" />
             Đặt làm mặc định
           </label>
         </div>
 
         <div class="modal-actions">
           <button class="btn btn-outline" type="button" @click="closeAddrModal()" :disabled="addrModal.loading">Hủy</button>
-          <button class="btn btn-confirm" type="button" @click="saveDiaChi" :disabled="addrModal.loading">
+          <button class="btn btn-confirm" type="button" @click="saveDiaChi" :disabled="isViewLocked || addrModal.loading">
             {{ addrModal.loading ? "Đang lưu..." : "Lưu" }}
           </button>
         </div>
@@ -249,14 +276,31 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import http from "../../services/http";
 import { useToast } from "@/composables/useToast";
+import { useAuthStore } from "@/stores/auth";
+import { useShiftStore } from "@/stores/shift";
+
+// Date picker (UI/UX giống VoucherList)
+import flatpickr from "flatpickr";
+import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
+import "flatpickr/dist/flatpickr.css";
 
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
+
+const auth = useAuthStore();
+const shift = useShiftStore();
+const isViewLocked = computed(() => auth.isStaff && shift.isLocked);
+
+function blockIfViewMode() {
+  if (!isViewLocked.value) return false;
+  toast.info("Bạn đang ở chế độ xem. Không thể tạo/chỉnh sửa khách hàng.");
+  return true;
+}
 
 const id = computed(() => route.params.id);
 const isEdit = computed(() => !!id.value);
@@ -303,6 +347,7 @@ const form = reactive({
   maKhachHang: "",
   tenKhachHang: "",
   gioiTinh: true,
+  ngaySinh: "",
   soDienThoai: "",
   email: "",
   taiKhoan: "",
@@ -311,6 +356,55 @@ const form = reactive({
   anhDaiDien: "",
 });
 
+// ===== Date picker: Ngày sinh (flatpickr) =====
+const dobPickerRef = ref(null);
+let fpDob = null;
+
+function parseYMD(ymd) {
+  if (!ymd) return null;
+  const raw = String(ymd).trim();
+  if (!raw) return null;
+  const s = raw.includes("T") ? raw.split("T")[0] : raw;
+  const [y, m, d] = String(s).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+function initDobPicker() {
+  if (dobPickerRef.value && !fpDob) {
+    fpDob = flatpickr(dobPickerRef.value, {
+      locale: Vietnamese,
+      dateFormat: "d/m/Y",
+      allowInput: true,
+      defaultDate: parseYMD(form.ngaySinh),
+      onChange: (selectedDates) => {
+        const d = selectedDates?.[0] || null;
+        form.ngaySinh = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+      },
+    });
+  }
+}
+
+function openDobPicker() {
+  if (blockIfViewMode()) return;
+  initDobPicker();
+  fpDob?.open();
+}
+
+function clearDob() {
+  if (blockIfViewMode()) return;
+  form.ngaySinh = "";
+  fpDob?.clear();
+}
+
+watch(
+    () => form.ngaySinh,
+    (v) => {
+      if (!fpDob) return;
+      fpDob.setDate(parseYMD(v), false);
+    }
+);
+
 // ===== avatar =====
 const fileInput = ref(null);
 const selectedFile = ref(null);
@@ -318,6 +412,7 @@ const avatarPreview = ref("");
 let localBlobUrl = "";
 
 function openFilePicker() {
+  if (blockIfViewMode()) return;
   fileInput.value?.click();
 }
 function revokeBlob() {
@@ -433,10 +528,16 @@ async function fetchDetail() {
   form.maKhachHang = kh.maKhachHang || "";
   form.tenKhachHang = kh.tenKhachHang || "";
   form.gioiTinh = kh.gioiTinh !== null && kh.gioiTinh !== undefined ? kh.gioiTinh : true;
+  form.ngaySinh = kh.ngaySinh || "";
   form.soDienThoai = kh.soDienThoai || "";
   form.email = kh.email || "";
   form.trangThai = kh.trangThai !== null && kh.trangThai !== undefined ? kh.trangThai : true;
   form.anhDaiDien = kh.anhDaiDien || "";
+
+  // Sync date picker view after model is populated
+  await nextTick();
+  initDobPicker();
+  fpDob?.setDate(parseYMD(form.ngaySinh), false);
 
   if (!selectedFile.value) avatarPreview.value = resolveFileUrl(form.anhDaiDien);
 
@@ -564,6 +665,7 @@ function resetAddrForm() {
 }
 
 function openAddDiaChi() {
+  if (blockIfViewMode()) return;
   if (diaChiList.length >= 5) return toast.warning("Tối đa 5 địa chỉ.");
   addrModal.mode = "add";
   addrModal.editingId = null;
@@ -573,6 +675,7 @@ function openAddDiaChi() {
 }
 
 function openEditDiaChi(a) {
+  if (blockIfViewMode()) return;
   addrModal.mode = "edit";
   addrModal.editingId = a.id;
   addrModal.loading = false;
@@ -611,7 +714,7 @@ function validateAddrForm() {
   return "";
 }
 
-// ✅ yêu cầu: lưu địa chỉ có confirm + luôn fetch lại từ DB
+// ✅ FIX: sửa địa chỉ (trong chế độ thêm mới KH) không bị tự thêm địa chỉ mới
 async function doSaveDiaChi() {
   addrModal.loading = true;
   try {
@@ -625,11 +728,38 @@ async function doSaveDiaChi() {
       quocGia: addrModal.form.quocGia || "Việt Nam",
     };
 
+    // =========================
+    // CREATE CUSTOMER MODE (chưa có id) => xử lý local list
+    // =========================
     if (!isEdit.value) {
-      // Create mode (local)
+      // ✅ Nếu đang sửa địa chỉ tạm -> UPDATE item, không ADD mới
+      if (addrModal.mode === "edit" && addrModal.editingId != null) {
+        const idx = diaChiList.findIndex((x) => String(x.id) === String(addrModal.editingId));
+
+        if (idx >= 0) {
+          // giữ id + laMacDinh hiện tại, chỉ update field
+          Object.assign(diaChiList[idx], payload);
+
+          // nếu tick "mặc định" -> set default cho đúng địa chỉ đang sửa
+          if (addrModal.form.isDefault) {
+            pickLocalDefault(diaChiList[idx].id);
+          } else if (!selectedDiaChiId.value) {
+            // nếu chưa có default nào thì tự set cái này
+            pickLocalDefault(diaChiList[idx].id);
+          }
+
+          toast.success("Đã cập nhật địa chỉ (tạm).");
+          closeAddrModal(true);
+          return;
+        }
+        // fallback: nếu không tìm thấy id thì coi như add mới
+      }
+
+      // ✅ ADD mới địa chỉ tạm
       const tmpId = "tmp-" + Date.now();
       const obj = { id: tmpId, ...payload, laMacDinh: false };
       diaChiList.unshift(obj);
+
       if (addrModal.form.isDefault) pickLocalDefault(tmpId);
       else if (!selectedDiaChiId.value) pickLocalDefault(tmpId);
 
@@ -638,6 +768,9 @@ async function doSaveDiaChi() {
       return;
     }
 
+    // =========================
+    // EDIT CUSTOMER MODE (đã có id) => gọi API
+    // =========================
     let saved = null;
 
     if (addrModal.mode === "add") {
@@ -649,10 +782,10 @@ async function doSaveDiaChi() {
       toast.success("Cập nhật địa chỉ thành công!");
     }
 
-    // ✅ luôn lấy lại danh sách từ DB
+    // luôn reload lại list
     await fetchDiaChiList();
 
-    // nếu tick mặc định thì set mặc định cho địa chỉ vừa lưu (nếu có id)
+    // nếu tick mặc định thì set mặc định
     if (addrModal.form.isDefault && saved?.id) {
       try {
         await apiSetDefaultDiaChi(id.value, saved.id);
@@ -670,7 +803,9 @@ async function doSaveDiaChi() {
   }
 }
 
+
 async function saveDiaChi() {
+  if (blockIfViewMode()) return;
   const msg = validateAddrForm();
   if (msg) return toast.warning(msg);
 
@@ -708,6 +843,7 @@ async function doDeleteDiaChi(a) {
 }
 
 async function deleteDiaChi(a) {
+  if (blockIfViewMode()) return;
   openConfirm({
     title: "Xác nhận",
     message: "Bạn có chắc muốn xóa địa chỉ này không?",
@@ -728,6 +864,7 @@ async function doSubmit() {
       maKhachHang: form.maKhachHang,
       tenKhachHang: String(form.tenKhachHang || "").trim(),
       gioiTinh: form.gioiTinh,
+      ngaySinh: String(form.ngaySinh || "").trim() ? String(form.ngaySinh || "").trim() : null,
       soDienThoai: String(form.soDienThoai || "").trim(),
       email: String(form.email || "").trim() ? String(form.email || "").trim() : null,
       taiKhoan: taiKhoanAuto,
@@ -786,6 +923,7 @@ async function doSubmit() {
 
 // ✅ yêu cầu: lưu thay đổi có confirm
 async function submit() {
+  if (blockIfViewMode()) return;
   const msg = validate();
   if (msg) return toast.warning(msg);
 
@@ -806,6 +944,8 @@ function toastClass(type) {
 
 onMounted(async () => {
   await loadProvinces();
+  await nextTick();
+  initDobPicker();
   if (isEdit.value) {
     try {
       await fetchDetail();
@@ -822,6 +962,8 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  try { fpDob?.destroy(); } catch {}
+  fpDob = null;
   revokeBlob();
 });
 </script>
@@ -891,9 +1033,21 @@ onBeforeUnmount(() => {
 /* Form grid */
 .form-grid{
   display:grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px 16px;
   align-items:end;
+}
+.span-3{ grid-column: span 3; }
+.span-2{ grid-column: span 2; }
+
+@media (max-width: 992px) {
+  .form-grid{ grid-template-columns: 1fr 1fr; }
+  .span-3, .span-2{ grid-column: span 1; }
+}
+
+@media (max-width: 576px) {
+  .form-grid{ grid-template-columns: 1fr; }
+  .span-3, .span-2{ grid-column: span 1; }
 }
 .form-group label{
   display:block;
@@ -926,6 +1080,19 @@ onBeforeUnmount(() => {
   align-items:center;
 }
 
+/* Date picker (giống VoucherList) */
+.date-input-group .form-control{
+  height: 40px;
+  border-radius: 8px 0 0 8px;
+  border: 1px solid #d0d7de;
+}
+.date-input-group .btn{
+  height: 40px;
+  border: 1px solid #d0d7de;
+}
+.date-input-group .btn:first-of-type{ border-left: 0; }
+.date-input-group .btn:last-of-type{ border-radius: 0 8px 8px 0; }
+
 .section-title{
   margin-top: 14px;
   margin-bottom: 10px;
@@ -949,7 +1116,7 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   padding: 12px 14px;
 }
-.addr-head-title{ font-weight: 800; }
+.addr-head-title{ font-weight: 800; color: #0d6efd; }
 .addr-head-sub{ font-size: 13px; color: #5b6b6b; margin-top: 2px; }
 .btn-add-addr{
   height: 36px;
@@ -1117,5 +1284,23 @@ onBeforeUnmount(() => {
 @media (max-width: 980px){
   .form-grid{ grid-template-columns: 1fr; }
   .addr-form-grid{ grid-template-columns: 1fr; }
+}
+
+/* Chỉ canh TOP cho đúng riêng hàng 3 */
+.row3-item{
+  align-self: start;
+}
+
+/* Cụm giới tính + trạng thái nằm trên 1 hàng, căn giữa */
+.group-right .gs-row{
+  display: flex;
+  justify-content: center;   /* bạn hỏi: dùng center ổn không -> ✅ ổn */
+  align-items: flex-start;   /* ✅ để label thẳng hàng với Ngày sinh */
+  gap: 240px;
+  flex-wrap: wrap;
+}
+
+.group-right .gs-item{
+  min-width: 0;
 }
 </style>

@@ -346,6 +346,15 @@ async function loadMySchedule(id = myId.value) {
     else rawSchedules.value = [];
   } catch (e) {
     console.error(e);
+    const status = e?.response?.status;
+    const msg = e?.response?.data?.message || e?.message || "Không tải được lịch làm việc";
+    if (status === 403) {
+      toast.error(
+        "Bạn không có quyền xem lịch cá nhân (403). Cần cập nhật BE: cho phép STAFF gọi GET /api/ca-lam-viec/lich-ca-nhan (SecurityConfig)."
+      );
+      return;
+    }
+    toast.error(msg);
   }
 }
 
@@ -375,7 +384,11 @@ const pagedItems = computed(() =>
 // ===== Trạng thái =====
 function getDetailedStatus(item) {
   const startDateTime = new Date(`${item.ngayLamViec}T${item.gioBatDau}`);
-  const endDateTime = new Date(`${item.ngayLamViec}T${item.gioKetThuc}`);
+  let endDateTime = new Date(`${item.ngayLamViec}T${item.gioKetThuc}`);
+  // Nếu ca qua đêm (end <= start) thì coi kết thúc ở ngày hôm sau
+  if (endDateTime <= startDateTime) {
+    endDateTime = new Date(endDateTime.getTime() + 24 * 60 * 60 * 1000);
+  }
   const now = new Date();
 
   if (now > endDateTime) return { text: "Đã làm", class: "bg-secondary" };
