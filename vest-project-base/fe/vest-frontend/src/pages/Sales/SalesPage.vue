@@ -1292,9 +1292,14 @@ function applyVoucherManual(v) {
 function disableVoucher() {
   const o = activeOrder.value;
   if (!o) return;
+
   o.voucherMode = "none";
   o.pggId = null;
   o.voucherCode = "";
+
+  // ✅ quan trọng: tắt luôn giảm thủ công
+  o.discountPercent = 0;
+
   toastShow("Đã tắt mã giảm giá", "info");
 }
 function clearVoucherManual() {
