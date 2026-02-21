@@ -4,7 +4,12 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h4 class="m-0 fw-bold">Bán hàng (tại cửa hàng)</h4>
 
-      <button class="btn btn-outline-secondary btn-sm" type="button" @click="createOrder" :disabled="orders.length >= MAX_ORDERS">
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        type="button"
+        @click="createOrder"
+        :disabled="orders.length >= MAX_ORDERS"
+      >
         + Tạo đơn hàng
       </button>
     </div>
@@ -91,9 +96,17 @@
                     <td class="text-center">
                       <div class="btn-group" role="group">
                         <button class="btn btn-outline-secondary btn-sm" @click="decQty(idx)">-</button>
-                        <button class="btn btn-outline-secondary btn-sm" disabled style="min-width:46px">
-                          {{ it.qty }}
-                        </button>
+
+                        <!-- Nhập tay số lượng -->
+                        <input
+                          class="form-control form-control-sm text-center"
+                          style="width:60px"
+                          :value="it.qty"
+                          inputmode="numeric"
+                          @input="onQtyInput(idx, $event)"
+                          @blur="onQtyBlur(idx, $event)"
+                        />
+
                         <button class="btn btn-outline-secondary btn-sm" @click="incQty(idx)">+</button>
                       </div>
                     </td>
@@ -147,7 +160,6 @@
                     </div>
 
                     <div class="col-12">
-                      <!-- ✅ SỬA: ghi chú -> địa chỉ -->
                       <textarea class="form-control" rows="2" placeholder="Địa chỉ (nếu có)" v-model="activeOrder.diaChi"></textarea>
                     </div>
                   </div>
@@ -165,7 +177,7 @@
 
                 <div class="card-body">
                   <!-- =======================
-                       ✅ PHIẾU GIẢM GIÁ (ĐÃ SỬA)
+                       PHIẾU GIẢM GIÁ
                        ======================= -->
                   <div class="mb-3">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -183,31 +195,19 @@
                       </div>
                     </div>
 
-                    <!-- Tabs -->
                     <ul class="nav nav-tabs mt-2">
                       <li class="nav-item">
-                        <button
-                          class="nav-link"
-                          type="button"
-                          :class="{ active: activeOrder.voucherTab === 'best' }"
-                          @click="activeOrder.voucherTab = 'best'"
-                        >
+                        <button class="nav-link" type="button" :class="{ active: activeOrder.voucherTab === 'best' }" @click="activeOrder.voucherTab = 'best'">
                           Mã tốt nhất
                         </button>
                       </li>
-                      <li class="nav-item ">
-                        <button
-                          class="nav-link"
-                          type="button"
-                          :class="{ active: activeOrder.voucherTab === 'alt' }"
-                          @click="activeOrder.voucherTab = 'alt'"
-                        >
+                      <li class="nav-item">
+                        <button class="nav-link" type="button" :class="{ active: activeOrder.voucherTab === 'alt' }" @click="activeOrder.voucherTab = 'alt'">
                           Mã thay thế
                         </button>
                       </li>
                     </ul>
 
-                    <!-- Panel -->
                     <div class="border border-top-0 rounded-bottom p-2">
                       <!-- BEST -->
                       <template v-if="activeOrder.voucherTab === 'best'">
@@ -243,7 +243,7 @@
 
                             <div class="text-end">
                               <span
-                                v-if="activeOrder.voucherMode === 'best' && activeOrder.pggId === bestVoucherEntry.v.id"
+                                v-if="activeOrder.voucherMode !== 'none' && activeOrder.pggId === bestVoucherEntry.v.id"
                                 class="badge text-bg-success"
                               >
                                 Đang áp dụng
@@ -253,31 +253,23 @@
                                 v-else
                                 class="btn btn-success btn-sm"
                                 type="button"
-                                @click="useBestVoucher"
+                                @click="applyVoucherManual(bestVoucherEntry.v)"
                               >
                                 Áp dụng
                               </button>
                             </div>
                           </div>
 
-                          <!-- input nhập mã vẫn giữ để gõ tay -->
-                          <div class="mt-3">
-                            <div class="input-group">
-                              <input
-                                class="form-control"
-                                placeholder="Nhập mã PGG (tùy chọn)"
-                                v-model.trim="activeOrder.voucherCode"
-                                @keyup.enter="applyPggByCode"
-                                @blur="applyPggByCode"
-                              />
-                              <button class="btn btn-outline-secondary" type="button" @click="clearVoucherManual">
-                                Xóa
-                              </button>
-                            </div>
-                            <div class="small text-muted mt-1">
-                              * Gõ mã để chọn thủ công (chuyển sang “manual”).
-                            </div>
-                          </div>
+                      <div class="mt-3 small text-muted">
+  <div>
+    <span class="me-2">Hết hạn:</span>
+    <b>{{ formatDateVN(bestVoucherEntry.v.ngay_ket_thuc) }}</b>
+  </div>
+  <div class="mt-1">
+    <span class="me-2">Đơn tối thiểu:</span>
+    <b>{{ money(bestVoucherEntry.v.don_hang_toi_thieu) }}</b>
+  </div>
+</div>
                         </div>
 
                         <div v-else class="text-muted small py-2">
@@ -297,7 +289,7 @@
                               <div>
                                 <div class="d-flex gap-2 flex-wrap">
                                   <span class="badge text-bg-primary">PGG</span>
-                                  <span class="badge text-bg-secondary">Mã thay thế</span>1
+                                  <span class="badge text-bg-secondary">Mã thay thế</span>
                                   <span class="badge text-bg-dark">{{ e.v.ma_giam_gia }}</span>
 
                                   <span
@@ -326,18 +318,14 @@
                               </div>
 
                               <div class="text-end">
-                                <button
-                                  class="btn btn-outline-primary btn-sm"
-                                  type="button"
-                                  @click="applyVoucherManual(e.v)"
-                                >
+                                <button class="btn btn-outline-primary btn-sm" type="button" @click="applyVoucherManual(e.v)">
                                   Chọn
                                 </button>
                               </div>
                             </div>
                           </div>
 
-                          <!-- input nhập mã vẫn giữ -->
+                          <!-- input nhập mã -->
                           <div class="mt-2">
                             <div class="input-group">
                               <input
@@ -356,17 +344,26 @@
                       </template>
                     </div>
 
+                    <!-- ✅ Upsell: thêm bao tiền để dùng mã tốt hơn -->
+                    <div v-if="voucherUpsellHint" class="small text-muted mt-2">
+                      Thêm <b class="text-danger">{{ money(voucherUpsellHint.missing) }}</b>
+                      để dùng mã giảm giá tốt hơn:
+                      <b>{{ voucherUpsellHint.code }}</b>
+                      (giảm khoảng <b class="text-danger">-{{ money(voucherUpsellHint.expectedDiscount) }}</b>
+                      khi đơn ≥ {{ money(voucherUpsellHint.minOrder) }})
+                    </div>
+
                     <!-- Suggestions -->
                     <div class="mt-3">
                       <div class="fw-bold">Gợi ý mã giảm giá <span class="text-danger">*</span></div>
 
-                      <div v-if="altVoucherEntries.length === 0" class="text-muted small mt-1">
+                      <div v-if="eligibleVoucherEntries.length === 0" class="text-muted small mt-1">
                         Không có mã giảm giá gợi ý khả dụng
                       </div>
 
                       <div v-else class="d-flex flex-wrap gap-2 mt-2">
                         <button
-                          v-for="e in altVoucherEntries.slice(0, 6)"
+                          v-for="e in eligibleVoucherEntries.slice(0, 6)"
                           :key="'chip-' + e.v.id"
                           class="btn btn-outline-secondary btn-sm"
                           type="button"
@@ -379,7 +376,6 @@
                   </div>
                   <!-- ======================= /PGG ======================= -->
 
-                  <!-- Manual % -->
                   <div class="mb-3">
                     <label class="form-label mb-1">Giảm giá thủ công (%)</label>
                     <input
@@ -391,7 +387,6 @@
                     />
                   </div>
 
-                  <!-- Summary -->
                   <ul class="list-group mb-3">
                     <li class="list-group-item d-flex justify-content-between">
                       <span class="text-muted">Tiền hàng</span>
@@ -410,11 +405,14 @@
 
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                       <span class="text-muted">Khách thanh toán</span>
+                      <!-- ✅ nhập có dấu chấm -->
                       <input
                         class="form-control form-control-sm text-end"
                         style="max-width:180px"
-                        v-model.number="activeOrder.paid"
+                        :value="formatMoneyInput(activeOrder.paid)"
                         inputmode="numeric"
+                        @input="onPaidInput"
+                        @blur="onPaidBlur"
                       />
                     </li>
 
@@ -424,7 +422,6 @@
                     </li>
                   </ul>
 
-                  <!-- ✅ UI giữ nguyên, chỉ thêm submitting vào disable (khuyến nghị) -->
                   <button class="btn btn-success w-100" :disabled="activeOrder.cart.length === 0 || submitting" @click="confirmOrder">
                     Thanh toán
                   </button>
@@ -449,11 +446,11 @@
       </div>
     </div>
 
-    <!-- ✅ Modal layer: Teleport ra body để không bị mờ/đè -->
+    <!-- ✅ Modal layer -->
     <teleport to="body">
-      <!-- Backdrop (chỉ 1 cái) -->
+      <!-- Backdrop (1 cái chung) -->
       <div
-        v-if="anyModalOpen"
+        v-if="anyModalOpen || showPreCheckoutModal"
         class="modal-backdrop fade show"
         @click="closeAnyModal"
         style="z-index: 1050"
@@ -610,6 +607,51 @@
           </div>
         </div>
       </div>
+
+      <!-- ✅ Pre-checkout confirm modal -->
+      <div
+        v-if="showPreCheckoutModal"
+        class="modal fade show"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        style="display:block; z-index:1060"
+      >
+        <div class="modal-dialog modal-md">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold">Xác nhận phiếu giảm giá</h5>
+              <button type="button" class="btn-close" @click="resolvePreCheckout(false)"></button>
+            </div>
+
+            <div class="modal-body">
+              <div class="fw-semibold mb-2" :class="preCheckoutUi.type === 'danger' ? 'text-danger' : ''">
+                {{ preCheckoutUi.message }}
+              </div>
+
+              <div v-if="preCheckoutUi.detail" class="small text-muted">
+                {{ preCheckoutUi.detail }}
+              </div>
+
+              <div v-if="preCheckoutUi.suggest" class="mt-2 small">
+                Gợi ý:
+                <b>{{ preCheckoutUi.suggest.code }}</b>
+                • giảm <b class="text-danger">-{{ money(preCheckoutUi.suggest.discount) }}</b>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" type="button" @click="resolvePreCheckout(false)">
+                Không
+              </button>
+              <button class="btn btn-success" type="button" @click="resolvePreCheckout(true)">
+                Có
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </teleport>
   </div>
 </template>
@@ -619,7 +661,6 @@ import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from "vue"
 import http from "@/services/http";
 import { getAllDetails } from "@/services/sanPhamChiTietApi";
 import { listKhachHang } from "@/services/khachHangApi";
-import { decreaseStock } from '@/services/sanPhamChiTietApi'
 
 /** ========= CONFIG ========= */
 const MAX_ORDERS = 10;
@@ -629,7 +670,6 @@ const STORAGE_KEY = "sales_store_only_v1";
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
 const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, "");
 const placeholderImg = "https://via.placeholder.com/56x56.png?text=IMG";
-
 function buildImgUrl(path) {
   if (!path) return "";
   const p = String(path).replace(/\\/g, "/");
@@ -659,10 +699,7 @@ const toastInfo = (m) => toastShow(m, "info");
 const orders = ref([]);
 const activeId = ref(null);
 const orderSeq = ref(1);
-
-// ✅ thêm để chống bấm double khi đang gọi BE
 const submitting = ref(false);
-
 const activeOrder = computed(() => orders.value.find((o) => o.id === activeId.value) || null);
 
 function randInt(max) {
@@ -693,7 +730,7 @@ function normalizeOrder(o, idx = 1) {
   return {
     id: o?.id ?? Date.now() + Math.random(),
     maHoaDon: ma,
-    label: o?.label || `Đơn hàng ${idx} - ${ma}`,
+    label: o?.label || `Hóa Đơn - ${ma}`,
     cart: Array.isArray(o?.cart) ? o.cart : [],
     customer: o?.customer ?? null,
     customerDraft: o?.customerDraft ?? { phone: "", email: "" },
@@ -706,7 +743,6 @@ function normalizeOrder(o, idx = 1) {
     voucherTab: o?.voucherTab ?? "best",   // best | alt
 
     paid: Number(o?.paid || 0),
-
     diaChi: o?.diaChi || o?.note || "",
   };
 }
@@ -716,7 +752,7 @@ function createOrder() {
 
   const id = Date.now() + Math.random();
   const maHoaDon = genUniqueMaHoaDon();
-  const label = `Đơn hàng ${orderSeq.value} - ${maHoaDon}`;
+  const label = `Hóa Đơn - ${maHoaDon}`;
 
   orders.value.push(
     normalizeOrder(
@@ -748,8 +784,11 @@ function createOrder() {
 function closeOrder(id) {
   const idx = orders.value.findIndex((o) => o.id === id);
   if (idx === -1) return;
+
   orders.value.splice(idx, 1);
   if (activeId.value === id) activeId.value = orders.value[0]?.id ?? null;
+
+  syncModalStockWithCart();
   saveDraftsNow();
 }
 
@@ -784,65 +823,56 @@ function loadDrafts() {
     orderSeq.value = Number(data.orderSeq) || orders.value.length + 1;
   } catch {}
 }
-
 watch(orders, scheduleSave, { deep: true });
 watch(activeId, scheduleSave);
 watch(orderSeq, scheduleSave);
 
-/** ========= CART ========= */
-function incQty(i) {
-  const o = activeOrder.value;
-  if (!o) return;
-  const it = o.cart[i];
-  if (!it) return;
-
-  const next = it.qty + 1;
-  if (Number.isFinite(it.stock) && next > it.stock) return toastShow("Số lượng vượt tồn kho", "danger");
-  it.qty = next;
+/** ========= MONEY ========= */
+function formatDateVN(d) {
+  if (!d) return "—";
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return "—";
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const yy = dt.getFullYear();
+  return `${dd}/${mm}/${yy}`;
 }
-function decQty(i) {
-  const o = activeOrder.value;
-  if (!o) return;
-  const it = o.cart[i];
-  if (!it) return;
-  it.qty = Math.max(1, it.qty - 1);
-}
-function removeItem(i) {
-  const o = activeOrder.value;
-  if (!o) return;
-  o.cart.splice(i, 1);
-}
-
-/** ========= TOTALS ========= */
 function money(n) {
   const v = Number(n) || 0;
   return v.toLocaleString("vi-VN") + " đ";
 }
-const subTotal = computed(() => {
-  const o = activeOrder.value;
-  if (!o) return 0;
-  return o.cart.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0), 0);
-});
 
-/** ========= MODALS (FIX mờ/đè) ========= */
+/** ========= Khách thanh toán (format dấu chấm) ========= */
+function formatMoneyInput(n) {
+  const v = Number(n) || 0;
+  return v.toLocaleString("vi-VN"); // không thêm "đ"
+}
+function onPaidInput(e) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const raw = String(e.target.value || "");
+  const num = Number(raw.replace(/[^\d]/g, "")) || 0;
+  o.paid = num;
+  e.target.value = formatMoneyInput(num);
+}
+function onPaidBlur(e) {
+  const o = activeOrder.value;
+  if (!o) return;
+  e.target.value = formatMoneyInput(o.paid);
+}
+
+/** ========= MODALS ========= */
 const showProductModal = ref(false);
 const showCustomerModal = ref(false);
-
 const anyModalOpen = computed(() => showProductModal.value || showCustomerModal.value);
 
 watch(anyModalOpen, (open) => {
   document.body.classList.toggle("modal-open", open);
-  if (!open) {
-    document.body.style.removeProperty("overflow");
-  }
 });
-
 function closeAnyModal() {
   showProductModal.value = false;
   showCustomerModal.value = false;
-}
-function onKeydown(e) {
-  if (e.key === "Escape" && anyModalOpen.value) closeAnyModal();
+  // pre-checkout modal không đóng bằng backdrop (để user quyết định)
 }
 
 /** ========= PRODUCTS (DB) ========= */
@@ -854,16 +884,41 @@ const productSize = 100;
 const productHasMore = ref(true);
 
 function mapSpct(x) {
+  const stock = Number(x.soLuongTon || 0);
+  const idSpct = Number(x.id);
   return {
-    idSpct: x.id,
+    idSpct,
     code: x.maSanPhamChiTiet || "",
     name: x.tenSanPham || "",
     color: x.tenMauSac || "",
     size: x.tenKichCo || "",
-    stock: Number(x.soLuongTon || 0),
+    stock,
+    _baseStock: stock,
     price: Number(x.donGia || 0),
     image: x.anh ? buildImgUrl(x.anh) : placeholderImg,
   };
+}
+function findModalProductById(idSpct) {
+  const id = Number(idSpct);
+  return products.value.find((x) => Number(x.idSpct) === id) || null;
+}
+
+function syncModalStockWithCart() {
+  const o = activeOrder.value;
+  if (!o) return;
+
+  // hold theo tổng qty mỗi idSpct
+  const hold = new Map();
+  for (const it of o.cart || []) {
+    const id = Number(it.idSpct);
+    hold.set(id, (hold.get(id) || 0) + Number(it.qty || 0));
+  }
+
+  for (const p of products.value) {
+    if (typeof p._baseStock !== "number") p._baseStock = Number(p.stock || 0);
+    const h = hold.get(Number(p.idSpct)) || 0;
+    p.stock = Math.max(0, Number(p._baseStock || 0) - h);
+  }
 }
 
 async function loadMoreProducts() {
@@ -885,6 +940,7 @@ async function loadMoreProducts() {
     }
 
     productPage.value += 1;
+    syncModalStockWithCart();
   } catch (e) {
     console.error(e);
     toastShow("Không tải được danh sách biến thể từ DB", "danger");
@@ -904,55 +960,157 @@ async function reloadProducts() {
 const filteredProducts = computed(() => {
   const kw = productKw.value.trim().toLowerCase();
   if (!kw) return products.value;
-  return products.value.filter((p) =>
-    [p.code, p.name, p.color, p.size].some((x) => String(x).toLowerCase().includes(kw))
-  );
+  return products.value.filter((p) => [p.code, p.name, p.color, p.size].some((x) => String(x).toLowerCase().includes(kw)));
 });
 
 function openProductModal() {
   showCustomerModal.value = false;
   showProductModal.value = true;
   if (products.value.length === 0) loadMoreProducts();
+  else syncModalStockWithCart();
 }
 function closeProductModal() {
   showProductModal.value = false;
 }
 
+/** ========= CART STOCK (FIX trừ theo tổng idSpct) ========= */
+function ensureCartItemStockBase(it, base) {
+  if (typeof it.stockBase !== "number") it.stockBase = Number(base || 0);
+}
+function syncAllCartStocks() {
+  const o = activeOrder.value;
+  if (!o) return;
 
-async function chooseProduct(p) {
-  const o = activeOrder.value
-  if (!o) return
+  const totalMap = new Map();
+  for (const it of o.cart) {
+    const id = Number(it.idSpct);
+    totalMap.set(id, (totalMap.get(id) || 0) + Number(it.qty || 0));
+  }
 
-  try {
-    await decreaseStock(p.idSpct)
-
-    // trừ stock modal
-    p.stock -= 1
-
-    const existed = o.cart.find(x => x.idSpct === p.idSpct)
-
-    if (existed) {
-      existed.qty += 1
-      existed.stock = p.stock   // 🔥 QUAN TRỌNG
-    } else {
-      o.cart.push({
-        idSpct: p.idSpct,
-        code: p.code,
-        name: p.name,
-        meta: `${p.color} - ${p.size}`,
-        price: p.price,
-        stock: p.stock,
-        image: p.image,
-        qty: 1
-      })
-    }
-
-    toastShow("Đã thêm sản phẩm", "success")
-
-  } catch (e) {
-    toastShow("Sản phẩm đã hết hàng", "danger")
+  for (const it of o.cart) {
+    const base = Number(it.stockBase || 0);
+    const totalQty = totalMap.get(Number(it.idSpct)) || 0;
+    it.stock = Math.max(0, base - totalQty);
   }
 }
+
+function clampInt(n, min, max) {
+  n = Number.isFinite(Number(n)) ? Math.floor(Number(n)) : min;
+  return Math.max(min, Math.min(max, n));
+}
+
+function setQtyByInput(cartIndex, nextQtyRaw) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const it = o.cart[cartIndex];
+  if (!it) return;
+
+  const nextQty = clampInt(nextQtyRaw, 1, 999999);
+  const curQty = Number(it.qty || 0);
+  if (nextQty === curQty) return;
+
+  const p = findModalProductById(it.idSpct);
+  const delta = nextQty - curQty;
+
+  if (p) {
+    if (delta > 0) {
+      if ((Number(p.stock) || 0) < delta) return toastShow("Số lượng vượt tồn kho", "danger");
+      p.stock = Math.max(0, Number(p.stock || 0) - delta);
+    } else {
+      p.stock = Math.min(Number(p._baseStock ?? p.stock ?? 0), Number(p.stock || 0) + Math.abs(delta));
+    }
+  } else {
+    const base = Number(it.stockBase ?? it.stock ?? 0);
+    if (base > 0 && nextQty > base) return toastShow("Số lượng vượt tồn kho", "danger");
+  }
+
+  it.qty = nextQty;
+  syncAllCartStocks();
+}
+
+function incQty(i) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const it = o.cart[i];
+  if (!it) return;
+  setQtyByInput(i, Number(it.qty || 0) + 1);
+}
+function decQty(i) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const it = o.cart[i];
+  if (!it) return;
+  setQtyByInput(i, Math.max(1, Number(it.qty || 0) - 1));
+}
+function removeItem(i) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const it = o.cart[i];
+  if (!it) return;
+
+  const p = findModalProductById(it.idSpct);
+  if (p) {
+    p.stock = Math.min(Number(p._baseStock ?? p.stock ?? 0), Number(p.stock || 0) + Number(it.qty || 0));
+  }
+
+  o.cart.splice(i, 1);
+  syncAllCartStocks();
+  syncModalStockWithCart();
+}
+
+function onQtyInput(idx, e) {
+  const raw = e?.target?.value ?? "";
+  const num = raw === "" ? 1 : Number(String(raw).replace(/[^\d]/g, ""));
+  setQtyByInput(idx, num);
+}
+function onQtyBlur(idx, e) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const it = o.cart[idx];
+  if (!it) return;
+  e.target.value = it.qty;
+}
+
+function sameMoney(a, b) {
+  return Math.round(Number(a || 0)) === Math.round(Number(b || 0));
+}
+function chooseProduct(p) {
+  const o = activeOrder.value;
+  if (!o) return;
+  if ((Number(p.stock) || 0) <= 0) return toastShow("Sản phẩm đã hết hàng", "warning");
+
+  const id = Number(p.idSpct);
+  let idx = o.cart.findIndex((x) => Number(x.idSpct) === id && sameMoney(x.price, p.price));
+
+  if (idx === -1) {
+    const base = Number(p._baseStock ?? 0);
+    o.cart.push({
+      key: `${id}-${Math.round(Number(p.price || 0))}-${Date.now()}-${Math.random()}`,
+      idSpct: id,
+      code: p.code,
+      name: p.name,
+      meta: `size ${p.size} / ${p.color}`,
+      image: p.image,
+      price: Number(p.price || 0),
+      qty: 0,
+      stockBase: base,
+      stock: base,
+    });
+    idx = o.cart.length - 1;
+  } else {
+    ensureCartItemStockBase(o.cart[idx], Number(p._baseStock ?? 0));
+  }
+
+  setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
+  toastShow(`Đã thêm ${p.code}`, "success");
+}
+
+/** ========= TOTALS ========= */
+const subTotal = computed(() => {
+  const o = activeOrder.value;
+  if (!o) return 0;
+  return o.cart.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0), 0);
+});
 
 /** ========= CUSTOMERS (DB) ========= */
 const customers = ref([]);
@@ -960,20 +1118,9 @@ const customerKw = ref("");
 const customerLoading = ref(false);
 
 function mapCustomer(x) {
-  const addr =
-    x.diaChi ||
-    [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") ||
-    "";
-  return {
-    id: x.id,
-    name: x.tenKhachHang || "",
-    phone: x.soDienThoai || "",
-    email: x.email || "",
-    address: addr,
-    raw: x,
-  };
+  const addr = x.diaChi || [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") || "";
+  return { id: x.id, name: x.tenKhachHang || "", phone: x.soDienThoai || "", email: x.email || "", address: addr, raw: x };
 }
-
 async function reloadCustomers() {
   customerLoading.value = true;
   try {
@@ -988,13 +1135,10 @@ async function reloadCustomers() {
     customerLoading.value = false;
   }
 }
-
 const filteredCustomers = computed(() => {
   const kw = customerKw.value.trim().toLowerCase();
   if (!kw) return customers.value;
-  return customers.value.filter((c) =>
-    [c.name, c.phone, c.email, c.address].some((x) => String(x).toLowerCase().includes(kw))
-  );
+  return customers.value.filter((c) => [c.name, c.phone, c.email, c.address].some((x) => String(x).toLowerCase().includes(kw)));
 });
 
 function openCustomerModal() {
@@ -1005,17 +1149,13 @@ function openCustomerModal() {
 function closeCustomerModal() {
   showCustomerModal.value = false;
 }
-
 function chooseCustomer(c) {
   const o = activeOrder.value;
   if (!o) return;
-
   o.customer = { id: c.id, name: c.name, phone: c.phone, email: c.email, address: c.address };
   o.customerDraft.phone = c.phone || "";
   o.customerDraft.email = c.email || "";
-
   if (!String(o.diaChi || "").trim()) o.diaChi = c.address || "";
-
   closeCustomerModal();
 }
 
@@ -1030,14 +1170,17 @@ function normalizeVoucher(x) {
     ten_giam_gia: x.tenGiamGia ?? x.ten_giam_gia ?? "",
     trang_thai: x.trangThai ?? x.trang_thai ?? true,
     so_luong: Number(x.soLuong ?? 0),
-    loai_giam: !!(x.loaiGiam ?? x.loai_giam), // true: %, false: tiền
+    loai_giam: !!(x.loaiGiam ?? x.loai_giam),
     gia_tri_phan_tram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
     gia_tri_tien_mat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
     don_hang_toi_thieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
     gia_tri_giam_toi_da: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
+
+    // ✅ thêm ngày (đổi key theo BE bạn trả về)
+    ngay_bat_dau: x.ngayBatDau ?? x.ngay_bat_dau ?? x.startDate ?? x.start_date ?? null,
+    ngay_ket_thuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? x.endDate ?? x.end_date ?? null,
   };
 }
-
 async function loadVouchers() {
   try {
     const res = await http.get("/api/pgg");
@@ -1073,7 +1216,6 @@ const eligibleVoucherEntries = computed(() => {
     .filter((x) => x.discount > 0)
     .sort((a, b) => b.discount - a.discount);
 });
-
 const bestVoucherEntry = computed(() => eligibleVoucherEntries.value[0] || null);
 const altVoucherEntries = computed(() => eligibleVoucherEntries.value.slice(1));
 
@@ -1083,49 +1225,59 @@ const appliedVoucher = computed(() => {
   return vouchers.value.find((x) => x.id === o.pggId) || null;
 });
 
-watch(
-  [subTotal, vouchers, activeId],
-  () => {
-    const o = activeOrder.value;
-    if (!o) return;
+const voucherUpsellHint = computed(() => {
+  const st = subTotal.value;
+  if (st <= 0) return null;
 
-    if (o.voucherMode === "none") {
-      o.pggId = null;
-      o.voucherCode = "";
-      return;
-    }
+  const bestNow = bestVoucherEntry.value?.discount || 0;
 
-    if (o.voucherMode === "best") {
-      const best = bestVoucherEntry.value?.v || null;
-      o.pggId = best?.id ?? null;
-      o.voucherCode = best?.ma_giam_gia || "";
-      if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
-      return;
-    }
+  const candidates = vouchers.value
+    .filter((v) => v?.trang_thai && (Number(v.so_luong) || 0) > 0)
+    .map((v) => {
+      const min = Number(v.don_hang_toi_thieu || 0);
+      const missing = Math.max(0, min - st);
+      if (missing <= 0) return null;
+      const discAtMin = calcVoucherDiscount(min, v);
+      return { v, missing, discAtMin, min };
+    })
+    .filter(Boolean)
+    .sort((a, b) => (b.discAtMin - a.discAtMin));
 
-    if (o.voucherMode === "manual") {
-      const stillValid = !!eligibleVoucherEntries.value.find((e) => e.v.id === o.pggId);
-      if (!stillValid) {
-        o.voucherMode = "best";
-        const best = bestVoucherEntry.value?.v || null;
-        o.pggId = best?.id ?? null;
-        o.voucherCode = best?.ma_giam_gia || "";
-        if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
-      }
-    }
-  },
-  { immediate: true }
-);
+  if (candidates.length === 0) return null;
+  const bestFuture = candidates[0];
+  if ((bestFuture.discAtMin || 0) <= bestNow) return null;
 
-function useBestVoucher() {
+  return {
+    missing: bestFuture.missing,
+    code: bestFuture.v.ma_giam_gia,
+    expectedDiscount: bestFuture.discAtMin,
+    minOrder: bestFuture.min,
+  };
+});
+
+watch([subTotal, vouchers, activeId], () => {
   const o = activeOrder.value;
   if (!o) return;
-  o.voucherMode = "best";
-  const best = bestVoucherEntry.value?.v || null;
-  o.pggId = best?.id ?? null;
-  o.voucherCode = best?.ma_giam_gia || "";
-  if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
-}
+
+  // Nếu đang none thì giữ none
+  if (o.voucherMode === "none") {
+    o.pggId = null;
+    o.voucherCode = "";
+    return;
+  }
+
+  // Nếu best mode -> set best ngay
+  if (o.voucherMode === "best") {
+    const best = bestVoucherEntry.value?.v || null;
+    o.pggId = best?.id ?? null;
+    o.voucherCode = best?.ma_giam_gia || "";
+    if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
+    return;
+  }
+
+  // manual mode -> nếu mã đang chọn không còn eligible thì KHÔNG auto đổi ở đây
+  // vì bạn muốn confirm lúc bấm thanh toán, không tự đổi âm thầm.
+}, { immediate: true });
 
 function applyVoucherManual(v) {
   const o = activeOrder.value;
@@ -1137,7 +1289,6 @@ function applyVoucherManual(v) {
   else o.discountPercent = 0;
   toastShow(`Đã chọn ${v.ma_giam_gia}`, "info");
 }
-
 function disableVoucher() {
   const o = activeOrder.value;
   if (!o) return;
@@ -1146,15 +1297,16 @@ function disableVoucher() {
   o.voucherCode = "";
   toastShow("Đã tắt mã giảm giá", "info");
 }
-
 function clearVoucherManual() {
   const o = activeOrder.value;
   if (!o) return;
   o.voucherCode = "";
   o.voucherMode = "best";
-  useBestVoucher();
+  const best = bestVoucherEntry.value?.v || null;
+  o.pggId = best?.id ?? null;
+  o.voucherCode = best?.ma_giam_gia || "";
+  if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
 }
-
 async function applyPggByCode() {
   const o = activeOrder.value;
   if (!o) return;
@@ -1162,23 +1314,22 @@ async function applyPggByCode() {
   const code = (o.voucherCode || "").trim().toUpperCase();
   if (!code) {
     o.voucherMode = "best";
-    useBestVoucher();
+    const best = bestVoucherEntry.value?.v || null;
+    o.pggId = best?.id ?? null;
+    o.voucherCode = best?.ma_giam_gia || "";
+    if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
     return;
   }
 
   const found = vouchers.value.find((v) => String(v.ma_giam_gia).toUpperCase() === code);
   if (!found) {
     toastShow("Mã PGG không tồn tại", "danger");
-    o.voucherMode = "best";
-    useBestVoucher();
     return;
   }
 
   const disc = calcVoucherDiscount(subTotal.value, found);
   if (disc <= 0) {
     toastShow("Mã không áp dụng được cho đơn hiện tại", "warning");
-    o.voucherMode = "best";
-    useBestVoucher();
     return;
   }
 
@@ -1189,7 +1340,6 @@ async function applyPggByCode() {
 const discountMoney = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
-
   const st = subTotal.value;
 
   if (o.pggId) {
@@ -1201,23 +1351,149 @@ const discountMoney = computed(() => {
   const percent = Math.max(0, Math.min(100, Number(o.discountPercent || 0)));
   return Math.floor((st * percent) / 100);
 });
-
 const grandTotal = computed(() => Math.max(0, subTotal.value - discountMoney.value));
-
 const changeMoney = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
   return Math.max(0, Number(o.paid || 0) - grandTotal.value);
 });
 
-/** =========================================================
- * ✅ PHẦN THANH TOÁN - VIẾT LẠI (CALL BE /api/hoa-don/pos)
- * ========================================================= */
-function clampInt(n, min, max) {
-  n = Number.isFinite(Number(n)) ? Math.floor(Number(n)) : 0;
-  return Math.max(min, Math.min(max, n));
+/** ========= PRE-CHECKOUT CONFIRM SYSTEM ========= */
+const showPreCheckoutModal = ref(false);
+const preCheckoutUi = reactive({
+  type: "info",    // 'info' | 'danger'
+  message: "",
+  detail: "",
+  suggest: null,   // { id, code, discount }
+});
+let _resolveConfirm = null;
+
+function openConfirm({ type = "info", message, detail = "", suggest = null }) {
+  preCheckoutUi.type = type;
+  preCheckoutUi.message = message;
+  preCheckoutUi.detail = detail;
+  preCheckoutUi.suggest = suggest;
+  showPreCheckoutModal.value = true;
+
+  return new Promise((resolve) => {
+    _resolveConfirm = resolve;
+  });
+}
+function resolvePreCheckout(ok) {
+  showPreCheckoutModal.value = false;
+  const r = _resolveConfirm;
+  _resolveConfirm = null;
+  if (r) r(!!ok);
 }
 
+function getBestEligibleNow() {
+  const best = bestVoucherEntry.value;
+  if (!best) return null;
+  return { id: best.v.id, code: best.v.ma_giam_gia, discount: best.discount };
+}
+function getAppliedNow() {
+  const o = activeOrder.value;
+  if (!o?.pggId) return { has: false, valid: false, id: null, code: "", discount: 0 };
+
+  const v = vouchers.value.find((x) => x.id === o.pggId) || null;
+  if (!v) return { has: true, valid: false, id: o.pggId, code: o.voucherCode || "", discount: 0 };
+
+  const disc = calcVoucherDiscount(subTotal.value, v);
+  return { has: true, valid: disc > 0, id: v.id, code: v.ma_giam_gia, discount: disc };
+}
+
+function applyBestVoucherNow() {
+  const o = activeOrder.value;
+  if (!o) return;
+  const best = bestVoucherEntry.value?.v || null;
+  if (!best) return;
+  o.voucherMode = "manual";
+  o.pggId = best.id;
+  o.voucherCode = best.ma_giam_gia || "";
+  if (best.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
+  else o.discountPercent = 0;
+}
+function removeVoucherNow() {
+  const o = activeOrder.value;
+  if (!o) return;
+  o.voucherMode = "none";
+  o.pggId = null;
+  o.voucherCode = "";
+}
+
+/**
+ * ✅ Check toàn bộ tình huống voucher trước khi thanh toán:
+ * - PGG đang áp dụng mất hiệu lực
+ * - Có PGG tốt hơn
+ * - Đang none nhưng có PGG áp dụng được
+ */
+async function runVoucherPrecheckFlow() {
+  const o = activeOrder.value;
+  if (!o) return true;
+
+  const best = getBestEligibleNow();
+  const applied = getAppliedNow();
+
+  // 1) Đang có PGG nhưng mất hiệu lực
+  if (applied.has && !applied.valid) {
+    const ok = await openConfirm({
+      type: "danger",
+      message: `Phiếu giảm giá "${applied.code || o.voucherCode || ""}" không còn hiệu lực cho đơn hiện tại.`,
+      detail: best ? "Bạn có muốn chọn phiếu đang tốt nhất hiện tại không?" : "Không có phiếu nào khác áp dụng được. Bạn có muốn bỏ phiếu này không?",
+      suggest: best,
+    });
+
+    if (ok) {
+      if (best) applyBestVoucherNow();
+      else removeVoucherNow();
+    } else {
+      // theo ý bạn: không thì bỏ PGG hiện tại
+      removeVoucherNow();
+    }
+  }
+
+  // refresh state sau khi xử lý invalid
+  const best2 = getBestEligibleNow();
+  const applied2 = getAppliedNow();
+
+  // 2) Đang none nhưng có best => hỏi muốn dùng không
+  if (o.voucherMode === "none" && best2) {
+    const ok = await openConfirm({
+      type: "info",
+      message: `Đơn hàng có phiếu giảm giá áp dụng được.`,
+      detail: `Bạn có muốn áp dụng mã "${best2.code}" không?`,
+      suggest: best2,
+    });
+
+    if (ok) applyBestVoucherNow();
+    // không thì giữ none
+  }
+
+  // refresh state
+  const best3 = getBestEligibleNow();
+  const applied3 = getAppliedNow();
+
+  // 3) Đang áp dụng hợp lệ nhưng có PGG tốt hơn
+  if (best3 && applied3.valid && applied3.id && best3.id !== applied3.id && best3.discount > applied3.discount) {
+    const ok = await openConfirm({
+      type: "info",
+      message: `Có phiếu giảm giá tốt hơn mã đang áp dụng.`,
+      detail: `Mã hiện tại: ${applied3.code} (-${money(applied3.discount)}). Bạn có muốn đổi sang mã tốt hơn không?`,
+      suggest: best3,
+    });
+
+    if (ok) {
+      // theo ý bạn: ok thì tự bỏ mã cũ và dùng mã tốt hơn
+      applyBestVoucherNow();
+    } else {
+      // không thì giữ nguyên
+    }
+  }
+
+  return true;
+}
+
+/** ========= CHECKOUT ========= */
 function validateCheckout(o) {
   if (!o) return "Không có đơn hàng đang chọn";
   if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";
@@ -1225,7 +1501,7 @@ function validateCheckout(o) {
   for (const it of o.cart) {
     const qty = Number(it.qty || 0);
     if (qty <= 0) return `Số lượng không hợp lệ: ${it.code}`;
-    if (Number.isFinite(it.stock) && qty > Number(it.stock)) return `Sản phẩm ${it.code} vượt tồn kho`;
+    if (Number.isFinite(it.stockBase) && qty > Number(it.stockBase)) return `Sản phẩm ${it.code} vượt tồn kho`;
   }
 
   const paid = Number(o.paid || 0);
@@ -1242,8 +1518,6 @@ function buildPosPayload(o) {
 
     idKhachHang: o.customer?.id ?? null,
     idPhieuGiamGia: o.pggId ?? null,
-
-    // ✅ đúng DTO BE: nếu có PGG -> null, không có -> % thủ công
     giamThuCongPercent: o.pggId ? null : clampInt(o.discountPercent, 0, 100),
 
     tenKhachHang: o.customer?.name || "Khách lẻ",
@@ -1276,7 +1550,9 @@ function resetOrderAfterPaid(o) {
   o.paid = 0;
 
   o.maHoaDon = genUniqueMaHoaDon();
-  o.label = `Đơn hàng ${orderSeq.value} - ${o.maHoaDon}`;
+  o.label = `Hóa Đơn - ${o.maHoaDon}`;
+
+  syncModalStockWithCart();
 }
 
 async function confirmOrder() {
@@ -1285,6 +1561,9 @@ async function confirmOrder() {
 
   const err = validateCheckout(o);
   if (err) return toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
+
+  // ✅ CHECK HẾT TÌNH HUỐNG PGG + CONFIRM
+  await runVoucherPrecheckFlow();
 
   const payload = buildPosPayload(o);
 
@@ -1304,6 +1583,13 @@ async function confirmOrder() {
 }
 
 /** ========= LIFECYCLE ========= */
+function onKeydown(e) {
+  if (e.key === "Escape") {
+    if (showPreCheckoutModal.value) return resolvePreCheckout(false);
+    if (anyModalOpen.value) closeAnyModal();
+  }
+}
+
 onMounted(() => {
   loadDrafts();
   if (orders.value.length === 0) createOrder();
@@ -1335,7 +1621,6 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* ✅ card voucher giống kiểu ảnh */
 .voucher-card {
   border: 1px solid #bfead8;
   background: #e9fbf3;
@@ -1343,8 +1628,11 @@ onBeforeUnmount(() => {
   padding: 12px;
 }
 
-/* Chốt z-index: backdrop < modal */
+/* z-index */
 :global(.modal-backdrop) { z-index: 1050; }
 :global(.modal) { z-index: 1055; }
 
+/* Tránh click xuyên */
+:global(.modal) { pointer-events: none; }
+:global(.modal .modal-dialog) { pointer-events: auto; }
 </style>
