@@ -25,5 +25,4 @@ public class PhieuGiamGiaResponse {
     private BigDecimal giaTriTienMat;
     private String loaiPhieu;
     private BigDecimal donHangToiThieu;
-    private BigDecimal giaTriGiamToiDa;
 }
