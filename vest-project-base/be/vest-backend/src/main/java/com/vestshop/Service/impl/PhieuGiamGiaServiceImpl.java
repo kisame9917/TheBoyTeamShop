@@ -53,7 +53,9 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
                         p.getLoaiGiam(),
                         p.getGiaTriPhanTram(),
                         p.getGiaTriTienMat(),
-                        Boolean.TRUE.equals(p.getLoaiPhieu()) ? "CA_NHAN" : "CONG_KHAI"
+                        Boolean.TRUE.equals(p.getLoaiPhieu()) ? "CA_NHAN" : "CONG_KHAI",
+                        p.getDonHangToiThieu(),
+                        p.getGiaTriGiamToiDa()
                 ))
                 .collect(Collectors.toList());
     }

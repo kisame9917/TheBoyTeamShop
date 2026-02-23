@@ -24,4 +24,6 @@ public class PhieuGiamGiaResponse {
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
     private String loaiPhieu;
+    private BigDecimal donHangToiThieu;
+    private BigDecimal giaTriGiamToiDa;
 }
