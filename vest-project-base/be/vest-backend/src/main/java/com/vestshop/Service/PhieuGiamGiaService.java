@@ -21,5 +21,5 @@ public interface PhieuGiamGiaService {
     void endpgg(Long id) throws Exception;
     void updateKhachHangNhanPhieu(Long pggId, UpdateKhachHangNhanPhieuRequest req) throws Exception;
     void startpgg(Long id) throws Exception;
-
+    List<PhieuGiamGiaResponse> getForPos(Long khachHangId);
 }

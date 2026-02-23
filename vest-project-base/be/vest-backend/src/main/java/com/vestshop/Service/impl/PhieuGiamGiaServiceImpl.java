@@ -19,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -38,6 +40,22 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
     @Autowired
     EmailPGGService emailPGGService;
 
+    @Override
+    public List<PhieuGiamGiaResponse> getForPos(Long khachHangId) {
+        List<PhieuGiamGia> publics = repo.findPublicActive();
+
+        List<PhieuGiamGia> personals = List.of();
+        if (khachHangId != null) {
+            personals = cnrepo.findPersonalActiveByKh(khachHangId);
+        }
+
+        // gộp + distinct theo id
+        Map<Long, PhieuGiamGia> map = new LinkedHashMap<>();
+        for (PhieuGiamGia p : publics) map.put(p.getId(), p);
+        for (PhieuGiamGia p : personals) map.put(p.getId(), p);
+
+        return map.values().stream().map(this::toResponse).toList();
+    }
     @Override
     public List<PhieuGiamGiaResponse> getAll() {
         return repo.findAll().stream()
@@ -373,6 +391,22 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         }
     }
 
+    private PhieuGiamGiaResponse toResponse(PhieuGiamGia p) {
+        return new PhieuGiamGiaResponse(
+                p.getId(),
+                p.getMaGiamGia(),
+                p.getTenGiamGia(),
+                p.getSoLuong(),
+                p.getNgayBatDau(),
+                p.getNgayKetThuc(),
+                p.getTrangThai(),
+                p.getLoaiGiam(),
+                p.getGiaTriPhanTram(),
+                p.getGiaTriTienMat(),
+                Boolean.TRUE.equals(p.getLoaiPhieu()) ? "CA_NHAN" : "CONG_KHAI",
+                p.getDonHangToiThieu()
+        );
+    }
     private String generateUniqueMaGiamGia() {
         for (int i = 0; i < 50; i++) {
             String code = "VC-" + randomAlphaNum(6);

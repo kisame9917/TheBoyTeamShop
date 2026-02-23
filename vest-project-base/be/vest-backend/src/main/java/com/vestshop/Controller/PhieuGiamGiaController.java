@@ -113,4 +113,11 @@ public class PhieuGiamGiaController {
         service.updateKhachHangNhanPhieu(id, req);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/pos")
+    public List<PhieuGiamGiaResponse> getForPos(
+            @RequestParam(required = false) Long khachHangId
+    ) {
+        return service.getForPos(khachHangId);
+    }
 }
