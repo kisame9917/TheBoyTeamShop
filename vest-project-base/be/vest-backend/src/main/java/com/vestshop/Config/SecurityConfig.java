@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/ca-lam-viec/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
                         // STAFF + ADMIN: giao ca & kế toán
+                        .requestMatchers("/api/pgg/**").hasAnyRole("ADMIN","STAFF")
                         .requestMatchers("/api/giao-ca/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/giao-ca/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers(
