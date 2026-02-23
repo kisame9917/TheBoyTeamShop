@@ -224,35 +224,43 @@
                           Bạn đang chọn: <b>Không dùng mã</b>
                         </div>
 
-                        <div v-else-if="bestVoucherEntry" class="voucher-card">
+                        <div v-else-if="bestVoucherEntryUI" class="voucher-card">
                           <div class="d-flex align-items-start justify-content-between gap-2">
                             <div>
                               <div class="d-flex gap-2 flex-wrap">
                                 <span class="badge text-bg-primary">PGG</span>
                                 <span class="badge text-bg-secondary">Mã tốt nhất</span>
-                                <span class="badge text-bg-dark">{{ bestVoucherEntry.v.ma_giam_gia }}</span>
+                                <span class="badge text-bg-dark">{{ bestVoucherEntryUI.v.ma_giam_gia }}</span>
+
+                                <!-- ✅ không cho biến mất: nếu đang áp dụng mà discount=0 => hiện badge "Không còn hiệu lực" -->
+                                <span
+                                  v-if="activeOrder.pggId === bestVoucherEntryUI.v.id && bestVoucherEntryUI.discount <= 0"
+                                  class="badge text-bg-danger"
+                                >
+                                  Không còn hiệu lực
+                                </span>
                               </div>
 
-                              <div class="mt-2 fw-bold">{{ bestVoucherEntry.v.ten_giam_gia }}</div>
+                              <div class="mt-2 fw-bold">{{ bestVoucherEntryUI.v.ten_giam_gia }}</div>
 
                               <div class="mt-2">
                                 <span class="text-muted">Giảm:</span>
-                                <span class="ms-2 fw-bold text-danger">- {{ money(bestVoucherEntry.discount) }}</span>
+                                <span class="ms-2 fw-bold text-danger">- {{ money(bestVoucherEntryUI.discount) }}</span>
                               </div>
 
                               <div class="small text-muted mt-1">
-                                <span v-if="bestVoucherEntry.v.don_hang_toi_thieu > 0">
-                                  Đơn tối thiểu: <b>{{ money(bestVoucherEntry.v.don_hang_toi_thieu) }}</b>
+                                <span v-if="bestVoucherEntryUI.v.don_hang_toi_thieu > 0">
+                                  Đơn tối thiểu: <b>{{ money(bestVoucherEntryUI.v.don_hang_toi_thieu) }}</b>
                                 </span>
-                                <span v-if="bestVoucherEntry.v.gia_tri_giam_toi_da > 0" class="ms-2">
-                                  Tối đa: <b>{{ money(bestVoucherEntry.v.gia_tri_giam_toi_da) }}</b>
+                                <span v-if="bestVoucherEntryUI.v.gia_tri_giam_toi_da > 0" class="ms-2">
+                                  Tối đa: <b>{{ money(bestVoucherEntryUI.v.gia_tri_giam_toi_da) }}</b>
                                 </span>
                               </div>
                             </div>
 
                             <div class="text-end">
                               <span
-                                v-if="activeOrder.voucherMode !== 'none' && activeOrder.pggId === bestVoucherEntry.v.id"
+                                v-if="activeOrder.voucherMode !== 'none' && activeOrder.pggId === bestVoucherEntryUI.v.id"
                                 class="badge text-bg-success"
                               >
                                 Đang áp dụng
@@ -262,7 +270,7 @@
                                 v-else
                                 class="btn btn-success btn-sm"
                                 type="button"
-                                @click="applyVoucherManual(bestVoucherEntry.v)"
+                                @click="applyVoucherManual(bestVoucherEntryUI.v)"
                               >
                                 Áp dụng
                               </button>
@@ -272,11 +280,7 @@
                           <div class="mt-3 small text-muted">
                             <div>
                               <span class="me-2">Hết hạn:</span>
-                              <b>{{ formatDateVN(bestVoucherEntry.v.ngay_ket_thuc) }}</b>
-                            </div>
-                            <div class="mt-1">
-                              <span class="me-2">Đơn tối thiểu:</span>
-                              <b>{{ money(bestVoucherEntry.v.don_hang_toi_thieu) }}</b>
+                              <b>{{ formatDateVN(bestVoucherEntryUI.v.ngay_ket_thuc) }}</b>
                             </div>
                           </div>
                         </div>
@@ -288,12 +292,12 @@
 
                       <!-- ALT -->
                       <template v-else>
-                        <div v-if="altVoucherEntries.length === 0" class="text-muted small py-2">
+                        <div v-if="altVoucherEntriesUI.length === 0" class="text-muted small py-2">
                           Không có mã thay thế khả dụng.
                         </div>
 
                         <div v-else class="d-flex flex-column gap-2">
-                          <div v-for="e in altVoucherEntries.slice(0, 10)" :key="e.v.id" class="voucher-card">
+                          <div v-for="e in altVoucherEntriesUI.slice(0, 10)" :key="e.v.id" class="voucher-card">
                             <div class="d-flex align-items-start justify-content-between gap-2">
                               <div>
                                 <div class="d-flex gap-2 flex-wrap">
@@ -306,6 +310,14 @@
                                     class="badge text-bg-success"
                                   >
                                     Đang chọn
+                                  </span>
+
+                                  <!-- ✅ nếu voucher đang chọn nhưng discount=0 => hiện "Không còn hiệu lực" -->
+                                  <span
+                                    v-if="activeOrder.pggId === e.v.id && e.discount <= 0"
+                                    class="badge text-bg-danger"
+                                  >
+                                    Không còn hiệu lực
                                   </span>
                                 </div>
 
@@ -625,7 +637,7 @@
         </div>
       </div>
 
-      <!-- ✅ QR Pay Modal (ĐẶT ĐỘC LẬP, KHÔNG LỒNG TRONG PRE-CHECKOUT) -->
+      <!-- ✅ QR Pay Modal -->
       <div
         v-if="showQrPayModal"
         class="modal fade show"
@@ -815,6 +827,9 @@ function normalizeOrder(o, idx = 1) {
     voucherMode: o?.voucherMode ?? "best", // best | manual | none
     voucherTab: o?.voucherTab ?? "best",   // best | alt
 
+    // ✅ giữ để detect đổi điều kiện
+    voucherSnapshot: o?.voucherSnapshot ?? null,
+
     paid: Number(o?.paid || 0),
     diaChi: o?.diaChi || o?.note || "",
   };
@@ -842,6 +857,8 @@ function createOrder() {
         discountPercent: 0,
         voucherMode: "best",
         voucherTab: "best",
+
+        voucherSnapshot: null,
 
         paid: 0,
         diaChi: "",
@@ -886,7 +903,6 @@ function openQrPay() {
   if (!o) return;
 
   qrNoteDraft.value = `HD:${o.maHoaDon}`;
-
   const content = buildQrContent(o);
   qrContent.value = content;
   qrImg.value = makeQrImageUrl(content);
@@ -1231,7 +1247,8 @@ const customerKw = ref("");
 const customerLoading = ref(false);
 
 function mapCustomer(x) {
-  const addr = x.diaChi || [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") || "";
+  const addr =
+    x.diaChi || [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") || "";
   return { id: x.id, name: x.tenKhachHang || "", phone: x.soDienThoai || "", email: x.email || "", address: addr, raw: x };
 }
 async function reloadCustomers() {
@@ -1293,6 +1310,7 @@ function normalizeVoucher(x) {
     ngay_ket_thuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? x.endDate ?? x.end_date ?? null,
   };
 }
+
 async function loadVouchers() {
   try {
     const res = await http.get("/api/pgg");
@@ -1303,11 +1321,81 @@ async function loadVouchers() {
   }
 }
 
+// snapshot
+function setVoucherSnapshot(o, v) {
+  if (!o || !v) return;
+  o.voucherSnapshot = {
+    id: v.id,
+    code: v.ma_giam_gia || "",
+    minOrder: Number(v.don_hang_toi_thieu || 0),
+    soLuong: Number(v.so_luong || 0),
+    trangThai: !!v.trang_thai,
+    loaiGiam: !!v.loai_giam,
+    phanTram: Number(v.gia_tri_phan_tram || 0),
+    tienMat: Number(v.gia_tri_tien_mat || 0),
+    giamToiDa: Number(v.gia_tri_giam_toi_da || 0),
+    start: v.ngay_bat_dau || null,
+    end: v.ngay_ket_thuc || null,
+    savedAt: Date.now(),
+  };
+}
+
+function toTime(d) {
+  if (!d) return null;
+  const t = new Date(d).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+function isVoucherInDateRange(v) {
+  const now = Date.now();
+  const start = toTime(v?.ngay_bat_dau);
+  const end = toTime(v?.ngay_ket_thuc);
+  if (start !== null && now < start) return false;
+  if (end !== null && now > end) return false;
+  return true;
+}
+
+function getVoucherInvalidReason(v, subtotal) {
+  if (!v) return "Voucher không tồn tại";
+  if (!v.trang_thai) return "Voucher đã bị tắt";
+  if ((Number(v.so_luong) || 0) <= 0) return "Voucher đã hết lượt";
+  const now = Date.now();
+  const start = toTime(v.ngay_bat_dau);
+  const end = toTime(v.ngay_ket_thuc);
+  if (start !== null && now < start) return "Voucher chưa tới ngày bắt đầu";
+  if (end !== null && now > end) return "Voucher đã hết hạn";
+  if ((Number(subtotal) || 0) < (Number(v.don_hang_toi_thieu) || 0)) return "Đơn hàng chưa đạt đơn tối thiểu";
+  return null;
+}
+
+function getVoucherChangedFields(snap, vNow) {
+  if (!snap || !vNow) return [];
+  const changes = [];
+  const minOld = Number(snap.minOrder || 0);
+  const minNew = Number(vNow.don_hang_toi_thieu || 0);
+  if (minOld !== minNew) changes.push(`Đơn tối thiểu: ${money(minOld)} → ${money(minNew)}`);
+
+  const endOld = String(snap.end || "");
+  const endNew = String(vNow.ngay_ket_thuc || "");
+  if (endOld !== endNew) changes.push(`Hạn dùng: ${formatDateVN(endOld)} → ${formatDateVN(endNew)}`);
+
+  const qtyOld = Number(snap.soLuong || 0);
+  const qtyNew = Number(vNow.so_luong || 0);
+  if (qtyOld !== qtyNew) changes.push(`Số lượng còn: ${qtyOld} → ${qtyNew}`);
+
+  const stOld = !!snap.trangThai;
+  const stNew = !!vNow.trang_thai;
+  if (stOld !== stNew) changes.push(`Trạng thái: ${stOld ? "Bật" : "Tắt"} → ${stNew ? "Bật" : "Tắt"}`);
+
+  return changes;
+}
+
 function calcVoucherDiscount(subtotal, v) {
   const st = Number(subtotal) || 0;
   if (st <= 0) return 0;
+
   if (!v?.trang_thai) return 0;
   if ((Number(v.so_luong) || 0) <= 0) return 0;
+  if (!isVoucherInDateRange(v)) return 0;
   if (st < (Number(v.don_hang_toi_thieu) || 0)) return 0;
 
   let disc = 0;
@@ -1328,8 +1416,33 @@ const eligibleVoucherEntries = computed(() => {
     .filter((x) => x.discount > 0)
     .sort((a, b) => b.discount - a.discount);
 });
-const bestVoucherEntry = computed(() => eligibleVoucherEntries.value[0] || null);
-const altVoucherEntries = computed(() => eligibleVoucherEntries.value.slice(1));
+
+// ✅ best dùng cho “mã tốt nhất hiện tại”
+const bestEligibleVoucherEntry = computed(() => eligibleVoucherEntries.value[0] || null);
+
+const appliedVoucherEntry = computed(() => {
+  const o = activeOrder.value;
+  if (!o?.pggId) return null;
+  const v = vouchers.value.find((x) => x.id === o.pggId) || null;
+  if (!v) return null;
+  return { v, discount: calcVoucherDiscount(subTotal.value, v) };
+});
+
+// ✅ UI: nếu đang áp dụng mà voucher không còn hợp lệ (discount=0) thì vẫn HIỆN
+const bestVoucherEntryUI = computed(() => {
+  const o = activeOrder.value;
+  const applied = appliedVoucherEntry.value;
+  if (o?.pggId && applied && applied.discount <= 0) return applied;
+  return bestEligibleVoucherEntry.value;
+});
+
+// ✅ ALT UI: nếu đang show applied invalid ở tab best => alt vẫn là các eligible (để user chọn đổi)
+const altVoucherEntriesUI = computed(() => {
+  const o = activeOrder.value;
+  const applied = appliedVoucherEntry.value;
+  if (o?.pggId && applied && applied.discount <= 0) return eligibleVoucherEntries.value; // giữ gợi ý thay thế
+  return eligibleVoucherEntries.value.slice(1);
+});
 
 const appliedVoucher = computed(() => {
   const o = activeOrder.value;
@@ -1341,7 +1454,7 @@ const voucherUpsellHint = computed(() => {
   const st = subTotal.value;
   if (st <= 0) return null;
 
-  const bestNow = bestVoucherEntry.value?.discount || 0;
+  const bestNow = bestEligibleVoucherEntry.value?.discount || 0;
 
   const candidates = vouchers.value
     .filter((v) => v?.trang_thai && (Number(v.so_luong) || 0) > 0)
@@ -1353,7 +1466,7 @@ const voucherUpsellHint = computed(() => {
       return { v, missing, discAtMin, min };
     })
     .filter(Boolean)
-    .sort((a, b) => (b.discAtMin - a.discAtMin));
+    .sort((a, b) => b.discAtMin - a.discAtMin);
 
   if (candidates.length === 0) return null;
   const bestFuture = candidates[0];
@@ -1367,6 +1480,7 @@ const voucherUpsellHint = computed(() => {
   };
 });
 
+// ✅ watch: chế độ best vẫn lấy bestEligible (không bị dính applied invalid)
 watch([subTotal, vouchers, activeId], () => {
   const o = activeOrder.value;
   if (!o) return;
@@ -1374,14 +1488,16 @@ watch([subTotal, vouchers, activeId], () => {
   if (o.voucherMode === "none") {
     o.pggId = null;
     o.voucherCode = "";
+    o.voucherSnapshot = null;
     return;
   }
 
   if (o.voucherMode === "best") {
-    const best = bestVoucherEntry.value?.v || null;
+    const best = bestEligibleVoucherEntry.value?.v || null;
     o.pggId = best?.id ?? null;
     o.voucherCode = best?.ma_giam_gia || "";
     if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
+    if (best) setVoucherSnapshot(o, best);
     return;
   }
 }, { immediate: true });
@@ -1394,6 +1510,7 @@ function applyVoucherManual(v) {
   o.voucherCode = v.ma_giam_gia || "";
   if (v.loai_giam) o.discountPercent = Number(v.gia_tri_phan_tram || 0);
   else o.discountPercent = 0;
+  setVoucherSnapshot(o, v);
   toastShow(`Đã chọn ${v.ma_giam_gia}`, "info");
 }
 function disableVoucher() {
@@ -1404,6 +1521,7 @@ function disableVoucher() {
   o.pggId = null;
   o.voucherCode = "";
   o.discountPercent = 0;
+  o.voucherSnapshot = null;
 
   toastShow("Đã tắt mã giảm giá", "info");
 }
@@ -1412,10 +1530,11 @@ function clearVoucherManual() {
   if (!o) return;
   o.voucherCode = "";
   o.voucherMode = "best";
-  const best = bestVoucherEntry.value?.v || null;
+  const best = bestEligibleVoucherEntry.value?.v || null;
   o.pggId = best?.id ?? null;
   o.voucherCode = best?.ma_giam_gia || "";
   if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
+  if (best) setVoucherSnapshot(o, best);
 }
 async function applyPggByCode() {
   const o = activeOrder.value;
@@ -1424,10 +1543,11 @@ async function applyPggByCode() {
   const code = (o.voucherCode || "").trim().toUpperCase();
   if (!code) {
     o.voucherMode = "best";
-    const best = bestVoucherEntry.value?.v || null;
+    const best = bestEligibleVoucherEntry.value?.v || null;
     o.pggId = best?.id ?? null;
     o.voucherCode = best?.ma_giam_gia || "";
     if (best?.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
+    if (best) setVoucherSnapshot(o, best);
     return;
   }
 
@@ -1491,85 +1611,84 @@ function resolvePreCheckout(ok) {
 }
 
 function getBestEligibleNow() {
-  const best = bestVoucherEntry.value;
+  const best = bestEligibleVoucherEntry.value;
   if (!best) return null;
   return { id: best.v.id, code: best.v.ma_giam_gia, discount: best.discount };
-}
-function getAppliedNow() {
-  const o = activeOrder.value;
-  if (!o?.pggId) return { has: false, valid: false, id: null, code: "", discount: 0 };
-
-  const v = vouchers.value.find((x) => x.id === o.pggId) || null;
-  if (!v) return { has: true, valid: false, id: o.pggId, code: o.voucherCode || "", discount: 0 };
-
-  const disc = calcVoucherDiscount(subTotal.value, v);
-  return { has: true, valid: disc > 0, id: v.id, code: v.ma_giam_gia, discount: disc };
 }
 
 function applyBestVoucherNow() {
   const o = activeOrder.value;
   if (!o) return;
-  const best = bestVoucherEntry.value?.v || null;
+  const best = bestEligibleVoucherEntry.value?.v || null;
   if (!best) return;
   o.voucherMode = "manual";
   o.pggId = best.id;
   o.voucherCode = best.ma_giam_gia || "";
   if (best.loai_giam) o.discountPercent = Number(best.gia_tri_phan_tram || 0);
   else o.discountPercent = 0;
+  setVoucherSnapshot(o, best);
 }
+
 function removeVoucherNow() {
   const o = activeOrder.value;
   if (!o) return;
   o.voucherMode = "none";
   o.pggId = null;
   o.voucherCode = "";
+  o.voucherSnapshot = null;
 }
 
+// ✅ Precheck: reload + nếu hết hạn/tắt/hết lượt => popup
 async function runVoucherPrecheckFlow() {
   const o = activeOrder.value;
   if (!o) return true;
 
-  const best = getBestEligibleNow();
-  const applied = getAppliedNow();
+  if (!o.pggId) return true;
 
-  if (applied.has && !applied.valid) {
+  await loadVouchers();
+
+  const vNow = vouchers.value.find((x) => x.id === o.pggId) || null;
+  const best = getBestEligibleNow();
+  const snap = o.voucherSnapshot;
+
+  const reason = getVoucherInvalidReason(vNow, subTotal.value);
+  if (reason) {
     const ok = await openConfirm({
       type: "danger",
-      message: `Phiếu giảm giá "${applied.code || o.voucherCode || ""}" không còn hiệu lực cho đơn hiện tại.`,
-      detail: best ? "Bạn có muốn chọn phiếu đang tốt nhất hiện tại không?" : "Không có phiếu nào khác áp dụng được. Bạn có muốn bỏ phiếu này không?",
+      message: `Voucher "${o.voucherCode || snap?.code || ""}" không hợp lệ: ${reason}.`,
+      detail: best
+        ? `Bạn có muốn đổi sang mã tốt nhất hiện tại (${best.code}) không?`
+        : "Không có mã nào khác áp dụng được. Bạn có muốn bỏ voucher để tiếp tục thanh toán không?",
       suggest: best,
     });
 
     if (ok) {
       if (best) applyBestVoucherNow();
       else removeVoucherNow();
-    } else {
-      removeVoucherNow();
+      return true;
     }
+    return false;
   }
 
-  const best2 = getBestEligibleNow();
-  if (o.voucherMode === "none" && best2) {
-    const ok = await openConfirm({
-      type: "info",
-      message: `Đơn hàng có phiếu giảm giá áp dụng được.`,
-      detail: `Bạn có muốn áp dụng mã "${best2.code}" không?`,
-      suggest: best2,
-    });
-    if (ok) applyBestVoucherNow();
-  }
+  if (snap) {
+    const changes = getVoucherChangedFields(snap, vNow);
+    if (changes.length > 0) {
+      const ok = await openConfirm({
+        type: "danger",
+        message: `Điều kiện voucher "${snap.code || o.voucherCode}" đã thay đổi.`,
+        detail: changes.join(" • "),
+        suggest: best,
+      });
 
-  const best3 = getBestEligibleNow();
-  const applied3 = getAppliedNow();
-
-  if (best3 && applied3.valid && applied3.id && best3.id !== applied3.id && best3.discount > applied3.discount) {
-    const ok = await openConfirm({
-      type: "info",
-      message: `Có phiếu giảm giá tốt hơn mã đang áp dụng.`,
-      detail: `Mã hiện tại: ${applied3.code} (-${money(applied3.discount)}). Bạn có muốn đổi sang mã tốt hơn không?`,
-      suggest: best3,
-    });
-    if (ok) applyBestVoucherNow();
+      if (ok) {
+        if (best) applyBestVoucherNow();
+        else setVoucherSnapshot(o, vNow);
+        return true;
+      }
+      return false;
+    }
+  } else {
+    setVoucherSnapshot(o, vNow);
   }
 
   return true;
@@ -1627,6 +1746,7 @@ function resetOrderAfterPaid(o) {
   o.pggId = null;
   o.voucherMode = "best";
   o.voucherTab = "best";
+  o.voucherSnapshot = null;
 
   o.discountPercent = 0;
   o.paid = 0;
@@ -1644,7 +1764,8 @@ async function confirmOrder() {
   const err = validateCheckout(o);
   if (err) return toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
 
-  await runVoucherPrecheckFlow();
+  const ok = await runVoucherPrecheckFlow();
+  if (!ok) return;
 
   const payload = buildPosPayload(o);
 
