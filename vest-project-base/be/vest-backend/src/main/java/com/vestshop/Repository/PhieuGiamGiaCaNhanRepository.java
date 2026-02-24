@@ -45,7 +45,15 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
                and hd2.trangThaiDon = 4
                and coalesce(hd2.ngayCapNhat, hd2.ngayTao) >= :fromDate
                and coalesce(hd2.ngayCapNhat, hd2.ngayTao) <  :toDate
-            ) as tongTienDaTieu
+            ) as tongTienDaTieu,
+
+           
+            (select max(coalesce(hd3.ngayCapNhat, hd3.ngayTao))
+             from HoaDon hd3
+             where hd3.khachHang.id = kh.id
+               and hd3.trangThai = true
+               and hd3.trangThaiDon = 4
+            ) as ngayMuaGanNhat
 
         from PhieuGiamGiaCaNhan cn
         join cn.khachHang kh
@@ -91,7 +99,15 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
                and hd2.trangThaiDon = 4
                and coalesce(hd2.ngayCapNhat, hd2.ngayTao) >= :fromDate
                and coalesce(hd2.ngayCapNhat, hd2.ngayTao) <  :toDate
-            ) as tongTienDaTieu
+            ) as tongTienDaTieu,
+
+          
+            (select max(coalesce(hd3.ngayCapNhat, hd3.ngayTao))
+             from HoaDon hd3
+             where hd3.khachHang.id = kh.id
+               and hd3.trangThai = true
+               and hd3.trangThaiDon = 4
+            ) as ngayMuaGanNhat
 
         from KhachHang kh
         where kh.trangThai = true
@@ -112,10 +128,10 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
     Optional<PhieuGiamGiaCaNhan> findByPhieuGiamGia_IdAndKhachHang_Id(Long pggId, Long khId);
 
     @Query("""
-select c.phieuGiamGia from PhieuGiamGiaCaNhan c
-where c.trangThai = true
-  and c.khachHang.id = :khId
-  and c.phieuGiamGia.trangThai = true
-""")
+        select c.phieuGiamGia from PhieuGiamGiaCaNhan c
+        where c.trangThai = true
+          and c.khachHang.id = :khId
+          and c.phieuGiamGia.trangThai = true
+    """)
     List<PhieuGiamGia> findPersonalActiveByKh(@Param("khId") Long khId);
 }

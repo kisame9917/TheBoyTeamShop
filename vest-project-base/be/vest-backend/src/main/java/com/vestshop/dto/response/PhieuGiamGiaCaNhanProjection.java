@@ -11,7 +11,7 @@ public interface PhieuGiamGiaCaNhanProjection {
     String getSoDienThoai();
     String getEmail();
     LocalDate getNgaySinh();
-
+    LocalDateTime getNgayMuaGanNhat();
     Long getSoDonThangHienTai();
     BigDecimal getTongTienDaTieu();
 }
