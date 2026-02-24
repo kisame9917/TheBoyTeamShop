@@ -241,7 +241,6 @@
                         :disabled="isEnded"
                       />
 
-                      <!-- ✅ Giống create: label + bộ lọc thống kê -->
                       <span class="text-muted small fw-semibold ms-1">Bộ lọc:</span>
 
                       <select
@@ -256,7 +255,6 @@
                         <option value="RANGE">Khoảng thời gian</option>
                       </select>
 
-                      <!-- Theo tháng (YYYY-MM) -->
                       <input
                         v-if="statsMode === 'MONTH'"
                         type="month"
@@ -267,7 +265,6 @@
                         :disabled="isEnded"
                       />
 
-                      <!-- Theo năm -->
                       <select
                         v-if="statsMode === 'YEAR'"
                         class="form-select form-select-sm"
@@ -279,7 +276,6 @@
                         <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
                       </select>
 
-                      <!-- Khoảng thời gian -->
                       <template v-if="statsMode === 'RANGE'">
                         <input
                           type="date"
@@ -314,7 +310,6 @@
                   <div v-else-if="customersError" class="text-danger mt-3">{{ customersError }}</div>
 
                   <div v-else class="kh-box mt-3">
-                    <!-- ✅ giống create: scroll chung để header/body không lệch cột -->
                     <div class="kh-scroll">
                       <div class="kh-head">
                         <div class="kh-col kh-check"></div>
@@ -322,10 +317,11 @@
                         <div class="kh-col kh-ten">Tên KH</div>
                         <div class="kh-col kh-sdt">SĐT</div>
                         <div class="kh-col kh-email">Email</div>
-
                         <div class="kh-col kh-ngaysinh">Ngày sinh</div>
 
-                        <!-- ✅ Sort (tuỳ chọn) theo số đơn -->
+                        <!-- ✅ NEW -->
+                        <div class="kh-col kh-lastbuy">Mua gần nhất</div>
+
                         <div
                           class="kh-col kh-donthang kh-sort"
                           role="button"
@@ -338,7 +334,6 @@
                           <i class="bi ms-1" :class="sortIcon('soDonThangHienTai')"></i>
                         </div>
 
-                        <!-- ✅ Sort theo số tiền đã tiêu -->
                         <div
                           class="kh-col kh-datieu kh-sort"
                           role="button"
@@ -374,6 +369,10 @@
                           </div>
 
                           <div class="kh-col kh-ngaysinh">{{ formatDob(c.ngaySinh) }}</div>
+
+                          <!-- ✅ NEW -->
+                          <div class="kh-col kh-lastbuy">{{ formatLastBuy(c.ngayMuaGanNhat) }}</div>
+
                           <div class="kh-col kh-donthang">{{ c.soDonThangHienTai ?? 0 }}</div>
 
                           <div class="kh-col kh-datieu">
@@ -454,7 +453,7 @@ const router = useRouter();
 const route = useRoute();
 
 const API = "/api/pgg";
-const KH_API = "/api/pgg/khach-hang-with-stats"; // ✅ giống create: có ngaySinh + stats
+const KH_API = "/api/pgg/khach-hang-with-stats";
 
 const id = route.params.id;
 
@@ -674,13 +673,13 @@ function clearEndDate() {
   if (fpStart) fpStart.set("maxDate", null);
 }
 
-// ===== Stats filter (giống create) =====
-const statsMode = ref("MONTH"); // MONTH | YEAR | RANGE
+// ===== Stats filter =====
+const statsMode = ref("MONTH");
 const now = new Date();
 const pad2 = (n) => String(n).padStart(2, "0");
-const statsMonth = ref(`${now.getFullYear()}-${pad2(now.getMonth() + 1)}`); // YYYY-MM
+const statsMonth = ref(`${now.getFullYear()}-${pad2(now.getMonth() + 1)}`);
 const statsYear = ref(now.getFullYear());
-const statsFrom = ref(""); // YYYY-MM-DD
+const statsFrom = ref("");
 const statsTo = ref("");
 
 const yearOptions = computed(() => {
@@ -710,9 +709,9 @@ async function reloadCustomersWithStats() {
   await loadCustomers();
 }
 
-// ===== Sort state (giống create) =====
-const sortKey = ref("tongTienDaTieu"); // "tongTienDaTieu" | "soDonThangHienTai"
-const sortDir = ref("desc"); // "asc" | "desc"
+// ===== Sort state =====
+const sortKey = ref("tongTienDaTieu");
+const sortDir = ref("desc");
 
 function toggleSort(key) {
   if (sortKey.value === key) {
@@ -733,7 +732,7 @@ const customers = ref([]);
 const loadingCustomers = ref(false);
 const customersError = ref("");
 const customerKeyword = ref("");
-const selectedCustomerIds = ref([]); // ✅ luôn lưu số (Number)
+const selectedCustomerIds = ref([]); // luôn Number
 
 function formatDob(ymd) {
   if (!ymd) return "-";
@@ -742,6 +741,15 @@ function formatDob(ymd) {
   if (!y || !m || !d) return "-";
   return `${d}/${m}/${y}`;
 }
+
+function formatLastBuy(ymdOrIso) {
+  if (!ymdOrIso) return "-";
+  const s = String(ymdOrIso).slice(0, 10);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return "-";
+  return `${d}/${m}/${y}`;
+}
+
 function formatMoney(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0";
@@ -779,12 +787,6 @@ async function loadSelectedCustomerIds() {
   }
 }
 
-/**
- * ✅ Filter + sort (giống create)
- * - search keyword trước
- * - sort theo state (tongTienDaTieu / soDonThangHienTai) + asc/desc
- * - nếu bằng nhau: id ASC
- */
 const filteredCustomers = computed(() => {
   const kw = String(customerKeyword.value || "").trim().toLowerCase();
 
@@ -806,7 +808,7 @@ const filteredCustomers = computed(() => {
     const av = getVal(a);
     const bv = getVal(b);
 
-    let diff = bv - av; // default desc
+    let diff = bv - av;
     if (sortDir.value === "asc") diff = av - bv;
 
     if (diff !== 0) return diff;
@@ -997,7 +999,6 @@ onMounted(async () => {
   initPickers();
 
   if (form.value.loaiPhieu === "CA_NHAN") {
-    // ✅ giống create: load ds KH theo stats + ids đã chọn, rồi tự fill số lượng
     await loadCustomers();
     await loadSelectedCustomerIds();
     form.value.soLuong = selectedCustomerIds.value.length;
@@ -1062,7 +1063,7 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* ✅ giống create: scroll chung + header sticky => không lệch cột */
+/* scroll chung + header sticky => không lệch cột */
 .kh-scroll {
   max-height: 360px;
   overflow: auto;
@@ -1075,7 +1076,7 @@ onBeforeUnmount(() => {
   z-index: 2;
 
   display: grid;
-  grid-template-columns: 44px 140px 1.6fr 160px 2fr 120px 110px 160px;
+  grid-template-columns: 44px repeat(8, 1fr);
   gap: 0;
   padding: 10px 12px;
   background: #1f2a44;
@@ -1084,7 +1085,7 @@ onBeforeUnmount(() => {
   color: #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
 
-  min-width: 980px;
+  min-width: 1120px;
 }
 
 .kh-body {
@@ -1093,13 +1094,13 @@ onBeforeUnmount(() => {
 
 .kh-row {
   display: grid;
-  grid-template-columns: 44px 140px 1.6fr 160px 2fr 120px 110px 160px;
+  grid-template-columns: 44px repeat(8, 1fr);
   padding: 10px 12px;
   font-size: 13px;
   border-bottom: 1px solid #e5e7eb;
   align-items: center;
 
-  min-width: 980px;
+  min-width: 1120px;
 }
 
 .kh-row:hover {
@@ -1122,7 +1123,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-/* ✅ header sortable (giống create) */
+/* header sortable */
 .kh-sort {
   cursor: pointer;
   user-select: none;
