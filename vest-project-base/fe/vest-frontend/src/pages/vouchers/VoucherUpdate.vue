@@ -350,7 +350,7 @@
                       <div class="kh-body">
                         <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
 
-                        <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
+                        <div v-else class="kh-row" v-for="c in pagedItems" :key="c.id">
                           <div class="kh-col kh-check">
                             <input
                               type="checkbox"
@@ -385,6 +385,56 @@
                     </div>
                   </div>
                   <!-- /kh-box -->
+                   <div class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2" v-if="totalPages > 0">
+  <div class="text-muted flex-grow-1">
+    Hiển thị {{ pagedItems.length }} / tổng {{ totalElements }} bản ghi
+  </div>
+
+  <div class="d-flex align-items-center gap-2 justify-content-center flex-grow-1">
+    <button
+      class="btn btn-outline-secondary btn-sm"
+      :disabled="page.page === 0"
+      @click="setPage(page.page - 1)"
+    >
+      <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <div class="input-group input-group-sm" style="width: 110px">
+      <span class="input-group-text">Trang</span>
+      <input
+        type="number"
+        min="1"
+        :max="totalPages || 1"
+        class="form-control"
+        v-model.number="pageInput"
+        @keyup.enter="jumpPage"
+        :disabled="isEnded"
+      />
+    </div>
+
+    <button
+      class="btn btn-outline-secondary btn-sm"
+      :disabled="page.page >= totalPages - 1"
+      @click="setPage(page.page + 1)"
+    >
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+
+  <div class="d-flex justify-content-md-end flex-grow-1">
+    <select
+      class="form-select form-select-sm"
+      style="width: 180px"
+      v-model.number="page.size"
+      @change="onChangeSize"
+      :disabled="isEnded"
+    >
+      <option :value="10">10 bản ghi / trang</option>
+      <option :value="20">20 bản ghi / trang</option>
+      <option :value="50">50 bản ghi / trang</option>
+    </select>
+  </div>
+</div>
                 </div>
               </div>
             </div>
@@ -815,7 +865,38 @@ const filteredCustomers = computed(() => {
     return Number(a.id) - Number(b.id);
   });
 });
+// ===== Pagination  =====
+const page = ref({ page: 0, size: 10 }); // 0-based
+const pageInput = ref(1); // 1-based input
 
+const totalElements = computed(() => filteredCustomers.value.length);
+const totalPages = computed(() => Math.ceil(totalElements.value / page.value.size) || 0);
+
+const pagedItems = computed(() => {
+  const start = page.value.page * page.value.size;
+  return filteredCustomers.value.slice(start, start + page.value.size);
+});
+
+function setPage(p) {
+  const max = Math.max(0, totalPages.value - 1);
+  page.value.page = Math.min(Math.max(0, p), max);
+  pageInput.value = page.value.page + 1;
+}
+
+function jumpPage() {
+  const p = Number(pageInput.value);
+  if (!Number.isFinite(p)) return;
+  setPage(p - 1);
+}
+
+function onChangeSize() {
+  setPage(0);
+}
+
+// reset về trang 1 khi lọc/search/sort/load lại
+watch([customerKeyword, sortKey, sortDir, customers], () => {
+  setPage(0);
+});
 const isAllSelected = computed(() => {
   const ids = filteredCustomers.value.map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
   if (ids.length === 0) return false;

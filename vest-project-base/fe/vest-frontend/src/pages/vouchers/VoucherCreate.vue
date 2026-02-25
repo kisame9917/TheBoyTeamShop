@@ -242,7 +242,6 @@
                       <div class="kh-col kh-email">Email</div>
                       <div class="kh-col kh-ngaysinh">Ngày sinh</div>
 
-                      <!-- ✅ NEW -->
                       <div class="kh-col kh-lastbuy">Ngày mua gần nhất</div>
 
                       <div
@@ -273,7 +272,8 @@
                     <div class="kh-body">
                       <div v-if="filteredCustomers.length === 0" class="kh-empty">Không có khách hàng phù hợp.</div>
 
-                      <div v-else class="kh-row" v-for="c in filteredCustomers" :key="c.id">
+                      <!-- ✅ dùng pagedItems -->
+                      <div v-else class="kh-row" v-for="c in pagedItems" :key="c.id">
                         <div class="kh-col kh-check">
                           <input
                             type="checkbox"
@@ -291,10 +291,7 @@
                         </div>
 
                         <div class="kh-col kh-ngaysinh">{{ formatDob(c.ngaySinh) }}</div>
-
-                        <!-- ✅ NEW -->
                         <div class="kh-col kh-lastbuy">{{ formatLastBuy(c.ngayMuaGanNhat) }}</div>
-
                         <div class="kh-col kh-donthang">{{ c.soDonThangHienTai ?? 0 }}</div>
 
                         <div class="kh-col kh-datieu">
@@ -307,6 +304,48 @@
                   </div>
                 </div>
                 <!-- /kh-box -->
+
+                <!-- ✅ Pagination UI (giống kiểu bạn gửi) -->
+                <div class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2" v-if="totalPages > 0">
+                  <div class="text-muted flex-grow-1">
+                    Hiển thị {{ pagedItems.length }} / tổng {{ totalElements }} bản ghi
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2 justify-content-center flex-grow-1">
+                    <button class="btn btn-outline-secondary btn-sm" :disabled="page.page === 0" @click="setPage(page.page - 1)">
+                      <i class="bi bi-chevron-left"></i>
+                    </button>
+
+                    <div class="input-group input-group-sm" style="width: 110px">
+                      <span class="input-group-text">Trang</span>
+                      <input
+                        type="number"
+                        min="1"
+                        :max="totalPages || 1"
+                        class="form-control"
+                        v-model.number="pageInput"
+                        @keyup.enter="jumpPage"
+                      />
+                    </div>
+
+                    <button
+                      class="btn btn-outline-secondary btn-sm"
+                      :disabled="page.page >= totalPages - 1"
+                      @click="setPage(page.page + 1)"
+                    >
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                  </div>
+
+                  <div class="d-flex justify-content-md-end flex-grow-1">
+                    <select class="form-select form-select-sm" style="width: 180px" v-model.number="page.size" @change="onChangeSize">
+                      <option :value="10">10 bản ghi / trang</option>
+                      <option :value="20">20 bản ghi / trang</option>
+                      <option :value="50">50 bản ghi / trang</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- /pagination -->
               </div>
             </div>
           </div>
@@ -683,7 +722,41 @@ const filteredCustomers = computed(() => {
   });
 });
 
+// ===== Pagination (kiểu bạn gửi) =====
+const page = ref({ page: 0, size: 10 }); // 0-based
+const pageInput = ref(1); // 1-based input
+
+const totalElements = computed(() => filteredCustomers.value.length);
+const totalPages = computed(() => Math.ceil(totalElements.value / page.value.size) || 0);
+
+const pagedItems = computed(() => {
+  const start = page.value.page * page.value.size;
+  return filteredCustomers.value.slice(start, start + page.value.size);
+});
+
+function setPage(p) {
+  const max = Math.max(0, totalPages.value - 1);
+  page.value.page = Math.min(Math.max(0, p), max);
+  pageInput.value = page.value.page + 1;
+}
+
+function jumpPage() {
+  const p = Number(pageInput.value);
+  if (!Number.isFinite(p)) return;
+  setPage(p - 1);
+}
+
+function onChangeSize() {
+  setPage(0);
+}
+
+// reset về trang 1 khi lọc/search/sort/load lại
+watch([customerKeyword, sortKey, sortDir, customers], () => {
+  setPage(0);
+});
+
 const isAllSelected = computed(() => {
+  // ✅ chọn hết toàn bộ danh sách đang lọc (không chỉ 1 trang)
   const ids = filteredCustomers.value.map((x) => x.id);
   if (ids.length === 0) return false;
   return ids.every((id) => selectedCustomerIds.value.includes(id));
@@ -698,6 +771,7 @@ function toggleCustomer(id) {
 }
 
 function toggleSelectAll() {
+  // ✅ chọn hết toàn bộ danh sách đang lọc (không chỉ 1 trang)
   const ids = filteredCustomers.value.map((x) => x.id);
   if (ids.length === 0) return;
 
@@ -891,7 +965,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: #fff;
   width: 100%;
-  
 }
 
 /* scroll chung (header sticky) */
