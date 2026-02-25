@@ -66,7 +66,9 @@ public class AuthServiceImpl implements AuthService {
                 token,
                 role,
                 nv.getId(),
-                nv.getTenNhanVien() // <-- Đã sửa từ getHoTen() thành getTenNhanVien()
+                nv.getTenNhanVien(),
+                nv.getEmail()
+
         );
     }
 
