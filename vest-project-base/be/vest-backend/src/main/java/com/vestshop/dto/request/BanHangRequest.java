@@ -1,4 +1,6 @@
+// BanHangRequest.java
 package com.vestshop.dto.request;
+
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -9,14 +11,15 @@ import java.util.List;
 @Data
 public class BanHangRequest {
     private String maHoaDon;
-    private Boolean loaiDon;          // FE gửi false
+    private Boolean loaiDon;
+
     @NotNull
-    private BigDecimal phiVanChuyen;  // FE gửi 0
+    private BigDecimal phiVanChuyen;
 
     private Long idKhachHang;
     private Long idPhieuGiamGia;
 
-    private Integer giamThuCongPercent; // 0..100 (khi không dùng voucher)
+    private Integer giamThuCongPercent;
 
     private String tenKhachHang;
     private String soDienThoai;
@@ -24,7 +27,12 @@ public class BanHangRequest {
     private String diaChiKhachHang;
     private String ghiChu;
 
-    private BigDecimal paid; // tiền khách đưa
+    private BigDecimal paid;
+
+    // ✅ THÊM:
+    private Long idPhuongThucThanhToan; // VD: 1=TIEN_MAT, 2=QR...
+    private String maGiaoDich;          // nếu QR/bank có mã giao dịch
+    private String ghiChuThanhToan;     // ghi chú riêng cho lịch sử thanh toán
 
     @NotEmpty
     private List<Item> items;
@@ -36,5 +44,4 @@ public class BanHangRequest {
         @NotNull
         private Integer soLuong;
     }
-
 }

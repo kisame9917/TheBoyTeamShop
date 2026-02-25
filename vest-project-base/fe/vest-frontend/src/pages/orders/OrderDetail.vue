@@ -11,31 +11,33 @@
         <i class="bi bi-arrow-left me-1"></i> Quay lại
       </button>
     </div>
-<!-- Stepper (giống ảnh, xịn hơn) -->
-<!-- Stepper -->
-<div class="order-stepper mb-3" v-if="hd">
-  <div class="order-stepper__track" :style="{ '--progress': progressPercent }">
-    <div
-      v-for="s in stepperSteps"
-      :key="s.code"
-      class="os-step"
-      :class="stepStateClass(s.code)"
-    >
-      <!-- chữ nằm trên line -->
-      <div class="os-label">
-        <div class="os-text">{{ s.label }}</div>
-        <div class="os-time" v-if="s.timeText">{{ s.timeText }}</div>
-      </div>
 
-      <!-- circle nằm đúng trên thanh progress -->
-      <div class="os-circle">
-        <i v-if="isDoneStep(s.code)" class="bi bi-check-lg"></i>
-        <span v-else class="os-dot"></span>
+    <!-- Stepper -->
+    <div class="order-stepper mb-3" v-if="hd">
+      <div
+        class="order-stepper__track"
+        :style="{ '--progress': progressPercent, '--steps': stepperSteps.length }"
+      >
+        <div
+          v-for="s in stepperSteps"
+          :key="s.code"
+          class="os-step"
+          :class="stepStateClass(s.code)"
+        >
+          <!-- chữ nằm trên line -->
+          <div class="os-label">
+            <div class="os-text">{{ s.label }}</div>
+            <div class="os-time" v-if="s.timeText">{{ s.timeText }}</div>
+          </div>
+
+          <!-- circle nằm đúng trên thanh progress -->
+          <div class="os-circle">
+            <i v-if="isDoneStep(s.code)" class="bi bi-check-lg"></i>
+            <span v-else class="os-dot"></span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
-
 
     <!-- Actions -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -99,6 +101,8 @@
               Mã: <b>{{ hd?.maHoaDon || "-" }}</b>
               <span class="mx-1">•</span>
               Tạo lúc: <b>{{ formatDateTimeVN(hd?.ngayTao) || "-" }}</b>
+              <span class="mx-1">•</span>
+              NV xử lý: <b>{{ staffCode }}</b> - <b>{{ staffName }}</b>
             </div>
           </div>
 
@@ -318,6 +322,8 @@
                   <tr>
                     <th style="width: 160px">Trạng thái</th>
                     <th style="width: 180px">Thời gian</th>
+                    <th style="width: 140px">Mã NV</th>
+                    <th style="width: 220px">Tên NV</th>
                     <th style="width: 220px">Hành động</th>
                     <th>Mô tả</th>
                   </tr>
@@ -325,7 +331,7 @@
 
                 <tbody>
                   <tr v-if="(hd?.lichSuHoaDon || []).length === 0">
-                    <td colspan="4" class="text-center text-muted py-4">Chưa có lịch sử</td>
+                    <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử</td>
                   </tr>
 
                   <tr v-for="h in hd?.lichSuHoaDon || []" :key="h.id">
@@ -335,6 +341,8 @@
                       </span>
                     </td>
                     <td>{{ formatDateTimeVN(h.thoiGian) }}</td>
+                    <td class="text-truncate">{{ historyStaffCode(h) }}</td>
+                    <td class="text-truncate">{{ historyStaffName(h) }}</td>
                     <td class="fw-semibold">{{ h.hanhDong || "-" }}</td>
                     <td>{{ h.ghiChu || "-" }}</td>
                   </tr>
@@ -519,6 +527,7 @@ const hd = ref(null);
 
 /** ====== STATUS LABELS ====== */
 function statusLabel(code) {
+  if (code === null || code === undefined || code === "") return "-";
   const m = {
     0: "Chờ xác nhận",
     1: "Đang xử lý",
@@ -533,6 +542,7 @@ function statusLabel(code) {
 }
 
 function statusBadgeClass(code) {
+  if (code === null || code === undefined || code === "") return "text-bg-secondary";
   switch (Number(code)) {
     case 4: return "text-bg-success";
     case 3: return "text-bg-primary";
@@ -606,6 +616,29 @@ const paidTotal = computed(() => {
   return list.reduce((s, p) => s + Number(p?.soTien ?? 0), 0);
 });
 
+/** ===== NV xử lý đơn (Mã, tên) ===== */
+const staffCode = computed(() => {
+  const v = hd.value;
+  return (
+    v?.nhanVienXuLy?.maNhanVien ??
+    v?.maNhanVienXuLy ??
+    v?.nhanVien?.maNhanVien ??
+    v?.maNhanVien ??
+    "-"
+  );
+});
+
+const staffName = computed(() => {
+  const v = hd.value;
+  return (
+    v?.nhanVienXuLy?.tenNhanVien ??
+    v?.tenNhanVienXuLy ??
+    v?.nhanVien?.tenNhanVien ??
+    v?.tenNhanVien ??
+    "-"
+  );
+});
+
 /**
  * Advance logic:
  * 0 -> 1 -> 2 -> 3 -> 4
@@ -626,9 +659,11 @@ const advanceBtnText = computed(() => {
 
 const canCancel = computed(() => [0, 1, 2].includes(currentStatus.value));
 const canRequestRefund = computed(() => [3, 4].includes(currentStatus.value));
-/** ===== STEPPER (giống ảnh) ===== */
+
+/** ===== STEPPER (auto steps) ===== */
 const baseStepper = [
-  { code: 1, label: "Đang xử lý" },
+  { code: 0, label: "Chờ xác nhận đơn" },
+  { code: 1, label: "Đang xử lý đơn hàng" },
   { code: 2, label: "Đang giao" },
   { code: 3, label: "Đã giao" },
   { code: 4, label: "Hoàn thành" },
@@ -636,6 +671,7 @@ const baseStepper = [
 
 const actionToStepCode = (hanhDong) => {
   const m = {
+    CHO_XAC_NHAN: 0,
     DANG_XU_LY: 1,
     DANG_GIAO: 2,
     DA_GIAO: 3,
@@ -643,11 +679,15 @@ const actionToStepCode = (hanhDong) => {
   };
   return m[hanhDong];
 };
+
 const stepCodes = computed(() => baseStepper.map((s) => s.code));
-// step hiện tại để tô stepper (0..4)
-// nếu trạng thái là hủy/hoàn (5/6/7) thì lấy “bước cao nhất” từ lịch sử để hiển thị hợp lý
+
+/**
+ * step hiện tại để tô stepper (0..4)
+ * nếu trạng thái là hủy/hoàn (5/6/7) thì lấy “bước cao nhất” từ lịch sử để hiển thị hợp lý
+ */
 const currentStepIndex = computed(() => {
-  const st = Number(hd.value?.trangThaiDon ?? 0);
+  const st = Number(hd.value?.trangThaiDon ?? -1);
 
   if (stepCodes.value.includes(st)) return stepCodes.value.indexOf(st);
 
@@ -659,7 +699,7 @@ const currentStepIndex = computed(() => {
     if (codes.length) return stepCodes.value.indexOf(Math.max(...codes));
   }
 
-  return -1; // 0 hoặc không có -> chưa vào stepper
+  return -1;
 });
 
 const stepperSteps = computed(() => {
@@ -673,22 +713,18 @@ const stepperSteps = computed(() => {
 
   return baseStepper.map((s) => ({
     ...s,
-    timeText: latestTimeByStep(s.code)
-      ? formatDateTimeVN(latestTimeByStep(s.code))
-      : "",
+    timeText: latestTimeByStep(s.code) ? formatDateTimeVN(latestTimeByStep(s.code)) : "",
   }));
 });
 
-// progress theo index (0..3) => 0..100
+// progress theo index (0..n-1) => 0..100
 const progressPercent = computed(() => {
   const idx = currentStepIndex.value;
   if (idx < 0) return 0;
 
-  const n = baseStepper.length; // 4 step
-  // chia theo (n-1) đoạn: 0..(n-1) => 0..100
+  const n = baseStepper.length; // số step
   return (idx / (n - 1)) * 100;
 });
-
 
 const isDoneStep = (code) => {
   const idx = currentStepIndex.value;
@@ -851,6 +887,13 @@ function mapHistoryToStatusLabel(hanhDong) {
   };
   return m[hanhDong] || hanhDong;
 }
+
+/** Lịch sử: Mã NV + Tên NV thao tác */
+const historyStaffCode = (h) =>
+  h?.maNhanVien ?? h?.nhanVien?.maNhanVien ?? h?.nhanVienThaoTac?.maNhanVien ?? "-";
+
+const historyStaffName = (h) =>
+  h?.tenNhanVien ?? h?.nhanVien?.tenNhanVien ?? h?.nhanVienThaoTac?.tenNhanVien ?? "-";
 
 /** ===== Print Modal + QR ===== */
 const printModalRef = ref(null);
@@ -1113,7 +1156,8 @@ onMounted(async () => {
 .receipt .w-qty { width: 10mm; }
 .receipt .w-price { width: 22mm; }
 .receipt .qr { width: 28mm; height: 28mm; }
-/* ===== Stepper: chữ ở trên thanh progress xanh ===== */
+
+/* ===== Stepper: chữ ở trên thanh progress xanh (AUTO steps) ===== */
 .order-stepper {
   background: #fff;
   border: 1px solid #e6e9ef;
@@ -1122,9 +1166,9 @@ onMounted(async () => {
   box-shadow: 0 8px 22px rgba(31, 42, 68, 0.06);
 }
 
-/* 4 step cố định: 1-2-3-4 */
 .order-stepper__track {
   --progress: 0;        /* 0..100 (JS set) */
+  --steps: 4;           /* stepperSteps.length sẽ override */
   --label-h: 44px;      /* chiều cao vùng chữ */
   --gap: 8px;           /* khoảng cách chữ -> circle */
   --dot: 30px;
@@ -1132,17 +1176,17 @@ onMounted(async () => {
 
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
   align-items: start;
   padding: 6px 8px 6px;
 }
 
-/* line nền: chạy từ tâm step 1 tới tâm step 4 */
+/* line nền: chạy từ tâm step 1 tới tâm step cuối */
 .order-stepper__track::before {
   content: "";
   position: absolute;
-  left: 12.5%;
-  right: 12.5%;
+  left: calc(100% / (2 * var(--steps)));
+  right: calc(100% / (2 * var(--steps)));
   top: calc(var(--label-h) + var(--gap) + var(--dot-half));
   height: 4px;
   border-radius: 999px;
@@ -1150,14 +1194,14 @@ onMounted(async () => {
   z-index: 0;
 }
 
-/* line progress xanh: theo từng trạng thái */
+/* line progress xanh: co theo số step */
 .order-stepper__track::after {
   content: "";
   position: absolute;
-  left: 12.5%;
+  left: calc(100% / (2 * var(--steps)));
   top: calc(var(--label-h) + var(--gap) + var(--dot-half));
   height: 4px;
-  width: calc(75% * var(--progress) / 100);
+  width: calc((100% - (100% / var(--steps))) * var(--progress) / 100);
   border-radius: 999px;
   background: linear-gradient(90deg, #0d6efd, #20c997);
   box-shadow: 0 10px 18px rgba(13, 110, 253, 0.15);
@@ -1175,9 +1219,10 @@ onMounted(async () => {
 
 /* chữ nằm trên line */
 .os-label {
-  min-height: var(--label-h);
+  height: var(--label-h);
   text-align: center;
   padding: 0 6px;
+  overflow: hidden;
 }
 
 .os-text {
@@ -1186,6 +1231,8 @@ onMounted(async () => {
   color: #1f2a44;
   line-height: 1.1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .os-time {
@@ -1226,13 +1273,15 @@ onMounted(async () => {
   border-color: #0d6efd;
   color: #fff;
 }
+
+/* current: vòng rỗng + chấm xanh + halo (giống ảnh) */
 .os-step.is-current .os-circle {
-  background: #0d6efd;
+  background: #fff;
   border-color: #0d6efd;
-  color: #fff;
+  color: #0d6efd;
   box-shadow: 0 0 0 6px rgba(13, 110, 253, 0.14), 0 14px 28px rgba(13, 110, 253, 0.22);
 }
-.os-step.is-current .os-dot { background: #fff; }
+.os-step.is-current .os-dot { background: #0d6efd; }
 
 .os-step.is-todo .os-text {
   color: #6c757d;
@@ -1254,6 +1303,4 @@ onMounted(async () => {
   }
   .os-text { white-space: normal; }
 }
-
-
-</style>  
+</style>
