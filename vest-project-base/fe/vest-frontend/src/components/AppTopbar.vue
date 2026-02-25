@@ -8,14 +8,13 @@
 
     <!-- RIGHT -->
     <div class="right">
-      <!-- STAFF chế độ xem (tách khỏi icon chuông) -->
-      <!-- ✅ Nhấn để mở lại modal vào ca (tránh trường hợp user lỡ bấm 'Chế độ xem' rồi không biết mở lại) -->
+      <!-- STAFF chế độ xem -->
       <button
-          v-if="showViewBadge"
-          class="view-mode-pill"
-          type="button"
-          title="Nhấn để mở lại màn hình vào ca"
-          @click="openGate"
+        v-if="showViewBadge"
+        class="view-mode-pill"
+        type="button"
+        title="Nhấn để mở lại màn hình vào ca"
+        @click="openGate"
       >
         Chế độ xem
       </button>
@@ -25,8 +24,8 @@
         <button class="icon-btn" type="button" @click.stop="toggleNoti" aria-label="Thông báo">
           <svg viewBox="0 0 24 24" class="icon" aria-hidden="true">
             <path
-                d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"
-                fill="currentColor"
+              d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2Z"
+              fill="currentColor"
             />
           </svg>
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
@@ -46,11 +45,11 @@
 
           <ul v-else class="list">
             <li
-                v-for="n in notificationsLocal"
-                :key="n.id"
-                class="item"
-                :class="{ unread: !n.read }"
-                @click="openNoti(n)"
+              v-for="n in notificationsLocal"
+              :key="n.id"
+              class="item"
+              :class="{ unread: !n.read }"
+              @click="openNoti(n)"
             >
               <div class="item-main">
                 <div class="item-title">{{ n.title }}</div>
@@ -58,11 +57,11 @@
               </div>
 
               <button
-                  v-if="!n.read"
-                  class="mini"
-                  type="button"
-                  title="Đánh dấu đã đọc"
-                  @click.stop="markRead(n.id)"
+                v-if="!n.read"
+                class="mini"
+                type="button"
+                title="Đánh dấu đã đọc"
+                @click.stop="markRead(n.id)"
               >
                 ✓
               </button>
@@ -79,6 +78,7 @@
       <div class="dd-wrap">
         <button class="user-btn" type="button" @click.stop="toggleUser">
           <span class="avatar">{{ initials }}</span>
+          <!-- ✅ Trên topbar chỉ hiện tên nhân viên -->
           <span class="user-name">{{ admin.name }}</span>
 
           <svg viewBox="0 0 24 24" class="chev" aria-hidden="true">
@@ -89,7 +89,8 @@
         <div v-if="showUser" class="dropdown user-dd">
           <div class="user-card">
             <div class="u-name">{{ admin.name }}</div>
-            <div class="u-mail">{{ admin.email }}</div>
+            <!-- ✅ Dòng dưới hiện quyền -->
+            <div class="u-mail">{{ roleLabel }}</div>
           </div>
 
           <div class="divider"></div>
@@ -99,7 +100,6 @@
 
           <div class="divider"></div>
 
-          <!-- ✅ Logout thật -->
           <button class="menu danger" type="button" @click="logout">
             Đăng xuất
           </button>
@@ -110,156 +110,199 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useShiftStore } from '@/stores/shift'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { useShiftStore } from "@/stores/shift";
 
 const props = defineProps({
-  title: { type: String, default: '' },
-  subtitle: { type: String, default: '' },
+  title: { type: String, default: "" },
+  subtitle: { type: String, default: "" },
   notifications: {
     type: Array,
     default: () => ([
-      { id: 1, title: 'Có đơn hàng mới', time: 'Vừa xong', read: false, link: '/app/orders' },
-      { id: 2, title: 'Phiếu giảm giá sắp hết hạn', time: 'Hôm nay', read: true, link: '/app/vouchers' }
+      { id: 1, title: "Có đơn hàng mới", time: "Vừa xong", read: false, link: "/app/orders" },
+      { id: 2, title: "Phiếu giảm giá sắp hết hạn", time: "Hôm nay", read: true, link: "/app/vouchers" }
     ])
   }
-})
+});
 
-const route = useRoute()
-const router = useRouter()
-const auth = useAuthStore()
-const shift = useShiftStore()
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+const shift = useShiftStore();
 
-const showViewBadge = computed(() => auth.isStaff && shift.isLocked)
+const showViewBadge = computed(() => auth.isStaff && shift.isLocked);
 
 function openGate() {
-  // mở gate ngay (modal hiện tức thì) và đồng thời refresh trạng thái từ BE
-  shift.bootstrap(true)
+  shift.bootstrap(true);
 }
 
-// function openGate() {
-//   // mở gate ngay + sync lại state từ BE
-//   shift.bootstrap(true)
-// }
-
-// ===== Role helper =====
+// ===== Role helper (fallback localStorage) =====
 const role = computed(() => {
-  // ưu tiên lấy từ store nếu có
-  const storeRole = auth?.role
-  if (storeRole) return String(storeRole).toUpperCase()
+  const storeRole = auth?.role;
+  if (storeRole) return String(storeRole).toUpperCase();
 
-  // fallback localStorage (đổi key nếu bạn dùng key khác)
-  const lsRole = localStorage.getItem('role') || localStorage.getItem('vest_role') || ''
-  return String(lsRole).toUpperCase()
-})
+  const lsRole = localStorage.getItem("vest_role") || localStorage.getItem("role") || "";
+  return String(lsRole).toUpperCase();
+});
 
-const displayNameByRole = computed(() => (role.value === 'STAFF' ? 'Staff' : 'Admin'))
+// ✅ Label quyền hiển thị trong dropdown
+const roleLabel = computed(() => {
+  const r = String(role.value || "").toUpperCase();
+  if (r === "ADMIN") return "Quyền: Admin";
+  if (r === "STAFF") return "Quyền: Staff";
+  if (!r) return "Quyền: -";
+  return `Quyền: ${r}`;
+});
+
+// ===== User from localStorage (ưu tiên vest_user) =====
+function cleanName(name) {
+  let s = String(name || "").trim();
+  // bỏ prefix kiểu "Admin ", "Staff ", "NV ", "Nhân viên "
+  s = s.replace(/^(admin|staff|nhân viên|nhan vien|nv)\s*[:\-]?\s*/i, "");
+  s = s.replace(/^(ADMIN|STAFF)\s+/i, "");
+  return s.trim();
+}
+
+function readUserFromLocal() {
+  try {
+    const raw = localStorage.getItem("vest_user");
+    if (raw) {
+      const u = JSON.parse(raw);
+      const name = cleanName(u?.tenNhanVien || "");
+      return {
+        name: name || (role.value === "STAFF" ? "Staff" : "Admin")
+      };
+    }
+  } catch {}
+
+  const name = cleanName(localStorage.getItem("vest_name") || "");
+  return {
+    name: name || (role.value === "STAFF" ? "Staff" : "Admin")
+  };
+}
+
+const admin = ref(readUserFromLocal());
+
+// Khi role đổi (login/logout)
+watch(role, () => {
+  admin.value = readUserFromLocal();
+});
+
+function onStorage(e) {
+  if (!e || !e.key) return;
+  if (["vest_user", "vest_name", "vest_role", "role"].includes(e.key)) {
+    admin.value = readUserFromLocal();
+  }
+}
 
 // Title hiển thị
-const resolvedTitle = computed(() => props.title || route.meta?.title || 'Vest Shop')
-
-// User hiển thị
-const admin = ref({
-  name: displayNameByRole.value,
-  email: role.value === 'STAFF' ? 'staff@vestshop.local' : 'admin@vestshop.local'
-})
-
-// Khi role thay đổi (login/logout), update lại user hiển thị
-watch(displayNameByRole, (name) => {
-  admin.value.name = name
-  admin.value.email = role.value === 'STAFF' ? 'staff@vestshop.local' : 'admin@vestshop.local'
-})
+const resolvedTitle = computed(() => props.title || route.meta?.title || "Vest Shop");
 
 // copy notifications để có thể mark read mà không mutate props trực tiếp
-const notificationsLocal = ref([...props.notifications])
+const notificationsLocal = ref([...props.notifications]);
 watch(
-    () => props.notifications,
-    (val) => (notificationsLocal.value = [...(val || [])]),
-    { deep: true }
-)
+  () => props.notifications,
+  (val) => (notificationsLocal.value = [...(val || [])]),
+  { deep: true }
+);
 
-const showNoti = ref(false)
-const showUser = ref(false)
+const showNoti = ref(false);
+const showUser = ref(false);
 
 // ===== TIME =====
-const now = ref(new Date())
-let timer
+const now = ref(new Date());
+let timer;
 
 onMounted(() => {
   timer = setInterval(() => {
-    now.value = new Date()
-  }, 60_000)
-  document.addEventListener('click', closeAll)
-})
+    now.value = new Date();
+  }, 60_000);
+
+  document.addEventListener("click", closeAll);
+  window.addEventListener("storage", onStorage);
+
+  // đảm bảo lần mount đọc đúng dữ liệu mới nhất
+  admin.value = readUserFromLocal();
+});
 
 onBeforeUnmount(() => {
-  clearInterval(timer)
-  document.removeEventListener('click', closeAll)
-})
+  clearInterval(timer);
+  document.removeEventListener("click", closeAll);
+  window.removeEventListener("storage", onStorage);
+});
 
 const resolvedSubtitle = computed(() => {
-  if (props.subtitle) return props.subtitle
-  if (route.meta?.subtitle) return route.meta.subtitle
+  if (props.subtitle) return props.subtitle;
+  if (route.meta?.subtitle) return route.meta.subtitle;
 
-  const datePart = new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(now.value)
+  const datePart = new Intl.DateTimeFormat("vi-VN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(now.value);
 
-  const timePart = new Intl.DateTimeFormat('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
+  const timePart = new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: false
-  }).format(now.value)
+  }).format(now.value);
 
-  return `${datePart} • ${timePart}`
-})
+  return `${datePart} • ${timePart}`;
+});
 
-const unreadCount = computed(() => notificationsLocal.value.filter(n => !n.read).length)
+const unreadCount = computed(() => notificationsLocal.value.filter((n) => !n.read).length);
 
 const initials = computed(() => {
-  const name = (admin.value.name || '').trim() || 'AD'
-  const parts = name.split(/\s+/).slice(0, 2)
-  return parts.map(p => p[0]?.toUpperCase()).join('')
-})
+  const name = (admin.value.name || "").trim() || "AD";
+  const parts = name.split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase()).join("");
+});
 
 function toggleNoti() {
-  showNoti.value = !showNoti.value
-  if (showNoti.value) showUser.value = false
+  showNoti.value = !showNoti.value;
+  if (showNoti.value) showUser.value = false;
 }
 function toggleUser() {
-  showUser.value = !showUser.value
-  if (showUser.value) showNoti.value = false
+  showUser.value = !showUser.value;
+  if (showUser.value) showNoti.value = false;
 }
 
 function closeAll() {
-  showNoti.value = false
-  showUser.value = false
+  showNoti.value = false;
+  showUser.value = false;
 }
 
 function markRead(id) {
-  const n = notificationsLocal.value.find(x => x.id === id)
-  if (n) n.read = true
+  const n = notificationsLocal.value.find((x) => x.id === id);
+  if (n) n.read = true;
 }
 function markAllRead() {
-  notificationsLocal.value.forEach(n => (n.read = true))
+  notificationsLocal.value.forEach((n) => (n.read = true));
 }
 
 function openNoti(n) {
-  if (!n.read) n.read = true
-  closeAll()
-  if (n.link) router.push(n.link)
+  if (!n.read) n.read = true;
+  closeAll();
+  if (n.link) router.push(n.link);
 }
 
 // Logout
 function logout() {
-  closeAll()
-  auth.logout()
-  router.replace('/login')
+  closeAll();
+  auth.logout?.();
+
+  // clear localStorage keys bạn dùng cho user
+  localStorage.removeItem("vest_user");
+  localStorage.removeItem("vest_name");
+  localStorage.removeItem("vest_role");
+  localStorage.removeItem("role");
+  localStorage.removeItem("token");
+  localStorage.removeItem("vest_token");
+
+  router.replace("/login");
 }
 </script>
 
