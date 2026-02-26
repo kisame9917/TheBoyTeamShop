@@ -20,6 +20,10 @@ export const deleteDetail = (id) => {
     return http.delete(`/api/san-pham-chi-tiet/${id}`)
 }
 
+export const decreaseStock = (id, qty = 1) => {
+  return http.patch(`/api/san-pham-chi-tiet/${id}/decrease-stock`, null, { params: { qty } })
+}
+
 
 export const uploadImage = (file) => {
     const formData = new FormData();

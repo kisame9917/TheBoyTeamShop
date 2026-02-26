@@ -744,8 +744,9 @@
 <script setup>
 import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from "vue";
 import http from "@/services/http";
-import { getAllDetails } from "@/services/sanPhamChiTietApi";
+import { getAllDetails,decreaseStock } from "@/services/sanPhamChiTietApi";
 import { listKhachHang } from "@/services/khachHangApi";
+
 
 /** ========= CONFIG ========= */
 const MAX_ORDERS = 10;
@@ -1203,16 +1204,42 @@ function onQtyBlur(idx, e) {
 function sameMoney(a, b) {
   return Math.round(Number(a || 0)) === Math.round(Number(b || 0));
 }
-function chooseProduct(p) {
+async function chooseProduct(p) {
   const o = activeOrder.value;
   if (!o) return;
-  if ((Number(p.stock) || 0) <= 0) return toastShow("Sản phẩm đã hết hàng", "warning");
 
   const id = Number(p.idSpct);
-  let idx = o.cart.findIndex((x) => Number(x.idSpct) === id && sameMoney(x.price, p.price));
+  if (!Number.isFinite(id)) {
+    return toastShow("Sản phẩm không hợp lệ", "warning");
+  }
+
+  // Lưu lại tồn gốc trước khi trừ (để dùng set stockBase cho cart)
+  const baseBefore = Number(p._baseStock ?? p.stock ?? 0);
+
+  // check nhanh UI
+  if ((Number(p.stock) || 0) <= 0) {
+    return toastShow("Sản phẩm đã hết hàng", "warning");
+  }
+
+  // ✅ TRỪ TỒN KHO TRONG SQL NGAY KHI BẤM CHỌN
+  try {
+    await decreaseStock(id, 1);
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      err?.response?.data ||
+      "Không đủ tồn kho";
+    return toastShow(String(msg), "warning");
+  }
+
+  // ✅ chỉ update tồn HIỂN THỊ (KHÔNG đụng _baseStock)
+  if (p.stock != null) p.stock = Math.max(0, Number(p.stock) - 1);
+
+  let idx = o.cart.findIndex(
+    (x) => Number(x.idSpct) === id && sameMoney(x.price, p.price)
+  );
 
   if (idx === -1) {
-    const base = Number(p._baseStock ?? 0);
     o.cart.push({
       key: `${id}-${Math.round(Number(p.price || 0))}-${Date.now()}-${Math.random()}`,
       idSpct: id,
@@ -1222,12 +1249,14 @@ function chooseProduct(p) {
       image: p.image,
       price: Number(p.price || 0),
       qty: 0,
-      stockBase: base,
-      stock: base,
+      // dùng baseBefore để cart vẫn có “tồn gốc” đúng cho setQtyByInput
+      stockBase: baseBefore,
+      stock: baseBefore,
     });
     idx = o.cart.length - 1;
   } else {
-    ensureCartItemStockBase(o.cart[idx], Number(p._baseStock ?? 0));
+    // giữ nguyên logic cũ: base của item lấy từ _baseStock (tồn gốc), không lấy từ stock hiện tại
+    ensureCartItemStockBase(o.cart[idx], Number(p._baseStock ?? baseBefore));
   }
 
   setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
