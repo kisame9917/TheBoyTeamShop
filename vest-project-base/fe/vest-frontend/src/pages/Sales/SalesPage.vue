@@ -1115,19 +1115,14 @@ function findModalProductById(idSpct) {
 }
 
 function syncModalStockWithCart() {
-  const o = activeOrder.value;
-  if (!o) return;
-
-  const hold = new Map();
-  for (const it of o.cart || []) {
-    const id = Number(it.idSpct);
-    hold.set(id, (hold.get(id) || 0) + Number(it.qty || 0));
-  }
-
+  // ✅ Vì đã trừ tồn trong DB khi bấm "Chọn"
+  // => stock lấy từ DB đã là stock còn lại
+  // => KHÔNG trừ thêm qty trong cart nữa, nếu không sẽ bị -2 lần
   for (const p of products.value) {
-    if (typeof p._baseStock !== "number") p._baseStock = Number(p.stock || 0);
-    const h = hold.get(Number(p.idSpct)) || 0;
-    p.stock = Math.max(0, Number(p._baseStock || 0) - h);
+    // _baseStock giữ đúng giá trị DB hiện tại
+    p._baseStock = Number(p._baseStock ?? p.stock ?? 0);
+    // stock hiển thị = stock DB
+    p.stock = Number(p._baseStock || 0);
   }
 }
 
@@ -1303,17 +1298,14 @@ async function chooseProduct(p) {
   if (!Number.isFinite(id)) return toastShow("Sản phẩm không hợp lệ", "warning");
 
   const baseBefore = Number(p._baseStock ?? p.stock ?? 0);
-
   if ((Number(p.stock) || 0) <= 0) return toastShow("Sản phẩm đã hết hàng", "warning");
 
   try {
-    await decreaseStock(id, 1);
+    await decreaseStock(id, 1); // ✅ trừ DB
   } catch (err) {
     const msg = err?.response?.data?.message || err?.response?.data || "Không đủ tồn kho";
     return toastShow(String(msg), "warning");
   }
-
-  if (p.stock != null) p.stock = Math.max(0, Number(p.stock) - 1);
 
   let idx = o.cart.findIndex((x) => Number(x.idSpct) === id && sameMoney(x.price, p.price));
 
@@ -1335,7 +1327,9 @@ async function chooseProduct(p) {
     ensureCartItemStockBase(o.cart[idx], Number(p._baseStock ?? baseBefore));
   }
 
+  // ✅ setQtyByInput sẽ tự trừ UI 1 lần (đừng trừ ở trên nữa)
   setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
+
   toastShow(`Đã thêm ${p.code}`, "success");
 }
 
