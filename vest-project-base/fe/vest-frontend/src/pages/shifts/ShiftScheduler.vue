@@ -52,6 +52,11 @@
           </button>
         </template>
 
+        <!-- ✅ NEW: Bulk add -->
+        <button class="btn btn-outline-primary btn-sm" @click="openBulkModal">
+          <i class="bi bi-ui-checks-grid me-1"></i> Thêm hàng loạt
+        </button>
+
         <button class="btn btn-outline-secondary btn-sm" @click="openModal()">
           <i class="bi bi-plus-lg me-1"></i> Phân Ca Mới
         </button>
@@ -91,13 +96,19 @@
 
             <div class="col-12 col-lg-3">
               <label class="form-label">Ca làm việc</label>
-              <select v-model="filters.shiftId" class="form-select" @change="applyFilters">
-                <option :value="null">Tất cả ca</option>
-                <!-- vẫn cho chọn tất cả template; calendar sẽ chỉ HIỂN THỊ ca hoạt động -->
-                <option v-for="t in templates" :key="t.id" :value="t.id">
-                  {{ t.tenCa }}
-                </option>
-              </select>
+
+              <!-- ✅ CHANGED: searchable combo (filter shift) -->
+              <Multiselect
+                  v-model="shiftFilterSelected"
+                  :options="shiftFilterOptions"
+                  :searchable="true"
+                  :allow-empty="false"
+                  :show-labels="false"
+                  :close-on-select="true"
+                  :custom-label="shiftFilterLabel"
+                  track-by="id"
+                  placeholder="Tất cả ca"
+              />
             </div>
 
             <!-- ✅ Chỉ dùng Từ/Đến ngày cho Danh sách (vì calendar theo tuần riêng) -->
@@ -240,7 +251,7 @@
 
               <td>{{ formatTime(item.gioBatDau) }} - {{ formatTime(item.gioKetThuc) }}</td>
 
-              <td><span class="ellipsis" :title="item.ghiChu">{{ item.ghiChu || '-' }}</span></td>
+              <td><span class="ellipsis" :title="item.ghiChu">{{ item.ghiChu || "-" }}</span></td>
 
               <td class="text-end pe-3">
                 <div class="d-flex justify-content-center gap-2">
@@ -398,18 +409,26 @@
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-card shadow-lg" style="width: 500px;">
         <h3 class="modal-title border-bottom pb-2 mb-3">
-          {{ isEdit ? 'Cập nhật Lịch Làm Việc' : 'Phân Ca Làm Việc Mới' }}
+          {{ isEdit ? "Cập nhật Lịch Làm Việc" : "Phân Ca Làm Việc Mới" }}
         </h3>
 
         <form @submit.prevent="submitAssign">
           <div class="mb-3">
             <label class="form-label fw-bold small">Nhân viên <span class="text-danger">*</span></label>
-            <select v-model="form.idNhanVien" class="form-select" required :disabled="isEdit">
-              <option :value="null" disabled>-- Chọn nhân viên --</option>
-              <option v-for="nv in selectableStaffList" :key="nv.id" :value="nv.id">
-                {{ nv.tenNhanVien }} ({{ nv.maNhanVien }})
-              </option>
-            </select>
+
+            <!-- ✅ CHANGED: searchable combo (modal staff select) -->
+            <Multiselect
+                v-model="staffSelected"
+                :options="selectableStaffList"
+                :searchable="true"
+                :allow-empty="true"
+                :show-labels="false"
+                :close-on-select="true"
+                :custom-label="staffOptionLabel"
+                track-by="id"
+                placeholder="-- Chọn nhân viên --"
+                :disabled="isEdit"
+            />
             <div v-if="isEdit" class="form-text text-muted">Không thể thay đổi nhân viên khi chỉnh sửa.</div>
           </div>
 
@@ -456,17 +475,240 @@
 
             <button type="button" class="btn btn-outline-secondary" @click="closeModal">Hủy</button>
             <button type="submit" class="btn btn-primary fw-bold px-4">
-              {{ isEdit ? 'Cập nhật' : 'Lưu lịch' }}
+              {{ isEdit ? "Cập nhật" : "Lưu lịch" }}
             </button>
           </div>
         </form>
       </div>
     </div>
+
+    <!-- ✅ BULK MODAL -->
+    <div v-if="showBulkModal" class="modal-overlay" @click.self="closeBulkModal">
+      <div class="modal-card shadow-lg bulk-card">
+        <div class="bulk-header">
+          <div>
+            <div class="bulk-title">Phân ca hàng loạt</div>
+            <div class="bulk-subtitle">Chọn nhân viên, ca làm việc rồi tick ngày để thêm nhanh.</div>
+          </div>
+          <button class="btn btn-sm btn-light" type="button" @click="closeBulkModal" title="Đóng">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="submitBulkAssign">
+          <div class="bulk-body">
+            <div class="row g-3">
+              <!-- Left -->
+              <div class="col-12 col-lg-5">
+                <div class="bulk-box">
+                  <label class="form-label fw-bold small mb-2">Chế độ</label>
+                  <div class="btn-group btn-group-sm w-100" role="group">
+                    <button
+                        type="button"
+                        class="btn"
+                        :class="bulk.mode === 'week' ? 'btn-primary text-white' : 'btn-outline-primary'"
+                        @click="setBulkMode('week')"
+                    >
+                      Theo tuần
+                    </button>
+                    <button
+                        type="button"
+                        class="btn"
+                        :class="bulk.mode === 'month' ? 'btn-primary text-white' : 'btn-outline-primary'"
+                        @click="setBulkMode('month')"
+                    >
+                      Theo tháng
+                    </button>
+                  </div>
+
+                  <div class="mt-3" v-if="bulk.mode === 'week'">
+                    <label class="form-label fw-bold small">Chọn ngày mốc (tự lấy T2–CN)</label>
+                    <input v-model="bulk.anchorDate" type="date" class="form-control" />
+                    <div class="form-text text-muted">Tuần từ {{ bulkWeekStart }} đến {{ bulkWeekEnd }}</div>
+                  </div>
+
+                  <div class="mt-3" v-else>
+                    <label class="form-label fw-bold small">Chọn tháng</label>
+                    <input v-model="bulk.month" type="month" class="form-control" />
+                    <div class="form-text text-muted">Tháng {{ bulk.month }}</div>
+                  </div>
+                </div>
+
+                <div class="bulk-box mt-3">
+                  <label class="form-label fw-bold small">Nhân viên <span class="text-danger">*</span></label>
+                  <Multiselect
+                      v-model="bulkStaffSelected"
+                      :options="selectableStaffList"
+                      :searchable="true"
+                      :allow-empty="true"
+                      :show-labels="false"
+                      :close-on-select="true"
+                      :custom-label="staffOptionLabel"
+                      track-by="id"
+                      placeholder="-- Chọn nhân viên --"
+                  />
+                </div>
+
+                <div class="bulk-box mt-3">
+                  <label class="form-label fw-bold small">Ca làm việc <span class="text-danger">*</span></label>
+                  <Multiselect
+                      v-model="bulkShiftSelected"
+                      :options="templates"
+                      :searchable="true"
+                      :allow-empty="true"
+                      :show-labels="false"
+                      :close-on-select="true"
+                      :custom-label="shiftOptionLabel"
+                      track-by="id"
+                      placeholder="-- Chọn ca mẫu --"
+                  />
+                </div>
+
+                <div class="bulk-box mt-3">
+                  <label class="form-label fw-bold small">Ghi chú</label>
+                  <input v-model="bulk.ghiChu" type="text" class="form-control" placeholder="VD: Tăng ca, trực thay..." />
+                  <div class="form-text text-muted">Ghi chú sẽ áp dụng cho tất cả ngày đã chọn.</div>
+                </div>
+
+                <div class="bulk-box mt-3">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div class="fw-bold small">Đang chọn</div>
+                    <div class="badge bg-light text-dark border">{{ bulkSelectedDates.length }} ngày</div>
+                  </div>
+
+                  <div class="d-flex gap-2 mt-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="bulkSelectAll">
+                      Chọn tất cả
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="bulkSelectWeekdays">
+                      Chỉ T2–T6
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="bulkClearSelection">
+                      Bỏ chọn
+                    </button>
+                  </div>
+
+                  <div class="mt-2 small text-muted" v-if="bulkLoading">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Đang tải lịch để kiểm tra trùng...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Calendar -->
+              <div class="col-12 col-lg-7">
+                <div class="bulk-calendar">
+                  <div class="bulk-cal-head">
+                    <div class="fw-bold">
+                      {{ bulk.mode === 'week' ? 'Chọn ngày theo tuần' : 'Chọn ngày theo tháng' }}
+                    </div>
+                    <div class="text-muted small">
+                      Tick các ô ngày muốn thêm
+                    </div>
+                  </div>
+
+                  <!-- Week grid -->
+                  <div v-if="bulk.mode === 'week'" class="bulk-week-grid">
+                    <div
+                        v-for="d in bulkWeekDays"
+                        :key="d.date"
+                        class="bulk-day"
+                        :class="{ disabled: d.disabled }"
+                    >
+                      <label class="bulk-day-inner">
+                        <input
+                            type="checkbox"
+                            class="form-check-input me-2"
+                            :disabled="d.disabled"
+                            :checked="isBulkSelected(d.date)"
+                            @change="toggleBulkDate(d.date, $event.target.checked)"
+                        />
+                        <div>
+                          <div class="fw-semibold">{{ d.label }}</div>
+                          <div class="small text-muted">{{ formatDate(d.date) }}</div>
+                          <div v-if="d.reason" class="small text-danger mt-1">{{ d.reason }}</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Month table -->
+                  <div v-else class="bulk-month-wrap">
+                    <table class="bulk-month-table">
+                      <thead>
+                      <tr>
+                        <th v-for="h in bulkMonthHeaders" :key="h">{{ h }}</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr v-for="(w, wi) in bulkMonthMatrix" :key="wi">
+                        <td
+                            v-for="cell in w"
+                            :key="cell.key"
+                            class="bulk-month-cell"
+                            :class="{ 'out-month': !cell.inMonth, disabled: cell.disabled }"
+                        >
+                          <div class="d-flex align-items-start justify-content-between">
+                            <div class="bulk-daynum">{{ cell.dayNum }}</div>
+                            <input
+                                type="checkbox"
+                                class="form-check-input"
+                                :disabled="cell.disabled || !cell.inMonth"
+                                :checked="cell.inMonth && isBulkSelected(cell.date)"
+                                @change="toggleBulkDate(cell.date, $event.target.checked)"
+                            />
+                          </div>
+                          <div v-if="cell.reason" class="bulk-reason">{{ cell.reason }}</div>
+                        </td>
+                      </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Report -->
+                  <div v-if="bulkReport" class="bulk-report">
+                    <div class="d-flex flex-wrap gap-2">
+                      <span class="badge bg-success">Thành công: {{ bulkReport.created }}</span>
+                      <span class="badge bg-secondary">Bỏ qua: {{ bulkReport.skipped }}</span>
+                      <span class="badge bg-danger">Lỗi: {{ bulkReport.failed }}</span>
+                    </div>
+
+                    <div v-if="bulkReport.failedDetails.length" class="mt-2 small">
+                      <div class="fw-semibold mb-1">Chi tiết lỗi (tối đa 8 dòng):</div>
+                      <ul class="mb-0 ps-3">
+                        <li v-for="(x, i) in bulkReport.failedDetails.slice(0, 8)" :key="i">
+                          {{ formatDate(x.date) }}: {{ x.message }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="bulk-footer">
+            <button type="button" class="btn btn-outline-secondary" @click="closeBulkModal" :disabled="bulkSubmitting">
+              Hủy
+            </button>
+            <button
+                type="submit"
+                class="btn btn-primary fw-bold"
+                :disabled="bulkSubmitting || bulkSelectedDates.length === 0 || !bulk.idNhanVien || !bulk.idCaLamViec"
+            >
+              <span v-if="bulkSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+              Thêm mới ({{ bulkSelectedDates.length }})
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
 import shiftApi from "@/services/shiftApi";
 import * as nhanVienApi from "@/services/nhanVienApi";
 import { useToast } from "@/composables/useToast";
@@ -475,10 +717,14 @@ import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
 
+/** ✅ Searchable combo lib already in your project */
+import Multiselect from "vue-multiselect";
+import "vue-multiselect/dist/vue-multiselect.css";
+
 const toast = useToast();
 
 // ====================== VIEW MODE ======================
-const viewMode = ref("list"); // 'list' | 'calendar'
+const viewMode = ref("calendar"); // ✅ default calendar
 function setViewMode(mode) {
   if (viewMode.value === mode) return;
   viewMode.value = mode;
@@ -505,8 +751,7 @@ const lockShiftDate = ref(false);
 const selectableStaffList = computed(() => {
   return (staffList.value || []).filter((nv) => {
     const active = nv.trangThai === true || nv.trangThai === 1;
-    const isAdmin =
-        nv.quyenHanId === 1 || String(nv.tenQuyenHan || "").toLowerCase().includes("admin");
+    const isAdmin = nv.quyenHanId === 1 || String(nv.tenQuyenHan || "").toLowerCase().includes("admin");
     return active && !isAdmin;
   });
 });
@@ -522,7 +767,7 @@ const filters = reactive({
   keyword: "",
   shiftId: null,
   from: toDateStr(firstDay), // list only
-  to: toDateStr(lastDay),    // list only
+  to: toDateStr(lastDay), // list only
 });
 
 const fromPickerRef = ref(null);
@@ -536,8 +781,12 @@ const isoToLocalDate = (iso) => {
   return new Date(y, m - 1, d);
 };
 
-function openFromPicker() { fromPickerInstance?.open(); }
-function openToPicker() { toPickerInstance?.open(); }
+function openFromPicker() {
+  fromPickerInstance?.open();
+}
+function openToPicker() {
+  toPickerInstance?.open();
+}
 
 function clearFromDate() {
   filters.from = "";
@@ -557,6 +806,21 @@ function applyFilters() {
   // Calendar cũng tự cập nhật vì dùng filteredSchedules + primaryMap.
 }
 
+// ====================== ✅ SEARCHABLE COMBO (FILTER SHIFT) ======================
+const shiftFilterOptions = computed(() => {
+  return [{ id: null, tenCa: "Tất cả ca" }, ...(Array.isArray(templates.value) ? templates.value : [])];
+});
+const shiftFilterLabel = (opt) => (opt?.id == null ? "Tất cả ca" : String(opt?.tenCa || ""));
+const shiftFilterSelected = computed({
+  get() {
+    return shiftFilterOptions.value.find((x) => x.id === filters.shiftId) || shiftFilterOptions.value[0] || null;
+  },
+  set(opt) {
+    filters.shiftId = opt?.id ?? null;
+    applyFilters();
+  },
+});
+
 // ====================== PAGINATION (LIST) ======================
 const page = reactive({ page: 1, size: 10 });
 const pageInput = ref(1);
@@ -574,6 +838,17 @@ const form = reactive({
   idCaLamViec: null,
   ngayLamViec: toDateStr(new Date()),
   ghiChu: "",
+});
+
+// ====================== ✅ SEARCHABLE COMBO (MODAL STAFF) ======================
+const staffOptionLabel = (nv) => (nv ? `${nv.tenNhanVien} (${nv.maNhanVien})` : "");
+const staffSelected = computed({
+  get() {
+    return selectableStaffList.value.find((x) => x.id === form.idNhanVien) || null;
+  },
+  set(nv) {
+    form.idNhanVien = nv?.id ?? null;
+  },
 });
 
 // ====================== CONFIRM ======================
@@ -623,9 +898,15 @@ const calendarDays = computed(() => {
   });
 });
 
-function prevWeek() { calendarAnchor.value = addDaysISO(calendarWeekStart.value, -7); }
-function nextWeek() { calendarAnchor.value = addDaysISO(calendarWeekStart.value, 7); }
-function goToday() { calendarAnchor.value = todayIso; }
+function prevWeek() {
+  calendarAnchor.value = addDaysISO(calendarWeekStart.value, -7);
+}
+function nextWeek() {
+  calendarAnchor.value = addDaysISO(calendarWeekStart.value, 7);
+}
+function goToday() {
+  calendarAnchor.value = todayIso;
+}
 function onCalendarAnchorChange() {}
 
 watch(calendarAnchor, () => {
@@ -633,32 +914,53 @@ watch(calendarAnchor, () => {
 });
 
 // ====================== LOAD DATA ======================
-onMounted(() => {
-  fromPickerInstance = flatpickr(fromPickerRef.value, {
-    locale: Vietnamese,
-    allowInput: true,
-    dateFormat: "d/m/Y",
-    defaultDate: isoToLocalDate(filters.from),
-    onChange: (selectedDates) => {
-      filters.from = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
-      page.page = 1;
-      loadSchedule();
-    },
-  });
+function initListPickersIfNeeded() {
+  if (!fromPickerInstance && fromPickerRef.value) {
+    fromPickerInstance = flatpickr(fromPickerRef.value, {
+      locale: Vietnamese,
+      allowInput: true,
+      dateFormat: "d/m/Y",
+      defaultDate: isoToLocalDate(filters.from),
+      onChange: (selectedDates) => {
+        filters.from = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
+        page.page = 1;
+        loadSchedule();
+      },
+    });
+  }
 
-  toPickerInstance = flatpickr(toPickerRef.value, {
-    locale: Vietnamese,
-    allowInput: true,
-    dateFormat: "d/m/Y",
-    defaultDate: isoToLocalDate(filters.to),
-    onChange: (selectedDates) => {
-      filters.to = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
-      page.page = 1;
-      loadSchedule();
-    },
-  });
+  if (!toPickerInstance && toPickerRef.value) {
+    toPickerInstance = flatpickr(toPickerRef.value, {
+      locale: Vietnamese,
+      allowInput: true,
+      dateFormat: "d/m/Y",
+      defaultDate: isoToLocalDate(filters.to),
+      onChange: (selectedDates) => {
+        filters.to = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
+        page.page = 1;
+        loadSchedule();
+      },
+    });
+  }
+}
 
-  loadSchedule();
+watch(viewMode, async (m) => {
+  if (m === "list") {
+    await nextTick();
+    initListPickersIfNeeded();
+  }
+});
+
+onMounted(async () => {
+  // default calendar => do not init pickers now
+  if (viewMode.value === "list") {
+    await nextTick();
+    initListPickersIfNeeded();
+  }
+
+  if (viewMode.value === "calendar") loadCalendar();
+  else loadSchedule();
+
   loadResources();
 });
 
@@ -707,7 +1009,6 @@ async function loadResources() {
     else if (resNV.data && Array.isArray(resNV.data)) rawNV = resNV.data;
     else if (Array.isArray(resNV)) rawNV = resNV;
 
-    // giữ active staff để phục vụ avatar map, v.v.
     staffList.value = rawNV.filter((nv) => nv.trangThai === 1 || nv.trangThai === true);
 
     const resCa = await shiftApi.getTemplates();
@@ -721,21 +1022,16 @@ async function loadResources() {
 }
 
 // ====================== ✅ FILTERED SCHEDULES (SHARED) ======================
-// Bộ lọc keyword + ca áp dụng cho CẢ list + calendar
 const filteredSchedules = computed(() => {
   let items = rawSchedules.value || [];
 
-  // keyword
   if (filters.keyword) {
     const kw = filters.keyword.toLowerCase();
     items = items.filter(
-        (i) =>
-            (i.tenNhanVien || "").toLowerCase().includes(kw) ||
-            (i.maNhanVien || "").toLowerCase().includes(kw)
+        (i) => (i.tenNhanVien || "").toLowerCase().includes(kw) || (i.maNhanVien || "").toLowerCase().includes(kw)
     );
   }
 
-  // shiftId
   if (filters.shiftId) items = items.filter((i) => i.idCaLamViec === filters.shiftId);
 
   return items;
@@ -749,20 +1045,15 @@ const pagedItems = computed(() =>
 );
 
 // ====================== ✅ COMPUTED (CALENDAR) ======================
-// Chỉ hiển thị ca đang HOẠT ĐỘNG trong lịch biểu
 function isTemplateActive(ca) {
-  // hỗ trợ nhiều tên field khác nhau để khỏi lệ thuộc BE
   const v = ca?.trangThai ?? ca?.hoatDong ?? ca?.isActive ?? ca?.active ?? ca?.status;
   return v === true || v === 1 || v === "1" || String(v || "").toLowerCase() === "active";
 }
 
 const sortedTemplates = computed(() => {
   const list = Array.isArray(templates.value) ? [...templates.value] : [];
-
-  // ✅ lọc ca hoạt động
   const activeOnly = list.filter(isTemplateActive);
 
-  // sort theo giờ bắt đầu + tên
   return activeOnly.sort((a, b) => {
     const ta = (a.gioBatDau || "").toString();
     const tb = (b.gioBatDau || "").toString();
@@ -777,10 +1068,6 @@ const staffById = computed(() => {
   return map;
 });
 
-/**
- * primaryMap: mỗi ô (caId + ngày) chỉ lấy 1 bản ghi đầu tiên.
- * ✅ Dùng filteredSchedules để lịch biểu cũng bị ảnh hưởng bởi bộ lọc tìm kiếm.
- */
 const primaryMap = computed(() => {
   const map = {};
   (filteredSchedules.value || []).forEach((item) => {
@@ -816,7 +1103,6 @@ function resetFilters() {
   filters.keyword = "";
   filters.shiftId = null;
 
-  // list: reset date range về tháng hiện tại
   filters.from = toDateStr(firstDay);
   filters.to = toDateStr(lastDay);
 
@@ -825,7 +1111,6 @@ function resetFilters() {
 
   page.page = 1;
 
-  // chỉ reload API cho list (calendar là theo tuần riêng)
   if (viewMode.value === "list") loadSchedule();
 }
 
@@ -908,17 +1193,24 @@ async function confirmYes() {
 }
 
 // ====================== EXPORT ======================
-function openExportMode() { exportMode.value = true; }
-function cancelExportMode() { exportMode.value = false; selectedIds.value = []; }
-function isSelected(id) { return selectedIds.value.includes(id); }
+function openExportMode() {
+  exportMode.value = true;
+}
+function cancelExportMode() {
+  exportMode.value = false;
+  selectedIds.value = [];
+}
+function isSelected(id) {
+  return selectedIds.value.includes(id);
+}
 function toggleSelect(item, checked) {
   if (checked && !selectedIds.value.includes(item.id)) selectedIds.value.push(item.id);
   else if (!checked) selectedIds.value = selectedIds.value.filter((x) => x !== item.id);
 }
-const allVisibleSelected = computed(() =>
-    pagedItems.value.length > 0 && pagedItems.value.every(i => selectedIds.value.includes(i.id))
-);
-function toggleSelectAllVisible(checked) { pagedItems.value.forEach(item => toggleSelect(item, checked)); }
+const allVisibleSelected = computed(() => pagedItems.value.length > 0 && pagedItems.value.every((i) => selectedIds.value.includes(i.id)));
+function toggleSelectAllVisible(checked) {
+  pagedItems.value.forEach((item) => toggleSelect(item, checked));
+}
 
 async function exportSelectedToExcel() {
   if (selectedIds.value.length === 0) return;
@@ -958,13 +1250,16 @@ const formatDate = (d) => {
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
 };
-const getDayOfWeek = (d) =>
-    ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"][new Date(d).getDay()];
+const getDayOfWeek = (d) => ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"][new Date(d).getDay()];
 
 // Avatar helpers
 function getBackendOrigin() {
   const base = String(import.meta.env.VITE_API_URL || "http://localhost:8080").trim();
-  try { return new URL(base).origin; } catch { return "http://localhost:8080"; }
+  try {
+    return new URL(base).origin;
+  } catch {
+    return "http://localhost:8080";
+  }
 }
 function resolveFileUrl(url) {
   const u = String(url || "").trim();
@@ -992,48 +1287,411 @@ function getInitials(name) {
   const b = parts[parts.length - 1]?.[0] || "V";
   return (a + b).toUpperCase();
 }
+
+// ====================== ✅ BULK ADD (NO BE CHANGE) ======================
+const showBulkModal = ref(false);
+const bulkLoading = ref(false);
+const bulkSubmitting = ref(false);
+const bulkReport = ref(null);
+const bulkSelectedDates = ref([]);
+const bulkRangeSchedules = ref([]);
+
+const bulk = reactive({
+  mode: "week", // 'week' | 'month'
+  anchorDate: toDateStr(new Date()),
+  month: toDateStr(new Date()).slice(0, 7), // YYYY-MM
+  idNhanVien: null,
+  idCaLamViec: null,
+  ghiChu: "",
+});
+
+function openBulkModal() {
+  bulkReport.value = null;
+  bulkSelectedDates.value = [];
+
+  // default follow current calendar anchor for convenience
+  bulk.mode = "week";
+  bulk.anchorDate = calendarAnchor.value || todayIso;
+  bulk.month = (bulk.anchorDate || todayIso).slice(0, 7);
+
+  bulk.idNhanVien = null;
+  bulk.idCaLamViec = null;
+  bulk.ghiChu = "";
+
+  showBulkModal.value = true;
+  loadBulkRangeSchedules();
+}
+
+function closeBulkModal() {
+  showBulkModal.value = false;
+  bulkLoading.value = false;
+  bulkSubmitting.value = false;
+  bulkReport.value = null;
+  bulkSelectedDates.value = [];
+}
+
+function setBulkMode(m) {
+  if (bulk.mode === m) return;
+  bulk.mode = m;
+  bulkSelectedDates.value = [];
+  bulkReport.value = null;
+  loadBulkRangeSchedules();
+}
+
+const bulkWeekStart = computed(() => startOfWeekISO(bulk.anchorDate));
+const bulkWeekEnd = computed(() => addDaysISO(bulkWeekStart.value, 6));
+
+function monthStartISO(ym) {
+  if (!ym) return toDateStr(new Date()).slice(0, 7) + "-01";
+  return `${ym}-01`;
+}
+function monthEndISO(ym) {
+  const [y, m] = String(ym || "").split("-").map(Number);
+  if (!y || !m) return toDateStr(new Date());
+  const d = new Date(y, m, 0); // last day
+  return toDateStr(d);
+}
+
+const bulkRangeStart = computed(() => (bulk.mode === "week" ? bulkWeekStart.value : monthStartISO(bulk.month)));
+const bulkRangeEnd = computed(() => (bulk.mode === "week" ? bulkWeekEnd.value : monthEndISO(bulk.month)));
+
+watch(
+    () => [bulk.anchorDate, bulk.month],
+    () => {
+      if (!showBulkModal.value) return;
+      bulkSelectedDates.value = [];
+      bulkReport.value = null;
+      loadBulkRangeSchedules();
+    }
+);
+
+const dayLabels = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+function getDowLabel(dateIso) {
+  return dayLabels[new Date(dateIso).getDay()];
+}
+
+const bulkWeekDays = computed(() => {
+  const start = bulkWeekStart.value;
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDaysISO(start, i);
+    const { disabled, reason } = getBulkCellState(date, true);
+    return { date, label: getDowLabel(date), disabled, reason };
+  });
+});
+
+const bulkMonthHeaders = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+const bulkMonthMatrix = computed(() => {
+  const ym = bulk.month;
+  const first = monthStartISO(ym);
+  const gridStart = startOfWeekISO(first); // monday start
+  const cells = Array.from({ length: 42 }, (_, i) => {
+    const date = addDaysISO(gridStart, i);
+    const inMonth = date.slice(0, 7) === ym;
+    const dayNum = Number(date.split("-")[2]);
+    const { disabled, reason } = getBulkCellState(date, inMonth);
+    return {
+      key: date,
+      date,
+      inMonth,
+      dayNum,
+      disabled,
+      reason,
+    };
+  });
+
+  // split into 6 weeks
+  const weeks = [];
+  for (let w = 0; w < 6; w++) {
+    // reorder to Monday..Sunday columns: gridStart is Monday already
+    const row = cells.slice(w * 7, w * 7 + 7);
+    weeks.push(row);
+  }
+  return weeks;
+});
+
+const bulkShiftMap = computed(() => {
+  const map = {};
+  (bulkRangeSchedules.value || []).forEach((item) => {
+    const active = item?.trangThai === 1 || item?.trangThai === true;
+    if (!active) return;
+    const key = `${item.idCaLamViec}_${item.ngayLamViec}`;
+    if (!map[key]) map[key] = item;
+  });
+  return map;
+});
+
+function getBulkCellState(dateIso, inMonth) {
+  if (!inMonth) return { disabled: true, reason: "" };
+  if (!bulk.idCaLamViec) return { disabled: false, reason: "" };
+
+  const hit = bulkShiftMap.value[`${bulk.idCaLamViec}_${dateIso}`];
+  if (hit) {
+    return {
+      disabled: true,
+      reason: `Đã có: ${hit.tenNhanVien || ""} ${hit.maNhanVien ? `(${hit.maNhanVien})` : ""}`.trim(),
+    };
+  }
+  return { disabled: false, reason: "" };
+}
+
+async function loadBulkRangeSchedules() {
+  if (!showBulkModal.value) return;
+  bulkLoading.value = true;
+  try {
+    const res = await shiftApi.getSchedules(bulkRangeStart.value, bulkRangeEnd.value);
+    const data = res.data;
+    if (Array.isArray(data)) bulkRangeSchedules.value = data;
+    else if (data && Array.isArray(data.result)) bulkRangeSchedules.value = data.result;
+    else if (data && Array.isArray(data.data)) bulkRangeSchedules.value = data.data;
+    else bulkRangeSchedules.value = [];
+  } catch (e) {
+    console.error(e);
+    bulkRangeSchedules.value = [];
+  } finally {
+    bulkLoading.value = false;
+  }
+}
+
+function isBulkSelected(dateIso) {
+  return bulkSelectedDates.value.includes(dateIso);
+}
+function toggleBulkDate(dateIso, checked) {
+  if (!dateIso) return;
+
+  // if disabled -> ignore
+  const st = getBulkCellState(dateIso, true);
+  if (st.disabled) return;
+
+  if (checked) {
+    if (!bulkSelectedDates.value.includes(dateIso)) bulkSelectedDates.value.push(dateIso);
+  } else {
+    bulkSelectedDates.value = bulkSelectedDates.value.filter((x) => x !== dateIso);
+  }
+}
+
+function bulkClearSelection() {
+  bulkSelectedDates.value = [];
+}
+
+function bulkSelectAll() {
+  const dates = [];
+
+  if (bulk.mode === "week") {
+    bulkWeekDays.value.forEach((d) => {
+      if (!d.disabled) dates.push(d.date);
+    });
+  } else {
+    bulkMonthMatrix.value.flat().forEach((c) => {
+      if (c.inMonth && !c.disabled) dates.push(c.date);
+    });
+  }
+
+  bulkSelectedDates.value = Array.from(new Set(dates));
+}
+
+function bulkSelectWeekdays() {
+  const dates = [];
+  const isWeekday = (iso) => {
+    const dow = new Date(iso).getDay(); // 0 CN, 1 T2..5 T6
+    return dow >= 1 && dow <= 5;
+  };
+
+  if (bulk.mode === "week") {
+    bulkWeekDays.value.forEach((d) => {
+      if (!d.disabled && isWeekday(d.date)) dates.push(d.date);
+    });
+  } else {
+    bulkMonthMatrix.value.flat().forEach((c) => {
+      if (c.inMonth && !c.disabled && isWeekday(c.date)) dates.push(c.date);
+    });
+  }
+
+  bulkSelectedDates.value = Array.from(new Set(dates));
+}
+
+const shiftOptionLabel = (ca) => {
+  if (!ca) return "";
+  const t = `${formatTime(ca.gioBatDau)} - ${formatTime(ca.gioKetThuc)}`;
+  return `${ca.tenCa} (${t})`;
+};
+
+const bulkStaffSelected = computed({
+  get() {
+    return selectableStaffList.value.find((x) => x.id === bulk.idNhanVien) || null;
+  },
+  set(nv) {
+    bulk.idNhanVien = nv?.id ?? null;
+  },
+});
+const bulkShiftSelected = computed({
+  get() {
+    return (templates.value || []).find((x) => x.id === bulk.idCaLamViec) || null;
+  },
+  set(ca) {
+    bulk.idCaLamViec = ca?.id ?? null;
+
+    // auto remove selected dates that become disabled due to conflict
+    bulkSelectedDates.value = bulkSelectedDates.value.filter((d) => !getBulkCellState(d, true).disabled);
+  },
+});
+
+async function submitBulkAssign() {
+  bulkReport.value = null;
+
+  if (!bulk.idNhanVien || !bulk.idCaLamViec || bulkSelectedDates.value.length === 0) {
+    toast.error("Vui lòng chọn nhân viên, ca làm việc và ít nhất 1 ngày.");
+    return;
+  }
+
+  bulkSubmitting.value = true;
+
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+  const failedDetails = [];
+
+  const dates = [...bulkSelectedDates.value].sort();
+
+  for (const dateIso of dates) {
+    const st = getBulkCellState(dateIso, true);
+    if (st.disabled) {
+      skipped++;
+      continue;
+    }
+
+    try {
+      await shiftApi.assignSchedule({
+        idNhanVien: bulk.idNhanVien,
+        idCaLamViec: bulk.idCaLamViec,
+        ngayLamViec: dateIso,
+        ghiChu: bulk.ghiChu,
+      });
+      created++;
+    } catch (e) {
+      failed++;
+      failedDetails.push({
+        date: dateIso,
+        message: e?.response?.data?.message || "Không thể thêm (có thể trùng lịch/giờ)",
+      });
+    }
+  }
+
+  bulkReport.value = { created, skipped, failed, failedDetails };
+
+  if (created > 0) toast.success(`Đã thêm ${created} lịch. Bỏ qua ${skipped}. Lỗi ${failed}.`);
+  else toast.error(`Không thêm được lịch nào. Bỏ qua ${skipped}. Lỗi ${failed}.`);
+
+  // refresh current view + refresh bulk conflict map
+  await reloadCurrentView();
+  await loadBulkRangeSchedules();
+
+  bulkSubmitting.value = false;
+}
+
+// ====================== END BULK ADD ======================
 </script>
 
 <style scoped>
 /* Reuse Filter & Table Styles from ShiftTemplateList */
-.filter-card { border-radius: 14px; overflow: hidden; border: 1px solid #e9ecef; }
-.filter-header { background: #1f2a44; color: #fff; padding: 12px 16px; cursor: pointer; user-select: none; }
-.filter-title { font-weight: 700; }
-.filter-body { background: #f8fafc; }
-.filter-card .form-control, .filter-card .form-select { border-radius: 10px; }
-.filter-hint { opacity: 0.75; }
-
-.filter-icon{
-  display:inline-flex;
-  width:26px;height:26px;
-  align-items:center;justify-content:center;
-  border-radius:8px;
-  background:rgba(255,255,255,.12);
-  font-size:12px;
-  transition:transform .2s ease;
+.filter-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e9ecef;
 }
-.filter-header[aria-expanded="false"] .filter-icon{ transform: rotate(-90deg); }
+.filter-header {
+  background: #1f2a44;
+  color: #fff;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.filter-title {
+  font-weight: 700;
+}
+.filter-body {
+  background: #f8fafc;
+}
+.filter-card .form-control,
+.filter-card .form-select {
+  border-radius: 10px;
+}
+.filter-hint {
+  opacity: 0.75;
+}
 
-.table-wrap { border: 1px solid #dee2e6; border-radius: 12px; overflow: auto; background: #fff; text-align: center; }
-.custom-table { width: 100%; min-width: 1000px; border-collapse: separate; border-spacing: 0; }
-.custom-table th, .custom-table td { padding: 12px; border-bottom: 1px solid #e9ecef; vertical-align: middle; white-space: nowrap; }
-.custom-table thead th { background: #1f2a44; color: #fff; font-weight: 700; }
-.ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.empty { text-align: center; padding: 20px; color: #6c757d; }
-.badge-muted { background: #f8f9fa; color: #212529; font-weight: 500}
-.badge{font-weight: 500}
+.filter-icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+.filter-header[aria-expanded="false"] .filter-icon {
+  transform: rotate(-90deg);
+}
+
+.table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: auto;
+  background: #fff;
+  text-align: center;
+}
+.custom-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.custom-table th,
+.custom-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.custom-table thead th {
+  background: #1f2a44;
+  color: #fff;
+  font-weight: 700;
+}
+.ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.empty {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+}
+.badge-muted {
+  background: #f8f9fa;
+  color: #212529;
+  font-weight: 500;
+}
+.badge {
+  font-weight: 500;
+}
 
 /* ===================== CALENDAR FIX ===================== */
-.calendar-toolbar .form-control { border-radius: 10px; }
+.calendar-toolbar .form-control {
+  border-radius: 10px;
+}
 
-.calendar-wrap{
+.calendar-wrap {
   border: 1px solid #dee2e6;
   border-radius: 12px;
   overflow: auto;
   background: #fff;
 }
 
-.calendar-table{
+.calendar-table {
   width: 100%;
   min-width: 1380px;
   table-layout: fixed;
@@ -1041,7 +1699,8 @@ function getInitials(name) {
   border-spacing: 0;
 }
 
-.calendar-table th, .calendar-table td{
+.calendar-table th,
+.calendar-table td {
   border-bottom: 1px solid #e9ecef;
   border-right: 1px solid #e9ecef;
   padding: 10px;
@@ -1049,12 +1708,12 @@ function getInitials(name) {
   overflow: hidden;
 }
 
-.calendar-table td{
+.calendar-table td {
   display: table-cell !important;
   text-align: left;
 }
 
-.calendar-table thead th{
+.calendar-table thead th {
   background: #1f2a44 !important;
   color: #fff !important;
   font-weight: 700;
@@ -1064,32 +1723,34 @@ function getInitials(name) {
   text-align: center;
 }
 
-.calendar-table thead th.shift-col{
+.calendar-table thead th.shift-col {
   text-align: left;
 }
 
-.shift-col{
+.shift-col {
   position: sticky;
   left: 0;
   z-index: 2;
   background: #f8fafc;
-  width: 260px; min-width: 260px; max-width: 260px;
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
 }
 
-.calendar-table thead th.shift-col{
+.calendar-table thead th.shift-col {
   left: 0;
   z-index: 4;
 }
 
-.shift-info{
+.shift-info {
   border-right: 1px solid #e9ecef;
 }
 
-.calendar-table tbody tr{
+.calendar-table tbody tr {
   height: 140px;
 }
 
-.emp-badge-code{
+.emp-badge-code {
   margin-top: 2px;
   font-size: 12px;
   font-weight: 600;
@@ -1101,36 +1762,36 @@ function getInitials(name) {
   text-overflow: ellipsis;
 }
 
-.calendar-cell{
+.calendar-cell {
   position: relative;
   min-height: 140px;
   background: #fff;
 }
 
-.calendar-cell.today{
+.calendar-cell.today {
   background: #f5f9ff;
 }
 
-.day-head.today{
-  box-shadow: inset 0 -2px 0 rgba(255,255,255,0.35);
+.day-head.today {
+  box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.35);
 }
 
 /* ===== Ô trống: nút + ở GIỮA ô ===== */
-.add-btn-center{
+.add-btn-center {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   opacity: 0;
-  transition: opacity .15s ease, transform .15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.calendar-cell:hover .add-btn-center{
+.calendar-cell:hover .add-btn-center {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1.02);
 }
 
 /* ===== Badge nhân viên kiểu mẫu (card giữa ô) ===== */
-.emp-badge{
+.emp-badge {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1152,15 +1813,15 @@ function getInitials(name) {
   align-items: center;
   justify-content: center;
 
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.emp-badge:hover{
+.emp-badge:hover {
   border-color: #cfe2ff;
   border-left-color: #22c55e;
 }
 
-.emp-badge-avatar{
+.emp-badge-avatar {
   width: 44px;
   height: 44px;
   border-radius: 999px;
@@ -1169,7 +1830,7 @@ function getInitials(name) {
   margin-bottom: 6px;
 }
 
-.emp-badge-initials{
+.emp-badge-initials {
   width: 44px;
   height: 44px;
   border-radius: 999px;
@@ -1182,7 +1843,7 @@ function getInitials(name) {
   margin-bottom: 6px;
 }
 
-.emp-badge-name{
+.emp-badge-name {
   width: 100%;
   text-align: center;
   font-weight: 700;
@@ -1193,11 +1854,190 @@ function getInitials(name) {
 }
 
 /* ===================== MODAL ===================== */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.modal-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); min-width: 400px; }
-.modal-title { margin-bottom: 15px; font-size: 18px; font-weight: 700; }
-.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  min-width: 400px;
+}
+.modal-title {
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
 
 /* Confirm phải nổi trên modal cập nhật */
-.confirm-overlay { z-index: 10050 !important; }
+.confirm-overlay {
+  z-index: 10050 !important;
+}
+
+/* ===================== ✅ vue-multiselect theme tweaks ===================== */
+:deep(.multiselect) {
+  border-radius: 10px;
+}
+:deep(.multiselect__tags) {
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-color: #dee2e6;
+}
+:deep(.multiselect__select) {
+  height: 38px;
+}
+:deep(.multiselect__single) {
+  margin-bottom: 0;
+}
+:deep(.multiselect__option--highlight) {
+  background: #1f2a44;
+}
+:deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #1f2a44;
+}
+
+/* ===================== ✅ BULK MODAL ===================== */
+.bulk-card {
+  width: min(980px, 96vw);
+  padding: 0;
+  overflow: hidden;
+}
+.bulk-header {
+  background: #1f2a44;
+  color: #fff;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bulk-title {
+  font-weight: 800;
+  font-size: 16px;
+}
+.bulk-subtitle {
+  opacity: 0.85;
+  font-size: 12px;
+}
+.bulk-body {
+  padding: 16px;
+  background: #f8fafc;
+}
+.bulk-box {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 12px;
+}
+.bulk-calendar {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 520px;
+}
+.bulk-cal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef2f7;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.bulk-week-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 992px) {
+  .bulk-week-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.bulk-day {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+.bulk-day.disabled {
+  opacity: 0.6;
+  background: #f8f9fa;
+}
+.bulk-day-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.bulk-month-wrap {
+  overflow: auto;
+}
+.bulk-month-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 640px;
+}
+.bulk-month-table th {
+  background: #1f2a44;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.bulk-month-cell {
+  border: 1px solid #eef2f7;
+  vertical-align: top;
+  padding: 8px;
+  height: 86px;
+  background: #fff;
+}
+.bulk-month-cell.out-month {
+  background: #fbfcfe;
+  opacity: 0.55;
+}
+.bulk-month-cell.disabled {
+  background: #f8f9fa;
+  opacity: 0.7;
+}
+.bulk-daynum {
+  font-weight: 800;
+  font-size: 12px;
+}
+.bulk-reason {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #dc3545;
+  line-height: 1.2;
+}
+.bulk-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fff;
+}
+.bulk-report {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #e9ecef;
+}
 </style>

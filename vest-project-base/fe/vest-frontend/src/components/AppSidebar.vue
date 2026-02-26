@@ -169,7 +169,7 @@
           </RouterLink>
 
           <RouterLink to="/shift-handover" class="sub-link" active-class="active-sub">
-            <i class="bi bi-arrow-left-right sub-icon"></i> Giao ca &amp; Kết toán
+            <i class="bi bi-arrow-left-right sub-icon"></i> Doanh thu ca làm
           </RouterLink>
 
         </div>
