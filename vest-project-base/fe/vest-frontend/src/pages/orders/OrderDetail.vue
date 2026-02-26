@@ -7,7 +7,11 @@
         <h5 class="mb-0">Chi tiết hóa đơn</h5>
       </div>
 
-      <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        @click="goBack"
+      >
         <i class="bi bi-arrow-left me-1"></i> Quay lại
       </button>
     </div>
@@ -16,7 +20,10 @@
     <div class="order-stepper mb-3" v-if="hd">
       <div
         class="order-stepper__track"
-        :style="{ '--progress': progressPercent, '--steps': stepperSteps.length }"
+        :style="{
+          '--progress': progressPercent,
+          '--steps': stepperSteps.length,
+        }"
       >
         <div
           v-for="s in stepperSteps"
@@ -40,7 +47,9 @@
     </div>
 
     <!-- Actions -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div
+      class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"
+    >
       <div class="d-flex flex-wrap gap-2">
         <button
           type="button"
@@ -72,11 +81,19 @@
       </div>
 
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="openHistoryModal">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          @click="openHistoryModal"
+        >
           <i class="bi bi-clock-history me-1"></i> Chi tiết
         </button>
 
-        <button type="button" class="btn btn-outline-success btn-sm" @click="openPrintModal">
+        <button
+          type="button"
+          class="btn btn-outline-success btn-sm"
+          @click="openPrintModal"
+        >
           <i class="bi bi-printer me-1"></i> Xuất hóa đơn
         </button>
       </div>
@@ -85,7 +102,9 @@
     <!-- Order Info (professional) -->
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+        <div
+          class="d-flex align-items-start justify-content-between flex-wrap gap-3"
+        >
           <div>
             <div class="d-flex align-items-center flex-wrap gap-2">
               <h6 class="mb-0">Thông tin đơn hàng</h6>
@@ -136,7 +155,10 @@
               </div>
               <div class="info-row">
                 <span>Email</span>
-                <b class="text-end text-truncate d-inline-block" style="max-width: 210px">
+                <b
+                  class="text-end text-truncate d-inline-block"
+                  style="max-width: 210px"
+                >
                   {{ hd?.emailKhachHang || "-" }}
                 </b>
               </div>
@@ -184,7 +206,9 @@
               </div>
               <div class="info-row">
                 <span>Phải trả</span>
-                <b class="text-danger">{{ formatCurrency(hd?.tongTienSauGiam) }}</b>
+                <b class="text-danger">{{
+                  formatCurrency(hd?.tongTienSauGiam)
+                }}</b>
               </div>
             </div>
           </div>
@@ -207,7 +231,14 @@
           <div class="summary-item">
             <div class="text-muted small">Còn lại</div>
             <div class="fw-semibold">
-              {{ formatCurrency(Math.max(0, Number(hd?.tongTienSauGiam ?? 0) - Number(paidTotal ?? 0))) }}
+              {{
+                formatCurrency(
+                  Math.max(
+                    0,
+                    Number(hd?.tongTienSauGiam ?? 0) - Number(paidTotal ?? 0),
+                  ),
+                )
+              }}
             </div>
           </div>
         </div>
@@ -235,7 +266,9 @@
 
             <tbody>
               <tr v-if="(hd?.lichSuThanhToan || []).length === 0">
-                <td colspan="5" class="text-center text-muted py-4">Chưa có thanh toán</td>
+                <td colspan="5" class="text-center text-muted py-4">
+                  Chưa có thanh toán
+                </td>
               </tr>
 
               <tr v-for="p in hd?.lichSuThanhToan || []" :key="p.id">
@@ -251,68 +284,102 @@
       </div>
     </div>
 
-    <!-- Items -->
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="mb-2">Sản phẩm</h6>
+   <!-- Items -->
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h6 class="mb-2">Sản phẩm</h6>
 
-        <div class="table-responsive table-wrap">
-          <table class="table table-fixed align-middle mb-0">
-            <thead class="thead-dark-custom">
-              <tr>
-                <th class="col-stt">STT</th>
-                <th class="col-img">Ảnh</th>
-                <th class="col-product">Sản phẩm</th>
-                <th class="col-qty">Số lượng</th>
-                <th class="col-total">Thành tiền</th>
-              </tr>
-            </thead>
+    <div class="table-responsive table-wrap">
+      <table class="table table-fixed align-middle mb-0">
+        <thead class="thead-dark-custom">
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-img">Ảnh</th>
+            <th class="col-product">Sản phẩm</th>
+            <th class="col-qty">Số lượng</th>
+            <th class="col-total">Thành tiền</th>
+          </tr>
+        </thead>
 
-            <tbody>
-              <tr v-if="(hd?.items || []).length === 0">
-                <td colspan="5" class="text-center text-muted py-4">Không có sản phẩm</td>
-              </tr>
+        <tbody>
+          <tr v-if="items.length === 0">
+            <td colspan="5" class="text-center text-muted py-4">
+              Không có sản phẩm
+            </td>
+          </tr>
 
-              <tr v-for="(it, idx) in hd?.items || []" :key="idx">
-                <td>{{ idx + 1 }}</td>
+          <tr
+            v-for="(it, idx) in pagedItems"
+            :key="(currentPage - 1) * pageSize + idx"
+          >
+            <td>{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
 
-                <td>
-                  <div class="img-box">
-                    <img v-if="it.anhDaiDien" :src="it.anhDaiDien" alt="img" />
-                    <div v-else class="text-muted small">No image</div>
-                  </div>
-                </td>
+            <td>
+              <div class="img-box">
+                <img v-if="it.anhDaiDien" :src="it.anhDaiDien" alt="img" />
+                <div v-else class="text-muted small">No image</div>
+              </div>
+            </td>
 
-                <td>
-                  <div class="fw-semibold text-truncate">{{ it.tenSanPham || "-" }}</div>
-                  <div class="text-muted small text-truncate">
-                    {{ it.mauSac || "-" }} - {{ it.kichCo || "-" }}
-                    <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
-                  </div>
-                  <div class="text-danger fw-semibold mt-1">
-                    {{ formatCurrency(it.donGia) }}
-                  </div>
-                </td>
+            <td>
+              <div class="fw-semibold text-truncate">{{ it.tenSanPham || "-" }}</div>
+              <div class="text-muted small text-truncate">
+                {{ it.mauSac || "-" }} - {{ it.kichCo || "-" }}
+                <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
+              </div>
+              <div class="text-danger fw-semibold mt-1">
+                {{ formatCurrency(it.donGia) }}
+              </div>
+            </td>
 
-                <td class="fw-semibold">{{ it.soLuong }}</td>
+            <td class="fw-semibold">{{ it.soLuong }}</td>
 
-                <td class="fw-semibold text-danger">
-                  {{ formatCurrency(it.thanhTien) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+            <td class="fw-semibold text-danger">
+              {{ formatCurrency(it.thanhTien) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
+    <!-- ✅ PHÂN TRANG: đặt ở đây (ngoài table-wrap, trong card-body) -->
+    <nav v-if="items.length > pageSize" class="mt-3 d-flex justify-content-end">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+          <button class="page-link" @click="prevPage">‹</button>
+        </li>
+
+        <li class="page-item disabled">
+          <span class="page-link">
+            Trang {{ currentPage }} / {{ totalPages }}
+          </span>
+        </li>
+
+        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+          <button class="page-link" @click="nextPage">›</button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
     <!-- History modal -->
-    <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true" ref="historyModalRef">
+    <div
+      class="modal fade"
+      id="historyModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="historyModalRef"
+    >
       <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">Chi tiết lịch sử</h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closeHistoryModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeHistoryModal"
+            ></button>
           </div>
 
           <div class="modal-body">
@@ -331,7 +398,9 @@
 
                 <tbody>
                   <tr v-if="(hd?.lichSuHoaDon || []).length === 0">
-                    <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử</td>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      Chưa có lịch sử
+                    </td>
                   </tr>
 
                   <tr v-for="h in hd?.lichSuHoaDon || []" :key="h.id">
@@ -352,21 +421,38 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" @click="closeHistoryModal">Đóng</button>
+            <button
+              type="button"
+              class="btn btn-light"
+              @click="closeHistoryModal"
+            >
+              Đóng
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Confirm Action Modal (advance/cancel/refund) -->
-    <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true" ref="confirmActionModalRef">
+    <div
+      class="modal fade"
+      id="confirmActionModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="confirmActionModalRef"
+    >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">
               <i class="bi bi-exclamation-triangle me-2"></i>{{ confirmTitle }}
             </h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closeConfirmActionModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeConfirmActionModal"
+            ></button>
           </div>
 
           <div class="modal-body">
@@ -376,10 +462,14 @@
 
             <div class="mb-2">
               Trạng thái hiện tại:
-              <span class="badge bg-secondary">{{ statusLabel(hd?.trangThaiDon) }}</span>
+              <span class="badge bg-secondary">{{
+                statusLabel(hd?.trangThaiDon)
+              }}</span>
               <i class="bi bi-arrow-right mx-2"></i>
               Trạng thái mới:
-              <span class="badge bg-primary">{{ statusLabel(confirmTargetStatus) }}</span>
+              <span class="badge bg-primary">{{
+                statusLabel(confirmTargetStatus)
+              }}</span>
             </div>
 
             <div class="small text-muted">
@@ -388,8 +478,18 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" @click="closeConfirmActionModal">Hủy</button>
-            <button type="button" class="btn btn-primary text-dark" @click="confirmDoAction">
+            <button
+              type="button"
+              class="btn btn-light"
+              @click="closeConfirmActionModal"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary text-dark"
+              @click="confirmDoAction"
+            >
               Xác nhận
             </button>
           </div>
@@ -398,18 +498,31 @@
     </div>
 
     <!-- Print modal (thermal receipt) -->
-    <div class="modal fade" id="printModal" tabindex="-1" aria-hidden="true" ref="printModalRef">
+    <div
+      class="modal fade"
+      id="printModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="printModalRef"
+    >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h6 class="modal-title">Xem trước hóa đơn (in nhiệt)</h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closePrintModal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closePrintModal"
+            ></button>
           </div>
 
           <div class="modal-body">
             <div ref="printAreaRef" class="receipt">
               <div class="center bold big">VEST SHOP</div>
-              <div class="center">37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy</div>
+              <div class="center">
+                37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy
+              </div>
               <div class="center">Hà Nội, Việt Nam</div>
               <div class="center">Hotline: 0968038313</div>
               <div class="hr"></div>
@@ -442,12 +555,18 @@
                   <div class="bold">{{ it.tenSanPham || "-" }}</div>
                   <div class="muted small">
                     {{ it.mauSac || "-" }} / {{ it.kichCo || "-" }}
-                    <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
+                    <span v-if="it.maSanPhamChiTiet">
+                      • {{ it.maSanPhamChiTiet }}</span
+                    >
                   </div>
-                  <div class="small">ĐG: {{ formatMoneyNumber(it.donGia) }} đ</div>
+                  <div class="small">
+                    ĐG: {{ formatMoneyNumber(it.donGia) }} đ
+                  </div>
                 </div>
                 <div class="w-qty right">{{ it.soLuong ?? 0 }}</div>
-                <div class="w-price right">{{ formatMoneyNumber(it.thanhTien) }} đ</div>
+                <div class="w-price right">
+                  {{ formatMoneyNumber(it.thanhTien) }} đ
+                </div>
               </div>
 
               <div class="hr"></div>
@@ -458,25 +577,33 @@
               </div>
               <div class="row2">
                 <div>Giảm giá</div>
-                <div class="right">{{ formatMoneyNumber(hd?.tongTienGiam) }} đ</div>
+                <div class="right">
+                  {{ formatMoneyNumber(hd?.tongTienGiam) }} đ
+                </div>
               </div>
               <div class="row2">
                 <div>Phí vận chuyển</div>
-                <div class="right">{{ formatMoneyNumber(hd?.phiVanChuyen) }} đ</div>
+                <div class="right">
+                  {{ formatMoneyNumber(hd?.phiVanChuyen) }} đ
+                </div>
               </div>
 
               <div class="hr"></div>
 
               <div class="row2 bold">
                 <div>TỔNG THANH TOÁN</div>
-                <div class="right">{{ formatMoneyNumber(hd?.tongTienSauGiam) }} đ</div>
+                <div class="right">
+                  {{ formatMoneyNumber(hd?.tongTienSauGiam) }} đ
+                </div>
               </div>
 
               <div class="hr"></div>
 
               <div class="center mt8">
                 <img v-if="qrDataUrl" :src="qrDataUrl" class="qr" alt="qr" />
-                <div class="small muted mt2">Quét để tra cứu: {{ hd?.maHoaDon }}</div>
+                <div class="small muted mt2">
+                  Quét để tra cứu: {{ hd?.maHoaDon }}
+                </div>
               </div>
 
               <div class="center mt10">Cảm ơn quý khách!</div>
@@ -484,8 +611,18 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-light" @click="closePrintModal">Đóng</button>
-            <button type="button" class="btn btn-warning text-dark" @click="printInvoice">
+            <button
+              type="button"
+              class="btn btn-light"
+              @click="closePrintModal"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              class="btn btn-warning text-dark"
+              @click="printInvoice"
+            >
               In / Lưu PDF
             </button>
           </div>
@@ -494,7 +631,10 @@
     </div>
 
     <!-- Toast -->
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index: 9999"
+    >
       <div
         class="toast align-items-center text-bg-success border-0"
         ref="toastRef"
@@ -504,7 +644,11 @@
       >
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="hideToast"></button>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            @click="hideToast"
+          ></button>
         </div>
       </div>
     </div>
@@ -542,17 +686,27 @@ function statusLabel(code) {
 }
 
 function statusBadgeClass(code) {
-  if (code === null || code === undefined || code === "") return "text-bg-secondary";
+  if (code === null || code === undefined || code === "")
+    return "text-bg-secondary";
   switch (Number(code)) {
-    case 4: return "text-bg-success";
-    case 3: return "text-bg-primary";
-    case 2: return "text-bg-info";
-    case 1: return "text-bg-warning";
-    case 0: return "text-bg-secondary";
-    case 5: return "text-bg-dark";
-    case 6: return "text-bg-warning";
-    case 7: return "text-bg-secondary";
-    default: return "text-bg-secondary";
+    case 4:
+      return "text-bg-success";
+    case 3:
+      return "text-bg-primary";
+    case 2:
+      return "text-bg-info";
+    case 1:
+      return "text-bg-warning";
+    case 0:
+      return "text-bg-secondary";
+    case 5:
+      return "text-bg-dark";
+    case 6:
+      return "text-bg-warning";
+    case 7:
+      return "text-bg-secondary";
+    default:
+      return "text-bg-secondary";
   }
 }
 
@@ -594,6 +748,7 @@ async function fetchDetail() {
   try {
     const res = await hoaDonApi.detail(props.id);
     hd.value = res.data;
+    currentPage.value = 1;
   } catch (e) {
     console.error(e);
     showToast("Không tải được chi tiết hóa đơn!");
@@ -615,7 +770,33 @@ const paidTotal = computed(() => {
   const list = hd.value?.lichSuThanhToan || [];
   return list.reduce((s, p) => s + Number(p?.soTien ?? 0), 0);
 });
+/** ===== Pagination items (10 per page) ===== */
+const pageSize = 10;
+const currentPage = ref(1);
 
+const items = computed(() => hd.value?.items || []);
+
+const totalPages = computed(() => {
+  const len = items.value.length;
+  return Math.max(1, Math.ceil(len / pageSize));
+});
+
+const pagedItems = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return items.value.slice(start, start + pageSize);
+});
+
+function goToPage(p) {
+  const tp = totalPages.value;
+  currentPage.value = Math.min(tp, Math.max(1, p));
+}
+
+function prevPage() {
+  goToPage(currentPage.value - 1);
+}
+function nextPage() {
+  goToPage(currentPage.value + 1);
+}
 /** ===== NV xử lý đơn (Mã, tên) ===== */
 const staffCode = computed(() => {
   const v = hd.value;
@@ -713,7 +894,9 @@ const stepperSteps = computed(() => {
 
   return baseStepper.map((s) => ({
     ...s,
-    timeText: latestTimeByStep(s.code) ? formatDateTimeVN(latestTimeByStep(s.code)) : "",
+    timeText: latestTimeByStep(s.code)
+      ? formatDateTimeVN(latestTimeByStep(s.code))
+      : "",
   }));
 });
 
@@ -725,21 +908,36 @@ const progressPercent = computed(() => {
   const n = baseStepper.length; // số step
   return (idx / (n - 1)) * 100;
 });
+const isLastStep = computed(
+  () => currentStepIndex.value === baseStepper.length - 1,
+);
 
 const isDoneStep = (code) => {
   const idx = currentStepIndex.value;
   if (idx < 0) return false;
-  return stepCodes.value.indexOf(code) < idx;
+
+  const codeIdx = stepCodes.value.indexOf(code);
+
+  // Nếu đang ở bước cuối (Hoàn thành) => bước cuối cũng xem như DONE để hiện tick
+  if (isLastStep.value) return codeIdx <= idx;
+
+  // Còn lại: chỉ những bước nhỏ hơn bước hiện tại
+  return codeIdx < idx;
 };
 
-const isCurrentStep = (code) => stepCodes.value.indexOf(code) === currentStepIndex.value;
+const isCurrentStep = (code) => {
+  const codeIdx = stepCodes.value.indexOf(code);
 
+  // Nếu là bước cuối rồi thì không cần "current" nữa (để nó tick luôn)
+  if (isLastStep.value) return false;
+
+  return codeIdx === currentStepIndex.value;
+};
 const stepStateClass = (code) => {
   if (isDoneStep(code)) return "is-done";
   if (isCurrentStep(code)) return "is-current";
   return "is-todo";
 };
-
 /** ====== CONFIRM ACTION MODAL (ONE FOR ALL) ====== */
 const confirmActionModalRef = ref(null);
 let bsConfirmActionModal = null;
@@ -762,7 +960,10 @@ function openConfirmActionModal({ title, desc, targetStatus, note }) {
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsConfirmActionModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsConfirmActionModal = Modal.getOrCreateInstance(el, {
+      backdrop: true,
+      keyboard: true,
+    });
     bsConfirmActionModal.show();
   } else {
     el.classList.add("show");
@@ -847,7 +1048,10 @@ function openHistoryModal() {
   if (!el) return;
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsHistoryModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsHistoryModal = Modal.getOrCreateInstance(el, {
+      backdrop: true,
+      keyboard: true,
+    });
     bsHistoryModal.show();
   } else {
     el.classList.add("show");
@@ -890,10 +1094,16 @@ function mapHistoryToStatusLabel(hanhDong) {
 
 /** Lịch sử: Mã NV + Tên NV thao tác */
 const historyStaffCode = (h) =>
-  h?.maNhanVien ?? h?.nhanVien?.maNhanVien ?? h?.nhanVienThaoTac?.maNhanVien ?? "-";
+  h?.maNhanVien ??
+  h?.nhanVien?.maNhanVien ??
+  h?.nhanVienThaoTac?.maNhanVien ??
+  "-";
 
 const historyStaffName = (h) =>
-  h?.tenNhanVien ?? h?.nhanVien?.tenNhanVien ?? h?.nhanVienThaoTac?.tenNhanVien ?? "-";
+  h?.tenNhanVien ??
+  h?.nhanVien?.tenNhanVien ??
+  h?.nhanVienThaoTac?.tenNhanVien ??
+  "-";
 
 /** ===== Print Modal + QR ===== */
 const printModalRef = ref(null);
@@ -918,7 +1128,10 @@ async function openPrintModal() {
 
   const Modal = window.bootstrap?.Modal;
   if (Modal) {
-    bsPrintModal = Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+    bsPrintModal = Modal.getOrCreateInstance(el, {
+      backdrop: true,
+      keyboard: true,
+    });
     bsPrintModal.show();
   } else {
     el.classList.add("show");
@@ -1006,7 +1219,9 @@ function showToast(msg) {
   }
 }
 function hideToast() {
-  try { bsToast?.hide?.(); } catch {}
+  try {
+    bsToast?.hide?.();
+  } catch {}
 }
 
 /** Mount */
@@ -1102,18 +1317,38 @@ onMounted(async () => {
 }
 
 /* Payment columns (even) */
-.col-money { width: 16%; }
-.col-time { width: 18%; }
-.col-code { width: 20%; }
-.col-method { width: 20%; }
-.col-note { width: 26%; }
+.col-money {
+  width: 16%;
+}
+.col-time {
+  width: 18%;
+}
+.col-code {
+  width: 20%;
+}
+.col-method {
+  width: 20%;
+}
+.col-note {
+  width: 26%;
+}
 
 /* Items columns (even) */
-.col-stt { width: 6%; }
-.col-img { width: 12%; }
-.col-product { width: 52%; }
-.col-qty { width: 12%; }
-.col-total { width: 18%; }
+.col-stt {
+  width: 6%;
+}
+.col-img {
+  width: 12%;
+}
+.col-product {
+  width: 52%;
+}
+.col-qty {
+  width: 12%;
+}
+.col-total {
+  width: 18%;
+}
 
 .img-box {
   width: 84px;
@@ -1139,23 +1374,63 @@ onMounted(async () => {
   font-family: Arial, sans-serif;
   font-size: 12px;
 }
-.receipt .center { text-align: center; }
-.receipt .right { text-align: right; }
-.receipt .bold { font-weight: 700; }
-.receipt .big { font-size: 16px; }
-.receipt .small { font-size: 11px; }
-.receipt .muted { color: #555; }
-.receipt .hr { border-top: 1px dashed #000; margin: 6px 0; }
-.receipt .row2 { display: flex; justify-content: space-between; gap: 10px; }
-.receipt .mt2 { margin-top: 2px; }
-.receipt .mt6 { margin-top: 6px; }
-.receipt .mt8 { margin-top: 8px; }
-.receipt .mt10 { margin-top: 10px; }
-.receipt .items-head, .receipt .item { display: flex; gap: 6px; }
-.receipt .w-name { flex: 1; }
-.receipt .w-qty { width: 10mm; }
-.receipt .w-price { width: 22mm; }
-.receipt .qr { width: 28mm; height: 28mm; }
+.receipt .center {
+  text-align: center;
+}
+.receipt .right {
+  text-align: right;
+}
+.receipt .bold {
+  font-weight: 700;
+}
+.receipt .big {
+  font-size: 16px;
+}
+.receipt .small {
+  font-size: 11px;
+}
+.receipt .muted {
+  color: #555;
+}
+.receipt .hr {
+  border-top: 1px dashed #000;
+  margin: 6px 0;
+}
+.receipt .row2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.receipt .mt2 {
+  margin-top: 2px;
+}
+.receipt .mt6 {
+  margin-top: 6px;
+}
+.receipt .mt8 {
+  margin-top: 8px;
+}
+.receipt .mt10 {
+  margin-top: 10px;
+}
+.receipt .items-head,
+.receipt .item {
+  display: flex;
+  gap: 6px;
+}
+.receipt .w-name {
+  flex: 1;
+}
+.receipt .w-qty {
+  width: 10mm;
+}
+.receipt .w-price {
+  width: 22mm;
+}
+.receipt .qr {
+  width: 28mm;
+  height: 28mm;
+}
 
 /* ===== Stepper: chữ ở trên thanh progress xanh (AUTO steps) ===== */
 .order-stepper {
@@ -1167,10 +1442,10 @@ onMounted(async () => {
 }
 
 .order-stepper__track {
-  --progress: 0;        /* 0..100 (JS set) */
-  --steps: 4;           /* stepperSteps.length sẽ override */
-  --label-h: 44px;      /* chiều cao vùng chữ */
-  --gap: 8px;           /* khoảng cách chữ -> circle */
+  --progress: 0; /* 0..100 (JS set) */
+  --steps: 4; /* stepperSteps.length sẽ override */
+  --label-h: 44px; /* chiều cao vùng chữ */
+  --gap: 8px; /* khoảng cách chữ -> circle */
   --dot: 30px;
   --dot-half: 15px;
 
@@ -1279,9 +1554,13 @@ onMounted(async () => {
   background: #fff;
   border-color: #0d6efd;
   color: #0d6efd;
-  box-shadow: 0 0 0 6px rgba(13, 110, 253, 0.14), 0 14px 28px rgba(13, 110, 253, 0.22);
+  box-shadow:
+    0 0 0 6px rgba(13, 110, 253, 0.14),
+    0 14px 28px rgba(13, 110, 253, 0.22);
 }
-.os-step.is-current .os-dot { background: #0d6efd; }
+.os-step.is-current .os-dot {
+  background: #0d6efd;
+}
 
 .os-step.is-todo .os-text {
   color: #6c757d;
@@ -1301,6 +1580,8 @@ onMounted(async () => {
   .order-stepper__track::after {
     display: none;
   }
-  .os-text { white-space: normal; }
+  .os-text {
+    white-space: normal;
+  }
 }
 </style>
