@@ -1,22 +1,6 @@
 <template>
   <div class="container-fluid py-3">
-    <!-- Header -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-receipt fs-4"></i>
-        <h5 class="mb-0">Danh sách hóa đơn</h5>
-      </div>
-
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-secondary btn-sm" @click="openQrModal">
-          <i class="bi bi-qr-code-scan me-1"></i> Quét QR
-        </button>
-        <button class="btn btn-outline-primary btn-sm" @click="exportListExcel">
-          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
-        </button>
-      </div>
-    </div>
-
+    z
     <!-- Filters -->
     <div class="card shadow-sm mb-3 filter-card">
       <!-- Header (click để thu gọn/mở rộng) -->
@@ -235,16 +219,16 @@
          <table class="table align-middle mb-0 table-hover table-fixed table-normal">
 
             <colgroup>
-              <col style="width: 60px" />
-              <col style="width: 150px" />
-              <col style="width: 220px" />
-              <col style="width: 140px" />
-              <col style="width: 120px" />
-              <col style="width: 160px" />
-              <col style="width: 140px" />
-              <col style="width: 170px" />
-              <col style="width: 140px" />
-            </colgroup>
+  <col style="width: 5%" />   <!-- STT -->
+  <col style="width: 14%" />  <!-- Mã -->
+  <col style="width: 18%" />  <!-- Khách -->
+  <col style="width: 12%" />  <!-- SĐT -->
+  <col style="width: 10%" />  <!-- Loại -->
+  <col style="width: 12%" />  <!-- Tổng -->
+  <col style="width: 10%" />  <!-- Ngày -->
+  <col style="width: 11%" />  <!-- Trạng thái -->
+  <col style="width: 8%" />   <!-- Hành động -->
+</colgroup>
 
             <thead class="thead-dark-custom">
               <tr>
@@ -1331,4 +1315,10 @@ onBeforeUnmount(() => {
 .table-normal td {
   font-weight: 400 !important; /* chữ thường */
 }
+/* quan trọng: cho table co theo container */
+.table-fixed { width: 100%; table-layout: fixed; }
+
+/* giúp ellipsis hoạt động đúng trong table-layout: fixed */
+.table-fixed th,
+.table-fixed td { max-width: 0; }
 </style>

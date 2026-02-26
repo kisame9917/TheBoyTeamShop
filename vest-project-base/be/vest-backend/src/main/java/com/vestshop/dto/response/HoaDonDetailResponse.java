@@ -12,6 +12,8 @@ public class HoaDonDetailResponse {
 
     private Long idKhachHang;
     private Long idNhanVien;
+    private String maNhanVien;
+    private String tenNhanVien;
     private Long idPhieuGiamGia;
 
     private Integer trangThaiDon;

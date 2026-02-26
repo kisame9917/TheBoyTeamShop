@@ -14,6 +14,8 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,7 +25,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class HoaDonServiceImpl implements HoaDonService {
-
+    private final NhanVienRepository nhanVienRepository;
     private final HoaDonRepository hoaDonRepository;
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
     private final AnhChiTietSanPhamRepository anhChiTietSanPhamRepository;
@@ -33,6 +35,8 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
     private final KhachHangRepository khachHangRepository;
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
+    private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
+
 
     @Override
     @Transactional
@@ -72,27 +76,38 @@ public class HoaDonServiceImpl implements HoaDonService {
             pgg = phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
                     .orElseThrow(() -> new IllegalArgumentException("Phiếu giảm giá không tồn tại"));
 
-            // Check cơ bản
             if (Boolean.FALSE.equals(pgg.getTrangThai())) throw new IllegalArgumentException("Voucher không hoạt động");
-            if (pgg.getSoLuong() != null && pgg.getSoLuong() <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
+            if (pgg.getSoLuong() != null) {
+                if (pgg.getSoLuong() <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
+                pgg.setSoLuong(pgg.getSoLuong() - 1);
+                phieuGiamGiaRepository.save(pgg);
+            }
             if (pgg.getDonHangToiThieu() != null && tongTien.compareTo(pgg.getDonHangToiThieu()) < 0)
                 throw new IllegalArgumentException("Chưa đạt đơn tối thiểu để dùng voucher");
 
-            // Tính giảm theo cấu trúc entity của bạn
-            // loaiGiam: true=%, false=tiền mặt (suy luận theo field)
-            if (Boolean.TRUE.equals(pgg.getLoaiGiam())) {
-                BigDecimal pt = pgg.getGiaTriPhanTram() == null ? BigDecimal.ZERO : pgg.getGiaTriPhanTram();
-                tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
+
+// ✅ Nếu có % thì dùng %, không phụ thuộc loaiGiam
+            BigDecimal pt = pgg.getGiaTriPhanTram();
+            if (pt != null && pt.compareTo(BigDecimal.ZERO) > 0) {
+                // pt = 0.4 => 40% ; pt = 40 => 40%
+                if (pt.compareTo(BigDecimal.ONE) <= 0) {
+                    tongTienGiam = tongTien.multiply(pt);
+                } else {
+                    tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
+                }
+
                 if (pgg.getGiaTriGiamToiDa() != null && tongTienGiam.compareTo(pgg.getGiaTriGiamToiDa()) > 0) {
                     tongTienGiam = pgg.getGiaTriGiamToiDa();
                 }
             } else {
-                tongTienGiam = pgg.getGiaTriTienMat() == null ? BigDecimal.ZERO : pgg.getGiaTriTienMat();
+                // ✅ Không có % thì dùng tiền mặt
+                BigDecimal tm = pgg.getGiaTriTienMat();
+                tongTienGiam = (tm == null) ? BigDecimal.ZERO : tm;
             }
 
             if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
 
-            // trừ lượt voucher (nếu bạn muốn quản lý số lượng)
+            // trừ lượt voucher
             pgg.setSoLuong(pgg.getSoLuong() - 1);
             phieuGiamGiaRepository.save(pgg);
 
@@ -106,13 +121,29 @@ public class HoaDonServiceImpl implements HoaDonService {
         BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
         if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
 
+        // ✅ 3.5) CHECK THANH TOÁN (paid phải >= tổng phải trả)
+        BigDecimal paid = req.getPaid() == null ? BigDecimal.ZERO : req.getPaid();
+        if (paid.compareTo(tongTienSauGiam) < 0) {
+            throw new IllegalArgumentException("Khách thanh toán chưa đủ");
+        }
+        BigDecimal tienThua = paid.subtract(tongTienSauGiam);
+        if (tienThua.compareTo(BigDecimal.ZERO) < 0) tienThua = BigDecimal.ZERO;
+        System.out.println("tongTien=" + tongTien
+                + " | tongTienGiam=" + tongTienGiam
+                + " | tongTienSauGiam=" + tongTienSauGiam
+                + " | paid=" + paid
+                + " | pggId=" + (pgg == null ? null : pgg.getId())
+                + " | loaiGiam=" + (pgg == null ? null : pgg.getLoaiGiam())
+                + " | pt=" + (pgg == null ? null : pgg.getGiaTriPhanTram())
+                + " | tm=" + (pgg == null ? null : pgg.getGiaTriTienMat())
+                + " | max=" + (pgg == null ? null : pgg.getGiaTriGiamToiDa()));
         // 4) Tạo HoaDon
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon(req.getMaHoaDon() == null ? ("HD" + System.currentTimeMillis()) : req.getMaHoaDon());
         hd.setLoaiDon(req.getLoaiDon() == null ? false : req.getLoaiDon());
-        hd.setPhiVanChuyen(req.getPhiVanChuyen()); // POS: 0
+        hd.setPhiVanChuyen(req.getPhiVanChuyen());
 
-        hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode()); // bán tại quầy -> hoàn thành luôn
+        hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode());
         hd.setTongTien(tongTien);
         hd.setTongTienGiam(tongTienGiam);
         hd.setTongTienSauGiam(tongTienSauGiam);
@@ -124,14 +155,15 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setGhiChu(req.getGhiChu());
 
         hd.setNgayTao(LocalDateTime.now());
-        hd.setNguoiTao(currentUser());
         hd.setTrangThai(true);
 
         if (req.getIdKhachHang() != null) {
             hd.setKhachHang(khachHangRepository.findById(req.getIdKhachHang()).orElse(null));
         }
         if (pgg != null) hd.setPhieuGiamGia(pgg);
-
+        NhanVien nv = getCurrentNhanVien();
+        hd.setNhanVien(nv);
+        hd.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
         hd = hoaDonRepository.save(hd);
 
         // 5) Tạo chi tiết + trừ kho
@@ -146,12 +178,12 @@ public class HoaDonServiceImpl implements HoaDonService {
             ct.setSanPhamChiTiet(spct);
             ct.setSoLuong(sl);
             ct.setNgayTao(LocalDateTime.now());
-            ct.setNguoiTao(currentUser());
+            ct.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
             ct.setTrangThai(true);
             hoaDonChiTietRepository.save(ct);
         }
 
-        // 6) Lịch sử hoá đơn (nên có)
+        // 6) Lịch sử hoá đơn
         LichSuHoaDon ls = new LichSuHoaDon();
         ls.setHoaDon(hd);
         ls.setHanhDong("Tạo đơn tại quầy");
@@ -159,12 +191,59 @@ public class HoaDonServiceImpl implements HoaDonService {
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
         lichSuHoaDonRepository.save(ls);
+// 7) Lịch sử thanh toán (POS: thanh toán thành công ngay)
+        LichSuThanhToan payHis = new LichSuThanhToan();
+        payHis.setHoaDon(hd);
 
+// mã giao dịch: lấy từ req nếu có, không có thì tự sinh
+        String maGd = (req.getMaGiaoDich() == null || req.getMaGiaoDich().isBlank())
+                ? ("POS-" + hd.getMaHoaDon() + "-" + System.currentTimeMillis())
+                : req.getMaGiaoDich().trim();
+        payHis.setMaGiaoDich(maGd);
+
+// Số tiền ghi vào lịch sử nên = tổng tiền sau giảm (để UI hiển thị đúng “đã thanh toán”)
+        payHis.setSoTien(tongTienSauGiam);
+        payHis.setNgayThanhToan(LocalDateTime.now());
+
+// Hình thức thanh toán
+        String hinhThuc = "TIEN_MAT";
+        if (req.getIdPhuongThucThanhToan() != null) {
+            PhuongThucThanhToan pttt = phuongThucThanhToanRepository
+                    .findById(req.getIdPhuongThucThanhToan())
+                    .orElse(null);
+            if (pttt != null && pttt.getTenPhuongThucThanhToan() != null) {
+                hinhThuc = pttt.getTenPhuongThucThanhToan();
+            }
+        }
+        payHis.setHinhThucThanhToan(hinhThuc);
+
+// Ghi chú thanh toán (kèm khách đưa/tiền thừa cho dễ check)
+        String note = (req.getGhiChuThanhToan() != null && !req.getGhiChuThanhToan().isBlank())
+                ? req.getGhiChuThanhToan()
+                : (req.getGhiChu() != null ? req.getGhiChu() : "POS checkout");
+        payHis.setGhiChu(note + " | Khách đưa: " + paid + " | Tiền thừa: " + tienThua);
+
+        payHis.setTrangThai(true);
+        lichSuThanhToanRepository.saveAndFlush(payHis);
         return buildDetail(hd);
     }
+
     // TODO: nếu bạn có Security/JWT thì thay bằng user hiện tại
+    private NhanVien getCurrentNhanVien() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return null;
+
+        String key = auth.getName();
+        if (key == null || key.isBlank() || "anonymousUser".equalsIgnoreCase(key)) return null;
+
+        return nhanVienRepository.findByTaiKhoan(key)
+                .or(() -> nhanVienRepository.findByEmail(key))
+                .orElse(null);
+    }
+
     private String currentUser() {
-        return "system";
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null && auth.isAuthenticated()) ? auth.getName() : "system";
     }
 
     @Override
@@ -225,6 +304,14 @@ public class HoaDonServiceImpl implements HoaDonService {
     @Override
     @Transactional(readOnly = true)
     public List<LichSuHoaDonResponse> getLichSuHoaDon(Long idHoaDon) {
+
+        HoaDon hd = hoaDonRepository.findById(idHoaDon)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
+
+        NhanVien nv = hd.getNhanVien();
+        String maNv = nv == null ? null : nv.getMaNhanVien();
+        String tenNv = nv == null ? null : nv.getTenNhanVien();
+
         return lichSuHoaDonRepository.findAllByHoaDon_IdOrderByThoiGianDesc(idHoaDon)
                 .stream()
                 .map(x -> LichSuHoaDonResponse.builder()
@@ -232,8 +319,10 @@ public class HoaDonServiceImpl implements HoaDonService {
                         .hanhDong(x.getHanhDong())
                         .ghiChu(x.getGhiChu())
                         .thoiGian(x.getThoiGian())
+                        .maNhanVien(maNv)
+                        .tenNhanVien(tenNv)
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -398,12 +487,15 @@ public class HoaDonServiceImpl implements HoaDonService {
         }).collect(Collectors.toList());
 
         TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
-
+        NhanVien nv = hd.getNhanVien();
         return HoaDonDetailResponse.builder()
                 .id(hd.getId())
                 .maHoaDon(hd.getMaHoaDon())
                 .idKhachHang(hd.getKhachHang() == null ? null : hd.getKhachHang().getId())
-                .idNhanVien(hd.getNhanVien() == null ? null : hd.getNhanVien().getId())
+                .idNhanVien(nv == null ? null : nv.getId())
+                .maNhanVien(nv == null ? null : nv.getMaNhanVien())
+                .tenNhanVien(nv == null ? null : nv.getTenNhanVien())
+
                 .idPhieuGiamGia(hd.getPhieuGiamGia() == null ? null : hd.getPhieuGiamGia().getId())
                 .trangThaiDon(hd.getTrangThaiDon())
                 .tenTrangThaiDon(st.getTen())
