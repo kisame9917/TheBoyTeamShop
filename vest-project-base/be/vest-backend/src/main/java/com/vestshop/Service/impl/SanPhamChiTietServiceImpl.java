@@ -71,6 +71,22 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
 
     @Override
     @Transactional
+    public SanPhamChiTietResponse decreaseStock(Long id, Integer qty) {
+        int q = (qty == null || qty <= 0) ? 1 : qty;
+
+        int updated = repository.decreaseStock(id, q);
+        if (updated == 0) {
+            throw new IllegalArgumentException("Không đủ tồn kho");
+        }
+
+        SanPhamChiTiet entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Detail not found"));
+
+        return mapToResponse(entity);
+    }
+
+    @Override
+    @Transactional
     public SanPhamChiTietResponse update(Long id, SanPhamChiTietRequest request) {
         SanPhamChiTiet entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Detail not found"));
@@ -113,5 +129,4 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
                 .anh(entity.getAnh())
                 .build();
     }
-
 }

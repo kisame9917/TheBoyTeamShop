@@ -12,4 +12,6 @@ public interface SanPhamChiTietService {
     SanPhamChiTietResponse create(SanPhamChiTietRequest request);
     SanPhamChiTietResponse update(Long id, SanPhamChiTietRequest request);
     void delete(Long id);
+    SanPhamChiTietResponse decreaseStock(Long id, Integer qty);
+    
 }

@@ -1,6 +1,7 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Service.SanPhamChiTietService;
+import com.vestshop.Service.impl.SanPhamChiTietServiceImpl;
 import com.vestshop.dto.request.SanPhamChiTietRequest;
 import com.vestshop.dto.response.SanPhamChiTietResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +18,20 @@ import java.util.List;
 public class SanPhamChiTietController {
 
     private final SanPhamChiTietService service;
+    private final SanPhamChiTietServiceImpl services;
 
     @GetMapping
     public ResponseEntity<Page<SanPhamChiTietResponse>> getAll(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
         return ResponseEntity.ok(service.getAll(PageRequest.of(page, size)));
+    }
+    @PatchMapping("/{id}/decrease-stock")
+    public ResponseEntity<SanPhamChiTietResponse> decreaseStock(
+            @PathVariable("id") Long id,
+            @RequestParam(name = "qty", defaultValue = "1") Integer qty
+    ) {
+        return ResponseEntity.ok(service.decreaseStock(id, qty));
     }
 
     @GetMapping("/by-product/{productId}")
@@ -45,4 +54,6 @@ public class SanPhamChiTietController {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+
 }

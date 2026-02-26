@@ -2,6 +2,9 @@ package com.vestshop.Repository;
 
 import com.vestshop.Entity.SanPhamChiTiet;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 
@@ -19,4 +22,8 @@ public interface SanPhamChiTietRepository extends JpaRepository<SanPhamChiTiet, 
 
     @org.springframework.data.jpa.repository.Query("SELECT COALESCE(MAX(s.donGia), 0) FROM SanPhamChiTiet s")
     BigDecimal findMaxDonGia();
+
+    @Modifying
+    @Query("UPDATE SanPhamChiTiet s SET s.soLuongTon = s.soLuongTon - :qty WHERE s.id = :id AND s.soLuongTon >= :qty")
+    int decreaseStock(@Param("id") Long id, @Param("qty") Integer qty);
 }
