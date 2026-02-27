@@ -979,14 +979,33 @@ async function createOrder() {
   orderSeq.value++;
 }
 
-function closeOrder(id) {
+async function closeOrder(id) {
   const idx = orders.value.findIndex((o) => o.id === id);
   if (idx === -1) return;
+
+  const o = orders.value[idx];
+
+  // ✅ hủy đơn nháp + trả kho theo giỏ
+  if (o?.dbId) {
+    try {
+      const items = (o.cart || []).map((it) => ({
+        idSanPhamChiTiet: Number(it.idSpct),
+        soLuong: Number(it.qty || 0),
+      })).filter((x) => x.idSanPhamChiTiet && x.soLuong > 0);
+
+      await http.post(`/api/hoa-don/draft/${o.dbId}/cancel`, {
+        reason: "Đóng tab bán hàng",
+        items,
+      });
+    } catch (e) {
+      console.error(e);
+      // bạn muốn “đóng tab là đóng”, nên không chặn
+    }
+  }
 
   orders.value.splice(idx, 1);
   if (activeId.value === id) activeId.value = orders.value[0]?.id ?? null;
 
-  syncModalStockWithCart();
   saveDraftsNow();
 }
 
@@ -1963,7 +1982,8 @@ function buildPosPayload(o) {
   };
 }
 
-function resetOrderAfterPaid(o) {
+async function resetOrderAfterPaid(o) {
+  // reset local
   o.cart = [];
   o.customer = null;
   o.customerDraft = { phone: "", email: "" };
@@ -1978,10 +1998,23 @@ function resetOrderAfterPaid(o) {
   o.discountPercent = 0;
   o.paid = 0;
 
-  o.maHoaDon = genUniqueMaHoaDon();
-  o.label = `Hóa Đơn - ${o.maHoaDon}`;
+  // ✅ tạo hóa đơn nháp mới trong DB cho tab này
+  try {
+    const maHoaDon = genUniqueMaHoaDon();
+    const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
+    const data = res?.data || {};
 
-  syncModalStockWithCart();
+    o.dbId = data.id ?? null;
+    o.maHoaDon = data.maHoaDon || maHoaDon;
+    o.label = `Hóa Đơn - ${o.maHoaDon}`;
+  } catch (e) {
+    console.error(e);
+    // nếu lỗi DB thì vẫn reset local, nhưng báo để bạn biết
+    o.dbId = null;
+    o.maHoaDon = genUniqueMaHoaDon();
+    o.label = `Hóa Đơn - ${o.maHoaDon}`;
+    toastShow("Reset xong nhưng không tạo được hóa đơn nháp mới trong DB", "warning");
+  }
 }
 
 async function confirmOrder() {
@@ -1994,17 +2027,24 @@ async function confirmOrder() {
   const ok = await runVoucherPrecheckFlow();
   if (!ok) return;
 
+  // ✅ bắt buộc phải có dbId (hóa đơn nháp)
+  if (!o?.dbId) return toastShow("Hóa đơn được tạo)", "danger");
+
   const payload = buildPosPayload(o);
 
   submitting.value = true;
   try {
-    const res = await http.post("/api/hoa-don/pos", payload);
-    const ma = res?.data?.maHoaDon || payload.maHoaDon || "Hóa đơn";
-    toastShow(`Tạo hóa đơn thành công: ${ma}`, "success");
-    resetOrderAfterPaid(o);
+    // ✅ CHECKOUT = UPDATE HÓA ĐƠN NHÁP (trạng thái 0 -> hoàn thành)
+    const res = await http.post(`/api/hoa-don/draft/${o.dbId}/checkout`, payload);
+
+    const ma = res?.data?.maHoaDon || o.maHoaDon || "Hóa đơn";
+    toastShow(`Thanh toán thành công: ${ma}`, "success");
+
+    // ✅ sau khi thanh toán xong: tạo nháp mới cho tab hiện tại
+    await resetOrderAfterPaid(o);
   } catch (e) {
     console.error(e);
-    const msg = e?.response?.data?.message || e?.response?.data?.error || "Tạo hóa đơn thất bại";
+    const msg = e?.response?.data?.message || e?.response?.data?.error || "Thanh toán thất bại";
     toastShow(msg, "danger");
   } finally {
     submitting.value = false;

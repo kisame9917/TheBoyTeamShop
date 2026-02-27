@@ -1,4 +1,3 @@
-
 import http from "./http";
 
 const BASE = "/api/hoa-don";
@@ -21,6 +20,7 @@ export default {
     return http.patch(`${BASE}/${id}/trang-thai`, body);
   },
 
+  // ✅ chỉ để 1 cái returnOrder
   returnOrder(id, body) {
     return http.patch(`${BASE}/${id}/hoan-hang`, body);
   },
@@ -36,13 +36,31 @@ export default {
   giaoDich(id) {
     return http.get(`${BASE}/${id}/giao-dich`);
   },
-  returnOrder(id, body) {
-  return http.patch(`/api/hoa-don/${id}/hoan-hang`, body);
-},
 
-createPos(payload) {
-  return request.post("/api/hoa-don/pos", payload);
-}
+  // =========================
+  // ✅ POS DRAFT FLOW
+  // =========================
 
+  // tạo hóa đơn nháp (trạng thái 0)
+  createDraft(payload) {
+    // payload: { maHoaDon }
+    return http.post(`${BASE}/taohoadon`, payload);
+  },
 
+  // checkout hóa đơn nháp (update trạng thái 0 -> hoàn thành)
+  checkoutDraft(id, payload) {
+    // payload chính là BanHangRequest (items, paid, idPhieuGiamGia,...)
+    return http.post(`${BASE}/draft/${id}/checkout`, payload);
+  },
+
+  // hủy hóa đơn nháp + trả kho
+  cancelDraft(id, payload) {
+    // payload: { reason, items:[{idSanPhamChiTiet, soLuong}] }
+    return http.post(`${BASE}/draft/${id}/cancel`, payload);
+  },
+
+  // (tuỳ chọn) nếu bạn vẫn muốn giữ createPos
+  // createPos(payload) {
+  //   return http.post(`${BASE}/pos`, payload);
+  // },
 };
