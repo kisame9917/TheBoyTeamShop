@@ -1982,8 +1982,7 @@ function buildPosPayload(o) {
   };
 }
 
-async function resetOrderAfterPaid(o) {
-  // reset local
+function resetOrderAfterPaid(o) {
   o.cart = [];
   o.customer = null;
   o.customerDraft = { phone: "", email: "" };
@@ -1998,23 +1997,12 @@ async function resetOrderAfterPaid(o) {
   o.discountPercent = 0;
   o.paid = 0;
 
-  // ✅ tạo hóa đơn nháp mới trong DB cho tab này
-  try {
-    const maHoaDon = genUniqueMaHoaDon();
-    const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
-    const data = res?.data || {};
+  // ✅ quan trọng: bỏ dbId của hóa đơn đã thanh toán
+  o.dbId = null;
 
-    o.dbId = data.id ?? null;
-    o.maHoaDon = data.maHoaDon || maHoaDon;
-    o.label = `Hóa Đơn - ${o.maHoaDon}`;
-  } catch (e) {
-    console.error(e);
-    // nếu lỗi DB thì vẫn reset local, nhưng báo để bạn biết
-    o.dbId = null;
-    o.maHoaDon = genUniqueMaHoaDon();
-    o.label = `Hóa Đơn - ${o.maHoaDon}`;
-    toastShow("Reset xong nhưng không tạo được hóa đơn nháp mới trong DB", "warning");
-  }
+  // ✅ chỉ reset mã hiển thị local (không insert DB)
+  o.maHoaDon = genUniqueMaHoaDon();
+  o.label = `Hóa Đơn - ${o.maHoaDon}`;
 }
 
 async function confirmOrder() {
@@ -2028,7 +2016,7 @@ async function confirmOrder() {
   if (!ok) return;
 
   // ✅ bắt buộc phải có dbId (hóa đơn nháp)
-  if (!o?.dbId) return toastShow("Hóa đơn được tạo)", "danger");
+  if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo)", "danger");
 
   const payload = buildPosPayload(o);
 
