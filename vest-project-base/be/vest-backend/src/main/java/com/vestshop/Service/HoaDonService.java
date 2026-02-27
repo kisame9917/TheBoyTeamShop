@@ -3,6 +3,7 @@ package com.vestshop.Service;
 import com.vestshop.dto.request.BanHangRequest;
 import com.vestshop.dto.request.HoaDonChangeStatusRequest;
 import com.vestshop.dto.request.HoaDonReturnRequest;
+import com.vestshop.dto.request.TaoHoaDonChoXacNhanRequest;
 import com.vestshop.dto.response.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,5 +39,5 @@ public interface HoaDonService {
     HoaDonDetailResponse changeStatus(Long idHoaDon, HoaDonChangeStatusRequest req);
     HoaDonDetailResponse hoanHang(Long idHoaDon, HoaDonReturnRequest req);
     HoaDonDetailResponse createPos(BanHangRequest req);
-
+    TaohoadonResponse createDraft(TaoHoaDonChoXacNhanRequest req);
 }

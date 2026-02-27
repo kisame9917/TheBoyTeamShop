@@ -7,6 +7,7 @@ import com.vestshop.common.TrangThaiDonHang;
 import com.vestshop.dto.request.BanHangRequest;
 import com.vestshop.dto.request.HoaDonChangeStatusRequest;
 import com.vestshop.dto.request.HoaDonReturnRequest;
+import com.vestshop.dto.request.TaoHoaDonChoXacNhanRequest;
 import com.vestshop.dto.response.*;
 import com.vestshop.spec.HoaDonSpecifications;
 import lombok.RequiredArgsConstructor;
@@ -170,9 +171,6 @@ public class HoaDonServiceImpl implements HoaDonService {
         for (SanPhamChiTiet spct : spcts) {
             int sl = buyMap.get(spct.getId());
 
-            spct.setSoLuongTon(spct.getSoLuongTon() - sl);
-            sanPhamChiTietRepository.save(spct);
-
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(hd);
             ct.setSanPhamChiTiet(spct);
@@ -244,6 +242,35 @@ public class HoaDonServiceImpl implements HoaDonService {
     private String currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return (auth != null && auth.isAuthenticated()) ? auth.getName() : "system";
+    }
+
+    @Transactional
+    @Override
+    public TaohoadonResponse createDraft(TaoHoaDonChoXacNhanRequest req) {
+        String ma = (req != null && req.getMaHoaDon() != null && !req.getMaHoaDon().trim().isEmpty())
+                ? req.getMaHoaDon().trim()
+                : ("HD" + System.currentTimeMillis());
+
+        HoaDon hd = new HoaDon();
+        hd.setMaHoaDon(ma);
+        hd.setLoaiDon(false);
+        hd.setPhiVanChuyen(BigDecimal.ZERO);
+
+        // ✅ trạng thái 0
+        hd.setTrangThaiDon(0);
+
+        // tổng tiền lúc tạo draft = 0
+        hd.setTongTien(BigDecimal.ZERO);
+        hd.setTongTienGiam(BigDecimal.ZERO);
+        hd.setTongTienSauGiam(BigDecimal.ZERO);
+
+        hd.setNgayTao(LocalDateTime.now());
+        hd.setNguoiTao("system");
+        hd.setTrangThai(true);
+
+        hd = hoaDonRepository.save(hd);
+
+        return new TaohoadonResponse(hd.getId(), hd.getMaHoaDon(), hd.getTrangThaiDon());
     }
 
     @Override

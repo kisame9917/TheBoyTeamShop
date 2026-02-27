@@ -80,11 +80,23 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         }
 
         SanPhamChiTiet entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ko tìm thấy chi tiết san phẩm "));
+
+        return mapToResponse(entity);
+    }
+    @Override
+    @Transactional
+    public SanPhamChiTietResponse increaseStock(Long id, Integer qty) {
+        int q = (qty == null || qty <= 0) ? 1 : qty;
+
+        int updated = repository.increaseStock(id, q);
+        if (updated == 0) throw new IllegalArgumentException("Detail not found");
+
+        SanPhamChiTiet entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Detail not found"));
 
         return mapToResponse(entity);
     }
-
     @Override
     @Transactional
     public SanPhamChiTietResponse update(Long id, SanPhamChiTietRequest request) {

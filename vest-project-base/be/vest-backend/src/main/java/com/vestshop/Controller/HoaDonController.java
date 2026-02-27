@@ -4,6 +4,7 @@ import com.vestshop.Service.HoaDonService;
 import com.vestshop.dto.request.BanHangRequest;
 import com.vestshop.dto.request.HoaDonChangeStatusRequest;
 import com.vestshop.dto.request.HoaDonReturnRequest;
+import com.vestshop.dto.request.TaoHoaDonChoXacNhanRequest;
 import com.vestshop.dto.response.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -97,5 +98,9 @@ public class HoaDonController {
     @PatchMapping("/{id}/hoan-hang")
     public ResponseEntity<HoaDonDetailResponse> hoanHang(@PathVariable Long id, @RequestBody HoaDonReturnRequest req) {
         return ResponseEntity.ok(hoaDonService.hoanHang(id, req));
+    }
+    @PostMapping("/taohoadon")
+    public ResponseEntity<TaohoadonResponse> createDraft(@RequestBody(required = false) TaoHoaDonChoXacNhanRequest req) {
+        return ResponseEntity.ok(hoaDonService.createDraft(req));
     }
 }
