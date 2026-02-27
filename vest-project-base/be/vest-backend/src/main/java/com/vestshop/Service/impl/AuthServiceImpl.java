@@ -10,9 +10,8 @@ import com.vestshop.Service.EmailService;
 import com.vestshop.dto.request.LoginRequest;
 import com.vestshop.dto.response.LoginResponse;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,7 +26,6 @@ import java.util.HexFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
-@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final PasswordResetOtpRepository otpRepo;
@@ -43,32 +41,40 @@ public class AuthServiceImpl implements AuthService {
     private static final int OTP_MAX_ATTEMPTS = 5;
     private static final int RESEND_COOLDOWN_SEC = 60;
 
+    public AuthServiceImpl(
+            PasswordResetOtpRepository otpRepo,
+            NhanVienRepository nhanVienRepository,
+            EmailService emailService,
+            @Qualifier("adminAuthenticationManager") AuthenticationManager authenticationManager,
+            JwtService jwtService
+    ) {
+        this.otpRepo = otpRepo;
+        this.nhanVienRepository = nhanVienRepository;
+        this.emailService = emailService;
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+    }
+
     @Override
     public LoginResponse login(LoginRequest req) {
-        // 1. Xác thực (Authentication)
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.taiKhoan(), req.matKhau())
         );
 
-        // 2. Lấy UserDetails & Tạo Token
         UserDetails user = (UserDetails) auth.getPrincipal();
         String token = jwtService.generateToken(user);
 
-        // 3. Lấy Role
         String role = user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
 
-        // 4. Lấy thông tin chi tiết Nhân Viên từ DB
         NhanVien nv = nhanVienRepository.findByTaiKhoan(req.taiKhoan())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin nhân viên"));
 
-        // 5. Trả về LoginResponse (SỬA: Dùng getTenNhanVien)
         return new LoginResponse(
                 token,
                 role,
                 nv.getId(),
                 nv.getTenNhanVien(),
                 nv.getEmail()
-
         );
     }
 
@@ -80,10 +86,8 @@ public class AuthServiceImpl implements AuthService {
         NhanVien nv = nhanVienRepository.findByEmail(em).orElse(null);
         if (nv == null) return;
 
-        // Kiểm tra trạng thái hoạt động
         if (Boolean.FALSE.equals(nv.getTrangThai())) return;
 
-        // Cooldown gửi lại OTP
         var lastOpt = otpRepo.findTopByEmailOrderByIdDesc(em);
         if (lastOpt.isPresent() && lastOpt.get().getLastSentAt() != null) {
             long sec = Duration.between(lastOpt.get().getLastSentAt(), LocalDateTime.now()).getSeconds();
@@ -105,7 +109,6 @@ public class AuthServiceImpl implements AuthService {
         row.setLastSentAt(LocalDateTime.now());
         otpRepo.save(row);
 
-        // Gửi mail (SỬA: Dùng getTenNhanVien)
         emailService.sendResetPasswordOtp(em, nv.getTenNhanVien(), otp);
     }
 
@@ -123,7 +126,6 @@ public class AuthServiceImpl implements AuthService {
 
         String em = email.trim();
 
-        // Kiểm tra OTP
         PasswordResetOtp row = otpRepo.findTopByEmailOrderByIdDesc(em)
                 .orElseThrow(() -> new RuntimeException("OTP không tồn tại hoặc đã hết hạn"));
 
@@ -140,7 +142,6 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("OTP không đúng");
         }
 
-        // Cập nhật mật khẩu mới
         NhanVien nv = nhanVienRepository.findByEmail(em)
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
 

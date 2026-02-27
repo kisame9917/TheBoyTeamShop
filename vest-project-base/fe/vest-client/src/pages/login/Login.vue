@@ -4,27 +4,31 @@
       <div class="login-title">Đăng nhập</div>
 
       <form @submit.prevent="onSubmit" class="login-form">
+        <div v-if="error" class="alert">{{ error }}</div>
+
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="taiKhoan">Tài khoản</label>
           <input
-              v-model="form.email"
-              id="email"
-              type="email"
-              class="form-control"
-              placeholder="Nhập email"
-              required
+            v-model.trim="form.taiKhoan"
+            id="taiKhoan"
+            type="text"
+            class="form-control"
+            placeholder="Nhập tài khoản"
+            required
+            autocomplete="username"
           />
         </div>
 
         <div class="form-group">
-          <label for="password">Mật khẩu</label>
+          <label for="matKhau">Mật khẩu</label>
           <input
-              v-model="form.password"
-              id="password"
-              type="password"
-              class="form-control"
-              placeholder="Nhập mật khẩu"
-              required
+            v-model="form.matKhau"
+            id="matKhau"
+            type="password"
+            class="form-control"
+            placeholder="Nhập mật khẩu"
+            required
+            autocomplete="current-password"
           />
         </div>
 
@@ -37,45 +41,78 @@
           <a class="forgot" href="#" @click.prevent>Quên mật khẩu?</a>
         </div>
 
-        <button class="btn-submit" type="submit">Đăng nhập</button>
+        <button class="btn-submit" type="submit" :disabled="loading">
+          {{ loading ? "Đang đăng nhập..." : "Đăng nhập" }}
+        </button>
 
-        <div class="divider">
-          <span>hoặc</span>
-        </div>
+        <div class="divider"><span>hoặc</span></div>
 
-        <button class="btn-google" type="button" @click="loginWithGoogle">
+        <button class="btn-google" type="button" disabled>
           <i class="fab fa-google"></i>
           Đăng nhập với Google
         </button>
-
-        <div class="register-hint">
-          Chưa có tài khoản?
-          <!-- project hiện chưa có route /register nên tránh 404 -->
-          <RouterLink to="/" class="register-link">Đăng ký ngay</RouterLink>
-        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import axios from "axios";
+
+const router = useRouter();
+const route = useRoute();
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+const loading = ref(false);
+const error = ref("");
 
 const form = reactive({
-  email: '',
-  password: '',
+  taiKhoan: "",
+  matKhau: "",
   remember: false,
 });
 
-function onSubmit() {
-  // TODO: gọi API đăng nhập
-  console.log('Login submit:', { ...form });
-  alert('Chức năng đăng nhập đang được phát triển.');
-}
+async function onSubmit() {
+  error.value = "";
+  loading.value = true;
 
-function loginWithGoogle() {
-  // TODO: tích hợp OAuth Google
-  alert('Đăng nhập Google đang được phát triển.');
+  try {
+    const res = await axios.post(`${BASE_URL}/api/client/auth/login`, {
+      taiKhoan: form.taiKhoan,
+      matKhau: form.matKhau,
+    });
+
+    const data = res.data || {};
+    const token = data.token;
+    if (!token) throw new Error("Không nhận được token từ server.");
+
+    const store = form.remember ? localStorage : sessionStorage;
+
+    // clear cũ
+    localStorage.removeItem("USER_ACCESS_TOKEN");
+    sessionStorage.removeItem("USER_ACCESS_TOKEN");
+    localStorage.removeItem("USER_NAME");
+    sessionStorage.removeItem("USER_NAME");
+
+    // save
+    store.setItem("USER_ACCESS_TOKEN", token);
+    store.setItem("USER_NAME", data.tenKhachHang || "");
+
+    // redirect nếu có
+    const redirect = route.query.redirect || "/";
+    await router.replace(redirect);
+  } catch (e) {
+    error.value =
+      e?.response?.data?.message ||
+      e?.response?.data?.error ||
+      e?.message ||
+      "Đăng nhập thất bại.";
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
 
@@ -109,6 +146,15 @@ function loginWithGoogle() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ffd1d1;
+  background: #fff5f5;
+  color: #b42318;
+  font-size: 14px;
 }
 
 .form-group {
@@ -156,6 +202,11 @@ function loginWithGoogle() {
   color: #fff;
 }
 
+.btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .divider {
   display: flex;
   align-items: center;
@@ -167,7 +218,7 @@ function loginWithGoogle() {
 
 .divider::before,
 .divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: #eee;
@@ -177,26 +228,12 @@ function loginWithGoogle() {
   height: 44px;
   border: 1px solid #ddd;
   border-radius: 10px;
-  cursor: pointer;
+  cursor: not-allowed;
   font-weight: 600;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-}
-
-.register-hint {
-  margin-top: 6px;
-  text-align: center;
-  font-size: 14px;
-  color: #444;
-}
-
-.register-link {
-  margin-left: 6px;
-  font-weight: 700;
-  text-decoration: none;
-  color: #111;
 }
 </style>

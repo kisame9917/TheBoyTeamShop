@@ -100,7 +100,7 @@
           </button>
         </div>
         <div class="banner-img-group me-5">
-          <img src="/images/banner2.jpg" alt="Bộ sưu tập" class="img-fluid" />
+          <img src="/uploads/logo.jpg" alt="Bộ sưu tập" class="img-fluid" />
         </div>
       </div>
     </section>
@@ -109,7 +109,7 @@
     <section class="container py-5">
       <h4 class="fw-bold mb-4">BỘ SƯU TẬP ẢNH</h4>
       <div class="row row-cols-2 row-cols-md-4 g-3">
-        <div class="col" v-for="(src, i) in galleryImages" :key="'gallery-' + i">
+        <div class="col" v-for="(src, i) in galleryuploads" :key="'gallery-' + i">
           <div class="gallery-card">
             <img :src="src" class="gallery-img" alt="Ảnh bộ sưu tập" />
           </div>
@@ -134,17 +134,17 @@ function goShop() {
 }
 
 const products = ref([
-  { id: 1, name: 'Thời trang Vest Nam - Full Suit', price: '1.695.000 VND', image: '/images/ao-vest-den-1.jpg' },
-  { id: 2, name: 'Thời trang Vest Nam - Lịch lãm', price: '1.095.000 VND', image: '/images/ao-vest-den-2.jpg' },
-  { id: 3, name: 'Quần Vest Nam - Slimfit', price: '539.000 VND', image: '/images/ao-vest-den-3.jpg' },
-  { id: 4, name: 'Thời trang Vest Nam - Cổ điển', price: '1.525.000 VND', image: '/images/ao-vest-den-4.jpg' },
-  { id: 5, name: 'Thời trang Vest Nam - Trẻ trung', price: '1.398.000 VND', image: '/images/ao-vest-den-5.jpg' },
+  { id: 1, name: 'Thời trang Vest Nam - Full Suit', price: '1.695.000 VND', image: '/upload/ao-vest-den-1.jpg' },
+  { id: 2, name: 'Thời trang Vest Nam - Lịch lãm', price: '1.095.000 VND', image: '/uploads/ao-vest-den-2.jpg' },
+  { id: 3, name: 'Quần Vest Nam - Slimfit', price: '539.000 VND', image: '/uploads/ao-vest-den-3.jpg' },
+  { id: 4, name: 'Thời trang Vest Nam - Cổ điển', price: '1.525.000 VND', image: '/uploads/ao-vest-den-4.jpg' },
+  { id: 5, name: 'Thời trang Vest Nam - Trẻ trung', price: '1.398.000 VND', image: '/uploads/ao-vest-den-5.jpg' },
 ])
 
 const banners = ref([
-  '/images/banner.jpg',
-  '/images/banner1.jpg',
-  '/images/banner2.jpg',
+  '/uploads/logo.jpg',
+  '/uploads/logo.jpg',
+  '/uploads/logo.jpg',
 ])
 
 const currentBannerIndex = ref(0)
@@ -178,18 +178,18 @@ onMounted(() => startAuto())
 onBeforeUnmount(() => stopAuto())
 
 const exclusiveProducts = ref([
-  { id: 101, name: 'Vest Nam Premium - Navy', price: '1.635.000 VND', image: '/images/ao-vest-den-1.jpg' },
-  { id: 102, name: 'Áo khoác vest ghi xám', price: '1.095.000 VND', image: '/images/ao-vest-den-2.jpg' },
-  { id: 103, name: 'Quần âu nam form chuẩn', price: '549.000 VND', image: '/images/ao-vest-den-3.jpg' },
-  { id: 104, name: 'Bộ vest đen quyền lực', price: '1.520.000 VND', image: '/images/ao-vest-den-4.jpg' },
-  { id: 105, name: 'Bộ vest xanh tinh tế', price: '1.455.000 VND', image: '/images/ao-vest-den-5.jpg' },
+  { id: 101, name: 'Vest Nam Premium - Navy', price: '1.635.000 VND', image: '/uploads/ao-vest-den-1.jpg' },
+  { id: 102, name: 'Áo khoác vest ghi xám', price: '1.095.000 VND', image: '/uploads/ao-vest-den-2.jpg' },
+  { id: 103, name: 'Quần âu nam form chuẩn', price: '549.000 VND', image: '/uploads/ao-vest-den-3.jpg' },
+  { id: 104, name: 'Bộ vest đen quyền lực', price: '1.520.000 VND', image: '/uploads/ao-vest-den-4.jpg' },
+  { id: 105, name: 'Bộ vest xanh tinh tế', price: '1.455.000 VND', image: '/uploads/ao-vest-den-5.jpg' },
 ])
 
-const galleryImages = ref([
-  '/images/ao-vest-den-11.jpg',
-  '/images/ao-vest-den-12.jpg',
-  '/images/ao-vest-den-13.jpg',
-  '/images/ao-vest-den-14.jpg',
+const galleryuploads = ref([
+  '/uploads/ao-vest-den-11.jpg',
+  '/uploads/ao-vest-den-12.jpg',
+  '/uploads/ao-vest-den-13.jpg',
+  '/uploads/ao-vest-den-14.jpg',
 ])
 </script>
 

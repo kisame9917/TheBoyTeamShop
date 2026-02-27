@@ -26,4 +26,8 @@ public interface SanPhamChiTietRepository extends JpaRepository<SanPhamChiTiet, 
     @Modifying
     @Query("UPDATE SanPhamChiTiet s SET s.soLuongTon = s.soLuongTon - :qty WHERE s.id = :id AND s.soLuongTon >= :qty")
     int decreaseStock(@Param("id") Long id, @Param("qty") Integer qty);
+
+    @Modifying
+    @Query("UPDATE SanPhamChiTiet s SET s.soLuongTon = s.soLuongTon + :qty WHERE s.id = :id")
+    int increaseStock(@Param("id") Long id, @Param("qty") Integer qty);
 }

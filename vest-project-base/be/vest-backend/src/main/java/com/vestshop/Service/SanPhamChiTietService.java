@@ -13,5 +13,6 @@ public interface SanPhamChiTietService {
     SanPhamChiTietResponse update(Long id, SanPhamChiTietRequest request);
     void delete(Long id);
     SanPhamChiTietResponse decreaseStock(Long id, Integer qty);
+    SanPhamChiTietResponse increaseStock(Long id, Integer qty);
     
 }

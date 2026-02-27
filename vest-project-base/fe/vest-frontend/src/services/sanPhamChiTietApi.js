@@ -24,6 +24,10 @@ export const decreaseStock = (id, qty = 1) => {
   return http.patch(`/api/san-pham-chi-tiet/${id}/decrease-stock`, null, { params: { qty } })
 }
 
+export const increaseStock = (id, qty = 1) => {
+  return http.patch(`/api/san-pham-chi-tiet/${id}/increase-stock`, null, { params: { qty } });
+};
+
 
 export const uploadImage = (file) => {
     const formData = new FormData();

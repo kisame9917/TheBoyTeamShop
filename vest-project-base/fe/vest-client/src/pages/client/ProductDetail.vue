@@ -105,7 +105,7 @@
           <div class="card h-100 border-0 shadow-sm product-card">
             <div class="position-relative">
               <span class="badge bg-primary position-absolute top-0 start-0 m-2 z-1">SALE 50%</span>
-              <img src="/images/ao-vest-den-8.jpg" class="card-img-top rounded-top" alt="Product" />
+              <img src="/uploads/ao-vest-den-6.jpg" class="card-img-top rounded-top" alt="Product" />
             </div>
             <div class="card-body p-3">
               <h6 class="card-title text-truncate mb-2">Bộ Vest Nam Cao Cấp - Mẫu {{ i }}</h6>

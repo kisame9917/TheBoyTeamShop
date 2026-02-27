@@ -33,7 +33,13 @@ public class SanPhamChiTietController {
     ) {
         return ResponseEntity.ok(service.decreaseStock(id, qty));
     }
-
+    @PatchMapping("/{id}/increase-stock")
+    public ResponseEntity<SanPhamChiTietResponse> increaseStock(
+            @PathVariable Long id,
+            @RequestParam(name = "qty", defaultValue = "1") Integer qty
+    ) {
+        return ResponseEntity.ok(service.increaseStock(id, qty));
+    }
     @GetMapping("/by-product/{productId}")
     public ResponseEntity<List<SanPhamChiTietResponse>> getByProductId(@PathVariable("productId") Long productId) {
         return ResponseEntity.ok(service.getByProductId(productId));

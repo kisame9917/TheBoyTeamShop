@@ -4,7 +4,6 @@
     <header class="bg-white py-3 border-bottom">
       <div class="container d-flex justify-content-between align-items-center">
         <div class="logo">
-          <!-- Logo -> Home -->
           <router-link to="/" aria-label="Trang chủ">
             <img :src="logoUrl" alt="Logo" class="logo-img" />
           </router-link>
@@ -13,12 +12,12 @@
         <div class="search-bar w-50">
           <div class="input-group">
             <input
-                v-model="keyword"
-                @keyup.enter="doSearch"
-                type="text"
-                class="form-control bg-light border-0"
-                placeholder="Tìm kiếm vest nam..."
-                aria-label="Tìm kiếm"
+              v-model="keyword"
+              @keyup.enter="doSearch"
+              type="text"
+              class="form-control bg-light border-0"
+              placeholder="Tìm kiếm vest nam..."
+              aria-label="Tìm kiếm"
             />
             <button class="btn btn-primary btn-search" type="button" aria-label="Tìm kiếm" @click="doSearch">
               <i class="bi bi-search"></i>
@@ -26,18 +25,36 @@
           </div>
         </div>
 
-        <div class="header-icons d-flex gap-3 fs-5">
-          <!-- Person -> Login -->
-          <router-link to="/login" class="text-dark" aria-label="Tài khoản">
+        <div class="header-icons d-flex gap-3 fs-5 align-items-center">
+          <!-- USER: nếu chưa login thì link /login, nếu đã login thì dropdown -->
+          <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
+            <button class="user-btn text-dark" type="button" @click.stop="toggleUserMenu" aria-label="Tài khoản">
+              <i class="bi bi-person"></i>
+              <span class="user-name">{{ userName }}</span>
+              <i class="bi bi-caret-down-fill caret"></i>
+            </button>
+
+            <div v-if="userMenuOpen" class="user-menu">
+              <div class="user-menu-header">{{ userName }}</div>
+              <button class="user-menu-item" type="button" @click="openProfile">
+                Hồ sơ (demo)
+              </button>
+              <button class="user-menu-item danger" type="button" @click="logout">
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+
+          <router-link v-else to="/login" class="text-dark" aria-label="Tài khoản">
             <i class="bi bi-person"></i>
           </router-link>
 
-          <!-- Heart: chưa có page -> tạm để # (bạn có route thì đổi sau) -->
+          <!-- Heart -->
           <a href="#" class="text-dark" aria-label="Yêu thích" @click.prevent>
             <i class="bi bi-heart"></i>
           </a>
 
-          <!-- Cart: chưa có page -> tạm để # -->
+          <!-- Cart -->
           <a href="#" class="text-dark position-relative" aria-label="Giỏ hàng" @click.prevent>
             <i class="bi bi-bag"></i>
             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge">
@@ -52,8 +69,6 @@
     <nav class="nav-menu py-2 bg-light-blue">
       <div class="container d-flex justify-content-center gap-4">
         <router-link to="/shop" class="nav-link">Cửa hàng</router-link>
-
-        <!-- các mục chưa có page riêng -> chuyển sang Search theo cat để demo -->
         <router-link :to="{ name: 'Search', query: { cat: 'bo-vest-nam' } }" class="nav-link">Bộ vest nam</router-link>
         <router-link :to="{ name: 'Search', query: { cat: 'trang-phuc' } }" class="nav-link">Trang phục</router-link>
         <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="nav-link">Vest nam</router-link>
@@ -64,7 +79,6 @@
       </div>
     </nav>
 
-    <!-- Nội dung trang -->
     <main>
       <router-view />
     </main>
@@ -112,24 +126,87 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
 
-const router = useRouter()
+const router = useRouter();
 
-// Logo lấy từ backend/public folder (VD: http://localhost:8080/uploads/logo.jpg)
-const logoUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/uploads/logo.jpg`
+// Logo
+const logoUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/uploads/logo.jpg`;
 
-const keyword = ref('')
+const keyword = ref("");
 
 function doSearch() {
-  const q = keyword.value.trim()
-  router.push({ name: 'Search', query: q ? { q } : {} })
+  const q = keyword.value.trim();
+  router.push({ name: "Search", query: q ? { q } : {} });
 }
+
+/** ====== USER MENU (REACTIVE) ====== */
+const userMenuOpen = ref(false);
+const userWrap = ref(null);
+
+// ✅ reactive state thay cho computed đọc storage
+const isLoggedIn = ref(false);
+const userName = ref("Khách hàng");
+
+function syncAuth() {
+  const token =
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN");
+
+  isLoggedIn.value = !!token;
+
+  userName.value =
+    localStorage.getItem("USER_NAME") ||
+    sessionStorage.getItem("USER_NAME") ||
+    "Khách hàng";
+}
+
+function toggleUserMenu() {
+  userMenuOpen.value = !userMenuOpen.value;
+}
+
+function openProfile() {
+  userMenuOpen.value = false;
+  alert("Hồ sơ (demo) - sau bạn làm trang profile/me nhé.");
+}
+
+function logout() {
+  userMenuOpen.value = false;
+
+  localStorage.removeItem("USER_ACCESS_TOKEN");
+  sessionStorage.removeItem("USER_ACCESS_TOKEN");
+  localStorage.removeItem("USER_NAME");
+  sessionStorage.removeItem("USER_NAME");
+
+  syncAuth();        // ✅ cập nhật UI ngay
+  router.push("/");  // ✅ logout về trang chủ
+}
+
+function onDocClick(e) {
+  if (!userWrap.value) return;
+  if (!userWrap.value.contains(e.target)) userMenuOpen.value = false;
+}
+
+function onAuthChanged() {
+  syncAuth(); // ✅ cập nhật khi login/logout
+}
+
+onMounted(() => {
+  syncAuth();
+  document.addEventListener("click", onDocClick);
+  window.addEventListener("auth-changed", onAuthChanged);
+  window.addEventListener("storage", onAuthChanged); // optional sync đa tab
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onDocClick);
+  window.removeEventListener("auth-changed", onAuthChanged);
+  window.removeEventListener("storage", onAuthChanged);
+});
 </script>
 
 <style>
-/* Biến màu dùng chung toàn site */
 :root {
   --sky-aqua: #07c8f9;
   --fresh-sky: #09a6f3;
@@ -139,7 +216,6 @@ function doSearch() {
   --pale-blue-bg: #e8f6fa;
 }
 
-/* Nới rộng khung hiển thị (Bootstrap .container) */
 .container {
   max-width: 1600px;
 }
@@ -149,16 +225,14 @@ function doSearch() {
   }
 }
 
-/* Base */
 .client-layout {
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
-.text-royal-blue {
-  color: var(--royal-blue);
-}
+
 .bg-light-blue {
   background-color: var(--pale-blue-bg);
 }
+
 .btn-primary {
   background-color: var(--brilliant-azure);
   border-color: var(--brilliant-azure);
@@ -169,7 +243,7 @@ function doSearch() {
 
 /* Header */
 .logo-img {
-  height: 72px; /* tăng size logo */
+  height: 72px;
   width: auto;
   object-fit: contain;
 }
@@ -214,5 +288,79 @@ function doSearch() {
 }
 .footer-link:hover {
   color: var(--royal-blue);
+}
+
+/* ===== USER DROPDOWN (HEADER) ===== */
+.user-dd {
+  position: relative;
+  display: inline-flex;
+}
+
+.user-btn {
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 10px;
+}
+
+.user-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 700;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caret {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 220px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 99;
+}
+
+.user-menu-header {
+  padding: 10px 10px 8px;
+  font-weight: 800;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 6px;
+}
+
+.user-menu-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 10px 10px;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.user-menu-item:hover {
+  background: #f5f5f5;
+}
+
+.user-menu-item.danger {
+  color: #b42318;
 }
 </style>

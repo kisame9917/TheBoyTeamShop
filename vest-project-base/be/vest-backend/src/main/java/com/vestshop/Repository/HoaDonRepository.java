@@ -140,4 +140,16 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
                             @Param("from") LocalDateTime from,
                             @Param("to") LocalDateTime to,
                             @Param("includeShip") boolean includeShip);
+
+
+    @Modifying
+    @Query("""
+        delete from HoaDon hd
+        where hd.trangThaiDon = :status
+          and hd.ngayTao < :cutoff
+    """)
+    int hardDeletePendingOlderThan(@Param("status") Integer status,
+                                   @Param("cutoff") LocalDateTime cutoff);
 }
+
+
