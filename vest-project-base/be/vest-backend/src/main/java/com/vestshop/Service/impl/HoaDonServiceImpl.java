@@ -4,10 +4,7 @@ import com.vestshop.Entity.*;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.HoaDonService;
 import com.vestshop.common.TrangThaiDonHang;
-import com.vestshop.dto.request.BanHangRequest;
-import com.vestshop.dto.request.HoaDonChangeStatusRequest;
-import com.vestshop.dto.request.HoaDonReturnRequest;
-import com.vestshop.dto.request.TaoHoaDonChoXacNhanRequest;
+import com.vestshop.dto.request.*;
 import com.vestshop.dto.response.*;
 import com.vestshop.spec.HoaDonSpecifications;
 import lombok.RequiredArgsConstructor;
@@ -38,193 +35,180 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
     private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
 
-
-    @Override
-    @Transactional
-    public HoaDonDetailResponse createPos(BanHangRequest req) {
-
-        // 1) Load SPCT + check tồn kho
-        Map<Long, Integer> buyMap = new HashMap<>();
-        for (var it : req.getItems()) {
-            buyMap.merge(it.getIdSanPhamChiTiet(), it.getSoLuong(), Integer::sum);
-        }
-
-        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(buyMap.keySet());
-        if (spcts.size() != buyMap.size()) {
-            throw new IllegalArgumentException("Có sản phẩm chi tiết không tồn tại");
-        }
-
-        for (SanPhamChiTiet spct : spcts) {
-            int need = buyMap.get(spct.getId());
-            int stock = spct.getSoLuongTon() == null ? 0 : spct.getSoLuongTon();
-            if (need > stock) {
-                throw new IllegalArgumentException("Vượt tồn kho: " + spct.getMaSanPhamChiTiet());
-            }
-        }
-
-        // 2) Tính tiền gốc
-        BigDecimal tongTien = BigDecimal.ZERO;
-        for (SanPhamChiTiet spct : spcts) {
-            int sl = buyMap.get(spct.getId());
-            tongTien = tongTien.add(spct.getDonGia().multiply(BigDecimal.valueOf(sl)));
-        }
-
-        // 3) Tính giảm giá (voucher hoặc % thủ công)
-        BigDecimal tongTienGiam = BigDecimal.ZERO;
-        PhieuGiamGia pgg = null;
-
-        if (req.getIdPhieuGiamGia() != null) {
-            pgg = phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
-                    .orElseThrow(() -> new IllegalArgumentException("Phiếu giảm giá không tồn tại"));
-
-            if (Boolean.FALSE.equals(pgg.getTrangThai())) throw new IllegalArgumentException("Voucher không hoạt động");
-            if (pgg.getSoLuong() != null) {
-                if (pgg.getSoLuong() <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
-                pgg.setSoLuong(pgg.getSoLuong() - 1);
-                phieuGiamGiaRepository.save(pgg);
-            }
-            if (pgg.getDonHangToiThieu() != null && tongTien.compareTo(pgg.getDonHangToiThieu()) < 0)
-                throw new IllegalArgumentException("Chưa đạt đơn tối thiểu để dùng voucher");
-
-
-// ✅ Nếu có % thì dùng %, không phụ thuộc loaiGiam
-            BigDecimal pt = pgg.getGiaTriPhanTram();
-            if (pt != null && pt.compareTo(BigDecimal.ZERO) > 0) {
-                // pt = 0.4 => 40% ; pt = 40 => 40%
-                if (pt.compareTo(BigDecimal.ONE) <= 0) {
-                    tongTienGiam = tongTien.multiply(pt);
-                } else {
-                    tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
-                }
-
-                if (pgg.getGiaTriGiamToiDa() != null && tongTienGiam.compareTo(pgg.getGiaTriGiamToiDa()) > 0) {
-                    tongTienGiam = pgg.getGiaTriGiamToiDa();
-                }
-            } else {
-                // ✅ Không có % thì dùng tiền mặt
-                BigDecimal tm = pgg.getGiaTriTienMat();
-                tongTienGiam = (tm == null) ? BigDecimal.ZERO : tm;
-            }
-
-            if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
-
-            // trừ lượt voucher
-            pgg.setSoLuong(pgg.getSoLuong() - 1);
-            phieuGiamGiaRepository.save(pgg);
-
-        } else {
-            int percent = req.getGiamThuCongPercent() == null ? 0 : req.getGiamThuCongPercent();
-            if (percent < 0) percent = 0;
-            if (percent > 100) percent = 100;
-            tongTienGiam = tongTien.multiply(BigDecimal.valueOf(percent)).divide(BigDecimal.valueOf(100));
-        }
-
-        BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
-        if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
-
-        // ✅ 3.5) CHECK THANH TOÁN (paid phải >= tổng phải trả)
-        BigDecimal paid = req.getPaid() == null ? BigDecimal.ZERO : req.getPaid();
-        if (paid.compareTo(tongTienSauGiam) < 0) {
-            throw new IllegalArgumentException("Khách thanh toán chưa đủ");
-        }
-        BigDecimal tienThua = paid.subtract(tongTienSauGiam);
-        if (tienThua.compareTo(BigDecimal.ZERO) < 0) tienThua = BigDecimal.ZERO;
-        System.out.println("tongTien=" + tongTien
-                + " | tongTienGiam=" + tongTienGiam
-                + " | tongTienSauGiam=" + tongTienSauGiam
-                + " | paid=" + paid
-                + " | pggId=" + (pgg == null ? null : pgg.getId())
-                + " | loaiGiam=" + (pgg == null ? null : pgg.getLoaiGiam())
-                + " | pt=" + (pgg == null ? null : pgg.getGiaTriPhanTram())
-                + " | tm=" + (pgg == null ? null : pgg.getGiaTriTienMat())
-                + " | max=" + (pgg == null ? null : pgg.getGiaTriGiamToiDa()));
-        // 4) Tạo HoaDon
-        HoaDon hd = new HoaDon();
-        hd.setMaHoaDon(req.getMaHoaDon() == null ? ("HD" + System.currentTimeMillis()) : req.getMaHoaDon());
-        hd.setLoaiDon(req.getLoaiDon() == null ? false : req.getLoaiDon());
-        hd.setPhiVanChuyen(req.getPhiVanChuyen());
-
-        hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode());
-        hd.setTongTien(tongTien);
-        hd.setTongTienGiam(tongTienGiam);
-        hd.setTongTienSauGiam(tongTienSauGiam);
-
-        hd.setTenKhachHang(req.getTenKhachHang());
-        hd.setSoDienThoai(req.getSoDienThoai());
-        hd.setEmailKhachHang(req.getEmailKhachHang());
-        hd.setDiaChiKhachHang(req.getDiaChiKhachHang());
-        hd.setGhiChu(req.getGhiChu());
-
-        hd.setNgayTao(LocalDateTime.now());
-        hd.setTrangThai(true);
-
-        if (req.getIdKhachHang() != null) {
-            hd.setKhachHang(khachHangRepository.findById(req.getIdKhachHang()).orElse(null));
-        }
-        if (pgg != null) hd.setPhieuGiamGia(pgg);
-        NhanVien nv = getCurrentNhanVien();
-        hd.setNhanVien(nv);
-        hd.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
-        hd = hoaDonRepository.save(hd);
-
-        // 5) Tạo chi tiết + trừ kho
-        for (SanPhamChiTiet spct : spcts) {
-            int sl = buyMap.get(spct.getId());
-
-            HoaDonChiTiet ct = new HoaDonChiTiet();
-            ct.setHoaDon(hd);
-            ct.setSanPhamChiTiet(spct);
-            ct.setSoLuong(sl);
-            ct.setNgayTao(LocalDateTime.now());
-            ct.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
-            ct.setTrangThai(true);
-            hoaDonChiTietRepository.save(ct);
-        }
-
-        // 6) Lịch sử hoá đơn
-        LichSuHoaDon ls = new LichSuHoaDon();
-        ls.setHoaDon(hd);
-        ls.setHanhDong("Tạo đơn tại quầy");
-        ls.setGhiChu("POS checkout");
-        ls.setThoiGian(LocalDateTime.now());
-        ls.setTrangThai(true);
-        lichSuHoaDonRepository.save(ls);
-// 7) Lịch sử thanh toán (POS: thanh toán thành công ngay)
-        LichSuThanhToan payHis = new LichSuThanhToan();
-        payHis.setHoaDon(hd);
-
-// mã giao dịch: lấy từ req nếu có, không có thì tự sinh
-        String maGd = (req.getMaGiaoDich() == null || req.getMaGiaoDich().isBlank())
-                ? ("POS-" + hd.getMaHoaDon() + "-" + System.currentTimeMillis())
-                : req.getMaGiaoDich().trim();
-        payHis.setMaGiaoDich(maGd);
-
-// Số tiền ghi vào lịch sử nên = tổng tiền sau giảm (để UI hiển thị đúng “đã thanh toán”)
-        payHis.setSoTien(tongTienSauGiam);
-        payHis.setNgayThanhToan(LocalDateTime.now());
-
-// Hình thức thanh toán
-        String hinhThuc = "TIEN_MAT";
-        if (req.getIdPhuongThucThanhToan() != null) {
-            PhuongThucThanhToan pttt = phuongThucThanhToanRepository
-                    .findById(req.getIdPhuongThucThanhToan())
-                    .orElse(null);
-            if (pttt != null && pttt.getTenPhuongThucThanhToan() != null) {
-                hinhThuc = pttt.getTenPhuongThucThanhToan();
-            }
-        }
-        payHis.setHinhThucThanhToan(hinhThuc);
-
-// Ghi chú thanh toán (kèm khách đưa/tiền thừa cho dễ check)
-        String note = (req.getGhiChuThanhToan() != null && !req.getGhiChuThanhToan().isBlank())
-                ? req.getGhiChuThanhToan()
-                : (req.getGhiChu() != null ? req.getGhiChu() : "POS checkout");
-        payHis.setGhiChu(note + " | Khách đưa: " + paid + " | Tiền thừa: " + tienThua);
-
-        payHis.setTrangThai(true);
-        lichSuThanhToanRepository.saveAndFlush(payHis);
-        return buildDetail(hd);
-    }
+//    @Override
+//    @Transactional
+//    public HoaDonDetailResponse createPos(BanHangRequest req) {
+//
+//        if (req == null || req.getItems() == null || req.getItems().isEmpty()) {
+//            throw new IllegalArgumentException("Giỏ hàng trống");
+//        }
+//
+//        // 1) Gom item + validate qty
+//        Map<Long, Integer> buyMap = new HashMap<>();
+//        for (var it : req.getItems()) {
+//            if (it == null || it.getIdSanPhamChiTiet() == null) continue;
+//            int qty = it.getSoLuong() == null ? 0 : it.getSoLuong();
+//            if (qty <= 0) continue;
+//            buyMap.merge(it.getIdSanPhamChiTiet(), qty, Integer::sum);
+//        }
+//        if (buyMap.isEmpty()) throw new IllegalArgumentException("Giỏ hàng trống");
+//
+//        // 2) Load SPCT (KHÔNG check tồn kiểu need>stock vì bạn đã trừ kho ở FE)
+//        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(buyMap.keySet());
+//        if (spcts.size() != buyMap.size()) {
+//            throw new IllegalArgumentException("Có sản phẩm chi tiết không tồn tại");
+//        }
+//
+//        // 3) Tính tiền gốc
+//        BigDecimal tongTien = BigDecimal.ZERO;
+//        for (SanPhamChiTiet spct : spcts) {
+//            int sl = buyMap.get(spct.getId());
+//            BigDecimal donGia = spct.getDonGia() == null ? BigDecimal.ZERO : spct.getDonGia();
+//            tongTien = tongTien.add(donGia.multiply(BigDecimal.valueOf(sl)));
+//        }
+//
+//        // 4) Tính giảm giá
+//        BigDecimal tongTienGiam = BigDecimal.ZERO;
+//        PhieuGiamGia pgg = null;
+//
+//        if (req.getIdPhieuGiamGia() != null) {
+//            pgg = phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
+//                    .orElseThrow(() -> new IllegalArgumentException("Phiếu giảm giá không tồn tại"));
+//
+//            if (Boolean.FALSE.equals(pgg.getTrangThai())) throw new IllegalArgumentException("Voucher không hoạt động");
+//
+//            Integer slVoucher = pgg.getSoLuong(); // null = không giới hạn (nếu bạn dùng vậy)
+//            if (slVoucher != null && slVoucher <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
+//
+//            BigDecimal min = pgg.getDonHangToiThieu() == null ? BigDecimal.ZERO : pgg.getDonHangToiThieu();
+//            if (tongTien.compareTo(min) < 0) throw new IllegalArgumentException("Chưa đạt đơn tối thiểu để dùng voucher");
+//
+//            // ✅ Nếu có % thì dùng %
+//            BigDecimal pt = pgg.getGiaTriPhanTram(); // BigDecimal
+//            if (pt != null && pt.compareTo(BigDecimal.ZERO) > 0) {
+//                // pt=0.4 => 40% ; pt=40 => 40%
+//                if (pt.compareTo(BigDecimal.ONE) <= 0) tongTienGiam = tongTien.multiply(pt);
+//                else tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
+//
+//                BigDecimal cap = pgg.getGiaTriGiamToiDa();
+//                if (cap != null && cap.compareTo(BigDecimal.ZERO) > 0 && tongTienGiam.compareTo(cap) > 0) {
+//                    tongTienGiam = cap;
+//                }
+//            } else {
+//                // ✅ Không có % thì dùng tiền mặt
+//                BigDecimal tm = pgg.getGiaTriTienMat();
+//                tongTienGiam = tm == null ? BigDecimal.ZERO : tm;
+//            }
+//
+//            if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
+//
+//            // ✅ trừ lượt voucher 1 lần duy nhất (nếu có quản lý số lượng)
+//            if (pgg.getSoLuong() != null) {
+//                pgg.setSoLuong(pgg.getSoLuong() - 1);
+//                phieuGiamGiaRepository.save(pgg);
+//            }
+//
+//        } else {
+//            int percent = req.getGiamThuCongPercent() == null ? 0 : req.getGiamThuCongPercent();
+//            percent = Math.max(0, Math.min(100, percent));
+//            tongTienGiam = tongTien.multiply(BigDecimal.valueOf(percent)).divide(BigDecimal.valueOf(100));
+//        }
+//
+//        BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
+//        if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
+//
+//        // 5) Check thanh toán
+//        BigDecimal paid = req.getPaid() == null ? BigDecimal.ZERO : req.getPaid();
+//        if (paid.compareTo(tongTienSauGiam) < 0) throw new IllegalArgumentException("Khách thanh toán chưa đủ");
+//        BigDecimal tienThua = paid.subtract(tongTienSauGiam);
+//        if (tienThua.compareTo(BigDecimal.ZERO) < 0) tienThua = BigDecimal.ZERO;
+//
+//        // 6) Tạo hóa đơn
+//        HoaDon hd = new HoaDon();
+//        hd.setMaHoaDon(req.getMaHoaDon() == null ? ("HD" + System.currentTimeMillis()) : req.getMaHoaDon());
+//        hd.setLoaiDon(req.getLoaiDon() == null ? false : req.getLoaiDon());
+//        hd.setPhiVanChuyen(req.getPhiVanChuyen() == null ? BigDecimal.ZERO : req.getPhiVanChuyen());
+//
+//        hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode());
+//        hd.setTongTien(tongTien);
+//        hd.setTongTienGiam(tongTienGiam);
+//        hd.setTongTienSauGiam(tongTienSauGiam);
+//
+//        hd.setTenKhachHang(req.getTenKhachHang());
+//        hd.setSoDienThoai(req.getSoDienThoai());
+//        hd.setEmailKhachHang(req.getEmailKhachHang());
+//        hd.setDiaChiKhachHang(req.getDiaChiKhachHang());
+//        hd.setGhiChu(req.getGhiChu());
+//
+//        hd.setNgayTao(LocalDateTime.now());
+//        hd.setTrangThai(true);
+//
+//        if (req.getIdKhachHang() != null) {
+//            hd.setKhachHang(khachHangRepository.findById(req.getIdKhachHang()).orElse(null));
+//        }
+//        if (pgg != null) hd.setPhieuGiamGia(pgg);
+//
+//        NhanVien nv = getCurrentNhanVien();
+//        hd.setNhanVien(nv);
+//        hd.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
+//
+//        hd = hoaDonRepository.save(hd);
+//
+//        // 7) Tạo chi tiết
+//        for (SanPhamChiTiet spct : spcts) {
+//            int sl = buyMap.get(spct.getId());
+//            HoaDonChiTiet ct = new HoaDonChiTiet();
+//            ct.setHoaDon(hd);
+//            ct.setSanPhamChiTiet(spct);
+//            ct.setSoLuong(sl);
+//            ct.setNgayTao(LocalDateTime.now());
+//            ct.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
+//            ct.setTrangThai(true);
+//            hoaDonChiTietRepository.save(ct);
+//        }
+//
+//        // 8) Lịch sử hóa đơn
+//        LichSuHoaDon ls = new LichSuHoaDon();
+//        ls.setHoaDon(hd);
+//        ls.setHanhDong("Tạo đơn tại quầy");
+//        ls.setGhiChu("POS checkout");
+//        ls.setThoiGian(LocalDateTime.now());
+//        ls.setTrangThai(true);
+//        lichSuHoaDonRepository.save(ls);
+//
+//        // 9) Lịch sử thanh toán (để hiện trong chi tiết hóa đơn)
+//        LichSuThanhToan payHis = new LichSuThanhToan();
+//        payHis.setHoaDon(hd);
+//
+//        String maGd = (req.getMaGiaoDich() == null || req.getMaGiaoDich().isBlank())
+//                ? ("POS-" + hd.getMaHoaDon() + "-" + System.currentTimeMillis())
+//                : req.getMaGiaoDich().trim();
+//        payHis.setMaGiaoDich(maGd);
+//
+//        payHis.setSoTien(tongTienSauGiam);
+//        payHis.setNgayThanhToan(LocalDateTime.now());
+//
+//        String hinhThuc = "TIEN_MAT";
+//        if (req.getIdPhuongThucThanhToan() != null) {
+//            PhuongThucThanhToan pttt = phuongThucThanhToanRepository
+//                    .findById(req.getIdPhuongThucThanhToan())
+//                    .orElse(null);
+//            if (pttt != null && pttt.getTenPhuongThucThanhToan() != null) {
+//                hinhThuc = pttt.getTenPhuongThucThanhToan();
+//            }
+//        }
+//        payHis.setHinhThucThanhToan(hinhThuc);
+//
+//        String note = (req.getGhiChuThanhToan() != null && !req.getGhiChuThanhToan().isBlank())
+//                ? req.getGhiChuThanhToan()
+//                : (req.getGhiChu() != null ? req.getGhiChu() : "POS checkout");
+//        payHis.setGhiChu(note + " | Khách đưa: " + paid + " | Tiền thừa: " + tienThua);
+//
+//        payHis.setTrangThai(true);
+//        lichSuThanhToanRepository.saveAndFlush(payHis);
+//
+//        return buildDetail(hd);
+//    }
 
     // TODO: nếu bạn có Security/JWT thì thay bằng user hiện tại
     private NhanVien getCurrentNhanVien() {
@@ -273,6 +257,249 @@ public class HoaDonServiceImpl implements HoaDonService {
         return new TaohoadonResponse(hd.getId(), hd.getMaHoaDon(), hd.getTrangThaiDon());
     }
 
+    @Override
+    @Transactional
+    public HoaDonDetailResponse checkoutDraft(Long hoaDonId, BanHangRequest req) {
+
+        HoaDon hd = hoaDonRepository.findById(hoaDonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hóa đơn không tồn tại"));
+
+        if (hd.getTrangThaiDon() == null || hd.getTrangThaiDon() != 0) {
+            throw new IllegalArgumentException("Hóa đơn không ở trạng thái nháp (0)");
+        }
+
+        if (req == null || req.getItems() == null || req.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Giỏ hàng trống");
+        }
+
+        // 1) Xóa chi tiết cũ
+        hoaDonChiTietRepository.deleteByHoaDonId(hoaDonId);
+
+        // 2) Gom item
+        Map<Long, Integer> buyMap = new HashMap<>();
+        for (var it : req.getItems()) {
+            if (it == null || it.getIdSanPhamChiTiet() == null) continue;
+            int qty = it.getSoLuong() == null ? 0 : it.getSoLuong();
+            if (qty <= 0) continue;
+            buyMap.merge(it.getIdSanPhamChiTiet(), qty, Integer::sum);
+        }
+        if (buyMap.isEmpty()) throw new IllegalArgumentException("Giỏ hàng trống");
+
+        // 3) Load SPCT
+        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(buyMap.keySet());
+        if (spcts.size() != buyMap.size()) {
+            throw new IllegalArgumentException("Có sản phẩm không tồn tại");
+        }
+
+        // 4) Tính tiền gốc
+        BigDecimal tongTien = BigDecimal.ZERO;
+        for (SanPhamChiTiet spct : spcts) {
+            int sl = buyMap.get(spct.getId());
+            BigDecimal donGia = spct.getDonGia() == null ? BigDecimal.ZERO : spct.getDonGia();
+            tongTien = tongTien.add(donGia.multiply(BigDecimal.valueOf(sl)));
+        }
+
+        // 5) Tính giảm giá
+        BigDecimal tongTienGiam = BigDecimal.ZERO;
+
+        if (req.getIdPhieuGiamGia() != null) {
+            PhieuGiamGia pgg = phieuGiamGiaRepository.findById(req.getIdPhieuGiamGia())
+                    .orElseThrow(() -> new IllegalArgumentException("PGG không tồn tại"));
+
+            if (Boolean.FALSE.equals(pgg.getTrangThai())) throw new IllegalArgumentException("Voucher đã bị tắt");
+
+            Integer slVoucher = pgg.getSoLuong();
+            if (slVoucher != null && slVoucher <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
+
+            BigDecimal min = pgg.getDonHangToiThieu() == null ? BigDecimal.ZERO : pgg.getDonHangToiThieu();
+            if (tongTien.compareTo(min) < 0) throw new IllegalArgumentException("Chưa đạt đơn tối thiểu");
+
+            BigDecimal pt = pgg.getGiaTriPhanTram();
+            if (pt != null && pt.compareTo(BigDecimal.ZERO) > 0) {
+                if (pt.compareTo(BigDecimal.ONE) <= 0) tongTienGiam = tongTien.multiply(pt);
+                else tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
+
+                BigDecimal cap = pgg.getGiaTriGiamToiDa();
+                if (cap != null && cap.compareTo(BigDecimal.ZERO) > 0 && tongTienGiam.compareTo(cap) > 0) {
+                    tongTienGiam = cap;
+                }
+            } else {
+                BigDecimal tm = pgg.getGiaTriTienMat();
+                tongTienGiam = tm == null ? BigDecimal.ZERO : tm;
+            }
+
+            if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
+
+            // trừ lượt voucher 1 lần (nếu có quản lý)
+            if (pgg.getSoLuong() != null) {
+                pgg.setSoLuong(pgg.getSoLuong() - 1);
+                phieuGiamGiaRepository.save(pgg);
+            }
+
+            hd.setPhieuGiamGia(pgg);
+
+        } else {
+            Integer percent = req.getGiamThuCongPercent();
+            int p = percent == null ? 0 : Math.max(0, Math.min(100, percent));
+            tongTienGiam = tongTien.multiply(BigDecimal.valueOf(p)).divide(BigDecimal.valueOf(100));
+            hd.setPhieuGiamGia(null);
+        }
+
+        BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
+        if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
+
+        // 6) Check thanh toán
+        BigDecimal paid = req.getPaid() == null ? BigDecimal.ZERO : req.getPaid();
+        if (paid.compareTo(tongTienSauGiam) < 0) throw new IllegalArgumentException("Khách thanh toán chưa đủ");
+        BigDecimal tienThua = paid.subtract(tongTienSauGiam);
+        if (tienThua.compareTo(BigDecimal.ZERO) < 0) tienThua = BigDecimal.ZERO;
+
+        // 7) Update thông tin hóa đơn
+        hd.setLoaiDon(req.getLoaiDon() == null ? false : req.getLoaiDon());
+        hd.setPhiVanChuyen(req.getPhiVanChuyen() == null ? BigDecimal.ZERO : req.getPhiVanChuyen());
+
+        if (req.getIdKhachHang() != null) {
+            KhachHang kh = khachHangRepository.findById(req.getIdKhachHang())
+                    .orElseThrow(() -> new IllegalArgumentException("Khách hàng không tồn tại"));
+            hd.setKhachHang(kh);
+        } else {
+            hd.setKhachHang(null);
+        }
+
+        hd.setTenKhachHang(req.getTenKhachHang());
+        hd.setSoDienThoai(req.getSoDienThoai());
+        hd.setEmailKhachHang(req.getEmailKhachHang());
+        hd.setDiaChiKhachHang(req.getDiaChiKhachHang());
+        hd.setGhiChu(req.getGhiChu());
+
+        hd.setTongTien(tongTien);
+        hd.setTongTienGiam(tongTienGiam);
+        hd.setTongTienSauGiam(tongTienSauGiam);
+
+        hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode());
+        hd.setNgayCapNhat(LocalDateTime.now());
+
+        NhanVien nv = getCurrentNhanVien();
+        hd.setNhanVien(nv);
+        hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
+
+        hoaDonRepository.save(hd);
+
+        // 8) Lưu chi tiết mới
+        for (SanPhamChiTiet spct : spcts) {
+            int sl = buyMap.get(spct.getId());
+            HoaDonChiTiet ct = new HoaDonChiTiet();
+            ct.setHoaDon(hd);
+            ct.setSanPhamChiTiet(spct);
+            ct.setSoLuong(sl);
+            ct.setNgayTao(LocalDateTime.now());
+            ct.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
+            ct.setTrangThai(true);
+            hoaDonChiTietRepository.save(ct);
+        }
+
+        // 9) Lịch sử hóa đơn
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setHoaDon(hd);
+        ls.setHanhDong("Thanh toán hóa đơn nháp");
+        ls.setGhiChu("POS checkout draft");
+        ls.setThoiGian(LocalDateTime.now());
+        ls.setTrangThai(true);
+        lichSuHoaDonRepository.save(ls);
+
+        // 10) Lịch sử thanh toán (để hiện trong chi tiết hóa đơn)
+        LichSuThanhToan payHis = new LichSuThanhToan();
+        payHis.setHoaDon(hd);
+
+        String maGd = (req.getMaGiaoDich() == null || req.getMaGiaoDich().isBlank())
+                ? ("POS-" + hd.getMaHoaDon() + "-" + System.currentTimeMillis())
+                : req.getMaGiaoDich().trim();
+        payHis.setMaGiaoDich(maGd);
+
+        payHis.setSoTien(tongTienSauGiam);
+        payHis.setNgayThanhToan(LocalDateTime.now());
+
+        String hinhThuc = "TIEN_MAT";
+        if (req.getIdPhuongThucThanhToan() != null) {
+            PhuongThucThanhToan pttt = phuongThucThanhToanRepository
+                    .findById(req.getIdPhuongThucThanhToan())
+                    .orElse(null);
+            if (pttt != null && pttt.getTenPhuongThucThanhToan() != null) {
+                hinhThuc = pttt.getTenPhuongThucThanhToan();
+            }
+        }
+        payHis.setHinhThucThanhToan(hinhThuc);
+
+        String note = (req.getGhiChuThanhToan() != null && !req.getGhiChuThanhToan().isBlank())
+                ? req.getGhiChuThanhToan()
+                : (req.getGhiChu() != null ? req.getGhiChu() : "POS checkout");
+        payHis.setGhiChu(note + " | Khách đưa: " + paid + " | Tiền thừa: " + tienThua);
+
+        payHis.setTrangThai(true);
+        lichSuThanhToanRepository.saveAndFlush(payHis);
+
+        return buildDetail(hd);
+    }
+
+
+    @Override
+    @Transactional
+    public void cancelDraft(Long hoaDonId, CancelDraftRequest req) {
+
+        HoaDon hd = hoaDonRepository.findById(hoaDonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hóa đơn không tồn tại"));
+
+        // ✅ chỉ hủy hóa đơn nháp
+        if (hd.getTrangThaiDon() == null || hd.getTrangThaiDon() != 0) {
+            throw new IllegalArgumentException("Chỉ được hủy hóa đơn nháp (trạng thái 0)");
+        }
+
+        // 1) Hoàn tồn kho theo items FE gửi lên
+        Map<Long, Integer> plusMap = new HashMap<>();
+
+        if (req != null && req.getItems() != null) {
+            for (CancelDraftRequest.Item it : req.getItems()) {
+                if (it == null || it.getIdSanPhamChiTiet() == null) continue;
+                int qty = it.getSoLuong() == null ? 0 : it.getSoLuong();
+                if (qty <= 0) continue;
+                plusMap.merge(it.getIdSanPhamChiTiet(), qty, Integer::sum);
+            }
+        }
+
+        if (!plusMap.isEmpty()) {
+            List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(plusMap.keySet());
+            if (spcts.size() != plusMap.size()) {
+                throw new IllegalArgumentException("Có SPCT không tồn tại khi hoàn kho");
+            }
+
+            for (SanPhamChiTiet spct : spcts) {
+                int add = plusMap.getOrDefault(spct.getId(), 0);
+                int current = spct.getSoLuongTon() == null ? 0 : spct.getSoLuongTon();
+                spct.setSoLuongTon(current + add);
+            }
+            sanPhamChiTietRepository.saveAll(spcts);
+        }
+
+        // 2) Nếu draft đã từng có chi tiết (phòng khi bạn lưu sớm) thì xóa
+        // (cần method deleteByHoaDonId trong HoaDonChiTietRepository)
+        hoaDonChiTietRepository.deleteByHoaDonId(hoaDonId);
+
+        // 3) Hủy hóa đơn nháp
+        hd.setTrangThaiDon(TrangThaiDonHang.DA_HUY.getCode());
+        hd.setTrangThai(false);
+        hd.setNgayCapNhat(LocalDateTime.now());
+        hd.setNguoiCapNhat(currentUser());
+        hoaDonRepository.save(hd);
+
+        // 4) Lịch sử hóa đơn
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setHoaDon(hd);
+        ls.setHanhDong("Hủy hóa đơn nháp");
+        ls.setGhiChu(req != null && req.getReason() != null ? req.getReason() : "Đóng tab bán hàng");
+        ls.setThoiGian(LocalDateTime.now());
+        ls.setTrangThai(true);
+        lichSuHoaDonRepository.save(ls);
+    }
     @Override
     @Transactional(readOnly = true)
     public Page<HoaDonListResponse> search(

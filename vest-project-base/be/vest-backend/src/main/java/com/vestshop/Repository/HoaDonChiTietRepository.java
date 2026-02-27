@@ -4,6 +4,7 @@ import com.vestshop.Entity.HoaDonChiTiet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import com.vestshop.dto.response.SanPhamThongKeResponse;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -28,4 +29,7 @@ public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, Lo
     List<SanPhamThongKeResponse> findTopSellingProducts(@Param("startDate") LocalDateTime startDate,
                                                         @Param("endDate") LocalDateTime endDate,
                                                         @Param("status") Integer status);
+    @Modifying
+    @Query("delete from HoaDonChiTiet c where c.hoaDon.id = :hoaDonId")
+    void deleteByHoaDonId(@Param("hoaDonId") Long hoaDonId);
 }

@@ -150,6 +150,9 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     """)
     int hardDeletePendingOlderThan(@Param("status") Integer status,
                                    @Param("cutoff") LocalDateTime cutoff);
+
+
+
 }
 
 

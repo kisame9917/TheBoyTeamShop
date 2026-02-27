@@ -1,10 +1,7 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Service.HoaDonService;
-import com.vestshop.dto.request.BanHangRequest;
-import com.vestshop.dto.request.HoaDonChangeStatusRequest;
-import com.vestshop.dto.request.HoaDonReturnRequest;
-import com.vestshop.dto.request.TaoHoaDonChoXacNhanRequest;
+import com.vestshop.dto.request.*;
 import com.vestshop.dto.response.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -59,11 +56,17 @@ public class HoaDonController {
                 )
         );
     }
-
-    @PostMapping("/pos")
-    public ResponseEntity<HoaDonDetailResponse> createPos(@Valid @RequestBody BanHangRequest req) {
-        return ResponseEntity.ok(hoaDonService.createPos(req));
+    @PostMapping("/draft/{id}/cancel")
+    public ResponseEntity<Void> cancelDraft(@PathVariable Long id,
+                                            @RequestBody(required = false) CancelDraftRequest req) {
+        hoaDonService.cancelDraft(id, req);
+        return ResponseEntity.noContent().build();
     }
+
+//    @PostMapping("/pos")
+//    public ResponseEntity<HoaDonDetailResponse> createPos(@Valid @RequestBody BanHangRequest req) {
+//        return ResponseEntity.ok(hoaDonService.createPos(req));
+//    }
 
     @GetMapping("/{id}")
     public ResponseEntity<HoaDonDetailResponse> detail(@PathVariable Long id) {
@@ -102,5 +105,10 @@ public class HoaDonController {
     @PostMapping("/taohoadon")
     public ResponseEntity<TaohoadonResponse> createDraft(@RequestBody(required = false) TaoHoaDonChoXacNhanRequest req) {
         return ResponseEntity.ok(hoaDonService.createDraft(req));
+    }
+    @PostMapping("/draft/{id}/checkout")
+    public ResponseEntity<?> checkoutDraft(@PathVariable("id") Long id,
+                                           @RequestBody BanHangRequest req) {
+        return ResponseEntity.ok(hoaDonService.checkoutDraft(id, req));
     }
 }
