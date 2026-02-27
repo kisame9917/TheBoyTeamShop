@@ -6,7 +6,6 @@ import com.vestshop.Security.JwtService;
 import com.vestshop.Service.ClientAuthService;
 import com.vestshop.dto.request.LoginRequest;
 import com.vestshop.dto.response.ClientLoginResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,13 +14,21 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class ClientAuthServiceImpl implements ClientAuthService {
 
     private final KhachHangRepository khrepo;
     private final JwtService jwtService;
-    @Qualifier("clientAuthenticationManager")
     private final AuthenticationManager authenticationManager;
+
+    public ClientAuthServiceImpl(
+            KhachHangRepository khrepo,
+            JwtService jwtService,
+            @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager
+    ) {
+        this.khrepo = khrepo;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+    }
 
     @Override
     public ClientLoginResponse login(LoginRequest req) {
