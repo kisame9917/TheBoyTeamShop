@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,7 +21,12 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+
+    @Qualifier("clientUserDetailsService")
+    private final UserDetailsService clientUserDetailsService;
+
+    @Qualifier("nhanVienUserDetailsService")
+    private final UserDetailsService nhanVienUserDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -38,7 +44,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String username = jwtService.extractUsername(token);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails user = userDetailsService.loadUserByUsername(username);
+
+                // Chọn đúng userDetailsService theo route
+                boolean isClientApi = request.getRequestURI().startsWith("/api/client/");
+                UserDetailsService uds = isClientApi ? clientUserDetailsService : nhanVienUserDetailsService;
+
+                UserDetails user = uds.loadUserByUsername(username);
 
                 if (jwtService.isTokenValid(token, user)) {
                     UsernamePasswordAuthenticationToken auth =
