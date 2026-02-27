@@ -823,7 +823,7 @@
 <script setup>
 import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from "vue";
 import http from "@/services/http";
-import { getAllDetails, decreaseStock } from "@/services/sanPhamChiTietApi";
+import { getAllDetails, decreaseStock , increaseStock } from "@/services/sanPhamChiTietApi";
 import { listKhachHang } from "@/services/khachHangApi";
 
 /** ========= CONFIG ========= */
@@ -893,6 +893,7 @@ function normalizeOrder(o, idx = 1) {
   const ma = o?.maHoaDon || genMaHoaDon();
   return {
     id: o?.id ?? Date.now() + Math.random(),
+    dbId: o?.dbId ?? null,
     maHoaDon: ma,
     label: o?.label || `Hóa Đơn - ${ma}`,
     cart: Array.isArray(o?.cart) ? o.cart : [],
@@ -913,39 +914,68 @@ function normalizeOrder(o, idx = 1) {
   };
 }
 
-function createOrder() {
+async function createOrder() {
   if (orders.value.length >= MAX_ORDERS) return toastShow(`Chỉ tối đa ${MAX_ORDERS} đơn`, "warning");
 
-  const id = Date.now() + Math.random();
+  const localId = Date.now() + Math.random();
   const maHoaDon = genUniqueMaHoaDon();
-  const label = `Hóa Đơn - ${maHoaDon}`;
 
-  orders.value.push(
-    normalizeOrder(
-      {
-        id,
-        maHoaDon,
-        label,
+  try {
+    // ✅ tạo HĐ trong DB, trạng thái = 0
+    const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
+    const data = res?.data || {};
+
+    const dbId = data.id;                 // id trong DB
+    const maDb = data.maHoaDon || maHoaDon;
+
+    orders.value.push(
+      normalizeOrder({
+        id: localId,          // id tab FE
+        dbId,                 // ✅ lưu thêm dbId để sau dùng
+        maHoaDon: maDb,
+        label: `Hóa Đơn - ${maDb}`,
         cart: [],
         customer: null,
         customerDraft: { phone: "", email: "" },
-
         voucherCode: "",
         pggId: null,
         discountPercent: 0,
         voucherMode: "best",
         voucherTab: "best",
-
         voucherSnapshot: null,
-
         paid: 0,
         diaChi: "",
-      },
-      orderSeq.value
-    )
-  );
+      })
+    );
 
-  activeId.value = id;
+    activeId.value = localId;
+    orderSeq.value++;
+    return;
+  } catch (e) {
+    console.error(e);
+    toastShow("Không tạo được hóa đơn trong DB", "danger");
+  }
+
+  // fallback (nếu DB lỗi vẫn tạo tab local)
+  orders.value.push(
+    normalizeOrder({
+      id: localId,
+      maHoaDon,
+      label: `Hóa Đơn - ${maHoaDon}`,
+      cart: [],
+      customer: null,
+      customerDraft: { phone: "", email: "" },
+      voucherCode: "",
+      pggId: null,
+      discountPercent: 0,
+      voucherMode: "best",
+      voucherTab: "best",
+      voucherSnapshot: null,
+      paid: 0,
+      diaChi: "",
+    })
+  );
+  activeId.value = localId;
   orderSeq.value++;
 }
 
@@ -1214,7 +1244,7 @@ function clampInt(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-function setQtyByInput(cartIndex, nextQtyRaw) {
+async function setQtyByInput(cartIndex, nextQtyRaw) {
   const o = activeOrder.value;
   if (!o) return;
   const it = o.cart[cartIndex];
@@ -1224,66 +1254,82 @@ function setQtyByInput(cartIndex, nextQtyRaw) {
   const curQty = Number(it.qty || 0);
   if (nextQty === curQty) return;
 
-  const p = findModalProductById(it.idSpct);
-  const delta = nextQty - curQty;
+  const delta = nextQty - curQty; // >0: trừ kho, <0: trả kho
 
-  if (p) {
+  // gọi DB theo delta
+  try {
     if (delta > 0) {
-      if ((Number(p.stock) || 0) < delta) return toastShow("Số lượng vượt tồn kho", "danger");
-      p.stock = Math.max(0, Number(p.stock || 0) - delta);
-    } else {
-      p.stock = Math.min(Number(p._baseStock ?? p.stock ?? 0), Number(p.stock || 0) + Math.abs(delta));
+      await decreaseStock(Number(it.idSpct), delta);
+    } else if (delta < 0) {
+      await increaseStock(Number(it.idSpct), Math.abs(delta));
     }
-  } else {
-    const base = Number(it.stockBase ?? it.stock ?? 0);
-    if (base > 0 && nextQty > base) return toastShow("Số lượng vượt tồn kho", "danger");
+  } catch (err) {
+    const msg = err?.response?.data?.message || err?.response?.data || "Không thể cập nhật tồn kho";
+    return toastShow(String(msg), "warning");
   }
 
+  // cập nhật tồn hiển thị trong modal (nếu modal đang mở và có item)
+  const p = findModalProductById(it.idSpct);
+  if (p) {
+    p.stock = Math.max(0, Number(p.stock || 0) - delta); // delta>0 => giảm, delta<0 => tăng
+  }
+
+  // update qty
   it.qty = nextQty;
   syncAllCartStocks();
 }
+async function incQty(i) {
+  const o = activeOrder.value;
+  if (!o) return;
+  const it = o.cart[i];
+  if (!it) return;
+  await setQtyByInput(i, Number(it.qty || 0) + 1);
+}
 
-function incQty(i) {
+async function decQty(i) {
   const o = activeOrder.value;
   if (!o) return;
   const it = o.cart[i];
   if (!it) return;
-  setQtyByInput(i, Number(it.qty || 0) + 1);
+  await setQtyByInput(i, Math.max(1, Number(it.qty || 0) - 1));
 }
-function decQty(i) {
+async function removeItem(i) {
   const o = activeOrder.value;
   if (!o) return;
   const it = o.cart[i];
   if (!it) return;
-  setQtyByInput(i, Math.max(1, Number(it.qty || 0) - 1));
-}
-function removeItem(i) {
-  const o = activeOrder.value;
-  if (!o) return;
-  const it = o.cart[i];
-  if (!it) return;
+
+  try {
+    await increaseStock(Number(it.idSpct), Number(it.qty || 0));
+  } catch (err) {
+    const msg = err?.response?.data?.message || err?.response?.data || "Không thể hoàn tồn kho";
+    return toastShow(String(msg), "warning");
+  }
 
   const p = findModalProductById(it.idSpct);
-  if (p) {
-    p.stock = Math.min(Number(p._baseStock ?? p.stock ?? 0), Number(p.stock || 0) + Number(it.qty || 0));
-  }
+  if (p) p.stock = Number(p.stock || 0) + Number(it.qty || 0);
 
   o.cart.splice(i, 1);
   syncAllCartStocks();
-  syncModalStockWithCart();
 }
 
 function onQtyInput(idx, e) {
-  const raw = e?.target?.value ?? "";
-  const num = raw === "" ? 1 : Number(String(raw).replace(/[^\d]/g, ""));
-  setQtyByInput(idx, num);
+  // chỉ cho nhập số
+  const raw = String(e?.target?.value ?? "");
+  e.target.value = raw.replace(/[^\d]/g, "");
 }
-function onQtyBlur(idx, e) {
+
+async function onQtyBlur(idx, e) {
   const o = activeOrder.value;
   if (!o) return;
   const it = o.cart[idx];
   if (!it) return;
-  e.target.value = it.qty;
+
+  const raw = String(e?.target?.value ?? "");
+  const num = Number(raw.replace(/[^\d]/g, "")) || 1;
+
+  await setQtyByInput(idx, num);
+  e.target.value = it.qty; // sync lại input
 }
 
 function sameMoney(a, b) {
@@ -1296,20 +1342,12 @@ async function chooseProduct(p) {
 
   const id = Number(p.idSpct);
   if (!Number.isFinite(id)) return toastShow("Sản phẩm không hợp lệ", "warning");
-
-  const baseBefore = Number(p._baseStock ?? p.stock ?? 0);
   if ((Number(p.stock) || 0) <= 0) return toastShow("Sản phẩm đã hết hàng", "warning");
-
-  try {
-    await decreaseStock(id, 1); // ✅ trừ DB
-  } catch (err) {
-    const msg = err?.response?.data?.message || err?.response?.data || "Không đủ tồn kho";
-    return toastShow(String(msg), "warning");
-  }
 
   let idx = o.cart.findIndex((x) => Number(x.idSpct) === id && sameMoney(x.price, p.price));
 
   if (idx === -1) {
+    const baseBefore = Number(p.stock || 0); // tồn DB hiện tại (trước khi trừ)
     o.cart.push({
       key: `${id}-${Math.round(Number(p.price || 0))}-${Date.now()}-${Math.random()}`,
       idSpct: id,
@@ -1324,12 +1362,10 @@ async function chooseProduct(p) {
     });
     idx = o.cart.length - 1;
   } else {
-    ensureCartItemStockBase(o.cart[idx], Number(p._baseStock ?? baseBefore));
+    ensureCartItemStockBase(o.cart[idx], Number(o.cart[idx].stockBase ?? p.stock ?? 0));
   }
 
-  // ✅ setQtyByInput sẽ tự trừ UI 1 lần (đừng trừ ở trên nữa)
-  setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
-
+  await setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1); // ✅ tự trừ DB
   toastShow(`Đã thêm ${p.code}`, "success");
 }
 
