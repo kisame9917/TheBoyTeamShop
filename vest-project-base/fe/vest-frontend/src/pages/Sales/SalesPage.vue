@@ -5,7 +5,7 @@
       <h4 class="m-0 fw-bold">Bán hàng (tại cửa hàng)</h4>
 
       <button
-        class="btn btn-outline-secondary btn-sm"
+        class="btn btn-outline-primary btn-sm"
         type="button"
         @click="createOrder"
         :disabled="orders.length >= MAX_ORDERS"
@@ -47,10 +47,10 @@
           <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <div class="fw-bold">Sản phẩm</div>
             <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary btn-sm" type="button" @click="openProductModal">
+              <button class="btn btn-outline-primary btn-sm" type="button" @click="openProductModal">
                 <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
               </button>
-              <button class="btn btn-outline-secondary btn-sm" type="button" @click="toastInfo('Chưa tích hợp quét QR')">
+              <button class="btn btn-outline-primary btn-sm" type="button" @click="toastInfo('Chưa tích hợp quét QR')">
                 <i class="bi bi-qr-code-scan me-1"></i> Quét QR
               </button>
             </div>
@@ -344,49 +344,43 @@
                             </div>
                           </div>
 
-                          <div class="mt-2">
-                            <div class="input-group">
-                              <input
-                                class="form-control"
-                                placeholder="Nhập mã PGG (tùy chọn)"
-                                v-model.trim="activeOrder.voucherCode"
-                                @keyup.enter="applyPggByCode"
-                                @blur="applyPggByCode"
-                              />
-                              <button class="btn btn-outline-secondary" type="button" @click="clearVoucherManual">
-                                Xóa
-                              </button>
-                            </div>
-                          </div>
+                      
                         </div>
                       </template>
                     </div>
 
-                    <div v-if="voucherUpsellHint" class="small text-muted mt-2">
-                      Thêm <b class="text-danger">{{ money(voucherUpsellHint.missing) }}</b>
-                      để dùng mã giảm giá tốt hơn:
-                      <b>{{ voucherUpsellHint.code }}</b>
-                      (giảm khoảng <b class="text-danger">-{{ money(voucherUpsellHint.expectedDiscount) }}</b>
-                      khi đơn ≥ {{ money(voucherUpsellHint.minOrder) }})
-                    </div>
+                
 
                     <div class="mt-3">
                       <div class="fw-bold">Gợi ý mã giảm giá <span class="text-danger">*</span></div>
 
-                      <div v-if="eligibleVoucherEntries.length === 0" class="text-muted small mt-1">
-                        Không có mã giảm giá gợi ý khả dụng
+                      <div v-if="voucherSuggestions.length === 0" class="text-muted small mt-1">
+                        Không có gợi ý mua thêm để đạt mã tốt hơn
                       </div>
 
-                      <div v-else class="d-flex flex-wrap gap-2 mt-2">
-                        <button
-                          v-for="e in eligibleVoucherEntries.slice(0, 6)"
-                          :key="'chip-' + e.v.id"
-                          class="btn btn-outline-secondary btn-sm"
-                          type="button"
-                          @click="applyVoucherManual(e.v)"
+                      <div v-else class="d-flex flex-column gap-2 mt-2">
+                        <div
+                          v-for="e in voucherSuggestions"
+                          :key="'suggest-' + e.v.id"
+                          class="border rounded-3 p-2"
                         >
-                          {{ e.v.ma_giam_gia }} • -{{ money(e.discount) }}
-                        </button>
+                          <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                            <div>
+                              Thêm <b class="text-danger">{{ money(e.missing) }}</b>
+                              để dùng <b>{{ e.v.ma_giam_gia }}</b>
+                              (giảm khoảng <b class="text-danger">-{{ money(e.expectedDiscount) }}</b>
+                              khi đơn ≥ {{ money(e.minOrder) }})
+                            </div>
+
+                            <button
+                              class="btn btn-outline-secondary btn-sm"
+                              type="button"
+                              @click="toastInfo('Thêm sản phẩm để đủ điều kiện rồi áp dụng mã')"
+                            >
+                              Xem
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -555,50 +549,50 @@
 
               <!-- Pagination -->
               <div class="d-flex align-items-center mt-2">
-  <!-- Left -->
-  <div class="text-muted small" style="min-width: 220px;">
-    Hiển thị {{ filteredProducts.length }} / tổng {{ productTotal }} bản ghi
-  </div>
+                <!-- Left -->
+                <div class="text-muted small" style="min-width: 220px;">
+                  Hiển thị {{ filteredProducts.length }} / tổng {{ productTotal }} bản ghi
+                </div>
 
-  <!-- Center -->
-  <div class="flex-grow-1 d-flex justify-content-center align-items-center gap-2">
-    <button
-      class="btn btn-outline-dark btn-sm"
-      @click="productPrev"
-      :disabled="productPage<=0 || productLoading"
-    >
-      ‹
-    </button>
+                <!-- Center -->
+                <div class="flex-grow-1 d-flex justify-content-center align-items-center gap-2">
+                  <button
+                    class="btn btn-outline-dark btn-sm"
+                    @click="productPrev"
+                    :disabled="productPage<=0 || productLoading"
+                  >
+                    ‹
+                  </button>
 
-    <div class="small">
-      Trang <b>{{ productPage + 1 }}</b>
-      <span v-if="productTotalPages">/ {{ productTotalPages }}</span>
-    </div>
+                  <div class="small">
+                    Trang <b>{{ productPage + 1 }}</b>
+                    <span v-if="productTotalPages">/ {{ productTotalPages }}</span>
+                  </div>
 
-    <button
-      class="btn btn-outline-dark btn-sm"
-      @click="productNext"
-      :disabled="productLast || productLoading"
-    >
-      ›
-    </button>
-  </div>
+                  <button
+                    class="btn btn-outline-dark btn-sm"
+                    @click="productNext"
+                    :disabled="productLast || productLoading"
+                  >
+                    ›
+                  </button>
+                </div>
 
-  <!-- Right -->
-  <div class="d-flex justify-content-end" style="min-width: 190px;">
-    <select
-      class="form-select form-select-sm"
-      style="width:150px"
-      v-model.number="productSize"
-      @change="onProductSizeChange"
-    >
-      <option :value="10">10 bản ghi / trang</option>
-      <option :value="20">20 bản ghi / trang</option>
-      <option :value="50">50 bản ghi / trang</option>
-      <option :value="100">100 bản ghi / trang</option>
-    </select>
-  </div>
-</div>
+                <!-- Right -->
+                <div class="d-flex justify-content-end" style="min-width: 190px;">
+                  <select
+                    class="form-select form-select-sm"
+                    style="width:150px"
+                    v-model.number="productSize"
+                    @change="onProductSizeChange"
+                  >
+                    <option :value="10">10 bản ghi / trang</option>
+                    <option :value="20">20 bản ghi / trang</option>
+                    <option :value="50">50 bản ghi / trang</option>
+                    <option :value="100">100 bản ghi / trang</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -623,7 +617,9 @@
             <div class="modal-body">
               <div class="d-flex gap-2 mb-3 flex-wrap">
                 <input class="form-control" placeholder="Tìm theo tên/SĐT/email/địa chỉ..." v-model.trim="customerKw" />
-                <button class="btn btn-outline-secondary" type="button" @click="customerKw=''">Đặt lại</button>
+                <button class="btn btn-outline-secondary" type="button" @click="resetToWalkInCustomer">
+                  Đặt lại
+                </button>
                 <button class="btn btn-outline-secondary" type="button" @click="reloadCustomers" :disabled="customerLoading">
                   Tải lại
                 </button>
@@ -666,49 +662,49 @@
 
               <!-- Pagination -->
               <div class="d-flex align-items-center mt-2">
-  <!-- Left -->
-  <div class="text-muted small" style="min-width: 220px;">
-    Hiển thị {{ filteredCustomers.length }} / tổng {{ customerTotal }} bản ghi
-  </div>
+                <!-- Left -->
+                <div class="text-muted small" style="min-width: 220px;">
+                  Hiển thị {{ filteredCustomers.length }} / tổng {{ customerTotal }} bản ghi
+                </div>
 
-  <!-- Center -->
-  <div class="flex-grow-1 d-flex justify-content-center align-items-center gap-2">
-    <button
-      class="btn btn-outline-dark btn-sm"
-      @click="customerPrev"
-      :disabled="customerPage<=0 || customerLoading"
-    >
-      ‹
-    </button>
+                <!-- Center -->
+                <div class="flex-grow-1 d-flex justify-content-center align-items-center gap-2">
+                  <button
+                    class="btn btn-outline-dark btn-sm"
+                    @click="customerPrev"
+                    :disabled="customerPage<=0 || customerLoading"
+                  >
+                    ‹
+                  </button>
 
-    <div class="small">
-      Trang <b>{{ customerPage + 1 }}</b>
-      <span v-if="customerTotalPages">/ {{ customerTotalPages }}</span>
-    </div>
+                  <div class="small">
+                    Trang <b>{{ customerPage + 1 }}</b>
+                    <span v-if="customerTotalPages">/ {{ customerTotalPages }}</span>
+                  </div>
 
-    <button
-      class="btn btn-outline-dark btn-sm"
-      @click="customerNext"
-      :disabled="customerLast || customerLoading"
-    >
-      ›
-    </button>
-  </div>
+                  <button
+                    class="btn btn-outline-dark btn-sm"
+                    @click="customerNext"
+                    :disabled="customerLast || customerLoading"
+                  >
+                    ›
+                  </button>
+                </div>
 
-  <!-- Right -->
-  <div class="d-flex justify-content-end" style="min-width: 190px;">
-    <select
-      class="form-select form-select-sm"
-      style="width:150px"
-      v-model.number="customerSize"
-      @change="onCustomerSizeChange"
-    >
-      <option :value="10">10 bản ghi / trang</option>
-      <option :value="20">20 bản ghi / trang</option>
-      <option :value="50">50 bản ghi / trang</option>
-    </select>
-  </div>
-</div>
+                <!-- Right -->
+                <div class="d-flex justify-content-end" style="min-width: 190px;">
+                  <select
+                    class="form-select form-select-sm"
+                    style="width:150px"
+                    v-model.number="customerSize"
+                    @change="onCustomerSizeChange"
+                  >
+                    <option :value="10">10 bản ghi / trang</option>
+                    <option :value="20">20 bản ghi / trang</option>
+                    <option :value="50">50 bản ghi / trang</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
       
@@ -823,14 +819,29 @@
 <script setup>
 import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from "vue";
 import http from "@/services/http";
-import { getAllDetails, decreaseStock , increaseStock } from "@/services/sanPhamChiTietApi";
+import { getAllDetails, decreaseStock, increaseStock } from "@/services/sanPhamChiTietApi";
 import { listKhachHang } from "@/services/khachHangApi";
 
-/** ========= CONFIG ========= */
+/** =======================
+ * CONFIG
+ * ======================= */
 const MAX_ORDERS = 10;
 const STORAGE_KEY = "sales_store_only_v1";
+const TZ = "Asia/Bangkok"; // dùng local máy là chính, TZ chỉ để tư duy
 
-/** ========= IMG URL ========= */
+/** =======================
+ * HELPERS: DATE KEY (YYYY-MM-DD theo local)
+ * ======================= */
+function getDateKeyLocal(d = new Date()) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/** =======================
+ * IMG URL
+ * ======================= */
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
 const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, "");
 const placeholderImg = "https://via.placeholder.com/56x56.png?text=IMG";
@@ -842,7 +853,9 @@ function buildImgUrl(path) {
   return b + (p.startsWith("/") ? p : `/${p}`);
 }
 
-/** ========= TOAST ========= */
+/** =======================
+ * TOAST
+ * ======================= */
 const toast = reactive({ show: false, msg: "", type: "danger" });
 const toastClass = computed(() => {
   if (toast.type === "success") return "bg-success";
@@ -859,13 +872,19 @@ function toastShow(msg, type = "danger") {
 }
 const toastInfo = (m) => toastShow(m, "info");
 
-/** ========= ORDERS ========= */
+/** =======================
+ * ORDER STATE
+ * ======================= */
 const orders = ref([]);
 const activeId = ref(null);
 const orderSeq = ref(1);
 const submitting = ref(false);
+
 const activeOrder = computed(() => orders.value.find((o) => o.id === activeId.value) || null);
 
+/** =======================
+ * RANDOM + CODE
+ * ======================= */
 function randInt(max) {
   try {
     const u = new Uint32Array(1);
@@ -889,31 +908,41 @@ function genUniqueMaHoaDon() {
   return code;
 }
 
-function normalizeOrder(o, idx = 1) {
+/** =======================
+ * NORMALIZE ORDER
+ * ======================= */
+function normalizeOrder(o) {
   const ma = o?.maHoaDon || genMaHoaDon();
   return {
-    id: o?.id ?? Date.now() + Math.random(),
-    dbId: o?.dbId ?? null,
+    id: o?.id ?? Date.now() + Math.random(), // id tab FE
+    dbId: o?.dbId ?? null,                   // id hóa đơn nháp trong DB
     maHoaDon: ma,
     label: o?.label || `Hóa Đơn - ${ma}`,
+
     cart: Array.isArray(o?.cart) ? o.cart : [],
+
     customer: o?.customer ?? null,
     customerDraft: o?.customerDraft ?? { phone: "", email: "" },
+    diaChi: o?.diaChi || "",
 
+    // vouchers
     voucherCode: String(o?.voucherCode || ""),
     pggId: o?.pggId ?? null,
-    discountPercent: Number(o?.discountPercent || 0),
-
     voucherMode: o?.voucherMode ?? "best", // best | manual | none
-    voucherTab: o?.voucherTab ?? "best", // best | alt
-
+    voucherTab: o?.voucherTab ?? "best",   // best | alt
     voucherSnapshot: o?.voucherSnapshot ?? null,
 
+    // manual discount
+    discountPercent: Number(o?.discountPercent || 0),
+
+    // payment
     paid: Number(o?.paid || 0),
-    diaChi: o?.diaChi || o?.note || "",
   };
 }
 
+/** =======================
+ * CREATE ORDER (DB draft)
+ * ======================= */
 async function createOrder() {
   if (orders.value.length >= MAX_ORDERS) return toastShow(`Chỉ tối đa ${MAX_ORDERS} đơn`, "warning");
 
@@ -921,33 +950,30 @@ async function createOrder() {
   const maHoaDon = genUniqueMaHoaDon();
 
   try {
-    // ✅ tạo HĐ trong DB, trạng thái = 0
     const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
     const data = res?.data || {};
-
-    const dbId = data.id;                 // id trong DB
+    const dbId = data.id;
     const maDb = data.maHoaDon || maHoaDon;
 
     orders.value.push(
       normalizeOrder({
-        id: localId,          // id tab FE
-        dbId,                 // ✅ lưu thêm dbId để sau dùng
+        id: localId,
+        dbId,
         maHoaDon: maDb,
         label: `Hóa Đơn - ${maDb}`,
         cart: [],
         customer: null,
         customerDraft: { phone: "", email: "" },
+        diaChi: "",
         voucherCode: "",
         pggId: null,
-        discountPercent: 0,
         voucherMode: "best",
         voucherTab: "best",
         voucherSnapshot: null,
+        discountPercent: 0,
         paid: 0,
-        diaChi: "",
       })
     );
-
     activeId.value = localId;
     orderSeq.value++;
     return;
@@ -956,7 +982,7 @@ async function createOrder() {
     toastShow("Không tạo được hóa đơn trong DB", "danger");
   }
 
-  // fallback (nếu DB lỗi vẫn tạo tab local)
+  // fallback tab local (không dbId)
   orders.value.push(
     normalizeOrder({
       id: localId,
@@ -965,33 +991,38 @@ async function createOrder() {
       cart: [],
       customer: null,
       customerDraft: { phone: "", email: "" },
+      diaChi: "",
       voucherCode: "",
       pggId: null,
-      discountPercent: 0,
       voucherMode: "best",
       voucherTab: "best",
       voucherSnapshot: null,
+      discountPercent: 0,
       paid: 0,
-      diaChi: "",
     })
   );
   activeId.value = localId;
   orderSeq.value++;
 }
 
+/** =======================
+ * CLOSE ORDER: cancel draft + trả kho theo cart (BE đã có endpoint)
+ * ======================= */
 async function closeOrder(id) {
   const idx = orders.value.findIndex((o) => o.id === id);
   if (idx === -1) return;
 
   const o = orders.value[idx];
 
-  // ✅ hủy đơn nháp + trả kho theo giỏ
+  // nếu có dbId thì gọi cancel trên BE để hoàn tồn theo nghiệp vụ BE
   if (o?.dbId) {
     try {
-      const items = (o.cart || []).map((it) => ({
-        idSanPhamChiTiet: Number(it.idSpct),
-        soLuong: Number(it.qty || 0),
-      })).filter((x) => x.idSanPhamChiTiet && x.soLuong > 0);
+      const items = (o.cart || [])
+        .map((it) => ({
+          idSanPhamChiTiet: Number(it.idSpct),
+          soLuong: Number(it.qty || 0),
+        }))
+        .filter((x) => x.idSanPhamChiTiet && x.soLuong > 0);
 
       await http.post(`/api/hoa-don/draft/${o.dbId}/cancel`, {
         reason: "Đóng tab bán hàng",
@@ -999,62 +1030,24 @@ async function closeOrder(id) {
       });
     } catch (e) {
       console.error(e);
-      // bạn muốn “đóng tab là đóng”, nên không chặn
+      // không chặn đóng tab
     }
   }
 
   orders.value.splice(idx, 1);
   if (activeId.value === id) activeId.value = orders.value[0]?.id ?? null;
-
   saveDraftsNow();
 }
 
-/** ========= QR PAY (FE-only) ========= */
-const showQrPayModal = ref(false);
-const qrImg = ref("");
-const qrContent = ref("");
-const qrNoteDraft = ref("");
-
-function buildQrContent(o) {
-  const amount = grandTotal.value;
-  const ma = o?.maHoaDon || "";
-  const note = (qrNoteDraft.value || "").trim();
-  return `PAY|MA=${ma}|AMOUNT=${amount}|NOTE=${note || ma}`;
-}
-function makeQrImageUrl(content) {
-  const data = encodeURIComponent(content);
-  return `https://quickchart.io/qr?text=${data}&size=260`;
-}
-function openQrPay() {
-  const o = activeOrder.value;
-  if (!o) return;
-
-  qrNoteDraft.value = `HD:${o.maHoaDon}`;
-  const content = buildQrContent(o);
-  qrContent.value = content;
-  qrImg.value = makeQrImageUrl(content);
-
-  showQrPayModal.value = true;
-}
-function closeQrPay() {
-  showQrPayModal.value = false;
-}
-async function markPaidAndCheckout() {
-  const o = activeOrder.value;
-  if (!o) return;
-
-  o.paid = grandTotal.value;
-  showQrPayModal.value = false;
-
-  await confirmOrder();
-}
-
-/** ========= DRAFT ========= */
+/** =======================
+ * DRAFT STORAGE + DAILY RESET (FE)
+ * ======================= */
 function saveDraftsNow() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
+        dateKey: getDateKeyLocal(), // ✅ quan trọng để reset qua ngày
         orders: orders.value,
         activeId: activeId.value,
         orderSeq: orderSeq.value,
@@ -1063,11 +1056,16 @@ function saveDraftsNow() {
     );
   } catch {}
 }
-let _saveT = null;
-function scheduleSave() {
-  clearTimeout(_saveT);
-  _saveT = setTimeout(saveDraftsNow, 200);
+
+function clearDraftsFE() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+  orders.value = [];
+  activeId.value = null;
+  orderSeq.value = 1;
 }
+
 function loadDrafts() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1075,16 +1073,55 @@ function loadDrafts() {
     const data = JSON.parse(raw);
     if (!data?.orders) return;
 
-    orders.value = data.orders.map((o, i) => normalizeOrder(o, i + 1));
+    const todayKey = getDateKeyLocal();
+    if (data?.dateKey && data.dateKey !== todayKey) {
+      // ✅ qua ngày mới => reset giỏ FE
+      clearDraftsFE();
+      return;
+    }
+
+    orders.value = data.orders.map((o) => normalizeOrder(o));
     activeId.value = data.activeId ?? orders.value[0]?.id ?? null;
     orderSeq.value = Number(data.orderSeq) || orders.value.length + 1;
   } catch {}
+}
+
+// auto-save debounce
+let _saveT = null;
+function scheduleSave() {
+  clearTimeout(_saveT);
+  _saveT = setTimeout(saveDraftsNow, 200);
 }
 watch(orders, scheduleSave, { deep: true });
 watch(activeId, scheduleSave);
 watch(orderSeq, scheduleSave);
 
-/** ========= MONEY ========= */
+// ✅ reset đúng 00:00 khi đang mở trang
+let midnightTimer = null;
+async function handleMidnightReset() {
+  // 1) FE reset
+  clearDraftsFE();
+
+  // 3) tạo 1 đơn mới cho ca
+  await createOrder();
+}
+
+function scheduleMidnightReset() {
+  if (midnightTimer) clearTimeout(midnightTimer);
+
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(24, 0, 0, 0); // next midnight theo local
+
+  midnightTimer = setTimeout(async () => {
+    await handleMidnightReset();
+    scheduleMidnightReset(); // schedule tiếp
+  }, next - now);
+}
+
+/** =======================
+ * MONEY + DATE
+ * ======================= */
 function formatDateVN(d) {
   if (!d) return "—";
   const dt = new Date(d);
@@ -1099,7 +1136,9 @@ function money(n) {
   return v.toLocaleString("vi-VN") + " đ";
 }
 
-/** ========= Khách thanh toán (format dấu chấm) ========= */
+/** =======================
+ * PAID INPUT FORMAT
+ * ======================= */
 function formatMoneyInput(n) {
   const v = Number(n) || 0;
   return v.toLocaleString("vi-VN");
@@ -1118,26 +1157,33 @@ function onPaidBlur(e) {
   e.target.value = formatMoneyInput(o.paid);
 }
 
-/** ========= MODALS ========= */
+/** =======================
+ * MODALS
+ * ======================= */
 const showProductModal = ref(false);
 const showCustomerModal = ref(false);
+const showQrPayModal = ref(false);
+
 const anyModalOpen = computed(() => showProductModal.value || showCustomerModal.value || showQrPayModal.value);
 
 watch(anyModalOpen, (open) => {
   document.body.classList.toggle("modal-open", open);
 });
+
 function closeAnyModal() {
   showProductModal.value = false;
   showCustomerModal.value = false;
   showQrPayModal.value = false;
 }
 
-/** ========= PRODUCTS (DB) - PAGINATION ========= */
+/** =======================
+ * PRODUCTS (DB) - PAGINATION
+ * ======================= */
 const products = ref([]);
 const productKw = ref("");
 const productLoading = ref(false);
 
-const productPage = ref(0); // 0-based
+const productPage = ref(0);
 const productSize = ref(10);
 const productTotal = ref(0);
 const productTotalPages = ref(0);
@@ -1163,22 +1209,9 @@ function findModalProductById(idSpct) {
   return products.value.find((x) => Number(x.idSpct) === id) || null;
 }
 
-function syncModalStockWithCart() {
-  // ✅ Vì đã trừ tồn trong DB khi bấm "Chọn"
-  // => stock lấy từ DB đã là stock còn lại
-  // => KHÔNG trừ thêm qty trong cart nữa, nếu không sẽ bị -2 lần
-  for (const p of products.value) {
-    // _baseStock giữ đúng giá trị DB hiện tại
-    p._baseStock = Number(p._baseStock ?? p.stock ?? 0);
-    // stock hiển thị = stock DB
-    p.stock = Number(p._baseStock || 0);
-  }
-}
-
 async function fetchProducts(page = 0) {
   if (productLoading.value) return;
   productLoading.value = true;
-
   try {
     const res = await getAllDetails(page, productSize.value);
     const data = res?.data ?? res;
@@ -1197,8 +1230,6 @@ async function fetchProducts(page = 0) {
       productPage.value = 0;
       productLast.value = true;
     }
-
-    syncModalStockWithCart();
   } catch (e) {
     console.error(e);
     toastShow("Không tải được danh sách biến thể từ DB", "danger");
@@ -1225,7 +1256,9 @@ function onProductSizeChange() {
 const filteredProducts = computed(() => {
   const kw = productKw.value.trim().toLowerCase();
   if (!kw) return products.value;
-  return products.value.filter((p) => [p.code, p.name, p.color, p.size].some((x) => String(x).toLowerCase().includes(kw)));
+  return products.value.filter((p) =>
+    [p.code, p.name, p.color, p.size].some((x) => String(x).toLowerCase().includes(kw))
+  );
 });
 
 function openProductModal() {
@@ -1237,10 +1270,18 @@ function closeProductModal() {
   showProductModal.value = false;
 }
 
-/** ========= CART STOCK ========= */
-function ensureCartItemStockBase(it, base) {
-  if (typeof it.stockBase !== "number") it.stockBase = Number(base || 0);
+/** =======================
+ * CART + STOCK SYNC
+ * ======================= */
+function clampInt(n, min, max) {
+  n = Number.isFinite(Number(n)) ? Math.floor(Number(n)) : min;
+  return Math.max(min, Math.min(max, n));
 }
+
+function sameMoney(a, b) {
+  return Math.round(Number(a || 0)) === Math.round(Number(b || 0));
+}
+
 function syncAllCartStocks() {
   const o = activeOrder.value;
   if (!o) return;
@@ -1258,11 +1299,6 @@ function syncAllCartStocks() {
   }
 }
 
-function clampInt(n, min, max) {
-  n = Number.isFinite(Number(n)) ? Math.floor(Number(n)) : min;
-  return Math.max(min, Math.min(max, n));
-}
-
 async function setQtyByInput(cartIndex, nextQtyRaw) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1273,30 +1309,25 @@ async function setQtyByInput(cartIndex, nextQtyRaw) {
   const curQty = Number(it.qty || 0);
   if (nextQty === curQty) return;
 
-  const delta = nextQty - curQty; // >0: trừ kho, <0: trả kho
+  const delta = nextQty - curQty;
 
-  // gọi DB theo delta
   try {
-    if (delta > 0) {
-      await decreaseStock(Number(it.idSpct), delta);
-    } else if (delta < 0) {
-      await increaseStock(Number(it.idSpct), Math.abs(delta));
-    }
+    if (delta > 0) await decreaseStock(Number(it.idSpct), delta);
+    else if (delta < 0) await increaseStock(Number(it.idSpct), Math.abs(delta));
   } catch (err) {
     const msg = err?.response?.data?.message || err?.response?.data || "Không thể cập nhật tồn kho";
     return toastShow(String(msg), "warning");
   }
 
-  // cập nhật tồn hiển thị trong modal (nếu modal đang mở và có item)
   const p = findModalProductById(it.idSpct);
   if (p) {
-    p.stock = Math.max(0, Number(p.stock || 0) - delta); // delta>0 => giảm, delta<0 => tăng
+    p.stock = Math.max(0, Number(p.stock || 0) - delta);
   }
 
-  // update qty
   it.qty = nextQty;
   syncAllCartStocks();
 }
+
 async function incQty(i) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1304,7 +1335,6 @@ async function incQty(i) {
   if (!it) return;
   await setQtyByInput(i, Number(it.qty || 0) + 1);
 }
-
 async function decQty(i) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1312,6 +1342,7 @@ async function decQty(i) {
   if (!it) return;
   await setQtyByInput(i, Math.max(1, Number(it.qty || 0) - 1));
 }
+
 async function removeItem(i) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1333,11 +1364,9 @@ async function removeItem(i) {
 }
 
 function onQtyInput(idx, e) {
-  // chỉ cho nhập số
   const raw = String(e?.target?.value ?? "");
   e.target.value = raw.replace(/[^\d]/g, "");
 }
-
 async function onQtyBlur(idx, e) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1348,11 +1377,7 @@ async function onQtyBlur(idx, e) {
   const num = Number(raw.replace(/[^\d]/g, "")) || 1;
 
   await setQtyByInput(idx, num);
-  e.target.value = it.qty; // sync lại input
-}
-
-function sameMoney(a, b) {
-  return Math.round(Number(a || 0)) === Math.round(Number(b || 0));
+  e.target.value = it.qty;
 }
 
 async function chooseProduct(p) {
@@ -1366,7 +1391,7 @@ async function chooseProduct(p) {
   let idx = o.cart.findIndex((x) => Number(x.idSpct) === id && sameMoney(x.price, p.price));
 
   if (idx === -1) {
-    const baseBefore = Number(p.stock || 0); // tồn DB hiện tại (trước khi trừ)
+    const baseBefore = Number(p.stock || 0);
     o.cart.push({
       key: `${id}-${Math.round(Number(p.price || 0))}-${Date.now()}-${Math.random()}`,
       idSpct: id,
@@ -1380,22 +1405,24 @@ async function chooseProduct(p) {
       stock: baseBefore,
     });
     idx = o.cart.length - 1;
-  } else {
-    ensureCartItemStockBase(o.cart[idx], Number(o.cart[idx].stockBase ?? p.stock ?? 0));
   }
 
-  await setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1); // ✅ tự trừ DB
+  await setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
   toastShow(`Đã thêm ${p.code}`, "success");
 }
 
-/** ========= TOTALS ========= */
+/** =======================
+ * TOTALS  ✅ (GIỮ 1 LẦN DUY NHẤT)
+ * ======================= */
 const subTotal = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
   return o.cart.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0), 0);
 });
 
-/** ========= CUSTOMERS (DB) - PAGINATION ========= */
+/** =======================
+ * CUSTOMERS (DB)
+ * ======================= */
 const customers = ref([]);
 const customerKw = ref("");
 const customerLoading = ref(false);
@@ -1407,15 +1434,13 @@ const customerTotalPages = ref(0);
 const customerLast = ref(false);
 
 function mapCustomer(x) {
-  const addr =
-    x.diaChi || [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") || "";
+  const addr = x.diaChi || [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") || "";
   return { id: x.id, name: x.tenKhachHang || "", phone: x.soDienThoai || "", email: x.email || "", address: addr, raw: x };
 }
 
 async function fetchCustomers(page = 0) {
   if (customerLoading.value) return;
   customerLoading.value = true;
-
   try {
     const res = await listKhachHang(page, customerSize.value);
     const data = res?.data ?? res;
@@ -1460,7 +1485,9 @@ function onCustomerSizeChange() {
 const filteredCustomers = computed(() => {
   const kw = customerKw.value.trim().toLowerCase();
   if (!kw) return customers.value;
-  return customers.value.filter((c) => [c.name, c.phone, c.email, c.address].some((x) => String(x).toLowerCase().includes(kw)));
+  return customers.value.filter((c) =>
+    [c.name, c.phone, c.email, c.address].some((x) => String(x).toLowerCase().includes(kw))
+  );
 });
 
 function openCustomerModal() {
@@ -1481,8 +1508,26 @@ function chooseCustomer(c) {
   closeCustomerModal();
   loadVouchers();
 }
+function resetToWalkInCustomer() {
+  const o = activeOrder.value;
+  if (!o) return;
 
-/** ========= VOUCHERS (DB) ========= */
+  o.customer = null;
+  o.customerDraft = { phone: "", email: "" };
+  o.diaChi = "";
+
+  customerKw.value = "";
+  customerPage.value = 0;
+
+  loadVouchers();
+  closeCustomerModal();
+
+  toastShow("Đã đặt lại về Khách lẻ", "info");
+}
+
+/** =======================
+ * VOUCHERS
+ * ======================= */
 const vouchers = ref([]);
 const confirmHint = ref("");
 
@@ -1518,7 +1563,6 @@ async function loadVouchers() {
   }
 }
 
-/** ========= PGG loại phiếu ========= */
 function isPersonalVoucher(v) {
   const lp = v?.loai_phieu;
   if (lp === true) return true;
@@ -1539,7 +1583,6 @@ function isVoucherOwnedByCustomer(v, customerId) {
   return false;
 }
 
-/** ========= snapshot ========= */
 function setVoucherSnapshot(o, v) {
   if (!o || !v) return;
   o.voucherSnapshot = {
@@ -1559,7 +1602,6 @@ function setVoucherSnapshot(o, v) {
   };
 }
 
-/** ========= thời gian + hợp lệ ========= */
 function toTime(d) {
   if (!d) return null;
   const t = new Date(d).getTime();
@@ -1574,50 +1616,6 @@ function isVoucherInDateRange(v) {
   return true;
 }
 
-function getVoucherInvalidReason(v, subtotal) {
-  if (!v) return "Voucher không tồn tại";
-  if (!v.trang_thai) return "Voucher đã bị tắt";
-  if ((Number(v.so_luong) || 0) <= 0) return "Voucher đã hết lượt";
-
-  const now = Date.now();
-  const start = toTime(v.ngay_bat_dau);
-  const end = toTime(v.ngay_ket_thuc);
-
-  if (start !== null && now < start) return "Voucher chưa tới ngày bắt đầu";
-  if (end !== null && now > end) return "Voucher đã hết hạn";
-
-  if ((Number(subtotal) || 0) < (Number(v.don_hang_toi_thieu) || 0)) return "Đơn hàng chưa đạt đơn tối thiểu";
-  return null;
-}
-
-function getVoucherChangedFields(snap, vNow) {
-  if (!snap || !vNow) return [];
-  const changes = [];
-
-  const minOld = Number(snap.minOrder || 0);
-  const minNew = Number(vNow.don_hang_toi_thieu || 0);
-  if (minOld !== minNew) changes.push(`Đơn tối thiểu: ${money(minOld)} → ${money(minNew)}`);
-
-  const endOld = String(snap.end || "");
-  const endNew = String(vNow.ngay_ket_thuc || "");
-  if (endOld !== endNew) changes.push(`Hạn dùng: ${formatDateVN(endOld)} → ${formatDateVN(endNew)}`);
-
-  const qtyOld = Number(snap.soLuong || 0);
-  const qtyNew = Number(vNow.so_luong || 0);
-  if (qtyOld !== qtyNew) changes.push(`Số lượng còn: ${qtyOld} → ${qtyNew}`);
-
-  const stOld = !!snap.trangThai;
-  const stNew = !!vNow.trang_thai;
-  if (stOld !== stNew) changes.push(`Trạng thái: ${stOld ? "Bật" : "Tắt"} → ${stNew ? "Bật" : "Tắt"}`);
-
-  const lpOld = String(snap.loaiPhieu ?? "");
-  const lpNew = String(vNow.loai_phieu ?? "");
-  if (lpOld !== lpNew) changes.push(`Loại phiếu: ${lpOld || "-"} → ${lpNew || "-"}`);
-
-  return changes;
-}
-
-/** ========= tính giảm ========= */
 function calcVoucherDiscount(subtotal, v) {
   const st = Number(subtotal) || 0;
   if (st <= 0) return 0;
@@ -1644,10 +1642,14 @@ const eligibleVoucherEntries = computed(() => {
     .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
     .filter((x) => x.discount > 0)
     .sort((a, b) => b.discount - a.discount);
-});
+}); 
 
 const bestEligibleVoucherEntry = computed(() => eligibleVoucherEntries.value[0] || null);
-const altEligibleVoucherEntries = computed(() => eligibleVoucherEntries.value.slice(1));
+
+// ✅ Mã thay thế: TẤT CẢ voucher áp dụng được, sort từ thấp -> cao
+const altEligibleVoucherEntries = computed(() => {
+  return [...eligibleVoucherEntries.value].sort((a, b) => a.discount - b.discount);
+});
 
 const appliedVoucher = computed(() => {
   const o = activeOrder.value;
@@ -1673,10 +1675,14 @@ const bestVoucherEntryUI = computed(() => {
 const altVoucherEntriesUI = computed(() => {
   const o = activeOrder.value;
   const applied = appliedVoucherEntry.value;
-  if (o?.pggId && applied && applied.discount <= 0) return eligibleVoucherEntries.value;
+
+  if (o?.pggId && applied && applied.discount <= 0) {
+    return [...eligibleVoucherEntries.value].sort((a, b) => a.discount - b.discount);
+  }
   return altEligibleVoucherEntries.value;
 });
 
+/** ✅ FIX LOGIC: lọc thêm isVoucherInDateRange để tránh gợi ý voucher hết hạn/chưa bắt đầu */
 const voucherUpsellHint = computed(() => {
   const st = subTotal.value;
   if (st <= 0) return null;
@@ -1684,7 +1690,7 @@ const voucherUpsellHint = computed(() => {
   const bestNow = bestEligibleVoucherEntry.value?.discount || 0;
 
   const candidates = vouchers.value
-    .filter((v) => v?.trang_thai && (Number(v.so_luong) || 0) > 0)
+    .filter((v) => v?.trang_thai && (Number(v.so_luong) || 0) > 0 && isVoucherInDateRange(v))
     .map((v) => {
       const min = Number(v.don_hang_toi_thieu || 0);
       const missing = Math.max(0, min - st);
@@ -1707,7 +1713,7 @@ const voucherUpsellHint = computed(() => {
   };
 });
 
-/** ========= auto pick best (mode best) ========= */
+// auto pick best when mode=best
 watch(
   [subTotal, vouchers, activeId, () => activeOrder.value?.customer?.id],
   () => {
@@ -1727,11 +1733,38 @@ watch(
       o.voucherCode = best?.ma_giam_gia || "";
       if (best) setVoucherSnapshot(o, best);
       else o.voucherSnapshot = null;
-      return;
     }
   },
   { immediate: true }
 );
+
+const voucherSuggestions = computed(() => {
+  const st = subTotal.value;
+  if (st <= 0) return [];
+
+  const bestNow = bestEligibleVoucherEntry.value?.discount || 0;
+
+  const basicValid = (v) =>
+    v?.trang_thai &&
+    (Number(v.so_luong) || 0) > 0 &&
+    isVoucherInDateRange(v);
+
+  return vouchers.value
+    .filter(basicValid)
+    .map((v) => {
+      const min = Number(v.don_hang_toi_thieu || 0);
+      const missing = min - st;
+      if (missing <= 0) return null;
+
+      const expectedDiscount = calcVoucherDiscount(min, v);
+      if (expectedDiscount <= bestNow) return null;
+
+      return { v, missing, minOrder: min, expectedDiscount };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.missing - b.missing || b.expectedDiscount - a.expectedDiscount)
+    .slice(0, 6);
+});
 
 function applyVoucherManual(v) {
   const o = activeOrder.value;
@@ -1747,8 +1780,8 @@ function applyVoucherManual(v) {
   o.pggId = v.id;
   o.voucherCode = v.ma_giam_gia || "";
   o.discountPercent = 0;
-
   setVoucherSnapshot(o, v);
+
   toastShow(`Đã chọn ${v.ma_giam_gia}`, "info");
 }
 
@@ -1784,15 +1817,7 @@ async function applyPggByCode() {
   if (!o) return;
 
   const code = (o.voucherCode || "").trim().toUpperCase();
-  if (!code) {
-    o.voucherMode = "best";
-    const best = bestEligibleVoucherEntry.value?.v || null;
-    o.pggId = best?.id ?? null;
-    o.voucherCode = best?.ma_giam_gia || "";
-    if (best) setVoucherSnapshot(o, best);
-    else o.voucherSnapshot = null;
-    return;
-  }
+  if (!code) return clearVoucherManual();
 
   const found = vouchers.value.find((v) => String(v.ma_giam_gia).toUpperCase() === code);
   if (!found) return toastShow("Mã PGG không tồn tại", "danger");
@@ -1809,7 +1834,9 @@ async function applyPggByCode() {
   applyVoucherManual(found);
 }
 
-/** ========= DISCOUNT + TOTAL ========= */
+/** =======================
+ * DISCOUNT + TOTAL
+ * ======================= */
 const discountMoney = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
@@ -1831,7 +1858,9 @@ const changeMoney = computed(() => {
   return Math.max(0, Number(o.paid || 0) - grandTotal.value);
 });
 
-/** ========= PRE-CHECKOUT CONFIRM SYSTEM ========= */
+/** =======================
+ * PRE-CHECKOUT CONFIRM (modal)
+ * ======================= */
 const showPreCheckoutModal = ref(false);
 const preCheckoutUi = reactive({
   type: "info",
@@ -1859,12 +1888,47 @@ function resolvePreCheckout(ok) {
   if (r) r(!!ok);
 }
 
+function getVoucherInvalidReason(v, subtotal) {
+  if (!v) return "Voucher không tồn tại";
+  if (!v.trang_thai) return "Voucher đã bị tắt";
+  if ((Number(v.so_luong) || 0) <= 0) return "Voucher đã hết lượt";
+  if (!isVoucherInDateRange(v)) return "Voucher đã hết hạn / chưa bắt đầu";
+  if ((Number(subtotal) || 0) < (Number(v.don_hang_toi_thieu) || 0)) return "Đơn hàng chưa đạt đơn tối thiểu";
+  return null;
+}
+
+function getVoucherChangedFields(snap, vNow) {
+  if (!snap || !vNow) return [];
+  const changes = [];
+
+  const minOld = Number(snap.minOrder || 0);
+  const minNew = Number(vNow.don_hang_toi_thieu || 0);
+  if (minOld !== minNew) changes.push(`Đơn tối thiểu: ${money(minOld)} → ${money(minNew)}`);
+
+  const endOld = String(snap.end || "");
+  const endNew = String(vNow.ngay_ket_thuc || "");
+  if (endOld !== endNew) changes.push(`Hạn dùng: ${formatDateVN(endOld)} → ${formatDateVN(endNew)}`);
+
+  const qtyOld = Number(snap.soLuong || 0);
+  const qtyNew = Number(vNow.so_luong || 0);
+  if (qtyOld !== qtyNew) changes.push(`Số lượng còn: ${qtyOld} → ${qtyNew}`);
+
+  const stOld = !!snap.trangThai;
+  const stNew = !!vNow.trang_thai;
+  if (stOld !== stNew) changes.push(`Trạng thái: ${stOld ? "Bật" : "Tắt"} → ${stNew ? "Bật" : "Tắt"}`);
+
+  const lpOld = String(snap.loaiPhieu ?? "");
+  const lpNew = String(vNow.loai_phieu ?? "");
+  if (lpOld !== lpNew) changes.push(`Loại phiếu: ${lpOld || "-"} → ${lpNew || "-"}`);
+
+  return changes;
+}
+
 function getBestEligibleNow() {
   const best = bestEligibleVoucherEntry.value;
   if (!best) return null;
   return { id: best.v.id, code: best.v.ma_giam_gia, discount: best.discount };
 }
-
 function applyBestVoucherNow() {
   const o = activeOrder.value;
   if (!o) return;
@@ -1876,7 +1940,6 @@ function applyBestVoucherNow() {
   o.discountPercent = 0;
   setVoucherSnapshot(o, best);
 }
-
 function removeVoucherNow() {
   const o = activeOrder.value;
   if (!o) return;
@@ -1940,7 +2003,48 @@ async function runVoucherPrecheckFlow() {
   return true;
 }
 
-/** ========= CHECKOUT ========= */
+/** =======================
+ * QR PAY (FE-only)
+ * ======================= */
+const qrImg = ref("");
+const qrContent = ref("");
+const qrNoteDraft = ref("");
+
+function buildQrContent(o) {
+  const amount = grandTotal.value;
+  const ma = o?.maHoaDon || "";
+  const note = (qrNoteDraft.value || "").trim();
+  return `PAY|MA=${ma}|AMOUNT=${amount}|NOTE=${note || ma}`;
+}
+function makeQrImageUrl(content) {
+  const data = encodeURIComponent(content);
+  return `https://quickchart.io/qr?text=${data}&size=260`;
+}
+function openQrPay() {
+  const o = activeOrder.value;
+  if (!o) return;
+
+  qrNoteDraft.value = `HD:${o.maHoaDon}`;
+  const content = buildQrContent(o);
+  qrContent.value = content;
+  qrImg.value = makeQrImageUrl(content);
+
+  showQrPayModal.value = true;
+}
+function closeQrPay() {
+  showQrPayModal.value = false;
+}
+async function markPaidAndCheckout() {
+  const o = activeOrder.value;
+  if (!o) return;
+  o.paid = grandTotal.value;
+  showQrPayModal.value = false;
+  await confirmOrder();
+}
+
+/** =======================
+ * CHECKOUT
+ * ======================= */
 function validateCheckout(o) {
   if (!o) return "Không có đơn hàng đang chọn";
   if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";
@@ -1982,7 +2086,7 @@ function buildPosPayload(o) {
   };
 }
 
-function resetOrderAfterPaid(o) {
+async function resetOrderAfterPaid(o) {
   o.cart = [];
   o.customer = null;
   o.customerDraft = { phone: "", email: "" };
@@ -1997,11 +2101,17 @@ function resetOrderAfterPaid(o) {
   o.discountPercent = 0;
   o.paid = 0;
 
-  // ✅ quan trọng: bỏ dbId của hóa đơn đã thanh toán
   o.dbId = null;
 
-  // ✅ chỉ reset mã hiển thị local (không insert DB)
-  o.maHoaDon = genUniqueMaHoaDon();
+  const maHoaDon = genUniqueMaHoaDon();
+  try {
+    const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
+    const data = res?.data || {};
+    o.dbId = data.id ?? null;
+    o.maHoaDon = data.maHoaDon || maHoaDon;
+  } catch {
+    o.maHoaDon = maHoaDon;
+  }
   o.label = `Hóa Đơn - ${o.maHoaDon}`;
 }
 
@@ -2015,20 +2125,15 @@ async function confirmOrder() {
   const ok = await runVoucherPrecheckFlow();
   if (!ok) return;
 
-  // ✅ bắt buộc phải có dbId (hóa đơn nháp)
-  if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo)", "danger");
+  if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo trong DB", "danger");
 
   const payload = buildPosPayload(o);
 
   submitting.value = true;
   try {
-    // ✅ CHECKOUT = UPDATE HÓA ĐƠN NHÁP (trạng thái 0 -> hoàn thành)
-    const res = await http.post(`/api/hoa-don/draft/${o.dbId}/checkout`, payload);
+    await http.post(`/api/hoa-don/draft/${o.dbId}/checkout`, payload);
+    toastShow(`Thanh toán thành công: ${o.maHoaDon}`, "success");
 
-    const ma = res?.data?.maHoaDon || o.maHoaDon || "Hóa đơn";
-    toastShow(`Thanh toán thành công: ${ma}`, "success");
-
-    // ✅ sau khi thanh toán xong: tạo nháp mới cho tab hiện tại
     await resetOrderAfterPaid(o);
   } catch (e) {
     console.error(e);
@@ -2039,7 +2144,9 @@ async function confirmOrder() {
   }
 }
 
-/** ========= LIFECYCLE ========= */
+/** =======================
+ * KEYBOARD
+ * ======================= */
 function onKeydown(e) {
   if (e.key === "Escape") {
     if (showPreCheckoutModal.value) return resolvePreCheckout(false);
@@ -2047,9 +2154,13 @@ function onKeydown(e) {
   }
 }
 
-onMounted(() => {
+/** =======================
+ * LIFECYCLE
+ * ======================= */
+onMounted(async () => {
   loadDrafts();
-  if (orders.value.length === 0) createOrder();
+  if (orders.value.length === 0) await createOrder();
+  scheduleMidnightReset();
 
   reloadCustomers();
   loadVouchers();
@@ -2065,6 +2176,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", saveDraftsNow);
   window.removeEventListener("keydown", onKeydown);
+
+  if (midnightTimer) clearTimeout(midnightTimer);
+
   saveDraftsNow();
 });
 </script>
