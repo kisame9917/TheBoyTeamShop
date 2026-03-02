@@ -23,6 +23,7 @@ public class PhieuGiamGiaResponse {
     private Boolean loaiGiam;
     private BigDecimal giaTriPhanTram;
     private BigDecimal giaTriTienMat;
+    private BigDecimal giaTriGiamToiDa;
     private String loaiPhieu;
     private BigDecimal donHangToiThieu;
 }
