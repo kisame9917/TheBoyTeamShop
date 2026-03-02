@@ -1530,24 +1530,77 @@ function resetToWalkInCustomer() {
  * ======================= */
 const vouchers = ref([]);
 const confirmHint = ref("");
+function pickId(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  // nhiều kiểu backend hay trả
+  return (
+    obj.id ??
+    obj.khachHangId ??
+    obj.idKhachHang ??
+    obj.value ??
+    obj.khachHang?.id ??
+    obj.customer?.id ??
+    obj.khach_hang?.id ??
+    null
+  );
+}
+
+function normalizeKhIds(raw) {
+  if (!raw) return null;
+
+  if (Array.isArray(raw)) {
+    const ids = raw
+      .map((x) => {
+        if (typeof x === "number") return x;
+        if (typeof x === "string") return Number(x);
+        const id = pickId(x);
+        return id != null ? Number(id) : NaN;
+      })
+      .filter((n) => Number.isFinite(n));
+    return ids.length ? ids : null;
+  }
+
+  if (typeof raw === "string") {
+    // "1,2,3"
+    if (raw.includes(",")) {
+      const ids = raw
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter((n) => Number.isFinite(n));
+      return ids.length ? ids : null;
+    }
+    const one = Number(raw);
+    return Number.isFinite(one) ? [one] : null;
+  }
+
+  return null;
+}
 
 function normalizeVoucher(x) {
+  const khIdsRaw = x.khachHangIds ?? x.khach_hang_ids ?? x.khachHangs ?? null;
+  const khSingle = x.khachHangId ?? x.khach_hang_id ?? x.idKhachHang ?? null;
+
   return {
     id: x.id,
     ma_giam_gia: x.maGiamGia ?? x.ma_giam_gia ?? "",
     ten_giam_gia: x.tenGiamGia ?? x.ten_giam_gia ?? "",
     trang_thai: x.trangThai ?? x.trang_thai ?? true,
     so_luong: Number(x.soLuong ?? x.so_luong ?? 0),
+
     loai_giam: !!(x.loaiGiam ?? x.loai_giam),
     gia_tri_phan_tram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
     gia_tri_tien_mat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
     don_hang_toi_thieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
     gia_tri_giam_toi_da: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
-    loai_phieu: x.loaiPhieu ?? x.loai_phieu ?? x.loaiPhieuText ?? x.loai_phieu_text ?? null,
-    khach_hang_ids: x.khachHangIds ?? x.khach_hang_ids ?? null,
-    khach_hang_id: x.khachHangId ?? x.khach_hang_id ?? null,
-    ngay_bat_dau: x.ngayBatDau ?? x.ngay_bat_dau ?? x.startDate ?? x.start_date ?? null,
-    ngay_ket_thuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? x.endDate ?? x.end_date ?? null,
+
+    loai_phieu: x.loaiPhieu ?? x.loai_phieu ?? null,
+
+    // ✅ CHUẨN HOÁ Ở ĐÂY
+    khach_hang_ids: normalizeKhIds(khIdsRaw),
+    khach_hang_id: khSingle != null ? Number(khSingle) : null,
+
+    ngay_bat_dau: x.ngayBatDau ?? x.ngay_bat_dau ?? null,
+    ngay_ket_thuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
   };
 }
 
@@ -1951,15 +2004,38 @@ function removeVoucherNow() {
 
 async function runVoucherPrecheckFlow() {
   const o = activeOrder.value;
-  if (!o) return true;
-  if (!o.pggId) return true;
+  if (!o || !o.pggId) return true;
 
+  // reload danh sách voucher theo khách (như bạn đang làm)
   await loadVouchers();
 
-  const vNow = vouchers.value.find((x) => x.id === o.pggId) || null;
-  const best = getBestEligibleNow();
   const snap = o.voucherSnapshot;
+  const vNow = vouchers.value.find((x) => x.id === o.pggId) || null;
 
+  // best hiện tại (eligible)
+  const best = bestEligibleVoucherEntry.value
+    ? { id: bestEligibleVoucherEntry.value.v.id, code: bestEligibleVoucherEntry.value.v.ma_giam_gia, discount: bestEligibleVoucherEntry.value.discount }
+    : null;
+
+  // 1) Voucher đang chọn không còn nằm trong list (thường do hết hạn/bị tắt/hết lượt/không thuộc KH)
+  if (!vNow) {
+    const ok = await openConfirm({
+      type: "danger",
+      message: `Voucher "${o.voucherCode || snap?.code || ""}" hiện không còn khả dụng.`,
+      detail: best
+        ? `Bạn có muốn đổi sang mã tốt nhất hiện tại (${best.code}) không?`
+        : "Không có mã khác áp dụng được. Bạn có muốn bỏ voucher để tiếp tục thanh toán không?",
+      suggest: best,
+    });
+
+    if (!ok) return false;
+
+    if (best) applyBestVoucherNow();
+    else removeVoucherNow();
+    return true;
+  }
+
+  // 2) Voucher hiện tại invalid (tắt/hết lượt/hết hạn/chưa đạt min)
   const reason = getVoucherInvalidReason(vNow, subTotal.value);
   if (reason) {
     const ok = await openConfirm({
@@ -1967,18 +2043,18 @@ async function runVoucherPrecheckFlow() {
       message: `Voucher "${o.voucherCode || snap?.code || ""}" không hợp lệ: ${reason}.`,
       detail: best
         ? `Bạn có muốn đổi sang mã tốt nhất hiện tại (${best.code}) không?`
-        : "Không có mã nào khác áp dụng được. Bạn có muốn bỏ voucher để tiếp tục thanh toán không?",
+        : "Không có mã khác áp dụng được. Bạn có muốn bỏ voucher để tiếp tục thanh toán không?",
       suggest: best,
     });
 
-    if (ok) {
-      if (best) applyBestVoucherNow();
-      else removeVoucherNow();
-      return true;
-    }
-    return false;
+    if (!ok) return false;
+
+    if (best) applyBestVoucherNow();
+    else removeVoucherNow();
+    return true;
   }
 
+  // 3) Voucher còn hợp lệ nhưng điều kiện đã thay đổi so với snapshot
   if (snap) {
     const changes = getVoucherChangedFields(snap, vNow);
     if (changes.length > 0) {
@@ -1989,15 +2065,31 @@ async function runVoucherPrecheckFlow() {
         suggest: best,
       });
 
-      if (ok) {
-        if (best) applyBestVoucherNow();
-        else setVoucherSnapshot(o, vNow);
-        return true;
-      }
-      return false;
+      if (!ok) return false;
+
+      // nếu có best thì đổi, không thì cập nhật snapshot mới
+      if (best) applyBestVoucherNow();
+      else setVoucherSnapshot(o, vNow);
+
+      return true;
     }
   } else {
     setVoucherSnapshot(o, vNow);
+  }
+
+  // 4) Voucher đang dùng OK, nhưng có mã tốt hơn hiện tại
+  const currentDiscount = calcVoucherDiscount(subTotal.value, vNow);
+  if (best && best.discount > currentDiscount) {
+    const ok = await openConfirm({
+      type: "info",
+      message: `Hiện có mã tốt hơn (${best.code}) giảm thêm -${money(best.discount - currentDiscount)}.`,
+      detail: `Bạn đang dùng "${vNow.ma_giam_gia}" giảm -${money(currentDiscount)}. Đổi sang "${best.code}" sẽ giảm -${money(best.discount)}.`,
+      suggest: best,
+    });
+
+    if (ok) {
+      applyBestVoucherNow();
+    }
   }
 
   return true;
