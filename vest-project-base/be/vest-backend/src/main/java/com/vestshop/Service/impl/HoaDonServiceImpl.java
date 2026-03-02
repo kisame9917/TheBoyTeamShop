@@ -516,10 +516,21 @@ public class HoaDonServiceImpl implements HoaDonService {
             Boolean active,
             Pageable pageable
     ) {
+        // ✅ 1) Ẩn hóa đơn huỷ (trangThai=false) mặc định
+        if (active == null) active = true;
+
         Specification<HoaDon> spec = HoaDonSpecifications.advanced(
                 keyword, trangThaiDon, phanLoai, loaiDon, from, to,
                 minTotal, maxTotal, hasVoucher, idNhanVien, active
         );
+
+        // ✅ 2) Nếu người dùng KHÔNG lọc trạng thái => ẩn luôn trạng thái "chờ xác nhận" (0)
+        // (Nếu user chọn trạng thái=0 thì vẫn xem được)
+        if (trangThaiDon == null) {
+            spec = spec.and((root, query, cb) -> cb.notEqual(root.get("trangThaiDon"), 0));
+            // Nếu muốn ẩn thêm trạng thái khác, dùng:
+            // spec = spec.and((root, query, cb) -> cb.not(root.get("trangThaiDon").in(List.of(0, 1))));
+        }
 
         Page<HoaDon> page = hoaDonRepository.findAll(spec, pageable);
 

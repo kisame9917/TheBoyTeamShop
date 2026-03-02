@@ -32,4 +32,11 @@ public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, Lo
     @Modifying
     @Query("delete from HoaDonChiTiet c where c.hoaDon.id = :hoaDonId")
     void deleteByHoaDonId(@Param("hoaDonId") Long hoaDonId);
+
+    @Query("select c from HoaDonChiTiet c where c.hoaDon.id in :hoaDonIds")
+    List<HoaDonChiTiet> findAllByHoaDonIds(@Param("hoaDonIds") List<Long> hoaDonIds);
+
+    @Modifying
+    @Query("delete from HoaDonChiTiet c where c.hoaDon.id in :hoaDonIds")
+    void deleteAllByHoaDonIds(@Param("hoaDonIds") List<Long> hoaDonIds);
 }

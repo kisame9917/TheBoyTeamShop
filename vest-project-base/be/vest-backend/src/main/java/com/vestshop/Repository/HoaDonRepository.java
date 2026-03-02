@@ -152,7 +152,14 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
                                    @Param("cutoff") LocalDateTime cutoff);
 
 
-
+    @Query("""
+    select h.id
+    from HoaDon h
+    where h.trangThaiDon = :status
+      and h.ngayTao < :cutoff
+""")
+    List<Long> findIdsPendingOlderThan(@Param("status") Integer status,
+                                       @Param("cutoff") LocalDateTime cutoff);
 }
 
 
