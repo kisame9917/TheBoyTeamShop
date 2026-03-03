@@ -21,15 +21,39 @@
 
         <div class="form-group">
           <label for="matKhau">Mật khẩu</label>
-          <input
-            v-model="form.matKhau"
-            id="matKhau"
-            type="password"
-            class="form-control"
-            placeholder="Nhập mật khẩu"
-            required
-            autocomplete="current-password"
-          />
+
+          <div class="password-wrap">
+            <input
+              v-model="form.matKhau"
+              id="matKhau"
+              :type="showPassword ? 'text' : 'password'"
+              class="form-control"
+              placeholder="Nhập mật khẩu"
+              required
+              autocomplete="current-password"
+            />
+
+            <button
+              type="button"
+              class="toggle-eye"
+              :aria-label="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+              @click="showPassword = !showPassword"
+            >
+              <!-- eye -->
+              <svg v-if="!showPassword" viewBox="0 0 24 24" class="eye-icon" aria-hidden="true">
+                <path
+                  d="M12 5c5.5 0 9.6 4.1 11 7-1.4 2.9-5.5 7-11 7S2.4 15.9 1 12c1.4-2.9 5.5-7 11-7Zm0 2C7.7 7 4.4 10 3.2 12 4.4 14 7.7 17 12 17s7.6-3 8.8-5C19.6 10 16.3 7 12 7Zm0 2.5A2.5 2.5 0 1 1 12 14a2.5 2.5 0 0 1 0-5Z"
+                />
+              </svg>
+
+              <!-- eye off -->
+              <svg v-else viewBox="0 0 24 24" class="eye-icon" aria-hidden="true">
+                <path
+                  d="M2 4.3 3.3 3 21 20.7 19.7 22l-3-3c-1.4.6-3 .9-4.7.9-5.5 0-9.6-4.1-11-7 1-2.1 3.3-4.8 6.7-6.2L2 4.3Zm6.1 4.8C6 10 4.4 11.6 3.2 13c1.2 1.4 4.5 4.4 8.8 4.4 1.1 0 2.2-.2 3.2-.5l-1.7-1.7c-.5.2-1 .3-1.5.3A3.5 3.5 0 0 1 8.1 9.1Zm9.6 7.2-2-2c.2-.4.3-.9.3-1.3A3.5 3.5 0 0 0 11 9.5c-.5 0-1 .1-1.4.3L8 8.3c1.2-.6 2.6-1 4-1 5.5 0 9.6 4.1 11 7-.7 1.4-2.2 3.4-4.3 4.9Z"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="form-row">
@@ -38,7 +62,9 @@
             Ghi nhớ đăng nhập
           </label>
 
-          <a class="forgot" href="#" @click.prevent>Quên mật khẩu?</a>
+          <a class="forgot" href="#" @click.prevent="router.push('/forgot-password')"
+            >Quên mật khẩu?</a
+          >
         </div>
 
         <button class="btn-submit" type="submit" :disabled="loading">
@@ -68,6 +94,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 const loading = ref(false);
 const error = ref("");
+const showPassword = ref(false);
 
 const form = reactive({
   taiKhoan: "",
@@ -106,10 +133,7 @@ async function onSubmit() {
     await router.replace(redirect);
   } catch (e) {
     error.value =
-      e?.response?.data?.message ||
-      e?.response?.data?.error ||
-      e?.message ||
-      "Đăng nhập thất bại.";
+      e?.response?.data?.message || e?.response?.data?.error || e?.message || "Đăng nhập thất bại.";
   } finally {
     loading.value = false;
   }
@@ -235,5 +259,38 @@ async function onSubmit() {
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+/* Eye toggle */
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap .form-control {
+  padding-right: 44px;
+}
+
+.toggle-eye {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  padding: 6px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.toggle-eye:hover {
+  opacity: 1;
+}
+
+.eye-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
 }
 </style>

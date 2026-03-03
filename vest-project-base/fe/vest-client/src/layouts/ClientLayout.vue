@@ -118,7 +118,7 @@
         </div>
 
         <div class="text-center pt-3 border-top">
-          <small>© 2026 Vest. All rights reserved.</small>
+          <small>©TBTS. All rights reserved.</small>  
         </div>
       </div>
     </footer>
