@@ -62,9 +62,7 @@
             Ghi nhớ đăng nhập
           </label>
 
-          <a class="forgot" href="#" @click.prevent="router.push('/forgot-password')"
-            >Quên mật khẩu?</a
-          >
+          <a class="forgot" href="#" @click.prevent="router.push('/forgot-password')">Quên mật khẩu?</a>
         </div>
 
         <button class="btn-submit" type="submit" :disabled="loading">
@@ -73,7 +71,8 @@
 
         <div class="divider"><span>hoặc</span></div>
 
-        <button class="btn-google" type="button" disabled>
+        <!-- ✅ bật nút Google để test -->
+        <button class="btn-google" type="button" @click="loginWithGoogle">
           <i class="fab fa-google"></i>
           Đăng nhập với Google
         </button>
@@ -102,6 +101,26 @@ const form = reactive({
   remember: false,
 });
 
+function clearAuthStorage() {
+  localStorage.removeItem("USER_ACCESS_TOKEN");
+  sessionStorage.removeItem("USER_ACCESS_TOKEN");
+  localStorage.removeItem("USER_NAME");
+  sessionStorage.removeItem("USER_NAME");
+}
+
+function saveAuth({ token, tenKhachHang }, remember) {
+  const store = remember ? localStorage : sessionStorage;
+  clearAuthStorage();
+  store.setItem("USER_ACCESS_TOKEN", token);
+  store.setItem("USER_NAME", tenKhachHang || "");
+}
+
+function loginWithGoogle() {
+  // Backend endpoint bạn đã thêm trong ClientAuthController:
+  // GET /api/client/auth/google -> redirect /oauth2/authorization/google
+  window.location.href = `${BASE_URL}/api/client/auth/google`;
+}
+
 async function onSubmit() {
   error.value = "";
   loading.value = true;
@@ -116,19 +135,8 @@ async function onSubmit() {
     const token = data.token;
     if (!token) throw new Error("Không nhận được token từ server.");
 
-    const store = form.remember ? localStorage : sessionStorage;
+    saveAuth({ token, tenKhachHang: data.tenKhachHang }, form.remember);
 
-    // clear cũ
-    localStorage.removeItem("USER_ACCESS_TOKEN");
-    sessionStorage.removeItem("USER_ACCESS_TOKEN");
-    localStorage.removeItem("USER_NAME");
-    sessionStorage.removeItem("USER_NAME");
-
-    // save
-    store.setItem("USER_ACCESS_TOKEN", token);
-    store.setItem("USER_NAME", data.tenKhachHang || "");
-
-    // redirect nếu có
     const redirect = route.query.redirect || "/";
     await router.replace(redirect);
   } catch (e) {
@@ -252,7 +260,7 @@ async function onSubmit() {
   height: 44px;
   border: 1px solid #ddd;
   border-radius: 10px;
-  cursor: not-allowed;
+  cursor: pointer; /* ✅ bật click */
   font-weight: 600;
   background: #fff;
   display: flex;

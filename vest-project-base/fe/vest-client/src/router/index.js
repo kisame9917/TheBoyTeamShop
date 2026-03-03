@@ -11,6 +11,9 @@ import ProductDetail from "../pages/client/ProductDetail.vue";
 // Pages (auth)
 import Login from "../pages/auth/Login.vue";
 
+// ✅ OAuth redirect page
+const OAuth2Redirect = () => import("../pages/OAuth2Redirect.vue");
+
 // ✅ Forgot password flow (pages/auth)
 const ForgotPassword = () => import("../pages/auth/ForgotPassword.vue");
 const OtpVerify = () => import("../pages/auth/OtpVerify.vue");
@@ -30,6 +33,9 @@ const routes = [
 
   // ✅ Auth routes
   { path: "/login", name: "Login", component: Login },
+
+  // ✅ Google OAuth2 redirect
+  { path: "/oauth2/redirect", name: "OAuth2Redirect", component: OAuth2Redirect },
 
   // ✅ Forgot password flow
   { path: "/forgot-password", name: "ForgotPassword", component: ForgotPassword },
