@@ -5,10 +5,10 @@ server:
     include-binding-errors: always
     include-stacktrace: always
 
-
 spring:
   application:
     name: vest-backend
+
   mail:
     host: smtp.gmail.com
     port: 587
@@ -25,10 +25,6 @@ spring:
           starttls:
             enable: true
 
-
-
-
-
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=VestShop-TBTS;encrypt=true;trustServerCertificate=true
     username: sa
@@ -44,6 +40,15 @@ spring:
         format_sql: true
     open-in-view: false
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid, profile, email
+
 logging:
   level:
     org.hibernate.SQL: debug
@@ -52,7 +57,6 @@ logging:
     com.vestshop: DEBUG
     org.springframework.web: DEBUG
 
-
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -60,13 +64,16 @@ springdoc:
     path: /swagger
 
 app:
+  frontend-url: "http://localhost:5173"
+
   jwt:
     secret: "OxE9dflKsBIH917VexCS34OORwmhBrXBEayGplMkbtQ="
     expiration-ms: 86400000
+
   upload-dir: D:/2_DATN/vest-project-base/uploads
+
   mail:
     from-name: VestShop
 
-
   otp:
-    secret=VESTSHOP_OTP_SECRET_CHANGE_ME_2026:
+    secret: VESTSHOP_OTP_SECRET_CHANGE_ME_2026
