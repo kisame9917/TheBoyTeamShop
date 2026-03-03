@@ -1,13 +1,20 @@
 package com.vestshop.Controller;
 
+import com.vestshop.Entity.KhachHang;
+import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Service.ClientAuthService;
 import com.vestshop.dto.request.ForgotPasswordOtpRequest;
 import com.vestshop.dto.request.LoginRequest;
 import com.vestshop.dto.request.ResetPasswordOtpRequest;
 import com.vestshop.dto.response.ClientLoginResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/client/auth")
@@ -15,11 +22,33 @@ import org.springframework.web.bind.annotation.*;
 public class ClientAuthController {
 
     private final ClientAuthService clientAuthService;
+    private final KhachHangRepository khRepo; // ✅ thêm
+
+    @GetMapping("/google")
+    public void googleLogin(HttpServletResponse response) throws IOException {
+        response.sendRedirect("/oauth2/authorization/google");
+    }
+
+    // ✅ NEW: lấy thông tin khách hàng hiện tại từ JWT
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication authentication) {
+        String taiKhoan = authentication.getName(); // subject trong JWT
+
+        KhachHang kh = khRepo.findByTaiKhoan(taiKhoan)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+
+        return ResponseEntity.ok(Map.of(
+                "taiKhoan", kh.getTaiKhoan(),
+                "tenKhachHang", kh.getTenKhachHang(),
+                "email", kh.getEmail()
+        ));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<ClientLoginResponse> login(@RequestBody LoginRequest req) {
         return ResponseEntity.ok(clientAuthService.login(req));
     }
+
     @PostMapping("/forgot-password-otp")
     public ResponseEntity<?> forgot(@RequestBody ForgotPasswordOtpRequest req) {
         try {

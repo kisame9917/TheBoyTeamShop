@@ -64,4 +64,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         chain.doFilter(request, response);
     }
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        // Bỏ qua hoàn toàn OAuth2 endpoints
+        if (path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) return true;
+
+        // Bỏ qua Swagger (optional)
+        if (path.startsWith("/swagger") || path.startsWith("/v3/api-docs")) return true;
+
+        // Bỏ qua auth endpoints của bạn (optional)
+        if (path.startsWith("/api/auth/")) return true;
+
+        // Static
+        if (path.startsWith("/uploads/") || path.startsWith("/images/")) return true;
+
+        return false;
+    }
 }
