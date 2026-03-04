@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 import lombok.*;
 
 @Getter
@@ -16,6 +15,7 @@ import lombok.*;
 @Entity
 @Table(name="lich_su_thanh_toan")
 public class LichSuThanhToan {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="id", nullable=false)
@@ -24,6 +24,11 @@ public class LichSuThanhToan {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="id_hoa_don", nullable=false)
     private HoaDon hoaDon;
+
+    // ✅ NEW: FK tới phương thức thanh toán
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="id_phuong_thuc_thanh_toan") // nullable OK
+    private PhuongThucThanhToan phuongThucThanhToan;
 
     @Column(name="ma_giao_dich", length=120)
     private String maGiaoDich;
@@ -34,6 +39,7 @@ public class LichSuThanhToan {
     @Column(name="ngay_thanh_toan", nullable=false)
     private LocalDateTime ngayThanhToan;
 
+    // ⚠️ Cột cũ text: có thể giữ tạm để backward-compatible
     @Column(name="hinh_thuc_thanh_toan", length=255)
     private String hinhThucThanhToan;
 
@@ -42,5 +48,6 @@ public class LichSuThanhToan {
 
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
+
 
 }

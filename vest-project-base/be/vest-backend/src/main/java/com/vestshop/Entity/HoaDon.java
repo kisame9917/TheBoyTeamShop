@@ -66,6 +66,25 @@ public class HoaDon {
     @Column(name="email_khach_hang", length=255)
     private String emailKhachHang;
 
+    // ===== THÔNG TIN NHẬN HÀNG (SHIP) =====
+    @Column(name="ten_nguoi_nhan_hang", length=255)
+    private String tenNguoiNhanHang;
+
+    @Column(name="so_dien_thoai_nhan_hang", length=20)
+    private String soDienThoaiNhanHang;
+
+    @Column(name="tinh_thanh_nhan_hang", length=50)
+    private String tinhThanhNhanHang;
+
+    @Column(name="quan_huyen_nhan_hang", length=50)
+    private String quanHuyenNhanHang;
+
+    @Column(name="phuong_xa_nhan_hang", length=50)
+    private String phuongXaNhanHang;
+
+    @Column(name="dia_chi_nhan_hang_chi_tiet", length=255)
+    private String diaChiNhanHangChiTiet;
+
     @Column(name="qr_code", columnDefinition="NVARCHAR(MAX)")
     private String qrCode;
 
