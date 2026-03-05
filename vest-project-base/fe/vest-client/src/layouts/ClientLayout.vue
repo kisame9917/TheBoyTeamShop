@@ -56,12 +56,29 @@
             </a>
 
             <!-- Cart -->
-            <a href="#" class="text-white position-relative" aria-label="Giỏ hàng" @click.prevent>
-              <i class="bi bi-bag"></i>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge">
-                0
-              </span>
-            </a>
+            <div class="cart-wrap" ref="cartWrap">
+              <a
+                  href="#"
+                  class="text-white position-relative"
+                  aria-label="Giỏ hàng"
+                  @click.prevent.stop="toggleCart"
+              >
+                <i class="bi bi-bag"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge">
+                  {{ totalQty }}
+                </span>
+              </a>
+
+              <!-- Mini Cart Overlay + Modal (giống ảnh OWEN) -->
+              <div v-if="cartOpen" class="cart-overlay" @click="closeCart"></div>
+              <CartMiniModal
+                  v-if="cartOpen"
+                  class="cart-mini"
+                  @close="closeCart"
+                  @view-cart="goToCart"
+                  @checkout="checkout"
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -150,7 +167,7 @@
               <li><span class="payment-badge" title="Visa">VISA</span></li>
               <li><span class="payment-badge" title="JCB">JCB</span></li>
             </ul>
-          </div>>
+          </div>
         </div>
 
         <div class="footer-bottom pt-3 border-top text-white">
@@ -164,8 +181,33 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
+import CartMiniModal from "../components/cart/CartMiniModal.vue";
+import { useCart } from "../composables/useCart";
 
 const router = useRouter();
+
+/** ====== CART (UI trước: localStorage) ====== */
+const cartOpen = ref(false);
+const cartWrap = ref(null);
+const { totalQty } = useCart();
+
+function toggleCart() {
+  cartOpen.value = !cartOpen.value;
+}
+
+function closeCart() {
+  cartOpen.value = false;
+}
+
+function goToCart() {
+  closeCart();
+  router.push({ name: "Cart" });
+}
+
+function checkout() {
+  closeCart();
+  router.push({ name: "Checkout" });
+}
 
 // Logo
 const logoUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/uploads/tbt_4_white.png`;
@@ -222,6 +264,11 @@ function logout() {
 function onDocClick(e) {
   if (!userWrap.value) return;
   if (!userWrap.value.contains(e.target)) userMenuOpen.value = false;
+
+  // close mini cart khi click ra ngoài
+  if (cartOpen.value && cartWrap.value && !cartWrap.value.contains(e.target)) {
+    cartOpen.value = false;
+  }
 }
 
 function onAuthChanged() {
@@ -318,6 +365,32 @@ main {
 .cart-badge {
   font-size: 0.6rem;
   background-color: var(--royal-blue) !important;
+}
+
+/* Mini cart */
+.cart-wrap {
+  position: relative;
+}
+
+.cart-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1090;
+}
+
+.cart-mini {
+  position: fixed;
+  top: 88px; /* ngay dưới header */
+  right: 18px;
+  z-index: 1100;
+}
+
+@media (max-width: 576px) {
+  .cart-mini {
+    right: 10px;
+    top: 84px;
+  }
 }
 
 /* Nav Menu */

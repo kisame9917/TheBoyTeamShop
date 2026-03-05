@@ -67,6 +67,10 @@
 
             <button class="btn btn-outline-secondary" type="button" @click="increase">+</button>
           </div>
+
+          <button class="btn btn-cyan text-white fw-semibold px-4" type="button" @click="addToCartNow">
+            THÊM VÀO GIỎ
+          </button>
         </div>
 
         <div class="accordion accordion-flush" id="productAccordion">
@@ -124,6 +128,9 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useCart } from '../../composables/useCart';
+
+const { addToCart } = useCart();
 
 
 const decrease = () => {
@@ -158,6 +165,17 @@ const quantity = ref(1);
 const formatPrice = (value) => {
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
+
+function addToCartNow() {
+  addToCart({
+    id: 1,
+    name: product.value.title,
+    price: product.value.price,
+    image: currentImage.value,
+    color: selectedColor.value,
+    size: selectedSize.value,
+  }, quantity.value);
+}
 </script>
 
 <style scoped>
