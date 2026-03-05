@@ -3,14 +3,14 @@
     <!-- Logo -->
     <div class="brand-box p-3 border-bottom text-center">
       <img
-        src="../images/logo.jpg"
+        src="../images/tbt_4.png"
         alt="TheBoyTeam Logo"
         class="brand-logo img-fluid"
       />
 
       <div class="brand-text mt-2">
         <div class="brand-name">
-          <span class="brand-strong">TheBoyTeam</span>
+<!--          <span class="brand-strong">TheBoyTeam</span>-->
         </div>
       </div>
     </div>

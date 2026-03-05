@@ -30,7 +30,14 @@ public class HoaDonDetailResponse {
     private String soDienThoai;
     private String diaChiKhachHang;
     private String emailKhachHang;
+    // ✅ THÔNG TIN NHẬN HÀNG (SHIP)
+    private String tenNguoiNhanHang;
+    private String soDienThoaiNhanHang;
 
+    private String tinhThanhNhanHang;
+    private String quanHuyenNhanHang;
+    private String phuongXaNhanHang;
+    private String diaChiNhanHangChiTiet;
     private String qrCode;
     private String ghiChu;
 

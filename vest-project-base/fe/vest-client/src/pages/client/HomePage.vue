@@ -134,7 +134,7 @@ function goShop() {
 }
 
 const products = ref([
-  { id: 1, name: 'Thời trang Vest Nam - Full Suit', price: '1.695.000 VND', image: '/upload/ao-vest-den-1.jpg' },
+  { id: 1, name: 'Thời trang Vest Nam - Full Suit', price: '1.695.000 VND', image: '/uploads/ao-vest-den-1.jpg' },
   { id: 2, name: 'Thời trang Vest Nam - Lịch lãm', price: '1.095.000 VND', image: '/uploads/ao-vest-den-2.jpg' },
   { id: 3, name: 'Quần Vest Nam - Slimfit', price: '539.000 VND', image: '/uploads/ao-vest-den-3.jpg' },
   { id: 4, name: 'Thời trang Vest Nam - Cổ điển', price: '1.525.000 VND', image: '/uploads/ao-vest-den-4.jpg' },
@@ -142,9 +142,9 @@ const products = ref([
 ])
 
 const banners = ref([
-  '/uploads/logo.jpg',
-  '/uploads/logo.jpg',
-  '/uploads/logo.jpg',
+  '/uploads/banner.jpg',
+  '/uploads/banner1.jpg',
+  '/uploads/banner2.jpg',
 ])
 
 const currentBannerIndex = ref(0)

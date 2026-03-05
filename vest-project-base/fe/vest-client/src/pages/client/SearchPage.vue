@@ -125,7 +125,7 @@ const products = ref(Array.from({ length: 9 }, (_, i) => ({
   name: 'Bộ Vest Nam Công Sở Lịch Lãm',
   price: 2500000,
   oldPrice: 2500000,
-  image: '/images/ao-vest-den-5.jpg'
+  image: '/uploads/ao-vest-den-22.jpg'
 })));
 
 const formatPrice = (value) => {

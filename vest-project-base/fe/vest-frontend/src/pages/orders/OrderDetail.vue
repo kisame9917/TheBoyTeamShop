@@ -162,32 +162,62 @@
                   {{ hd?.emailKhachHang || "-" }}
                 </b>
               </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-5">
-            <div class="info-box h-100">
-              <div class="info-title">
-                <i class="bi bi-truck me-2"></i>Giao nhận
-              </div>
-
               <div class="info-row align-items-start">
                 <span>Địa chỉ</span>
                 <b class="text-end">
                   {{ hd?.diaChiKhachHang || "-" }}
                 </b>
               </div>
-
-              <div class="info-row">
-                <span>Phí vận chuyển</span>
-                <b>{{ formatCurrency(hd?.phiVanChuyen) }}</b>
-              </div>
-
-              <div class="info-row align-items-start">
-                <span>Ghi chú</span>
-                <b class="text-end">{{ hd?.ghiChu || "-" }}</b>
-              </div>
             </div>
+          </div>
+
+          <div class="col-12 col-lg-5">
+           <div class="info-box h-100">
+  <div class="info-title">
+    <i class="bi bi-truck me-2"></i>Giao nhận
+  </div>
+
+  <!-- ✅ Đơn ship -->
+  <template v-if="isShipOrder">
+    <div class="info-row">
+      <span>Người nhận</span>
+      <b class="text-end">{{ receiverName }}</b>
+    </div>
+
+    <div class="info-row">
+      <span>SĐT nhận</span>
+      <b class="text-end">{{ receiverPhone }}</b>
+    </div>
+
+    <div class="info-row align-items-start">
+      <span>Địa chỉ nhận</span>
+      <b class="text-end">{{ shipAddressText }}</b>
+    </div>
+
+    <div class="info-row">
+      <span>Phí vận chuyển</span>
+      <b class="text-end">{{ formatCurrency(hd?.phiVanChuyen) }}</b>
+    </div>
+  </template>
+
+  <!-- ✅ Bán tại quầy -->
+  <template v-else>
+    <div class="info-row">
+      <span>Hình thức</span>
+      <b class="text-end">Nhận tại cửa hàng</b>
+    </div>
+
+    <div class="info-row">
+      <span>Phí vận chuyển</span>
+      <b class="text-end">{{ formatCurrency(0) }}</b>
+    </div>
+  </template>
+
+  <div class="info-row align-items-start">
+    <span>Ghi chú</span>
+    <b class="text-end">{{ hd?.ghiChu || "-" }}</b>
+  </div>
+</div>
           </div>
 
           <div class="col-12 col-lg-3">
@@ -275,7 +305,14 @@
                 <td class="fw-semibold">{{ formatCurrency(p.soTien) }}</td>
                 <td>{{ formatDateTimeVN(p.ngayThanhToan) }}</td>
                 <td class="text-truncate">{{ p.maGiaoDich || "-" }}</td>
-                <td class="text-truncate">{{ p.hinhThucThanhToan || "-" }}</td>
+                <td class="text-truncate">
+  {{
+    p.tenPhuongThucThanhToan
+      || (p.hinhThuc === 1 ? "Tiền mặt" : (p.hinhThuc === 2 ? "Chuyển khoản" : null))
+      || p.hinhThucThanhToan
+      || "-"
+  }}
+</td>
                 <td class="text-truncate">{{ p.ghiChu || "-" }}</td>
               </tr>
             </tbody>
@@ -765,7 +802,32 @@ const currentStatus = computed(() => Number(hd.value?.trangThaiDon ?? -1));
 const orderTypeText = computed(() => {
   return hd.value?.loaiDon ? "Đơn hàng Online" : "Đơn hàng Tại quầy";
 });
+const isShipOrder = computed(() => !!hd.value?.loaiDon);
 
+const receiverName = computed(() => {
+  const v = hd.value || {};
+  return (v.tenNguoiNhanHang || v.tenKhachHang || "Khách lẻ").trim?.() || (v.tenNguoiNhanHang || v.tenKhachHang || "Khách lẻ");
+});
+
+const receiverPhone = computed(() => {
+  const v = hd.value || {};
+  return (v.soDienThoaiNhanHang || v.soDienThoai || "-");
+});
+
+const shipAddressText = computed(() => {
+  const v = hd.value || {};
+  const parts = [
+    v.diaChiNhanHangChiTiet,
+    v.phuongXaNhanHang,
+    v.quanHuyenNhanHang, // có thể rỗng
+    v.tinhThanhNhanHang,
+  ]
+    .map(x => String(x || "").trim())
+    .filter(Boolean);
+
+  // fallback nếu BE chưa trả field ship riêng
+  return parts.length ? parts.join(", ") : (v.diaChiNhanHang || v.diaChiKhachHang || "-");
+});
 const paidTotal = computed(() => {
   const list = hd.value?.lichSuThanhToan || [];
   return list.reduce((s, p) => s + Number(p?.soTien ?? 0), 0);
@@ -842,13 +904,21 @@ const canCancel = computed(() => [0, 1, 2].includes(currentStatus.value));
 const canRequestRefund = computed(() => [3, 4].includes(currentStatus.value));
 
 /** ===== STEPPER (auto steps) ===== */
-const baseStepper = [
-  { code: 0, label: "Chờ xác nhận đơn" },
-  { code: 1, label: "Đang xử lý đơn hàng" },
-  { code: 2, label: "Đang giao" },
-  { code: 3, label: "Đã giao" },
-  { code: 4, label: "Hoàn thành" },
-];
+const baseStepper = computed(() => {
+  const isShip = !!hd.value?.loaiDon; // true = có ship
+  if (!isShip) {
+    // ✅ bán tại quầy: hoàn thành ngay
+    return [{ code: 4, label: "Hoàn thành" }];
+  }
+  // ✅ có ship: full flow
+  return [
+    { code: 0, label: "Chờ xác nhận đơn" },
+    { code: 1, label: "Đang xử lý đơn hàng" },
+    { code: 2, label: "Đang giao" },
+    { code: 3, label: "Đã giao" },
+    { code: 4, label: "Hoàn thành" },
+  ];
+});
 
 const actionToStepCode = (hanhDong) => {
   const m = {
@@ -861,7 +931,7 @@ const actionToStepCode = (hanhDong) => {
   return m[hanhDong];
 };
 
-const stepCodes = computed(() => baseStepper.map((s) => s.code));
+const stepCodes = computed(() => baseStepper.value.map((s) => s.code));
 
 /**
  * step hiện tại để tô stepper (0..4)
@@ -892,7 +962,7 @@ const stepperSteps = computed(() => {
     return matched[0]?.thoiGian || null;
   };
 
-  return baseStepper.map((s) => ({
+  return baseStepper.value.map((s) => ({
     ...s,
     timeText: latestTimeByStep(s.code)
       ? formatDateTimeVN(latestTimeByStep(s.code))
@@ -905,11 +975,11 @@ const progressPercent = computed(() => {
   const idx = currentStepIndex.value;
   if (idx < 0) return 0;
 
-  const n = baseStepper.length; // số step
+const n = baseStepper.value.length;
   return (idx / (n - 1)) * 100;
 });
 const isLastStep = computed(
-  () => currentStepIndex.value === baseStepper.length - 1,
+  () => currentStepIndex.value === baseStepper.value.length - 1,
 );
 
 const isDoneStep = (code) => {

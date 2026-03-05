@@ -1,6 +1,11 @@
 <template>
   <div class="container-fluid py-3">
-    z
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-file-text fs-4"></i>
+        <h5 class="mb-0">Quản lý hoá đơn</h5>
+      </div>
+    </div>
     <!-- Filters -->
     <div class="card shadow-sm mb-3 filter-card">
       <!-- Header (click để thu gọn/mở rộng) -->
@@ -479,9 +484,9 @@ const TOTAL_STEP = 50_000;
 const filters = reactive({
   keyword: "",
   trangThaiDon: null,
-  loaiDonMode: "", // "", "taiquay", "online"
-  fromDate: "", // ✅ lưu yyyy-MM-dd
-  toDate: "", // ✅ lưu yyyy-MM-dd
+  loaiDonMode: "",
+  fromDate: todayYMD(), // ✅ mặc định hôm nay
+  toDate: todayYMD(),   // ✅ mặc định hôm nay
   minTotal: TOTAL_MIN,
   maxTotal: TOTAL_MAX,
 });
@@ -502,7 +507,13 @@ function nowText() {
   const mi = String(d.getMinutes()).padStart(2, "0");
   return `${hh}${mi}_${dd}${mm}${yyyy}`;
 }
-
+function todayYMD() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 function safeFileName(s) {
   return String(s || "").replace(/[\\/:*?"<>|]/g, "_");
 }
@@ -1071,8 +1082,8 @@ function hideToast() {
 }
 
 onMounted(() => {
-  fetchData();
   initPickers();
+  fetchData();
 });
 
 onBeforeUnmount(() => {

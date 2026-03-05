@@ -1,107 +1,109 @@
 <template>
   <div class="client-layout">
-    <!-- Header -->
-    <header class="bg-white py-3 border-bottom">
-      <div class="container d-flex justify-content-between align-items-center">
-        <div class="logo">
-          <router-link to="/" aria-label="Trang chủ">
-            <img :src="logoUrl" alt="Logo" class="logo-img" />
-          </router-link>
-        </div>
-
-        <div class="search-bar w-50">
-          <div class="input-group">
-            <input
-              v-model="keyword"
-              @keyup.enter="doSearch"
-              type="text"
-              class="form-control bg-light border-0"
-              placeholder="Tìm kiếm vest nam..."
-              aria-label="Tìm kiếm"
-            />
-            <button class="btn btn-primary btn-search" type="button" aria-label="Tìm kiếm" @click="doSearch">
-              <i class="bi bi-search"></i>
-            </button>
+    <!-- Header (fixed) -->
+    <div class="site-header">
+      <header class="py-3 border-bottom" style="background-color: #000f51;">
+        <div class="container d-flex justify-content-between align-items-center">
+          <div class="logo">
+            <router-link to="/" aria-label="Trang chủ">
+              <img :src="logoUrl" alt="Logo" class="logo-img" />
+            </router-link>
           </div>
-        </div>
 
-        <div class="header-icons d-flex gap-3 fs-5 align-items-center">
-          <!-- USER: nếu chưa login thì link /login, nếu đã login thì dropdown -->
-          <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
-            <button class="user-btn text-dark" type="button" @click.stop="toggleUserMenu" aria-label="Tài khoản">
-              <i class="bi bi-person"></i>
-              <span class="user-name">{{ userName }}</span>
-              <i class="bi bi-caret-down-fill caret"></i>
-            </button>
-
-            <div v-if="userMenuOpen" class="user-menu">
-              <div class="user-menu-header">{{ userName }}</div>
-              <button class="user-menu-item" type="button" @click="openProfile">
-                Hồ sơ (demo)
-              </button>
-              <button class="user-menu-item danger" type="button" @click="logout">
-                Đăng xuất
+          <div class="search-bar w-50">
+            <div class="input-group">
+              <input
+                  v-model="keyword"
+                  @keyup.enter="doSearch"
+                  type="text"
+                  class="form-control bg-light border-0"
+                  placeholder="Tìm kiếm vest nam..."
+                  aria-label="Tìm kiếm"
+              />
+              <button class="btn btn-primary btn-search" type="button" aria-label="Tìm kiếm" @click="doSearch">
+                <i class="bi bi-search"></i>
               </button>
             </div>
           </div>
 
-          <router-link v-else to="/login" class="text-dark" aria-label="Tài khoản">
-            <i class="bi bi-person"></i>
-          </router-link>
+          <div class="header-icons d-flex gap-3 fs-5 align-items-center">
+            <!-- USER: nếu chưa login thì link /login, nếu đã login thì dropdown -->
+            <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
+              <button class="user-btn text-white" type="button" @click.stop="toggleUserMenu" aria-label="Tài khoản">
+                <i class="bi bi-person"></i>
+                <span class="user-name">{{ userName }}</span>
+                <i class="bi bi-caret-down-fill caret"></i>
+              </button>
 
-          <!-- Heart -->
-          <a href="#" class="text-dark" aria-label="Yêu thích" @click.prevent>
-            <i class="bi bi-heart"></i>
-          </a>
+              <div v-if="userMenuOpen" class="user-menu">
+                <div class="user-menu-header">{{ userName }}</div>
+                <button class="user-menu-item" type="button" @click="openProfile">
+                  Hồ sơ (demo)
+                </button>
+                <button class="user-menu-item danger" type="button" @click="logout">
+                  Đăng xuất
+                </button>
+              </div>
+            </div>
 
-          <!-- Cart -->
-          <a href="#" class="text-dark position-relative" aria-label="Giỏ hàng" @click.prevent>
-            <i class="bi bi-bag"></i>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge">
-              0
-            </span>
-          </a>
+            <router-link v-else to="/login" class="text-white" aria-label="Tài khoản">
+              <i class="bi bi-person"></i>
+            </router-link>
+
+            <!-- Heart -->
+            <a href="#" class="text-white" aria-label="Yêu thích" @click.prevent>
+              <i class="bi bi-heart"></i>
+            </a>
+
+            <!-- Cart -->
+            <a href="#" class="text-white position-relative" aria-label="Giỏ hàng" @click.prevent>
+              <i class="bi bi-bag"></i>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge">
+                0
+              </span>
+            </a>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <!-- Menu -->
-    <nav class="nav-menu py-2 bg-light-blue">
-      <div class="container d-flex justify-content-center gap-4">
-        <router-link to="/shop" class="nav-link">Cửa hàng</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'bo-vest-nam' } }" class="nav-link">Bộ vest nam</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'trang-phuc' } }" class="nav-link">Trang phục</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="nav-link">Vest nam</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'doc-quyen-online' } }" class="nav-link">Độc quyền online</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'slim-fit' } }" class="nav-link">Slim fit</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'lien-he' } }" class="nav-link">Liên hệ</router-link>
-        <router-link :to="{ name: 'Search', query: { cat: 'ankasa' } }" class="nav-link">Ankasa</router-link>
-      </div>
-    </nav>
+      <!-- Menu -->
+      <nav class="nav-menu py-2 bg-light-blue">
+        <div class="container d-flex justify-content-center gap-4">
+          <router-link to="/shop" class="nav-link">Cửa hàng</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'bo-vest-nam' } }" class="nav-link">Bộ vest nam</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'trang-phuc' } }" class="nav-link">Trang phục</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="nav-link">Vest nam</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'doc-quyen-online' } }" class="nav-link">Độc quyền online</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'slim-fit' } }" class="nav-link">Slim fit</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'lien-he' } }" class="nav-link">Liên hệ</router-link>
+          <router-link :to="{ name: 'Search', query: { cat: 'ankasa' } }" class="nav-link">Ankasa</router-link>
+        </div>
+      </nav>
+    </div>
 
     <main>
       <router-view />
     </main>
 
     <!-- Footer -->
-    <footer class="footer-bg pt-5 pb-3">
+    <footer class="footer-bg pt-5 pb-3" style="background-color: #000f51;">
       <div class="container">
         <div class="row">
           <div class="col-lg-3 col-md-6 mb-4 text-center text-lg-start">
             <img :src="logoUrl" alt="Logo" class="img-fluid" style="max-height: 100px" />
           </div>
 
-          <div class="col-lg-2 col-md-3 col-6 mb-4 text-start">
-            <h6 class="fw-bold mb-3">Hỗ trợ</h6>
-            <ul class="list-unstyled">
+          <div class="col-lg-2 col-md-3 col-6 mb-4 text-white">
+            <h6 class="fw-bold mb-3 text-white">Hỗ trợ</h6>
+            <ul class="list-unstyled" >
               <li><a href="#" class="footer-link" @click.prevent>Hướng dẫn mua hàng</a></li>
               <li><a href="#" class="footer-link" @click.prevent>Chính sách đổi trả</a></li>
               <li><a href="#" class="footer-link" @click.prevent>Chính sách bảo hành</a></li>
             </ul>
           </div>
 
-          <div class="col-lg-2 col-md-3 col-6 mb-4 text-start">
-            <h6 class="fw-bold mb-3">Danh mục</h6>
+          <div class="col-lg-2 col-md-3 col-6 mb-4 text-white">
+            <h6 class="fw-bold mb-3 text-white">Danh mục</h6>
             <ul class="list-unstyled">
               <li><router-link to="/shop" class="footer-link">Cửa hàng</router-link></li>
               <li><router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="footer-link">Vest nam</router-link></li>
@@ -109,16 +111,50 @@
             </ul>
           </div>
 
-          <div class="col-lg-5 col-md-12 mb-4 text-start">
-            <h6 class="fw-bold mb-3">Liên hệ</h6>
+          <div class="col-lg-3 col-md-6 mb-4 text-white">
+            <h6 class="fw-bold mb-3 text-white">Liên hệ</h6>
             <p class="mb-2">Hotline: 0123 456 789</p>
             <p class="mb-2">Email: support@vest.vn</p>
             <p class="mb-0">Địa chỉ: Hà Nội, Việt Nam</p>
           </div>
+
+          <div class="col-lg-2 col-md-6 mb-4 text-white">
+            <h6 class="fw-bold mb-3 text-white">Kết nối</h6>
+            <ul class="list-unstyled d-flex gap-3 align-items-center mb-4">
+              <li>
+                <a href="#" class="footer-link footer-icon" aria-label="Facebook" @click.prevent>
+                  <i class="bi bi-facebook"></i>
+                </a>
+              </li>
+              <li>
+                <a href="#" class="footer-link footer-icon" aria-label="Instagram" @click.prevent>
+                  <i class="bi bi-instagram"></i>
+                </a>
+              </li>
+              <li>
+                <a href="#" class="footer-link footer-icon" aria-label="YouTube" @click.prevent>
+                  <i class="bi bi-youtube"></i>
+                </a>
+              </li>
+              <li>
+                <a href="#" class="footer-link footer-icon" aria-label="TikTok" @click.prevent>
+                  <i class="bi bi-tiktok"></i>
+                </a>
+              </li>
+            </ul>
+
+            <h6 class="fw-bold mb-3 text-white">Phương thức thanh toán</h6>
+            <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+              <li><span class="payment-badge" title="Thanh toán khi nhận hàng">COD</span></li>
+              <li><span class="payment-badge" title="Thẻ nội địa / Internet Banking">ATM</span></li>
+              <li><span class="payment-badge" title="Visa">VISA</span></li>
+              <li><span class="payment-badge" title="JCB">JCB</span></li>
+            </ul>
+          </div>>
         </div>
 
-        <div class="text-center pt-3 border-top">
-          <small>©TBTS. All rights reserved.</small>  
+        <div class="footer-bottom pt-3 border-top text-white">
+          <small>© 2026 VestShop. The Boy Team.</small>
         </div>
       </div>
     </footer>
@@ -132,7 +168,7 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 
 // Logo
-const logoUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/uploads/logo.jpg`;
+const logoUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/uploads/tbt_4_white.png`;
 
 const keyword = ref("");
 
@@ -151,15 +187,15 @@ const userName = ref("Khách hàng");
 
 function syncAuth() {
   const token =
-    localStorage.getItem("USER_ACCESS_TOKEN") ||
-    sessionStorage.getItem("USER_ACCESS_TOKEN");
+      localStorage.getItem("USER_ACCESS_TOKEN") ||
+      sessionStorage.getItem("USER_ACCESS_TOKEN");
 
   isLoggedIn.value = !!token;
 
   userName.value =
-    localStorage.getItem("USER_NAME") ||
-    sessionStorage.getItem("USER_NAME") ||
-    "Khách hàng";
+      localStorage.getItem("USER_NAME") ||
+      sessionStorage.getItem("USER_NAME") ||
+      "Khách hàng";
 }
 
 function toggleUserMenu() {
@@ -229,6 +265,26 @@ onBeforeUnmount(() => {
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Fixed header like OWEN */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+main {
+  /* chừa chỗ cho header + menu cố định */
+  padding-top: 132px;
+}
+
+@media (max-width: 576px) {
+  main {
+    padding-top: 120px;
+  }
+}
+
 .bg-light-blue {
   background-color: var(--pale-blue-bg);
 }
@@ -281,13 +337,120 @@ onBeforeUnmount(() => {
   background: #f8f9fa;
 }
 .footer-link {
-  color: #333;
+  color: #fff;
   text-decoration: none;
   display: inline-block;
   margin-bottom: 6px;
 }
 .footer-link:hover {
-  color: var(--royal-blue);
+  color: var(--sky-aqua);
+}
+
+.footer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+.footer-icon i {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-contact-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.footer-connect {
+  text-align: right;
+  min-width: 160px;
+}
+
+.footer-connect-title {
+  font-weight: 800;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  padding-bottom: 6px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.75);
+}
+
+@media (max-width: 576px) {
+  .footer-bottom {
+    flex-direction: column;
+  }
+
+  .footer-contact-wrap {
+    flex-direction: column;
+  }
+
+  .footer-connect {
+    text-align: left;
+  }
+}
+
+.footer-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 18px;
+}
+
+.footer-social-link {
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.95;
+}
+
+.footer-social-link:hover {
+  color: var(--sky-aqua);
+  opacity: 1;
+}
+
+
+/* Payment methods (layout like OWEN) */
+.footer-payment {
+  margin-top: 16px;
+}
+
+.footer-payment-title {
+  margin-top: 18px;
+}
+
+.footer-payment-list {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-badge {
+  background: #ffffff;
+  color: #000;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+@media (max-width: 576px) {
+  .footer-payment-list {
+    justify-content: flex-start;
+  }
 }
 
 /* ===== USER DROPDOWN (HEADER) ===== */
