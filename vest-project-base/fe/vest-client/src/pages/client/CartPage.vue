@@ -1,145 +1,241 @@
 <template>
   <div class="cart-page container py-4">
-    <nav aria-label="breadcrumb" class="mb-4">
-      <ol class="breadcrumb fs-6">
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb mb-0">
         <li class="breadcrumb-item">
-          <router-link to="/" class="text-muted text-decoration-none">Trang chủ</router-link>
+          <router-link to="/" class="text-muted text-decoration-none">
+            Trang chủ
+          </router-link>
         </li>
-        <li class="breadcrumb-item active text-dark" aria-current="page">Giỏ hàng</li>
+        <li class="breadcrumb-item active text-dark" aria-current="page">
+          Giỏ hàng
+        </li>
       </ol>
     </nav>
 
-    <h2 class="cart-title mb-4">GIỎ HÀNG</h2>
+    <h1 class="page-title mb-4">Giỏ hàng</h1>
 
-    <div class="row g-4">
+    <div v-if="items.length === 0" class="empty-cart">
+      <div class="empty-title">Giỏ hàng của bạn đang trống</div>
+      <div class="empty-desc">Hãy tiếp tục mua sắm để thêm sản phẩm.</div>
+      <button class="btn btn-dark mt-3" @click="goShopping">
+        Tiếp tục mua sắm
+      </button>
+    </div>
+
+    <div v-else class="row g-4">
       <div class="col-lg-8">
-        <div class="card border-0 shadow-sm rounded-3">
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table align-middle mb-0 cart-table">
-                <thead>
-                <tr>
-                  <th class="px-4 py-3">Sản phẩm</th>
-                  <th class="py-3 text-center">Số lượng</th>
-                  <th class="py-3 text-center">&nbsp;</th>
-                  <th class="py-3 text-end">Giá</th>
-                  <th class="px-4 py-3 text-end">Tổng tiền</th>
-                </tr>
-                </thead>
-                <tbody v-if="items.length">
-                <tr v-for="it in items" :key="it.key">
-                  <td class="px-4 py-3">
-                    <div class="d-flex gap-3 align-items-center">
-                      <img :src="it.image" class="cart-img" alt="Sản phẩm" />
-                      <div>
-                        <div class="cart-name">{{ it.name }}</div>
-                        <div class="cart-meta">
-                          <span v-if="it.color">Màu: <span class="dot" :style="{ backgroundColor: it.color }"></span></span>
-                          <span v-if="it.size">Kích cỡ: {{ it.size }}</span>
-                        </div>
+        <div class="cart-table-wrap">
+          <table class="table cart-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th class="text-center">Đơn giá</th>
+                <th class="text-center">Số lượng</th>
+                <th class="text-end">Thành tiền</th>
+                <th class="text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="it in items" :key="it.idSanPhamChiTiet">
+                <td>
+                  <div class="prod">
+                    <img
+                      :src="it.image"
+                      class="prod-img"
+                      alt="sp"
+                      @error="onImgError"
+                    />
+                    <div class="prod-info">
+                      <div class="prod-name">{{ it.name }}</div>
+
+                      <div class="prod-meta">
+                        <span v-if="it.color">Màu: {{ it.color }}</span>
+                        <span v-if="it.size">Kích cỡ: {{ it.size }}</span>
+                      </div>
+
+                      <div class="small text-muted" v-if="it.code">
+                        Mã SPCT: {{ it.code }}
+                      </div>
+
+                      <div
+                        class="small text-muted"
+                        v-if="it.idSanPhamChiTiet"
+                      >
+                        ID SPCT: {{ it.idSanPhamChiTiet }}
+                      </div>
+
+                      <div class="small text-muted" v-if="it.stock >= 0">
+                        Tồn kho: {{ it.stock }}
                       </div>
                     </div>
-                  </td>
+                  </div>
+                </td>
 
-                  <td class="py-3 text-center">
-                    <div class="qty">
-                      <button class="qty-btn" type="button" aria-label="Giảm" :disabled="Number(it.qty) <= 1" @click="updateQty(it.key, it.qty - 1)">-</button>
-                      <input class="qty-input" type="text" :value="it.qty" readonly />
-                      <button class="qty-btn" type="button" aria-label="Tăng" @click="updateQty(it.key, it.qty + 1)">+</button>
-                    </div>
-                  </td>
+                <td class="text-center">
+                  {{ formatMoney(it.price) }} đ
+                </td>
 
-                  <td class="py-3 text-center">
-                    <button class="remove-icon" type="button" aria-label="Xóa" @click="askRemove(it)">
-                      <i class="bi bi-trash"></i>
+                <td class="text-center">
+                  <div class="qty-box">
+                    <button
+                      class="qty-btn"
+                      type="button"
+                      @click="decreaseQty(it)"
+                      :disabled="Number(it.qty) <= 1"
+                    >
+                      -
                     </button>
-                  </td>
 
-                  <td class="py-3 text-end fw-semibold">{{ formatMoney(it.price) }} đ</td>
-                  <td class="px-4 py-3 text-end fw-bold">{{ formatMoney(it.price * it.qty) }} đ</td>
-                </tr>
-                </tbody>
+                    <input
+                      class="qty-input"
+                      type="number"
+                      min="1"
+                      :max="it.stock || 999"
+                      :value="it.qty"
+                      @change="onQtyInput(it, $event)"
+                    />
 
-                <tbody v-else>
-                <tr>
-                  <td class="px-4 py-5 text-center text-muted" colspan="5">
-                    Giỏ hàng của bạn đang trống.
-                  </td>
-                </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+                    <button
+                      class="qty-btn"
+                      type="button"
+                      @click="increaseQty(it)"
+                      :disabled="it.stock > 0 ? Number(it.qty) >= Number(it.stock) : false"
+                    >
+                      +
+                    </button>
+                  </div>
+                </td>
 
-        <ConfirmModal
-            :open="confirmOpen"
-            title="Xác nhận"
-            message="Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng không?"
-            confirmText="Đồng ý"
-            cancelText="Hủy"
-            @cancel="closeConfirm"
-            @confirm="confirmRemove"
-        />
+                <td class="text-end">
+                  {{ formatMoney((Number(it.price) || 0) * (Number(it.qty) || 0)) }} đ
+                </td>
 
-        <div class="d-flex justify-content-between align-items-center mt-4">
-          <button class="btn btn-outline-dark px-4 py-2 fw-semibold" type="button" @click="goShopping">
-            TIẾP TỤC MUA HÀNG
-          </button>
-
-          <button class="btn btn-primary px-5 py-2 fw-semibold" type="button" :disabled="!items.length" @click="checkout">
-            ĐẶT HÀNG
-          </button>
+                <td class="text-center">
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    type="button"
+                    @click="askRemove(it)"
+                  >
+                    Xóa
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-3">
-          <div class="card-body p-4">
-            <div class="sum-row">
-              <span>Tổng sản phẩm</span>
-              <strong>{{ totalQty }}</strong>
-            </div>
-            <div class="sum-row">
-              <span>Tạm tính</span>
-              <strong class="sum-amount">{{ formatMoney(subtotal) }} đ</strong>
-            </div>
-          </div>
-        </div>
+        <div class="cart-summary">
+          <div class="summary-title">Tóm tắt đơn hàng</div>
 
-        <div class="promo-img mt-4 d-none d-lg-block">
-          <img src="/uploads/ao-vest-den-6.jpg" alt="Banner" />
+          <div class="sum-line">
+            <span>Tổng sản phẩm</span>
+            <span>{{ totalQty }}</span>
+          </div>
+
+          <div class="sum-line">
+            <span>Tạm tính</span>
+            <span>{{ formatMoney(subtotal) }} đ</span>
+          </div>
+
+          <div class="sum-line total">
+            <span>Tổng cộng</span>
+            <span>{{ formatMoney(subtotal) }} đ</span>
+          </div>
+
+          <button class="btn btn-dark w-100 mt-3" type="button" @click="checkout">
+            Tiến hành thanh toán
+          </button>
+
+          <button
+            class="btn btn-outline-secondary w-100 mt-2"
+            type="button"
+            @click="goShopping"
+          >
+            Tiếp tục mua sắm
+          </button>
         </div>
       </div>
     </div>
+
+<ConfirmModal
+  :open="confirmOpen"
+  title="Xóa sản phẩm"
+  message="Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?"
+  confirm-text="Xóa"
+  cancel-text="Hủy"
+  @confirm="confirmRemove"
+  @cancel="closeConfirm"
+/>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
 
 const router = useRouter();
-const { items, totalQty, subtotal, removeItem, updateQty } = useCart();
+
+const {
+  cartItems,
+  totalQty,
+  totalAmount,
+  removeFromCart,
+  updateQty,
+} = useCart();
 
 const confirmOpen = ref(false);
-const pendingKey = ref(null);
+const pendingItemId = ref(null);
+
+const items = computed(() => cartItems.value);
+const subtotal = computed(() => totalAmount.value);
 
 function askRemove(it) {
-  pendingKey.value = it?.key || null;
+  pendingItemId.value = it?.idSanPhamChiTiet || null;
   confirmOpen.value = true;
 }
 
 function closeConfirm() {
   confirmOpen.value = false;
-  pendingKey.value = null;
+  pendingItemId.value = null;
 }
 
 function confirmRemove() {
-  if (pendingKey.value) removeItem(pendingKey.value);
+  if (pendingItemId.value) {
+    removeFromCart(pendingItemId.value);
+  }
   closeConfirm();
+}
+
+function normalizeQty(value, stock = 0) {
+  let qty = Number(value) || 1;
+  if (qty < 1) qty = 1;
+
+  if (Number(stock) > 0 && qty > Number(stock)) {
+    qty = Number(stock);
+  }
+
+  return qty;
+}
+
+function decreaseQty(it) {
+  const nextQty = normalizeQty(Number(it.qty) - 1, it.stock);
+  updateQty(it.idSanPhamChiTiet, nextQty);
+}
+
+function increaseQty(it) {
+  const nextQty = normalizeQty(Number(it.qty) + 1, it.stock);
+  updateQty(it.idSanPhamChiTiet, nextQty);
+}
+
+function onQtyInput(it, event) {
+  const nextQty = normalizeQty(event.target.value, it.stock);
+  updateQty(it.idSanPhamChiTiet, nextQty);
+  event.target.value = nextQty;
 }
 
 function formatMoney(v) {
@@ -154,122 +250,151 @@ function goShopping() {
 function checkout() {
   router.push({ name: "Checkout" });
 }
+
+function onImgError(e) {
+  e.target.src =
+    "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='14'%3E%E1%BA%A2nh%3C/text%3E%3C/svg%3E";
+}
 </script>
 
 <style scoped>
-.cart-title {
-  font-weight: 750;
-  letter-spacing: 0.5px;
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
   color: #111;
 }
 
-/* tăng size chữ theo yêu cầu */
-.cart-table {
-  font-size: 1.05rem;
+.empty-cart {
+  padding: 48px 16px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
 }
 
-.cart-name {
-  font-weight: 750;
-  font-size: 1.05rem;
+.empty-title {
+  font-size: 22px;
+  font-weight: 700;
   color: #111;
 }
 
-.cart-meta {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
+.empty-desc {
+  margin-top: 8px;
   color: #6c757d;
-  font-size: 0.95rem;
-  margin-top: 4px;
+  font-size: 14px;
 }
 
-.cart-img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.08);
-}
-
-.dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.15);
-  vertical-align: middle;
-  margin-left: 6px;
-}
-
-.qty {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid rgba(0,0,0,0.12);
-  border-radius: 8px;
+.cart-table-wrap {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   overflow: hidden;
 }
 
+.cart-table th {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fafafa;
+}
+
+.cart-table td {
+  font-size: 14px;
+  color: #111;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  vertical-align: top;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.prod {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.prod-img {
+  width: 72px;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f1f3f5;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.prod-name {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.prod-meta {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: #6c757d;
+}
+
+.qty-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .qty-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: #f4f5f7;
-  font-weight: 800;
-  font-size: 1.05rem;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .qty-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.remove-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #111;
-  opacity: 0.75;
-}
-
-.remove-icon:hover {
-  opacity: 1;
-  border-color: rgba(0, 0, 0, 0.22);
-}
-
 .qty-input {
-  width: 46px;
-  height: 36px;
-  border: none;
+  width: 56px;
   text-align: center;
-  background: #fff;
-  font-weight: 750;
-  font-size: 1.05rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 6px;
 }
 
-.sum-row {
+.cart-summary {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #111;
+}
+
+.sum-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1.05rem;
   padding: 8px 0;
+  font-size: 14px;
+  color: #111;
 }
 
-.sum-amount {
-  color: #000f51;
-  font-size: 1.15rem;
-}
-
-.promo-img img {
-  width: 100%;
-  height: 420px;
-  object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+.sum-line.total {
+  font-size: 16px;
+  font-weight: 700;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 8px;
+  padding-top: 14px;
 }
 </style>
