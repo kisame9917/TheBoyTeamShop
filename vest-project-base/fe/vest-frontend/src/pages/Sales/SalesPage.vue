@@ -2486,8 +2486,6 @@ function applyVoucherManual(v) {
         "Voucher cá nhân: vui lòng chọn khách hàng trước",
         "warning",
       );
-    if (!isVoucherOwnedByCustomer(v, cid))
-      return toastShow("Voucher cá nhân không thuộc khách hàng này", "warning");
   }
 
   o.voucherMode = "manual";
@@ -2545,8 +2543,6 @@ async function applyPggByCode() {
         "Voucher cá nhân: vui lòng chọn khách hàng trước",
         "warning",
       );
-    if (!isVoucherOwnedByCustomer(found, cid))
-      return toastShow("Voucher cá nhân không thuộc khách hàng này", "warning");
   }
 
   const disc = calcVoucherDiscount(subTotal.value, found);
