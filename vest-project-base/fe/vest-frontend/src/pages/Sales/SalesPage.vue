@@ -2264,10 +2264,18 @@ function isVoucherOwnedByCustomer(v, customerId) {
   if (!cid) return false;
 
   const ids = v?.khach_hang_ids;
-  if (Array.isArray(ids)) return ids.map(Number).includes(cid);
+  if (Array.isArray(ids) && ids.length) {
+    return ids.map(Number).includes(cid);
+  }
 
   const single = v?.khach_hang_id;
-  if (single != null) return Number(single) === cid;
+  if (single != null) {
+    return Number(single) === cid;
+  }
+
+  // Backend /api/pgg/pos đã lọc đúng voucher cá nhân theo khách hàng rồi,
+  // nếu FE không có thông tin owner thì coi như hợp lệ
+  if (isPersonalVoucher(v)) return true;
 
   return false;
 }
