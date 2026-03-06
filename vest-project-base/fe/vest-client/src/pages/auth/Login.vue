@@ -135,7 +135,16 @@ async function onSubmit() {
     const token = data.token;
     if (!token) throw new Error("Không nhận được token từ server.");
 
+    // lưu kiểu cũ của bạn
     saveAuth({ token, tenKhachHang: data.tenKhachHang }, form.remember);
+
+    // ✅ lưu thêm kiểu vest_* cho chat widget
+    localStorage.setItem("vest_user", JSON.stringify(data)); // nếu data có id/role...
+    localStorage.setItem("vest_token", token);
+    if (data.role) localStorage.setItem("vest_role", data.role);
+
+    // ✅ báo widget cập nhật ngay
+    window.dispatchEvent(new Event("auth-changed"));
 
     const redirect = route.query.redirect || "/";
     await router.replace(redirect);

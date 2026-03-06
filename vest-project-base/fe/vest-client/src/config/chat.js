@@ -1,0 +1,1 @@
+export const CHAT_API_BASE = "http://localhost:8080";

@@ -10,7 +10,7 @@
 
       <div class="brand-text mt-2">
         <div class="brand-name">
-<!--          <span class="brand-strong">TheBoyTeam</span>-->
+          <!--          <span class="brand-strong">TheBoyTeam</span>-->
         </div>
       </div>
     </div>
@@ -19,14 +19,14 @@
     <nav class="p-2 flex-grow-1">
       <!-- Trang chủ (role-based) -->
       <RouterLink
-  to="/dashboard"
-  class="nav-link-item"
-  active-class="active"
-  exact-active-class="active"
->
-  <i class="bi bi-house-door icon"></i>
-  <span class="label">Trang Chủ</span>
-</RouterLink>
+        to="/dashboard"
+        class="nav-link-item"
+        active-class="active"
+        exact-active-class="active"
+      >
+        <i class="bi bi-house-door icon"></i>
+        <span class="label">Trang Chủ</span>
+      </RouterLink>
 
       <!-- ADMIN only: Thống kê -->
       <RouterLink
@@ -73,7 +73,10 @@
             <i class="bi bi-box-seam icon"></i>
             <span class="label">Sản phẩm</span>
           </span>
-          <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.products }"></i>
+          <i
+            class="bi bi-chevron-down caret"
+            :class="{ rotate: openGroups.products }"
+          ></i>
         </button>
 
         <div v-if="openGroups.products" class="sub-wrap">
@@ -100,41 +103,88 @@
             <i class="bi bi-ui-checks-grid icon"></i>
             <span class="label">Thuộc tính</span>
           </span>
-          <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.attributes }"></i>
+          <i
+            class="bi bi-chevron-down caret"
+            :class="{ rotate: openGroups.attributes }"
+          ></i>
         </button>
 
         <div v-if="openGroups.attributes" class="sub-wrap">
-          <RouterLink to="/attributes/loai-san-pham" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/loai-san-pham"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-tags sub-icon"></i> Loại sản phẩm
           </RouterLink>
-          <RouterLink to="/attributes/thuong-hieu" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/thuong-hieu"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-award sub-icon"></i> Thương hiệu
           </RouterLink>
-          <RouterLink to="/attributes/so-khuy" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/so-khuy"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-circle-square sub-icon"></i> Số khuy
           </RouterLink>
-          <RouterLink to="/attributes/kieu-tui" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/kieu-tui"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-handbag sub-icon"></i> Kiểu túi
           </RouterLink>
-          <RouterLink to="/attributes/ve-ao" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/ve-ao"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-person-badge sub-icon"></i> Ve áo
           </RouterLink>
-          <RouterLink to="/attributes/xe-ta" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/xe-ta"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-scissors sub-icon"></i> Xẻ tà
           </RouterLink>
-          <RouterLink to="/attributes/xuat-xu" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/xuat-xu"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-globe-asia-australia sub-icon"></i> Xuất xứ
           </RouterLink>
-          <RouterLink to="/attributes/fit" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/fit"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-person-arms-up sub-icon"></i> Kiểu dáng
           </RouterLink>
-          <RouterLink to="/attributes/chat-lieu" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/chat-lieu"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-layers sub-icon"></i> Chất liệu
           </RouterLink>
-          <RouterLink to="/attributes/mau-sac" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/mau-sac"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-palette sub-icon"></i> Màu sắc
           </RouterLink>
-          <RouterLink to="/attributes/kich-co" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/attributes/kich-co"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-rulers sub-icon"></i> Kích cỡ
           </RouterLink>
         </div>
@@ -142,36 +192,55 @@
 
       <div class="nav-group">
         <button
-            type="button"
-            class="nav-link-item w-100 justify-content-between"
-            @click="toggleGroup('shifts')"
-            :class="{ active: openGroups.shifts }"
+          type="button"
+          class="nav-link-item w-100 justify-content-between"
+          @click="toggleGroup('shifts')"
+          :class="{ active: openGroups.shifts }"
         >
-    <span class="d-flex align-items-center gap-2">
-      <i class="bi bi-calendar-week icon"></i>
-      <span class="label">Lịch làm việc</span>
-    </span>
-          <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.shifts }"></i>
+          <span class="d-flex align-items-center gap-2">
+            <i class="bi bi-calendar-week icon"></i>
+            <span class="label">Lịch làm việc</span>
+          </span>
+          <i
+            class="bi bi-chevron-down caret"
+            :class="{ rotate: openGroups.shifts }"
+          ></i>
         </button>
 
         <div v-if="openGroups.shifts" class="sub-wrap">
-
-          <RouterLink v-if="isAdmin" to="/shift-templates" class="sub-link" active-class="active-sub">
+          <RouterLink
+            v-if="isAdmin"
+            to="/shift-templates"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-calendar2 sub-icon"></i> Ca làm việc
           </RouterLink>
 
-          <RouterLink v-if="isAdmin" to="/shift-scheduler" class="sub-link" active-class="active-sub">
+          <RouterLink
+            v-if="isAdmin"
+            to="/shift-scheduler"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-calendar-check sub-icon"></i> Lịch nhân viên
           </RouterLink>
 
-          <RouterLink to="/my-schedule" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/my-schedule"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-calendar-fill sub-icon"></i> Lịch của tôi
           </RouterLink>
 
-          <RouterLink to="/shift-handover" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/shift-handover"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-arrow-left-right sub-icon"></i> Doanh thu ca làm
           </RouterLink>
-
         </div>
       </div>
 
@@ -197,24 +266,40 @@
             <i class="bi bi-people icon"></i>
             <span class="label">Tài khoản</span>
           </span>
-          <i class="bi bi-chevron-down caret" :class="{ rotate: openGroups.accounts }"></i>
+          <i
+            class="bi bi-chevron-down caret"
+            :class="{ rotate: openGroups.accounts }"
+          ></i>
         </button>
 
         <div v-if="openGroups.accounts" class="sub-wrap">
           <RouterLink to="/staff" class="sub-link" active-class="active-sub">
             <i class="bi bi-person-badge sub-icon"></i> Nhân viên
           </RouterLink>
-          <RouterLink to="/customers" class="sub-link" active-class="active-sub">
+          <RouterLink
+            to="/customers"
+            class="sub-link"
+            active-class="active-sub"
+          >
             <i class="bi bi-person-lines-fill sub-icon"></i> Khách hàng
           </RouterLink>
         </div>
       </div>
+
+      <!-- ✅ Chat hỗ trợ (đặt sau Tài khoản) -->
+      <RouterLink to="/chat-support" class="nav-link-item" active-class="active">
+        <i class="bi bi-chat-dots icon"></i>
+        <span class="label">Chat hỗ trợ</span>
+
+        <!-- optional: badge unread -->
+        <span v-if="unreadCount > 0" class="badge-unread">{{ unreadCount }}</span>
+      </RouterLink>
     </nav>
   </aside>
 </template>
 
 <script setup>
-import { reactive, watch, computed } from "vue";
+import { reactive, watch, computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
@@ -222,8 +307,16 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 
+// optional unread badge
+const unreadCount = ref(0);
+
 const role = computed(() => {
-  const r = (auth.role || localStorage.getItem("role") || localStorage.getItem("vest_role") || "").toUpperCase();
+  const r = (
+    auth.role ||
+    localStorage.getItem("role") ||
+    localStorage.getItem("vest_role") ||
+    ""
+  ).toUpperCase();
   if (r) return r;
   if (auth.isAdmin) return "ADMIN";
   if (auth.isAuthenticated) return "STAFF";
@@ -289,7 +382,6 @@ function syncGroupsWithRoute() {
 
 watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 </script>
-
 
 <style scoped>
 /* ===== Sidebar ===== */
@@ -371,6 +463,21 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 .label{
   flex:1;
   font-weight: 600;
+}
+
+/* ✅ badge unread */
+.badge-unread{
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: #ef4444;
 }
 
 /* Caret */

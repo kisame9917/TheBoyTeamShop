@@ -71,11 +71,13 @@ const routes = [
       { path: "", name: "reset-password", component: ResetPasswordOtp, meta: { public: true } },
     ],
   },
-{
-  path: "/otp",
-  component: BlankLayout,
-  children: [{ path: "", name: "otp", component: OtpVerify, meta: { public: true } }],
-},
+
+  {
+    path: "/otp",
+    component: BlankLayout,
+    children: [{ path: "", name: "otp", component: OtpVerify, meta: { public: true } }],
+  },
+
   // ====== APP (Private) ======
   {
     path: "/",
@@ -127,6 +129,14 @@ const routes = [
       { path: "vouchers/update/:id", name: "voucher-update", component: VoucherUpdate, props: true, meta: { roles: ["ADMIN"] } },
 
       { path: "payments", name: "payments", component: PaymentsList, meta: { roles: ["ADMIN"] } },
+
+      // ✅ Chat hỗ trợ (ADMIN + STAFF đều dùng được)
+      {
+        path: "chat-support",
+        name: "chat-support",
+        component: () => import("../chat/ChatSupportPage.vue"),
+        meta: { roles: ["ADMIN", "STAFF"] },
+      },
     ],
   },
 
