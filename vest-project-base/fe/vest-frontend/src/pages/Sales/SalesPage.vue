@@ -761,10 +761,10 @@
 
     <!-- Toast -->
     <div
-      v-if="toast.show"
-      class="position-fixed bottom-0 end-0 p-3"
-      style="z-index: 2000"
-    >
+  v-if="toast.show"
+  class="position-fixed top-0 end-0 p-3"
+  style="z-index: 2000"
+>
       <div
         class="toast show align-items-center text-white border-0"
         :class="toastClass"
@@ -1447,7 +1447,7 @@ async function createOrder() {
     return;
   } catch (e) {
     console.error(e);
-    toastShow("Không tạo được hóa đơn trong DB", "danger");
+    toastShow("Không tạo được hóa đơn ", "danger");
   }
 
   // fallback tab local (không dbId)
@@ -1570,8 +1570,6 @@ async function handleMidnightReset() {
   // 1) FE reset
   clearDraftsFE();
 
-  // 3) tạo 1 đơn mới cho ca
-  await createOrder();
 }
 
 function scheduleMidnightReset() {
@@ -2948,32 +2946,16 @@ function buildPosPayload(o) {
 }
 
 async function resetOrderAfterPaid(o) {
-  o.cart = [];
-  o.customer = null;
-  o.customerDraft = { phone: "", email: "" };
-  o.diaChi = "";
-
-  o.voucherCode = "";
-  o.pggId = null;
-  o.voucherMode = "best";
-  o.voucherTab = "best";
-  o.voucherSnapshot = null;
-
-  o.discountPercent = 0;
-  o.paid = 0;
-
-  o.dbId = null;
-
-  const maHoaDon = genUniqueMaHoaDon();
-  try {
-    const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
-    const data = res?.data || {};
-    o.dbId = data.id ?? null;
-    o.maHoaDon = data.maHoaDon || maHoaDon;
-  } catch {
-    o.maHoaDon = maHoaDon;
+  const idx = orders.value.findIndex((x) => x.id === o.id);
+  if (idx !== -1) {
+    orders.value.splice(idx, 1);
   }
-  o.label = `Hóa Đơn - ${o.maHoaDon}`;
+
+  if (activeId.value === o.id) {
+    activeId.value = orders.value[0]?.id ?? null;
+  }
+
+  saveDraftsNow();
 }
 
 async function confirmOrder() {
@@ -3023,7 +3005,6 @@ function onKeydown(e) {
  * ======================= */
 onMounted(async () => {
   loadDrafts();
-  if (orders.value.length === 0) await createOrder();
   scheduleMidnightReset();
   initAddressDataOffline();
   reloadCustomers();
