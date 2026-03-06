@@ -58,7 +58,7 @@ import axios from "axios";
 import { Client } from "@stomp/stompjs";
 
 // ===== CONFIG =====
-const API = "http://localhost:8080";
+const API = import.meta.env.VITE_API_BASE;
 
 // --- Auth helpers (localStorage) ---
 function getLoggedInUserId() {
