@@ -9,5 +9,5 @@ public interface PhuongThucThanhToanRepository extends JpaRepository<PhuongThucT
 
     Optional<PhuongThucThanhToan> findFirstByHinhThucAndTrangThaiTrue(Integer hinhThuc);
 
-    Optional<PhuongThucThanhToan> findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue(String ma);
+    Optional<PhuongThucThanhToan> findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue(String maPhuongThucThanhToan);
 }

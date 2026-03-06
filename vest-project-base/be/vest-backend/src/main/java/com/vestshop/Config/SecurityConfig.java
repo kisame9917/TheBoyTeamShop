@@ -20,7 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler; // <-- THÊM
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -31,21 +31,40 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-//                        // --- THÊM 2 dòng này để OAuth2 chạy ---
-//                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        // auth + swagger
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
 
-                        .requestMatchers("/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // static files
                         .requestMatchers("/uploads/**", "/images/**").permitAll()
 
+                        // online checkout public
+                        .requestMatchers("/api/checkout/**", "/api/online-checkout/**").permitAll()
+
+                        // shop online public APIs
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/san-pham",
+                                "/api/san-pham/**",
+                                "/api/loai-san-pham",
+                                "/api/loai-san-pham/**",
+                                "/api/san-pham-chi-tiet/by-product/**"
+                        ).permitAll()
+
+                        // backoffice / bán hàng tại quầy
                         .requestMatchers("/api/hoa-don/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/ca-lam-viec/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
-                        .requestMatchers("/api/pgg/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers("/api/pgg/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/giao-ca/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/giao-ca/**").hasAnyRole("ADMIN", "STAFF")
+
+                        // còn lại mặc định admin
                         .anyRequest().hasRole("ADMIN")
                 )
-                // --- THÊM oauth2Login để login Google ---
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

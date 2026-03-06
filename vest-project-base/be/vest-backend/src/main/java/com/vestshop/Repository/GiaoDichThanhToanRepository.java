@@ -2,16 +2,19 @@ package com.vestshop.Repository;
 
 import com.vestshop.Entity.GiaoDichThanhToan;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface GiaoDichThanhToanRepository extends JpaRepository<GiaoDichThanhToan, Long> {
+
     List<GiaoDichThanhToan> findAllByHoaDon_IdOrderByThoiGianTaoDesc(Long hoaDonId);
+
+    Optional<GiaoDichThanhToan> findFirstByHoaDon_IdOrderByIdDesc(Long hoaDonId);
 
     /**
      * Tính doanh thu TIỀN MẶT theo thời gian tạo hóa đơn (hoa_don.ngay_tao)
@@ -48,5 +51,4 @@ public interface GiaoDichThanhToanRepository extends JpaRepository<GiaoDichThanh
     BigDecimal sumKhacTienMatByHoaDonCreatedRange(@Param("from") LocalDateTime from,
                                                   @Param("to") LocalDateTime to,
                                                   @Param("status") Integer status);
-
 }

@@ -1,103 +1,100 @@
-import { computed, ref } from "vue";
+const CART_KEY = "cart_items";
 
-// UI trước: lưu localStorage (sau này nối API thì thay phần persist)
-const STORAGE_KEY = "VEST_CLIENT_CART";
-
-const items = ref(loadFromStorage());
-
-function loadFromStorage() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
+function readCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    console.error("readCart error:", error);
+    return [];
+  }
 }
 
-function saveToStorage() {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items.value));
-    } catch {
-        // ignore
-    }
+function writeCart(items) {
+  localStorage.setItem(CART_KEY, JSON.stringify(items));
 }
 
-function makeKey(payload) {
-    const { id, color = "", size = "" } = payload || {};
-    return `${id}__${color}__${size}`;
-}
-
-function notify() {
-    window.dispatchEvent(new Event("cart-changed"));
-}
-
-function addToCart(payload, qty = 1) {
-    if (!payload || payload.id == null) return;
-    const q = Number(qty) > 0 ? Number(qty) : 1;
-
-    const key = makeKey(payload);
-    const idx = items.value.findIndex((x) => x.key === key);
-
-    if (idx >= 0) {
-        items.value[idx].qty += q;
-    } else {
-        items.value.unshift({
-            key,
-            id: payload.id,
-            name: payload.name || "Sản phẩm",
-            image: payload.image || "",
-            price: Number(payload.price) || 0,
-            color: payload.color || "",
-            size: payload.size || "",
-            qty: q,
-        });
-    }
-
-    saveToStorage();
-    notify();
-}
-
-function removeItem(key) {
-    items.value = items.value.filter((x) => x.key !== key);
-    saveToStorage();
-    notify();
-}
-
-function updateQty(key, qty) {
-    const q = Number(qty);
-    const idx = items.value.findIndex((x) => x.key === key);
-    if (idx < 0) return;
-
-    // ✅ UI yêu cầu: số lượng tối thiểu là 1 (không tự xóa khi bấm trừ)
-    items.value[idx].qty = Number.isFinite(q) && q >= 1 ? q : 1;
-    saveToStorage();
-    notify();
+function getCartItems() {
+  return readCart();
 }
 
 function clearCart() {
-    items.value = [];
-    saveToStorage();
-    notify();
+  writeCart([]);
 }
 
-const totalQty = computed(() =>
-    items.value.reduce((sum, x) => sum + (Number(x.qty) || 0), 0)
-);
+function removeCartItem(idSanPhamChiTiet) {
+  const items = readCart().filter(
+    (item) => item.idSanPhamChiTiet !== idSanPhamChiTiet
+  );
+  writeCart(items);
+  return items;
+}
 
-const subtotal = computed(() =>
-    items.value.reduce(
-        (sum, x) => sum + (Number(x.price) || 0) * (Number(x.qty) || 0),
-        0
-    )
-);
+function updateCartItemQty(idSanPhamChiTiet, qty) {
+  const nextQty = Math.max(1, Number(qty || 1));
 
-export const cartService = {
-    items,
-    totalQty,
-    subtotal,
-    addToCart,
-    removeItem,
-    updateQty,
-    clearCart,
+  const items = readCart().map((item) => {
+    if (item.idSanPhamChiTiet === idSanPhamChiTiet) {
+      return {
+        ...item,
+        qty: nextQty,
+      };
+    }
+    return item;
+  });
+
+  writeCart(items);
+  return items;
+}
+
+function addToCart(product, qty = 1) {
+  if (!product?.idSanPhamChiTiet) {
+    throw new Error("Sản phẩm chưa có idSanPhamChiTiet");
+  }
+
+  const items = readCart();
+  const nextQty = Math.max(1, Number(qty || 1));
+
+  const index = items.findIndex(
+    (item) => item.idSanPhamChiTiet === product.idSanPhamChiTiet
+  );
+
+  if (index >= 0) {
+    items[index] = {
+      ...items[index],
+      qty: Number(items[index].qty || 0) + nextQty,
+      price: Number(product.price ?? items[index].price ?? 0),
+      image: product.image ?? items[index].image ?? "",
+      color: product.color ?? items[index].color ?? "",
+      size: product.size ?? items[index].size ?? "",
+      stock: Number(product.stock ?? items[index].stock ?? 0),
+      code: product.code ?? items[index].code ?? "",
+      name: product.name ?? items[index].name ?? "",
+      productId: product.productId ?? items[index].productId ?? null,
+    };
+  } else {
+    items.push({
+      idSanPhamChiTiet: product.idSanPhamChiTiet,
+      productId: product.productId ?? null,
+      name: product.name ?? "",
+      image: product.image ?? "",
+      color: product.color ?? "",
+      size: product.size ?? "",
+      price: Number(product.price ?? 0),
+      qty: nextQty,
+      stock: Number(product.stock ?? 0),
+      code: product.code ?? "",
+    });
+  }
+
+  writeCart(items);
+  return items;
+}
+
+export default {
+  getCartItems,
+  addToCart,
+  updateCartItemQty,
+  removeCartItem,
+  clearCart,
 };

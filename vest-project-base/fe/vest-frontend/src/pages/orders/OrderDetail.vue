@@ -172,52 +172,52 @@
           </div>
 
           <div class="col-12 col-lg-5">
-           <div class="info-box h-100">
-  <div class="info-title">
-    <i class="bi bi-truck me-2"></i>Giao nhận
-  </div>
+            <div class="info-box h-100">
+              <div class="info-title">
+                <i class="bi bi-truck me-2"></i>Giao nhận
+              </div>
 
-  <!-- ✅ Đơn ship -->
-  <template v-if="isShipOrder">
-    <div class="info-row">
-      <span>Người nhận</span>
-      <b class="text-end">{{ receiverName }}</b>
-    </div>
+              <!-- ✅ Đơn ship -->
+              <template v-if="isShipOrder">
+                <div class="info-row">
+                  <span>Người nhận</span>
+                  <b class="text-end">{{ receiverName }}</b>
+                </div>
 
-    <div class="info-row">
-      <span>SĐT nhận</span>
-      <b class="text-end">{{ receiverPhone }}</b>
-    </div>
+                <div class="info-row">
+                  <span>SĐT nhận</span>
+                  <b class="text-end">{{ receiverPhone }}</b>
+                </div>
 
-    <div class="info-row align-items-start">
-      <span>Địa chỉ nhận</span>
-      <b class="text-end">{{ shipAddressText }}</b>
-    </div>
+                <div class="info-row align-items-start">
+                  <span>Địa chỉ nhận</span>
+                  <b class="text-end">{{ shipAddressText }}</b>
+                </div>
 
-    <div class="info-row">
-      <span>Phí vận chuyển</span>
-      <b class="text-end">{{ formatCurrency(hd?.phiVanChuyen) }}</b>
-    </div>
-  </template>
+                <div class="info-row">
+                  <span>Phí vận chuyển</span>
+                  <b class="text-end">{{ formatCurrency(hd?.phiVanChuyen) }}</b>
+                </div>
+              </template>
 
-  <!-- ✅ Bán tại quầy -->
-  <template v-else>
-    <div class="info-row">
-      <span>Hình thức</span>
-      <b class="text-end">Nhận tại cửa hàng</b>
-    </div>
+              <!-- ✅ Bán tại quầy -->
+              <template v-else>
+                <div class="info-row">
+                  <span>Hình thức</span>
+                  <b class="text-end">Nhận tại cửa hàng</b>
+                </div>
 
-    <div class="info-row">
-      <span>Phí vận chuyển</span>
-      <b class="text-end">{{ formatCurrency(0) }}</b>
-    </div>
-  </template>
+                <div class="info-row">
+                  <span>Phí vận chuyển</span>
+                  <b class="text-end">{{ formatCurrency(0) }}</b>
+                </div>
+              </template>
 
-  <div class="info-row align-items-start">
-    <span>Ghi chú</span>
-    <b class="text-end">{{ hd?.ghiChu || "-" }}</b>
-  </div>
-</div>
+              <div class="info-row align-items-start">
+                <span>Ghi chú</span>
+                <b class="text-end">{{ hd?.ghiChu || "-" }}</b>
+              </div>
+            </div>
           </div>
 
           <div class="col-12 col-lg-3">
@@ -306,13 +306,17 @@
                 <td>{{ formatDateTimeVN(p.ngayThanhToan) }}</td>
                 <td class="text-truncate">{{ p.maGiaoDich || "-" }}</td>
                 <td class="text-truncate">
-  {{
-    p.tenPhuongThucThanhToan
-      || (p.hinhThuc === 1 ? "Tiền mặt" : (p.hinhThuc === 2 ? "Chuyển khoản" : null))
-      || p.hinhThucThanhToan
-      || "-"
-  }}
-</td>
+                  {{
+                    p.tenPhuongThucThanhToan ||
+                    (p.hinhThuc === 1
+                      ? "Tiền mặt"
+                      : p.hinhThuc === 2
+                        ? "Chuyển khoản"
+                        : null) ||
+                    p.hinhThucThanhToan ||
+                    "-"
+                  }}
+                </td>
                 <td class="text-truncate">{{ p.ghiChu || "-" }}</td>
               </tr>
             </tbody>
@@ -321,84 +325,94 @@
       </div>
     </div>
 
-   <!-- Items -->
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h6 class="mb-2">Sản phẩm</h6>
+    <!-- Items -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h6 class="mb-2">Sản phẩm</h6>
 
-    <div class="table-responsive table-wrap">
-      <table class="table table-fixed align-middle mb-0">
-        <thead class="thead-dark-custom">
-          <tr>
-            <th class="col-stt">STT</th>
-            <th class="col-img">Ảnh</th>
-            <th class="col-product">Sản phẩm</th>
-            <th class="col-qty">Số lượng</th>
-            <th class="col-total">Thành tiền</th>
-          </tr>
-        </thead>
+        <div class="table-responsive table-wrap">
+          <table class="table table-fixed align-middle mb-0">
+            <thead class="thead-dark-custom">
+              <tr>
+                <th class="col-stt">STT</th>
+                <th class="col-img">Ảnh</th>
+                <th class="col-product">Sản phẩm</th>
+                <th class="col-qty">Số lượng</th>
+                <th class="col-total">Thành tiền</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          <tr v-if="items.length === 0">
-            <td colspan="5" class="text-center text-muted py-4">
-              Không có sản phẩm
-            </td>
-          </tr>
+            <tbody>
+              <tr v-if="items.length === 0">
+                <td colspan="5" class="text-center text-muted py-4">
+                  Không có sản phẩm
+                </td>
+              </tr>
 
-          <tr
-            v-for="(it, idx) in pagedItems"
-            :key="(currentPage - 1) * pageSize + idx"
-          >
-            <td>{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+              <tr
+                v-for="(it, idx) in pagedItems"
+                :key="(currentPage - 1) * pageSize + idx"
+              >
+                <td>{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
 
-            <td>
-              <div class="img-box">
-                <img v-if="it.anhDaiDien" :src="it.anhDaiDien" alt="img" />
-                <div v-else class="text-muted small">No image</div>
-              </div>
-            </td>
+                <td>
+                  <div class="img-box">
+                    <img v-if="it.anhDaiDien" :src="it.anhDaiDien" alt="img" />
+                    <div v-else class="text-muted small">No image</div>
+                  </div>
+                </td>
 
-            <td>
-              <div class="fw-semibold text-truncate">{{ it.tenSanPham || "-" }}</div>
-              <div class="text-muted small text-truncate">
-                {{ it.mauSac || "-" }} - {{ it.kichCo || "-" }}
-                <span v-if="it.maSanPhamChiTiet"> • {{ it.maSanPhamChiTiet }}</span>
-              </div>
-              <div class="text-danger fw-semibold mt-1">
-                {{ formatCurrency(it.donGia) }}
-              </div>
-            </td>
+                <td>
+                  <div class="fw-semibold text-truncate">
+                    {{ it.tenSanPham || "-" }}
+                  </div>
+                  <div class="text-muted small text-truncate">
+                    {{ it.mauSac || "-" }} - {{ it.kichCo || "-" }}
+                    <span v-if="it.maSanPhamChiTiet">
+                      • {{ it.maSanPhamChiTiet }}</span
+                    >
+                  </div>
+                  <div class="text-danger fw-semibold mt-1">
+                    {{ formatCurrency(it.donGia) }}
+                  </div>
+                </td>
 
-            <td class="fw-semibold">{{ it.soLuong }}</td>
+                <td class="fw-semibold">{{ it.soLuong }}</td>
 
-            <td class="fw-semibold text-danger">
-              {{ formatCurrency(it.thanhTien) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                <td class="fw-semibold text-danger">
+                  {{ formatCurrency(it.thanhTien) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ✅ PHÂN TRANG: đặt ở đây (ngoài table-wrap, trong card-body) -->
+        <nav
+          v-if="items.length > pageSize"
+          class="mt-3 d-flex justify-content-end"
+        >
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+              <button class="page-link" @click="prevPage">‹</button>
+            </li>
+
+            <li class="page-item disabled">
+              <span class="page-link">
+                Trang {{ currentPage }} / {{ totalPages }}
+              </span>
+            </li>
+
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages }"
+            >
+              <button class="page-link" @click="nextPage">›</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
     </div>
-
-    <!-- ✅ PHÂN TRANG: đặt ở đây (ngoài table-wrap, trong card-body) -->
-    <nav v-if="items.length > pageSize" class="mt-3 d-flex justify-content-end">
-      <ul class="pagination pagination-sm mb-0">
-        <li class="page-item" :class="{ disabled: currentPage === 1 }">
-          <button class="page-link" @click="prevPage">‹</button>
-        </li>
-
-        <li class="page-item disabled">
-          <span class="page-link">
-            Trang {{ currentPage }} / {{ totalPages }}
-          </span>
-        </li>
-
-        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-          <button class="page-link" @click="nextPage">›</button>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</div>
     <!-- History modal -->
     <div
       class="modal fade"
@@ -806,12 +820,17 @@ const isShipOrder = computed(() => !!hd.value?.loaiDon);
 
 const receiverName = computed(() => {
   const v = hd.value || {};
-  return (v.tenNguoiNhanHang || v.tenKhachHang || "Khách lẻ").trim?.() || (v.tenNguoiNhanHang || v.tenKhachHang || "Khách lẻ");
+  return (
+    (v.tenNguoiNhanHang || v.tenKhachHang || "Khách lẻ").trim?.() ||
+    v.tenNguoiNhanHang ||
+    v.tenKhachHang ||
+    "Khách lẻ"
+  );
 });
 
 const receiverPhone = computed(() => {
   const v = hd.value || {};
-  return (v.soDienThoaiNhanHang || v.soDienThoai || "-");
+  return v.soDienThoaiNhanHang || v.soDienThoai || "-";
 });
 
 const shipAddressText = computed(() => {
@@ -822,11 +841,13 @@ const shipAddressText = computed(() => {
     v.quanHuyenNhanHang, // có thể rỗng
     v.tinhThanhNhanHang,
   ]
-    .map(x => String(x || "").trim())
+    .map((x) => String(x || "").trim())
     .filter(Boolean);
 
   // fallback nếu BE chưa trả field ship riêng
-  return parts.length ? parts.join(", ") : (v.diaChiNhanHang || v.diaChiKhachHang || "-");
+  return parts.length
+    ? parts.join(", ")
+    : v.diaChiNhanHang || v.diaChiKhachHang || "-";
 });
 const paidTotal = computed(() => {
   const list = hd.value?.lichSuThanhToan || [];
@@ -975,7 +996,7 @@ const progressPercent = computed(() => {
   const idx = currentStepIndex.value;
   if (idx < 0) return 0;
 
-const n = baseStepper.value.length;
+  const n = baseStepper.value.length;
   return (idx / (n - 1)) * 100;
 });
 const isLastStep = computed(

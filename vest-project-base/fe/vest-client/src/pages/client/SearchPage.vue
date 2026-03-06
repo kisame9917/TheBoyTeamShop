@@ -1,191 +1,672 @@
 <template>
   <div class="search-page container py-4">
-    <nav aria-label="breadcrumb" class="mb-4">
-      <ol class="breadcrumb fs-6">
-        <li class="breadcrumb-item"><router-link to="/" class="text-muted text-decoration-none">Trang chủ</router-link></li>
-        <li class="breadcrumb-item active text-dark" aria-current="page">Kết quả tìm kiếm cho "vest nam"</li>
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item">
+          <router-link to="/" class="text-muted text-decoration-none">
+            Trang chủ
+          </router-link>
+        </li>
+        <li class="breadcrumb-item active text-dark" aria-current="page">
+          Sản phẩm
+        </li>
       </ol>
     </nav>
 
-    <div class="row">
-      <aside class="col-lg-3 pe-lg-4 mb-4 mb-lg-0">
-        <div class="filter-section mb-4">
-          <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-            KHOẢNG GIÁ <i class="bi bi-chevron-up"></i>
-          </h6>
-          <div class="form-check mb-2" v-for="(range, index) in priceRanges" :key="index">
-            <input class="form-check-input custom-checkbox" type="checkbox" :id="'price' + index" v-model="range.selected">
-            <label class="form-check-label text-secondary" :for="'price' + index">
-              {{ range.label }}
-            </label>
+    <div class="row g-4">
+      <div class="col-lg-3">
+        <div class="filter-box">
+          <div class="filter-title">Bộ lọc</div>
+
+          <div class="mb-3">
+            <label class="form-label">Tìm kiếm</label>
+            <input
+              v-model="keyword"
+              type="text"
+              class="form-control"
+              placeholder="Tên sản phẩm..."
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Loại sản phẩm</label>
+            <select v-model="selectedCategory" class="form-select">
+              <option value="">Tất cả</option>
+              <option
+                v-for="item in categories"
+                :key="item.id"
+                :value="item.id"
+              >
+                {{ item.tenLoaiSanPham || item.name || item.ten || `Loại ${item.id}` }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Màu sắc</label>
+            <select v-model="selectedColor" class="form-select">
+              <option value="">Tất cả</option>
+              <option v-for="color in allColors" :key="color" :value="color">
+                {{ color }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Kích thước</label>
+            <select v-model="selectedSize" class="form-select">
+              <option value="">Tất cả</option>
+              <option v-for="size in allSizes" :key="size" :value="size">
+                {{ size }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Giá tối đa</label>
+            <input
+              v-model.number="maxPriceFilter"
+              type="range"
+              class="form-range"
+              min="0"
+              :max="safeMaxDbPrice"
+              step="10000"
+            />
+            <div class="small text-muted">
+              {{ money(maxPriceFilter) }} đ
+            </div>
+          </div>
+
+          <button class="btn btn-dark w-100" type="button" @click="resetFilter">
+            Xóa bộ lọc
+          </button>
+        </div>
+      </div>
+
+      <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h1 class="page-title mb-0">Danh sách sản phẩm</h1>
+          <div class="text-muted small">
+            {{ filteredProducts.length }} sản phẩm
           </div>
         </div>
 
-        <div class="filter-section mb-4 border-top pt-4">
-          <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-            MÀU SẮC <i class="bi bi-chevron-up"></i>
-          </h6>
-          <div class="form-check mb-2 d-flex align-items-center" v-for="(color, index) in colors" :key="index">
-            <input class="form-check-input custom-checkbox me-2 mt-0" type="checkbox" :id="'color' + index" v-model="color.selected">
-            <label class="form-check-label text-secondary d-flex align-items-center" :for="'color' + index">
-              <span class="color-box me-2" :style="{ backgroundColor: color.hex }"></span>
-              {{ color.name }}
-            </label>
-          </div>
+        <div v-if="loading" class="state-box">
+          Đang tải sản phẩm...
         </div>
 
-        <div class="filter-section border-top pt-4">
-          <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-            KÍCH THƯỚC <i class="bi bi-chevron-up"></i>
-          </h6>
-          <div class="form-check mb-2" v-for="(size, index) in sizes" :key="index">
-            <input class="form-check-input custom-checkbox" type="checkbox" :id="'size' + index" v-model="size.selected">
-            <label class="form-check-label text-secondary" :for="'size' + index">
-              {{ size.name }}
-            </label>
-          </div>
-        </div>
-      </aside>
-
-      <main class="col-lg-9">
-        <div class="d-flex justify-content-end mb-4">
-          <select class="form-select w-auto text-dark bg-light border-0 shadow-sm custom-select">
-            <option selected>Sắp xếp theo</option>
-            <option value="1">Giá tăng dần</option>
-            <option value="2">Giá giảm dần</option>
-            <option value="3">Mới nhất</option>
-          </select>
+        <div v-else-if="error" class="state-box text-danger">
+          {{ error }}
         </div>
 
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
-          <div class="col" v-for="product in products" :key="product.id">
-            <div class="card h-100 border-0 rounded-3 shadow-sm product-card">
-              <div class="position-relative">
-                <span class="badge bg-secondary bg-opacity-75 position-absolute top-0 start-0 m-2 rounded-1 px-2 py-1">SALE</span>
-                <img :src="product.image" class="card-img-top rounded-top-3" alt="Vest Nam" />
+        <div v-else-if="filteredProducts.length === 0" class="state-box">
+          Không có sản phẩm phù hợp.
+        </div>
+
+        <div v-else class="row g-4">
+          <div
+            v-for="item in filteredProducts"
+            :key="item.id"
+            class="col-sm-6 col-xl-4"
+          >
+            <div class="product-card" @click="goDetail(item.id)">
+              <div class="product-image-wrap">
+                <img
+                  :src="item.displayImage"
+                  class="product-img"
+                  :alt="item.displayName"
+                  @error="onImgError"
+                />
               </div>
-              <div class="card-body d-flex flex-column p-3">
-                <h6 class="card-title text-dark mb-2" style="font-size: 0.95rem;">{{ product.name }}</h6>
-                <div class="mt-auto mb-3">
-                  <span class="fw-bold text-dark me-2">{{ formatPrice(product.price) }}đ</span>
-                  <small class="text-decoration-line-through text-muted">{{ formatPrice(product.oldPrice) }}đ</small>
+
+              <div class="product-body">
+                <div class="product-name">
+                  {{ item.displayName }}
                 </div>
-                <button class="btn btn-cyan text-white fw-semibold w-100 rounded-2 py-2" @click="add(product)">
-                  THÊM VÀO GIỎ
-                </button>
+
+                <div class="product-desc">
+                  {{ item.displayDescription }}
+                </div>
+
+                <div class="product-price">
+                  {{ money(item.displayPrice) }} đ
+                </div>
+
+                <div v-if="item.colors.length" class="meta-block">
+                  <div class="meta-label">Màu sắc</div>
+                  <div class="chip-wrap">
+                    <span
+                      v-for="color in item.colors.slice(0, 4)"
+                      :key="color"
+                      class="chip"
+                    >
+                      {{ color }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="item.sizes.length" class="meta-block">
+                  <div class="meta-label">Kích thước</div>
+                  <div class="chip-wrap">
+                    <span
+                      v-for="size in item.sizes.slice(0, 5)"
+                      :key="size"
+                      class="chip chip-light"
+                    >
+                      {{ size }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="product-footer">
+                  <div class="stock-text">
+                    {{ item.totalStock > 0 ? `Còn ${item.totalStock} sản phẩm` : "Hết hàng" }}
+                  </div>
+
+                  <button
+                    class="btn btn-dark btn-sm"
+                    type="button"
+                    @click.stop="goDetail(item.id)"
+                  >
+                    Xem chi tiết
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <nav class="mt-5 d-flex justify-content-center">
-          <ul class="pagination gap-2">
-            <li class="page-item active"><a class="page-link rounded bg-dark border-dark text-white" href="#">1</a></li>
-            <li class="page-item"><a class="page-link rounded text-dark border-0 bg-light" href="#">2</a></li>
-            <li class="page-item"><a class="page-link rounded text-dark border-0 bg-light" href="#">3</a></li>
-            <li class="page-item disabled"><a class="page-link border-0 bg-transparent text-dark">...</a></li>
-            <li class="page-item"><a class="page-link rounded text-dark border-0 bg-light" href="#"><i class="bi bi-chevron-right"></i></a></li>
-          </ul>
-        </nav>
-      </main>
+        <div
+          v-if="!loading && !error && totalPages > 1"
+          class="d-flex justify-content-center align-items-center gap-2 mt-4"
+        >
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            :disabled="page <= 0"
+            @click="changePage(page - 1)"
+          >
+            Trước
+          </button>
+
+          <span class="small text-muted">
+            Trang {{ page + 1 }} / {{ totalPages }}
+          </span>
+
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            :disabled="page >= totalPages - 1"
+            @click="changePage(page + 1)"
+          >
+            Sau
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useCart } from '../../composables/useCart';
+import { computed, onMounted, ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import {
+  getProducts,
+  getGiaMaxDb,
+  getLoaiSanPhamList,
+  getProductVariantsByProductId,
+} from "../../services/productClientApi";
+const router = useRouter();
+const route = useRoute();
 
-const { addToCart } = useCart();
 
-function add(product) {
-  addToCart({
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    image: product.image,
-  }, 1);
+const loading = ref(false);
+const error = ref("");
+
+const rawProducts = ref([]);
+const products = ref([]);
+const categories = ref([]);
+
+const page = ref(0);
+const size = ref(9);
+const totalPages = ref(0);
+
+const keyword = ref("");
+const selectedCategory = ref("");
+const selectedColor = ref("");
+const selectedSize = ref("");
+const maxDbPrice = ref(0);
+const maxPriceFilter = ref(0);
+
+const fallbackImage =
+  "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='460'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3ENo Image%3C/text%3E%3C/svg%3E";
+
+function normalizeImage(value) {
+  if (!value) return fallbackImage;
+  if (Array.isArray(value)) return value[0] || fallbackImage;
+  return value;
 }
 
-// Mock Data cho Filters
-const priceRanges = ref([
-  { label: '0 - 10,000', selected: true },
-  { label: '2,000 - 20,000', selected: false },
-  { label: '3,000 - 30,000', selected: false },
-  { label: '6,000 - 10,000', selected: false },
-  { label: '> 500+', selected: false },
-]);
+function normalizeColorName(raw) {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  return raw.tenMauSac || raw.mauSac || raw.name || raw.value || "";
+}
 
-const colors = ref([
-  { name: 'Black', hex: '#000000', selected: false },
-  { name: 'Navy', hex: '#1B263B', selected: false },
-  { name: 'Grey', hex: '#8D99AE', selected: false },
-  { name: 'Brown', hex: '#8B5A2B', selected: false },
-]);
+function normalizeSizeName(raw) {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  return raw.tenKichCo || raw.kichCo || raw.size || raw.name || raw.value || "";
+}
 
-const sizes = ref([
-  { name: 'XS', selected: true },
-  { name: 'M', selected: false },
-  { name: 'L', selected: false },
-  { name: 'XL', selected: false },
-  { name: 'XXL', selected: false },
-]);
+function baseProductName(item) {
+  return item.tenSanPham || item.name || item.title || "Sản phẩm";
+}
 
-// Sinh ra 9 sản phẩm mẫu
-const products = ref(Array.from({ length: 9 }, (_, i) => ({
-  id: i + 1,
-  name: 'Bộ Vest Nam Công Sở Lịch Lãm',
-  price: 2500000,
-  oldPrice: 2500000,
-  image: '/uploads/ao-vest-den-22.jpg'
-})));
+function baseProductDesc(item) {
+  return item.moTa || item.description || "";
+}
+function slugify(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
-const formatPrice = (value) => {
-  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
+function syncFilterFromQuery() {
+  const q = String(route.query.q || "").trim();
+  const cat = String(route.query.cat || "").trim();
+
+  keyword.value = q;
+
+  if (!cat) {
+    selectedCategory.value = "";
+    return;
+  }
+
+  const matchedCategory = (categories.value || []).find((item) => {
+    const name =
+      item.tenLoaiSanPham || item.name || item.ten || `Loai ${item.id}`;
+    return slugify(name) === cat;
+  });
+
+  selectedCategory.value = matchedCategory ? String(matchedCategory.id) : "";
+}
+watch(
+  () => route.query,
+  async () => {
+    page.value = 0;
+    syncFilterFromQuery();
+    await fetchProductsData();
+  },
+  { deep: true }
+);
+function mapVariant(v) {
+  const colorName =
+    normalizeColorName(v.mauSac) ||
+    normalizeColorName(v.tenMauSac) ||
+    normalizeColorName(v.mau) ||
+    "";
+
+  const sizeName =
+    normalizeSizeName(v.kichCo) ||
+    normalizeSizeName(v.tenKichCo) ||
+    normalizeSizeName(v.size) ||
+    "";
+
+  return {
+    idSanPhamChiTiet: v.id,
+    color: colorName,
+    size: sizeName,
+    price: Number(v.donGia ?? v.giaBan ?? v.price ?? 0),
+    stock: Number(v.soLuongTon ?? v.soLuong ?? 0),
+    image:
+      normalizeImage(v.hinhAnh) ||
+      normalizeImage(v.anh) ||
+      normalizeImage(v.image),
+    code: v.maSanPhamChiTiet || v.code || "",
+  };
+}
+
+function enrichProduct(product, variants) {
+  const mappedVariants = (variants || []).map(mapVariant);
+
+  const prices = mappedVariants
+    .map((v) => Number(v.price || 0))
+    .filter((p) => p > 0);
+
+  const images = mappedVariants
+    .map((v) => v.image)
+    .filter(Boolean);
+
+  const colors = [...new Set(mappedVariants.map((v) => v.color).filter(Boolean))];
+  const sizes = [...new Set(mappedVariants.map((v) => v.size).filter(Boolean))];
+  const totalStock = mappedVariants.reduce(
+    (sum, v) => sum + Number(v.stock || 0),
+    0
+  );
+
+  return {
+    ...product,
+    variants: mappedVariants,
+    displayName: baseProductName(product),
+    displayDescription: baseProductDesc(product),
+    displayImage:
+      images[0] ||
+      normalizeImage(product.hinhAnh) ||
+      normalizeImage(product.image) ||
+      fallbackImage,
+    displayPrice:
+      prices.length > 0
+        ? Math.min(...prices)
+        : Number(product.giaBan || product.price || 0),
+    colors,
+    sizes,
+    totalStock,
+  };
+}
+
+const safeMaxDbPrice = computed(() => {
+  const v = Number(maxDbPrice.value) || 0;
+  return v > 0 ? v : 10000000;
+});
+
+const allColors = computed(() => {
+  return [...new Set(products.value.flatMap((p) => p.colors || []))];
+});
+
+const allSizes = computed(() => {
+  return [...new Set(products.value.flatMap((p) => p.sizes || []))];
+});
+
+const filteredProducts = computed(() => {
+  return (products.value || []).filter((item) => {
+    const name = String(item.displayName || "").toLowerCase();
+    const kw = keyword.value.trim().toLowerCase();
+
+    const matchKeyword = !kw || name.includes(kw);
+
+    const productCategoryId =
+      item.idLoaiSanPham ||
+      item.loaiSanPhamId ||
+      item.loaiSanPham?.id ||
+      null;
+
+    const matchCategory =
+      !selectedCategory.value ||
+      String(productCategoryId) === String(selectedCategory.value);
+
+    const matchColor =
+      !selectedColor.value ||
+      (item.colors || []).includes(selectedColor.value);
+
+    const matchSize =
+      !selectedSize.value ||
+      (item.sizes || []).includes(selectedSize.value);
+
+    const matchPrice =
+      Number(item.displayPrice || 0) <= Number(maxPriceFilter.value || 0);
+
+    return matchKeyword && matchCategory && matchColor && matchSize && matchPrice;
+  });
+});
+
+function money(v) {
+  const n = Number(v) || 0;
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function onImgError(e) {
+  e.target.src = fallbackImage;
+}
+
+function goDetail(id) {
+  router.push({ name: "ProductDetail", params: { id } });
+}
+function resetFilter() {
+  keyword.value = "";
+  selectedCategory.value = "";
+  selectedColor.value = "";
+  selectedSize.value = "";
+  maxPriceFilter.value = safeMaxDbPrice.value;
+
+  router.push({ name: "Search", query: {} });
+}
+
+async function fetchCategories() {
+  try {
+    const data = await getLoaiSanPhamList();
+    categories.value = Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error("fetchCategories error:", err);
+  }
+}
+
+async function fetchMaxPrice() {
+  try {
+    const data = await getGiaMaxDb();
+    maxDbPrice.value = Number(data) || 0;
+    maxPriceFilter.value = Number(data) || 0;
+  } catch (err) {
+    console.error("fetchMaxPrice error:", err);
+    maxDbPrice.value = 10000000;
+    maxPriceFilter.value = 10000000;
+  }
+}
+
+async function fetchProductsData() {
+  try {
+    loading.value = true;
+    error.value = "";
+
+const data = await getProducts({
+  page: page.value,
+  size: size.value,
+});
+
+if (Array.isArray(data)) {
+  rawProducts.value = data;
+  totalPages.value = 1;
+} else {
+  rawProducts.value = Array.isArray(data?.content) ? data.content : [];
+  totalPages.value = Number(data?.totalPages || 1);
+}
+    const enriched = await Promise.all(
+      rawProducts.value.map(async (product) => {
+        try {
+          const variants = await getProductVariantsByProductId(product.id);
+          return enrichProduct(product, Array.isArray(variants) ? variants : []);
+        } catch (variantErr) {
+          console.error("fetch variants error:", product.id, variantErr);
+          return enrichProduct(product, []);
+        }
+      })
+    );
+
+    products.value = enriched;
+  } catch (err) {
+    console.error("fetchProductsData error:", err);
+    console.error("fetchProductsData response:", err?.response?.data);
+    error.value =
+      err?.response?.data?.message ||
+      `Không tải được danh sách sản phẩm (${err?.response?.status || "no-status"})`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+function changePage(nextPage) {
+  page.value = nextPage;
+}
+
+watch(page, () => {
+  fetchProductsData();
+});
+onMounted(async () => {
+  await Promise.all([
+    fetchCategories(),
+    fetchMaxPrice(),
+  ]);
+
+  syncFilterFromQuery();
+  await fetchProductsData();
+});
 </script>
 
 <style scoped>
-/* Nút thêm vào giỏ màu xanh Cyan đồng bộ với biến CSS layout của bạn */
-.btn-cyan {
-  background-color: var(--sky-aqua, #07c8f9);
-  border-color: var(--sky-aqua, #07c8f9);
-}
-.btn-cyan:hover {
-  background-color: var(--fresh-sky, #09a6f3);
-  border-color: var(--fresh-sky, #09a6f3);
+.search-page {
+  background: #f7f7f7;
+  min-height: 100vh;
 }
 
-/* Custom Checkbox đồng bộ màu xanh */
-.custom-checkbox:checked {
-  background-color: var(--sky-aqua, #07c8f9);
-  border-color: var(--sky-aqua, #07c8f9);
-}
-.custom-checkbox:focus {
-  box-shadow: 0 0 0 0.25rem rgba(7, 200, 249, 0.25);
+.page-title {
+  font-size: 38px;
+  font-weight: 800;
+  color: #111;
+  margin: 0;
 }
 
-.color-box {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
+.filter-box {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fff;
+  position: sticky;
+  top: 20px;
+}
+
+.filter-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: #111;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.state-box {
+  padding: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  background: #fff;
 }
 
 .product-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  height: 100%;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
 }
 
-.custom-select {
-  min-width: 150px;
-  cursor: pointer;
+.product-image-wrap {
+  background: #f3f4f6;
 }
-.page-link {
-  font-weight: 500;
+
+.product-img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  background: #f1f3f5;
+}
+
+.product-body {
+  padding: 16px;
+}
+
+.product-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+  line-height: 1.35;
+  min-height: 48px;
+}
+
+.product-desc {
+  font-size: 14px;
+  color: #6c757d;
+  margin-top: 8px;
+  min-height: 42px;
+  line-height: 1.5;
+}
+
+.product-price {
+  font-size: 24px;
+  font-weight: 800;
+  color: #c1121f;
+  margin-top: 12px;
+}
+
+.meta-block {
+  margin-top: 12px;
+}
+
+.meta-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6c757d;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip-light {
+  background: #eef2f7;
+  color: #111;
+}
+
+.product-footer {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stock-text {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+@media (max-width: 575.98px) {
+  .page-title {
+    font-size: 28px;
+  }
+
+  .product-img {
+    height: 260px;
+  }
 }
 </style>
