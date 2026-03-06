@@ -19,7 +19,23 @@
         :class="m.senderType === 'CLIENT' ? 'me' : 'them'"
       >
         <div class="bubble">
+          <div class="sender" v-if="m.senderType !== 'CLIENT'">
+            {{ m.senderType === 'BOT' ? 'Bot' : 'CSKH' }}
+          </div>
+
           <div class="text">{{ m.content }}</div>
+
+          <div v-if="getQuickOptions(m).length" class="quick-options">
+            <button
+              v-for="(opt, i) in getQuickOptions(m)"
+              :key="i"
+              class="quick-btn"
+              @click="sendQuickOption(opt)"
+            >
+              {{ opt }}
+            </button>
+          </div>
+
           <div class="time">{{ formatTime(m.createdAt) }}</div>
         </div>
       </div>
@@ -50,7 +66,7 @@ function getLoggedInUserId() {
   if (!raw) return null;
   try {
     const u = JSON.parse(raw);
-    return u?.id ? String(u.id) : null; // <-- ví dụ: "36"
+    return u?.id ? String(u.id) : null;
   } catch {
     return null;
   }
@@ -94,7 +110,80 @@ function scrollBottom() {
 
 function formatTime(iso) {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString();
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getQuickOptions(message) {
+  if (message.senderType !== "BOT") return [];
+
+  const content = (message.content || "").toLowerCase();
+
+  if (content.includes("shop có thể hỗ trợ gì")) {
+    return [
+      "Kiểm tra đơn hàng",
+      "Phí ship",
+      "Tư vấn size",
+      "Gặp CSKH",
+    ];
+  }
+
+  if (content.includes("kiểm tra phí ship khu vực nào")) {
+    return [
+      "Nội thành TP.HCM",
+      "Ngoại thành TP.HCM",
+      "Tỉnh khác",
+      "Gặp CSKH",
+    ];
+  }
+
+  if (content.includes("gửi mã đơn hàng")) {
+    return [
+      "Đơn của tôi",
+      "Gặp CSKH",
+    ];
+  }
+
+  if (content.includes("thanh toán theo cách nào")) {
+    return [
+      "COD",
+      "Chuyển khoản",
+      "Gặp CSKH",
+    ];
+  }
+
+  if (content.includes("tư vấn size phù hợp")) {
+    return [
+      "Nam 1m70 65kg",
+      "Nam 1m75 70kg",
+      "Nữ 1m55 45kg",
+      "Gặp CSKH",
+    ];
+  }
+
+  return [];
+}
+
+function publishMessage(content) {
+  if (!content?.trim()) return;
+  if (!conversationId.value) return;
+  if (!stomp?.connected) return;
+
+  stomp.publish({
+    destination: "/app/chat.send",
+    body: JSON.stringify({
+      conversationId: conversationId.value,
+      senderType: "CLIENT",
+      senderId: customerId.value,
+      content: content.trim(),
+    }),
+  });
+}
+
+function sendQuickOption(text) {
+  publishMessage(text);
 }
 
 async function loadConversationAndHistory(cid) {
@@ -130,7 +219,6 @@ function connectWsIfNeeded() {
   });
 
   stomp.onConnect = () => {
-    // nếu đã có conversationId thì subscribe room hiện tại
     if (conversationId.value) subscribeRoom(conversationId.value);
   };
 
@@ -140,17 +228,25 @@ function connectWsIfNeeded() {
 function subscribeRoom(convId) {
   if (!stomp?.connected) return;
 
-  try { sub?.unsubscribe(); } catch (e) {}
+  try {
+    sub?.unsubscribe();
+  } catch (e) {}
+
   sub = stomp.subscribe(`/topic/conversations/${convId}`, (frame) => {
     const msg = JSON.parse(frame.body);
-    messages.value.push(msg);
-    nextTick(scrollBottom);
+
+    const exists = messages.value.some((m) => m.id === msg.id);
+    if (!exists) {
+      messages.value.push(msg);
+      nextTick(scrollBottom);
+    }
   });
 }
 
 async function reInitForCustomer(cid) {
-  // đổi user/guest => reset room cũ + init room mới
-  try { sub?.unsubscribe(); } catch (e) {}
+  try {
+    sub?.unsubscribe();
+  } catch (e) {}
   sub = null;
 
   messages.value = [];
@@ -158,26 +254,14 @@ async function reInitForCustomer(cid) {
 
   await loadConversationAndHistory(cid);
 
-  // nếu ws connected -> sub ngay, không thì onConnect sẽ sub sau
   if (stomp?.connected) subscribeRoom(conversationId.value);
 }
 
 function send() {
   const content = input.value.trim();
   if (!content) return;
-  if (!conversationId.value) return;
-  if (!stomp?.connected) return;
 
-  stomp.publish({
-    destination: "/app/chat.send",
-    body: JSON.stringify({
-      conversationId: conversationId.value,
-      senderType: "CLIENT",
-      senderId: customerId.value, // ✅ userId (36) hoặc guestId
-      content,
-    }),
-  });
-
+  publishMessage(content);
   input.value = "";
 }
 
@@ -186,7 +270,6 @@ onMounted(async () => {
   await reInitForCustomer(customerId.value);
 });
 
-// ✅ Khi login/logout/đổi account => vest_user đổi => customerId đổi => tự chuyển conversation
 watch(customerId, async (newCid, oldCid) => {
   if (!oldCid) return;
   if (newCid === oldCid) return;
@@ -194,13 +277,16 @@ watch(customerId, async (newCid, oldCid) => {
 });
 
 onBeforeUnmount(() => {
-  try { sub?.unsubscribe(); } catch (e) {}
-  try { stomp?.deactivate(); } catch (e) {}
+  try {
+    sub?.unsubscribe();
+  } catch (e) {}
+  try {
+    stomp?.deactivate();
+  } catch (e) {}
 });
 </script>
 
 <style scoped>
-/* ✅ icon chat bám bên phải và đi theo khi scroll */
 .chat-fab {
   position: fixed;
   right: 18px;
@@ -217,7 +303,6 @@ onBeforeUnmount(() => {
   z-index: 2147483647;
 }
 
-/* popup */
 .chat-box {
   position: fixed;
   right: 18px;
@@ -231,7 +316,7 @@ onBeforeUnmount(() => {
   z-index: 2147483646;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .chat-header {
@@ -242,7 +327,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
 }
-.title { font-weight: 700; }
+
+.title {
+  font-weight: 700;
+}
+
 .close-btn {
   border: none;
   background: transparent;
@@ -258,25 +347,67 @@ onBeforeUnmount(() => {
   background: #f6f8fb;
 }
 
-.msg-row { display: flex; margin: 8px 0; }
-.msg-row.me { justify-content: flex-end; }
-.msg-row.them { justify-content: flex-start; }
+.msg-row {
+  display: flex;
+  margin: 8px 0;
+}
+
+.msg-row.me {
+  justify-content: flex-end;
+}
+
+.msg-row.them {
+  justify-content: flex-start;
+}
 
 .bubble {
   max-width: 78%;
   padding: 10px 10px 6px;
   border-radius: 12px;
   background: #fff;
-  border: 1px solid rgba(0,0,0,0.06);
-}
-.msg-row.me .bubble {
-  background: #e9f3ff;
-  border-color: rgba(10,133,237,0.25);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.text { white-space: pre-wrap; word-break: break-word; }
+.msg-row.me .bubble {
+  background: #e9f3ff;
+  border-color: rgba(10, 133, 237, 0.25);
+}
+
+.sender {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+.text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.quick-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.quick-btn {
+  border: 1px solid rgba(10, 133, 237, 0.18);
+  background: #eef4ff;
+  color: #0a85ed;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.quick-btn:hover {
+  background: #e4efff;
+}
+
 .time {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 11px;
   opacity: 0.6;
   text-align: right;
@@ -286,16 +417,18 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-top: 1px solid rgba(0,0,0,0.06);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   background: #fff;
 }
+
 .chat-input input {
   flex: 1;
   padding: 10px 10px;
-  border: 1px solid rgba(0,0,0,0.14);
+  border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 10px;
   outline: none;
 }
+
 .chat-input button {
   padding: 10px 12px;
   border: none;
@@ -306,9 +439,16 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-/* responsive nhỏ */
 @media (max-width: 420px) {
-  .chat-box { right: 10px; left: 10px; width: auto; }
-  .chat-fab { right: 12px; bottom: 12px; }
+  .chat-box {
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .chat-fab {
+    right: 12px;
+    bottom: 12px;
+  }
 }
 </style>
