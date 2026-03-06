@@ -811,38 +811,154 @@
             </div>
 
             <div class="modal-body">
-              <div class="d-flex gap-2 mb-3 flex-wrap">
-                <input
-                  class="form-control"
-                  placeholder="Tìm kiếm..."
-                  v-model.trim="productKw"
-                  style="max-width: 420px"
-                />
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="productKw = ''"
-                >
-                  Đặt lại
-                </button>
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="reloadProducts"
-                  :disabled="productLoading"
-                >
-                  Tải lại
-                </button>
+            <div class="card border-0 shadow-sm mb-3">
+  <div class="card-body pt-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-lg-6">
+        <label class="form-label mb-1">Tìm kiếm</label>
+        <input
+          class="form-control"
+          placeholder="Tìm theo mã / tên sản phẩm..."
+          v-model.trim="productFilters.keyword"
+        />
+      </div>
 
-                <div
-                  class="ms-auto small text-muted d-flex align-items-center gap-2"
-                >
-                  <span v-if="productLoading">Đang tải...</span>
-                  <span
-                    >Tổng: <b>{{ productTotal }}</b></span
-                  >
-                </div>
-              </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label mb-1">Màu sắc</label>
+        <select class="form-select" v-model="productFilters.color">
+          <option value="">-- Chọn màu sắc --</option>
+          <option
+            v-for="c in productColorOptions"
+            :key="c"
+            :value="c"
+          >
+            {{ c }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label mb-1">Size</label>
+        <select class="form-select" v-model="productFilters.size">
+          <option value="">-- Chọn size --</option>
+          <option
+            v-for="s in productSizeOptions"
+            :key="s"
+            :value="s"
+          >
+            {{ s }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-12 col-lg-7">
+        <label class="form-label mb-2">Khoảng giá</label>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+          <span class="fw-semibold text-success">
+            {{ money(productPriceRange.min).replace(" đ", "") }}
+          </span>
+          <span>-</span>
+          <span class="fw-semibold text-success">
+            {{ money(productPriceRange.max).replace(" đ", "") }}
+          </span>
+        </div>
+
+        <div class="price-range-wrap">
+          <input
+            class="range-input"
+            type="range"
+            :min="productPriceBounds.min"
+            :max="productPriceBounds.max"
+            :step="productPriceStep"
+            v-model.number="productPriceRange.min"
+            @input="onPriceRangeMinInput"
+          />
+
+          <input
+            class="range-input"
+            type="range"
+            :min="productPriceBounds.min"
+            :max="productPriceBounds.max"
+            :step="productPriceStep"
+            v-model.number="productPriceRange.max"
+            @input="onPriceRangeMaxInput"
+          />
+        </div>
+
+        <div class="small text-muted mt-1">
+          Giá tối đa hiện tại:
+          <b>{{ money(productPriceRange.max) }}</b>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <label class="form-label mb-2">Trạng thái</label>
+        <div class="product-status-group">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              value=""
+              v-model="productFilters.stockStatus"
+              id="stock-all"
+            />
+            <label class="form-check-label" for="stock-all">Tất cả</label>
+          </div>
+
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              value="in"
+              v-model="productFilters.stockStatus"
+              id="stock-in"
+            />
+            <label class="form-check-label" for="stock-in">Còn hàng</label>
+          </div>
+
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              value="out"
+              v-model="productFilters.stockStatus"
+              id="stock-out"
+            />
+            <label class="form-check-label" for="stock-out">Hết hàng</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="small text-muted d-flex align-items-center gap-3 flex-wrap">
+          <span v-if="productLoading">Đang tải...</span>
+          <span>Hiển thị: <b>{{ filteredProducts.length }}</b></span>
+          <span>Tổng: <b>{{ productTotal }}</b></span>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            @click="resetProductFilters"
+          >
+            Đặt lại
+          </button>
+
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            @click="reloadProducts"
+            :disabled="productLoading"
+          >
+            Tải lại
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
               <div class="table-responsive">
                 <table class="table table-bordered align-middle">
@@ -1649,8 +1765,20 @@ function closeAnyModal() {
  * PRODUCTS (DB) - PAGINATION
  * ======================= */
 const products = ref([]);
-const productKw = ref("");
+
 const productLoading = ref(false);
+
+const productFilters = reactive({
+  keyword: "",
+  color: "",
+  size: "",
+  stockStatus: "",
+});
+
+const productPriceRange = reactive({
+  min: 0,
+  max: 100000000,
+});
 
 const productPage = ref(0);
 const productSize = ref(10);
@@ -1721,21 +1849,127 @@ function productNext() {
 function onProductSizeChange() {
   fetchProducts(0);
 }
+const productPriceBounds = computed(() => {
+  if (!products.value.length) {
+    return { min: 0, max: 100000000 };
+  }
 
-const filteredProducts = computed(() => {
-  const kw = productKw.value.trim().toLowerCase();
-  if (!kw) return products.value;
-  return products.value.filter((p) =>
-    [p.code, p.name, p.color, p.size].some((x) =>
-      String(x).toLowerCase().includes(kw),
-    ),
+  const prices = products.value.map((p) => Number(p.price || 0));
+  return {
+    min: Math.min(...prices),
+    max: Math.max(...prices),
+  };
+});
+
+const productPriceStep = computed(() => {
+  const max = Number(productPriceBounds.value.max || 0);
+
+  if (max <= 100000) return 1000;
+  if (max <= 1000000) return 10000;
+  return 50000;
+});
+watch(
+  productPriceBounds,
+  (bounds) => {
+    if (
+      productPriceRange.min < bounds.min ||
+      productPriceRange.min > bounds.max
+    ) {
+      productPriceRange.min = bounds.min;
+    }
+
+    if (
+      productPriceRange.max > bounds.max ||
+      productPriceRange.max < bounds.min
+    ) {
+      productPriceRange.max = bounds.max;
+    }
+
+    if (productPriceRange.min > productPriceRange.max) {
+      productPriceRange.min = bounds.min;
+      productPriceRange.max = bounds.max;
+    }
+  },
+  { immediate: true },
+);
+function onPriceRangeMinInput() {
+  if (productPriceRange.min > productPriceRange.max) {
+    productPriceRange.min = productPriceRange.max;
+  }
+}
+
+function onPriceRangeMaxInput() {
+  if (productPriceRange.max < productPriceRange.min) {
+    productPriceRange.max = productPriceRange.min;
+  }
+}
+const productColorOptions = computed(() => {
+  return [...new Set(products.value.map((p) => p.color).filter(Boolean))].sort(
+    (a, b) => String(a).localeCompare(String(b), "vi"),
   );
 });
 
-function openProductModal() {
+const productSizeOptions = computed(() => {
+  return [...new Set(products.value.map((p) => p.size).filter(Boolean))].sort(
+    (a, b) => String(a).localeCompare(String(b), "vi"),
+  );
+});
+
+const filteredProducts = computed(() => {
+  const kw = String(productFilters.keyword || "").trim().toLowerCase();
+  const color = String(productFilters.color || "").trim().toLowerCase();
+  const size = String(productFilters.size || "").trim().toLowerCase();
+  const stockStatus = String(productFilters.stockStatus || "").trim();
+
+  const minPrice = Number(productPriceRange.min || 0);
+  const maxPrice = Number(productPriceRange.max || 0);
+
+  return products.value.filter((p) => {
+    const textMatched =
+      !kw ||
+      [p.code, p.name, p.color, p.size].some((x) =>
+        String(x || "").toLowerCase().includes(kw),
+      );
+
+    const colorMatched =
+      !color || String(p.color || "").toLowerCase() === color;
+
+    const sizeMatched =
+      !size || String(p.size || "").toLowerCase() === size;
+
+    const stockMatched =
+      !stockStatus ||
+      (stockStatus === "in" && Number(p.stock || 0) > 0) ||
+      (stockStatus === "out" && Number(p.stock || 0) <= 0);
+
+    const price = Number(p.price || 0);
+    const priceMatched = price >= minPrice && price <= maxPrice;
+
+    return (
+      textMatched &&
+      colorMatched &&
+      sizeMatched &&
+      stockMatched &&
+      priceMatched
+    );
+  });
+});
+
+function resetProductFilters() {
+  productFilters.keyword = "";
+  productFilters.color = "";
+  productFilters.size = "";
+  productFilters.stockStatus = "";
+
+  productPriceRange.min = productPriceBounds.value.min;
+  productPriceRange.max = productPriceBounds.value.max;
+}
+
+async function openProductModal() {
   showCustomerModal.value = false;
   showProductModal.value = true;
-  fetchProducts(0);
+  await fetchProducts(0);
+  resetProductFilters();
 }
 function closeProductModal() {
   showProductModal.value = false;
@@ -3062,5 +3296,65 @@ onBeforeUnmount(() => {
 }
 :global(.modal .modal-dialog) {
   pointer-events: auto;
+}
+.product-status-group {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  min-height: 38px;
+}
+
+.product-status-group .form-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.price-range-wrap {
+  position: relative;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.range-input {
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.range-input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #198754;
+}
+
+.range-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d1fae5;
+  border: 2px solid #198754;
+  margin-top: -6px;
+  cursor: pointer;
+}
+
+.range-input::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #198754;
+}
+
+.range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d1fae5;
+  border: 2px solid #198754;
+  cursor: pointer;
 }
 </style>
