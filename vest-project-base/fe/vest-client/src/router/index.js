@@ -7,6 +7,7 @@ import ClientLayout from "../layouts/ClientLayout.vue";
 import HomePage from "../pages/client/HomePage.vue";
 import SearchPage from "../pages/client/SearchPage.vue";
 import ProductDetail from "../pages/client/ProductDetail.vue";
+const CartPage = () => import("../pages/client/CartPage.vue");
 
 // Pages (auth)
 import Login from "../pages/auth/Login.vue";
@@ -19,6 +20,7 @@ const ForgotPassword = () => import("../pages/auth/ForgotPassword.vue");
 const OtpVerify = () => import("../pages/auth/OtpVerify.vue");
 const ResetPasswordOtp = () => import("../pages/auth/ResetPasswordOtp.vue");
 
+const CheckoutPage = () => import("../pages/client/CheckoutPage.vue");
 const routes = [
   {
     path: "/",
@@ -27,7 +29,9 @@ const routes = [
       { path: "", name: "Home", component: HomePage },
       { path: "shop", name: "Shop", component: SearchPage },
       { path: "search", name: "Search", component: SearchPage },
+      { path: "cart", name: "Cart", component: CartPage },
       { path: "product/:id", name: "ProductDetail", component: ProductDetail, props: true },
+      { path: "checkout", name: "Checkout", component: CheckoutPage },
     ],
   },
 

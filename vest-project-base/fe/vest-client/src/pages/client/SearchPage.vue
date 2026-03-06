@@ -70,7 +70,7 @@
                   <span class="fw-bold text-dark me-2">{{ formatPrice(product.price) }}đ</span>
                   <small class="text-decoration-line-through text-muted">{{ formatPrice(product.oldPrice) }}đ</small>
                 </div>
-                <button class="btn btn-cyan text-white fw-semibold w-100 rounded-2 py-2">
+                <button class="btn btn-cyan text-white fw-semibold w-100 rounded-2 py-2" @click="add(product)">
                   THÊM VÀO GIỎ
                 </button>
               </div>
@@ -94,6 +94,18 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useCart } from '../../composables/useCart';
+
+const { addToCart } = useCart();
+
+function add(product) {
+  addToCart({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    image: product.image,
+  }, 1);
+}
 
 // Mock Data cho Filters
 const priceRanges = ref([
