@@ -9,6 +9,8 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.util.List;
+
 @Controller
 public class ChatWsController {
 
@@ -29,22 +31,45 @@ public class ChatWsController {
                 req.getContent()
         );
 
-        ChatMessageResponse res = new ChatMessageResponse();
-        res.setId(saved.getId());
-        res.setConversationId(saved.getConversationId());
-        res.setSenderType(saved.getSenderType());
-        res.setSenderId(saved.getSenderId());
-        res.setContent(saved.getContent());
-        res.setCreatedAt(saved.getCreatedAt());
+        // broadcast message user/admin vừa gửi
+        ChatMessageResponse res = toResponse(saved);
+        broadcast(req.getConversationId(), res);
 
-        // 1) Bắn vào room theo conversationId (client/admin đang mở room này sẽ nhận)
+        // nếu client gửi, có thể bot đã auto reply trong saveMessage()
+        if ("CLIENT".equalsIgnoreCase(req.getSenderType())) {
+            List<Message> messages = chatService.getRecentMessages(req.getConversationId());
+
+            if (!messages.isEmpty()) {
+                Message lastMessage = messages.get(messages.size() - 1);
+
+                // nếu message cuối là BOT và không trùng với message vừa gửi thì broadcast thêm bot
+                if ("BOT".equalsIgnoreCase(lastMessage.getSenderType())
+                        && !lastMessage.getId().equals(saved.getId())) {
+
+                    ChatMessageResponse botRes = toResponse(lastMessage);
+                    broadcast(req.getConversationId(), botRes);
+                }
+            }
+        }
+    }
+
+    private ChatMessageResponse toResponse(Message message) {
+        ChatMessageResponse res = new ChatMessageResponse();
+        res.setId(message.getId());
+        res.setConversationId(message.getConversationId());
+        res.setSenderType(message.getSenderType());
+        res.setSenderId(message.getSenderId());
+        res.setContent(message.getContent());
+        res.setCreatedAt(message.getCreatedAt());
+        return res;
+    }
+
+    private void broadcast(Long conversationId, ChatMessageResponse res) {
         messagingTemplate.convertAndSend(
-                "/topic/conversations/" + req.getConversationId(),
+                "/topic/conversations/" + conversationId,
                 res
         );
 
-        // 2) Bắn thêm 1 kênh tổng cho admin để admin luôn nhận được tin mới
-        // => admin không cần nhập Conversation ID vẫn thấy tin + biết conversationId để hiện lên list
         messagingTemplate.convertAndSend(
                 "/topic/admin/conversations",
                 res

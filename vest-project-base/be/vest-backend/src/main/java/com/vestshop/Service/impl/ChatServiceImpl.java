@@ -1,5 +1,6 @@
 package com.vestshop.Service.impl;
 
+import com.vestshop.Chatbot.RuleBasedChatbotService;
 import com.vestshop.Entity.Conversation;
 import com.vestshop.Entity.Message;
 import com.vestshop.Repository.ConversationRepo;
@@ -15,10 +16,12 @@ public class ChatServiceImpl implements ChatService {
 
     private final ConversationRepo conversationRepo;
     private final MessageRepo messageRepo;
+    private final RuleBasedChatbotService ruleBasedChatbotService;
 
-    public ChatServiceImpl(ConversationRepo conversationRepo, MessageRepo messageRepo) {
+    public ChatServiceImpl(ConversationRepo conversationRepo, MessageRepo messageRepo, RuleBasedChatbotService ruleBasedChatbotService) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
+        this.ruleBasedChatbotService = ruleBasedChatbotService;
     }
 
     @Override
@@ -43,8 +46,22 @@ public class ChatServiceImpl implements ChatService {
 
         Message saved = messageRepo.save(msg);
 
-        // ✅ bump updated_at để admin sort đúng
         conversationRepo.touchUpdatedAt(conversationId);
+
+        if ("CLIENT".equalsIgnoreCase(senderType)) {
+            String botReply = ruleBasedChatbotService.findBestReply(content);
+
+            if (botReply != null && !botReply.isBlank()) {
+                Message botMsg = new Message();
+                botMsg.setConversationId(conversationId);
+                botMsg.setSenderType("BOT");
+                botMsg.setSenderId("RULE_BASED_BOT");
+                botMsg.setContent(botReply);
+
+                messageRepo.save(botMsg);
+                conversationRepo.touchUpdatedAt(conversationId);
+            }
+        }
 
         return saved;
     }
