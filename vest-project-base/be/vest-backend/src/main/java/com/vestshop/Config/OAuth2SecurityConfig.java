@@ -22,9 +22,15 @@ public class OAuth2SecurityConfig {
                 .securityMatcher("/oauth2/**", "/login/oauth2/**")
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .oauth2Login(oauth -> oauth.successHandler(oAuth2LoginSuccessHandler));
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oAuth2LoginSuccessHandler)
+                        .failureHandler((request, response, exception) -> {
+                            exception.printStackTrace();
+                            response.sendRedirect("http://localhost:5173/login?error=oauth2_failed");
+                        })
+                );
 
         return http.build();
     }
