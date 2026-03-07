@@ -14,7 +14,7 @@
     <div ref="msgBox" class="chat-messages">
       <div
         v-for="(m, idx) in messages"
-        :key="m.id ?? idx"
+        :key="m.id ?? `${m.senderType}-${m.createdAt}-${idx}`"
         class="msg-row"
         :class="m.senderType === 'CLIENT' ? 'me' : 'them'"
       >
@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import axios from "axios";
 import { Client } from "@stomp/stompjs";
 
@@ -66,12 +66,11 @@ function getLoggedInUserId() {
   if (!raw) return null;
   try {
     const u = JSON.parse(raw);
-    return u?.id ? String(u.id) : null;
+    return u?.id ? String(u.id) : (u?.taiKhoan ? String(u.taiKhoan) : null);
   } catch {
     return null;
   }
 }
-
 function getGuestId() {
   let id = localStorage.getItem("guestId");
   if (!id) {
@@ -81,8 +80,9 @@ function getGuestId() {
   return id;
 }
 
-// customerId thay đổi theo login/logout
-const customerId = computed(() => getLoggedInUserId() ?? getGuestId());
+function resolveCustomerId() {
+  return getLoggedInUserId() ?? getGuestId();
+}
 
 function convKey(cid) {
   return `conversationId:${cid}`;
@@ -91,6 +91,7 @@ function convKey(cid) {
 
 const open = ref(false);
 const conversationId = ref(null);
+const currentCustomerId = ref("");
 const messages = ref([]);
 const input = ref("");
 const msgBox = ref(null);
@@ -100,7 +101,11 @@ let sub = null;
 
 function toggle() {
   open.value = !open.value;
-  if (open.value) nextTick(scrollBottom);
+  if (open.value) {
+    syncCustomerAndConversation().then(() => {
+      nextTick(scrollBottom);
+    });
+  }
 }
 
 function scrollBottom() {
@@ -110,9 +115,13 @@ function scrollBottom() {
 
 function formatTime(iso) {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString([], {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -122,48 +131,50 @@ function getQuickOptions(message) {
   const content = (message.content || "").toLowerCase();
 
   if (content.includes("shop có thể hỗ trợ gì")) {
-    return [
-      "Kiểm tra đơn hàng",
-      "Phí ship",
-      "Tư vấn size",
-      "Gặp CSKH",
-    ];
+    return ["Kiểm tra đơn hàng", "Phí ship", "Tư vấn size", "Gặp CSKH"];
   }
 
   if (content.includes("kiểm tra phí ship khu vực nào")) {
-    return [
-      "Nội thành TP.HCM",
-      "Ngoại thành TP.HCM",
-      "Tỉnh khác",
-      "Gặp CSKH",
-    ];
+    return ["Nội thành TP.HCM", "Ngoại thành TP.HCM", "Tỉnh khác", "Gặp CSKH"];
   }
 
   if (content.includes("gửi mã đơn hàng")) {
-    return [
-      "Đơn của tôi",
-      "Gặp CSKH",
-    ];
+    return ["Đơn của tôi", "Gặp CSKH"];
   }
 
   if (content.includes("thanh toán theo cách nào")) {
-    return [
-      "COD",
-      "Chuyển khoản",
-      "Gặp CSKH",
-    ];
+    return ["COD", "Chuyển khoản", "Gặp CSKH"];
   }
 
   if (content.includes("tư vấn size phù hợp")) {
-    return [
-      "Nam 1m70 65kg",
-      "Nam 1m75 70kg",
-      "Nữ 1m55 45kg",
-      "Gặp CSKH",
-    ];
+    return ["Nam 1m70 65kg", "Nam 1m75 70kg", "Nữ 1m55 45kg", "Gặp CSKH"];
   }
 
   return [];
+}
+
+function isSameMessage(a, b) {
+  if (!a || !b) return false;
+
+  if (a.id != null && b.id != null) {
+    return String(a.id) === String(b.id);
+  }
+
+  return (
+    String(a.conversationId) === String(b.conversationId) &&
+    String(a.senderType) === String(b.senderType) &&
+    String(a.content) === String(b.content) &&
+    String(a.createdAt) === String(b.createdAt)
+  );
+}
+
+function dedupeMessages(list) {
+  const unique = [];
+  for (const msg of list || []) {
+    const exists = unique.some((m) => isSameMessage(m, msg));
+    if (!exists) unique.push(msg);
+  }
+  return unique;
 }
 
 function publishMessage(content) {
@@ -176,7 +187,7 @@ function publishMessage(content) {
     body: JSON.stringify({
       conversationId: conversationId.value,
       senderType: "CLIENT",
-      senderId: customerId.value,
+      senderId: currentCustomerId.value,
       content: content.trim(),
     }),
   });
@@ -187,8 +198,8 @@ function sendQuickOption(text) {
 }
 
 async function loadConversationAndHistory(cid) {
-  // 1) lấy conversationId theo customerId (cache theo user/guest)
   const cached = localStorage.getItem(convKey(cid));
+
   if (cached) {
     conversationId.value = Number(cached);
   } else {
@@ -199,11 +210,11 @@ async function loadConversationAndHistory(cid) {
     localStorage.setItem(convKey(cid), String(conversationId.value));
   }
 
-  // 2) load history
   const hist = await axios.get(`${API}/api/chat/messages`, {
     params: { conversationId: conversationId.value },
   });
-  messages.value = hist.data || [];
+
+  messages.value = dedupeMessages(Array.isArray(hist.data) ? hist.data : []);
   nextTick(scrollBottom);
 }
 
@@ -235,7 +246,7 @@ function subscribeRoom(convId) {
   sub = stomp.subscribe(`/topic/conversations/${convId}`, (frame) => {
     const msg = JSON.parse(frame.body);
 
-    const exists = messages.value.some((m) => m.id === msg.id);
+    const exists = messages.value.some((m) => isSameMessage(m, msg));
     if (!exists) {
       messages.value.push(msg);
       nextTick(scrollBottom);
@@ -251,10 +262,22 @@ async function reInitForCustomer(cid) {
 
   messages.value = [];
   conversationId.value = null;
+  input.value = "";
 
   await loadConversationAndHistory(cid);
 
-  if (stomp?.connected) subscribeRoom(conversationId.value);
+  if (stomp?.connected && conversationId.value) {
+    subscribeRoom(conversationId.value);
+  }
+}
+
+async function syncCustomerAndConversation() {
+  const cid = resolveCustomerId();
+
+  if (cid === currentCustomerId.value && conversationId.value) return;
+
+  currentCustomerId.value = cid;
+  await reInitForCustomer(cid);
 }
 
 function send() {
@@ -265,15 +288,18 @@ function send() {
   input.value = "";
 }
 
+async function handleFocusOrVisible() {
+  if (document.visibilityState === "visible") {
+    await syncCustomerAndConversation();
+  }
+}
+
 onMounted(async () => {
   connectWsIfNeeded();
-  await reInitForCustomer(customerId.value);
-});
+  await syncCustomerAndConversation();
 
-watch(customerId, async (newCid, oldCid) => {
-  if (!oldCid) return;
-  if (newCid === oldCid) return;
-  await reInitForCustomer(newCid);
+  window.addEventListener("focus", handleFocusOrVisible);
+  document.addEventListener("visibilitychange", handleFocusOrVisible);
 });
 
 onBeforeUnmount(() => {
@@ -283,6 +309,9 @@ onBeforeUnmount(() => {
   try {
     stomp?.deactivate();
   } catch (e) {}
+
+  window.removeEventListener("focus", handleFocusOrVisible);
+  document.removeEventListener("visibilitychange", handleFocusOrVisible);
 });
 </script>
 
