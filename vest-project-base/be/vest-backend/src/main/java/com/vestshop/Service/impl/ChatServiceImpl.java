@@ -46,7 +46,9 @@ public class ChatServiceImpl implements ChatService {
 
         Message saved = messageRepo.save(msg);
 
-        conversationRepo.touchUpdatedAt(conversationId);
+        Conversation conversation = conversationRepo.findById(conversationId).orElseThrow();
+        conversation.setUpdatedAt(saved.getCreatedAt());
+        conversationRepo.save(conversation);
 
         if ("CLIENT".equalsIgnoreCase(senderType)) {
             String botReply = ruleBasedChatbotService.findBestReply(content);
@@ -58,8 +60,10 @@ public class ChatServiceImpl implements ChatService {
                 botMsg.setSenderId("RULE_BASED_BOT");
                 botMsg.setContent(botReply);
 
-                messageRepo.save(botMsg);
-                conversationRepo.touchUpdatedAt(conversationId);
+                Message botSaved = messageRepo.save(botMsg);
+
+                conversation.setUpdatedAt(botSaved.getCreatedAt());
+                conversationRepo.save(conversation);
             }
         }
 

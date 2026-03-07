@@ -16,7 +16,7 @@ public class RuleBasedChatbotService {
     public RuleBasedChatbotService() {
         rules.add(new ChatRule(
                 "greeting",
-                Arrays.asList("xin chao", "hello", "hi", "chao shop", "shop oi", "alo"),
+                Arrays.asList("xin chao", "hello", "hi", "chao shop", "shop oi", "alo", "chào"),
                 "Chào bạn, shop có thể hỗ trợ gì cho bạn?",
                 10
         ));
