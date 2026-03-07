@@ -29,9 +29,10 @@
               @click="openConversation(c.conversationId)"
             >
               <div class="row1">
-                <b>#{{ c.conversationId }}</b>
+                <span class="customer-name">{{ c.customerName }}</span>
                 <span class="badge" v-if="c.unreadCount > 0">{{ c.unreadCount }}</span>
               </div>
+
               <div class="row2">
                 <span class="preview">{{ c.lastMessage || "—" }}</span>
                 <span class="time">{{ formatTime(c.lastAt) }}</span>
@@ -45,7 +46,7 @@
       <div class="chat">
         <div class="chat-top">
           <div class="chat-title">
-            Inbox: <b>{{ conversationId ?? "chưa chọn" }}</b>
+            {{ activeConversationName || "Chưa chọn khách" }}
           </div>
         </div>
 
@@ -123,7 +124,7 @@ const messages = ref([]);
 const input = ref("");
 const msgBox = ref(null);
 
-const wsStatus = ref("DISCONNECTED"); // DISCONNECTED | CONNECTING | CONNECTED | ERROR
+const wsStatus = ref("DISCONNECTED");
 const wsStatusClass = computed(() => {
   if (wsStatus.value === "CONNECTED") return "ok";
   if (wsStatus.value === "CONNECTING") return "warn";
@@ -132,6 +133,17 @@ const wsStatusClass = computed(() => {
 });
 
 const conversations = ref([]);
+
+const activeConversation = computed(
+  () =>
+    conversations.value.find(
+      (x) => String(x.conversationId) === String(conversationId.value)
+    ) || null
+);
+
+const activeConversationName = computed(
+  () => activeConversation.value?.customerName || ""
+);
 
 let stomp = null;
 let roomSub = null;
@@ -182,8 +194,19 @@ function dedupeMessages(list) {
 }
 
 function normalizeConversationItem(c) {
+  const rawName =
+    c.customerName ??
+    c.customerFullName ??
+    c.fullName ??
+    c.name ??
+    c.username ??
+    c.customerUsername ??
+    c.guestName ??
+    "";
+
   return {
     conversationId: c.id ?? c.conversationId,
+    customerName: String(rawName).trim() || "Khách vãng lai",
     lastMessage: c.lastMessage ?? "",
     lastAt: c.lastAt ?? c.createdAt ?? c.updatedAt ?? null,
     unreadCount: Number(c.unreadCount || 0),
@@ -204,8 +227,21 @@ function upsertConversationFromMessage(msg) {
 
   const isActive = String(conversationId.value) === String(id);
 
+  const rawName =
+    msg.customerName ??
+    msg.customerFullName ??
+    msg.fullName ??
+    msg.name ??
+    msg.username ??
+    msg.customerUsername ??
+    msg.guestName ??
+    "";
+
+  const resolvedName = String(rawName).trim() || "Khách vãng lai";
+
   const item = {
     conversationId: id,
+    customerName: resolvedName,
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : 1,
@@ -222,6 +258,7 @@ function upsertConversationFromMessage(msg) {
   conversations.value.splice(idx, 1);
   conversations.value.unshift({
     ...current,
+    customerName: current.customerName || resolvedName,
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : unread + 1,
@@ -317,6 +354,10 @@ function subscribeRoom(id) {
     if (idx !== -1) {
       conversations.value[idx].lastMessage = msg.content;
       conversations.value[idx].lastAt = msg.createdAt;
+      conversations.value[idx].customerName =
+        conversations.value[idx].customerName ||
+        msg.customerName ||
+        "Khách vãng lai";
       conversations.value[idx].unreadCount =
         msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
           ? Number(conversations.value[idx].unreadCount || 0) + 1
@@ -342,16 +383,6 @@ async function openConversation(id) {
   if (stomp?.connected) {
     subscribeRoom(id);
   }
-}
-
-function leave() {
-  try {
-    roomSub?.unsubscribe();
-  } catch (e) {}
-
-  roomSub = null;
-  conversationId.value = null;
-  messages.value = [];
 }
 
 function send() {
@@ -533,6 +564,17 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   color: #0f172a;
+  gap: 10px;
+}
+
+.customer-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
 }
 
 .row2 {
@@ -712,7 +754,8 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .preview {
+  .preview,
+  .customer-name {
     max-width: 100%;
   }
 }

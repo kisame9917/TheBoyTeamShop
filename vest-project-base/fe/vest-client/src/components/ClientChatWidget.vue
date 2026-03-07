@@ -59,37 +59,65 @@ import { Client } from "@stomp/stompjs";
 
 const API = import.meta.env.VITE_API_BASE;
 
-function getLoggedInUserId() {
+function getLoggedInUser() {
   const raw = localStorage.getItem("vest_user");
   if (!raw) return null;
   try {
-    const u = JSON.parse(raw);
-    return u?.id ? String(u.id) : (u?.taiKhoan ? String(u.taiKhoan) : null);
+    return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-function getGuestId() {
-  let id = localStorage.getItem("guestId");
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("guestId", id);
-  }
-  return id;
+function getLoggedInUserId() {
+  const u = getLoggedInUser();
+  const id =
+    u?.khachHangId ??
+    u?.customerId ??
+    u?.id ??
+    u?.user?.id ??
+    u?.nguoiDung?.id ??
+    null;
+
+  if (id == null) return null;
+
+  const n = Number(id);
+  return Number.isNaN(n) ? null : n;
 }
 
-function resolveCustomerId() {
-  return getLoggedInUserId() ?? getGuestId();
+function getGuestName() {
+  return "Khách vãng lai";
 }
 
-function convKey(cid) {
-  return `conversationId:${cid}`;
+function getSenderId() {
+  const userId = getLoggedInUserId();
+  return userId != null ? String(userId) : "GUEST";
+}
+
+function getIdentityKey() {
+  const userId = getLoggedInUserId();
+  return userId != null ? `user:${userId}` : "guest";
+}
+
+function convKey(identityKey) {
+  return `conversationId:${identityKey}`;
+}
+
+function buildWelcomeMessage() {
+  return {
+    id: `local-bot-${Date.now()}`,
+    conversationId: null,
+    senderType: "BOT",
+    senderId: "LOCAL_BOT",
+    content: "Chào bạn, shop có thể hỗ trợ gì cho bạn?",
+    createdAt: new Date().toISOString(),
+    localOnly: true,
+  };
 }
 
 const open = ref(false);
 const conversationId = ref(null);
-const currentCustomerId = ref("");
+const currentIdentityKey = ref("");
 const messages = ref([]);
 const input = ref("");
 const msgBox = ref(null);
@@ -97,18 +125,31 @@ const msgBox = ref(null);
 let stomp = null;
 let sub = null;
 
-function toggle() {
-  open.value = !open.value;
-  if (open.value) {
-    syncCustomerAndConversation().then(() => {
-      nextTick(scrollBottom);
-    });
-  }
-}
-
 function scrollBottom() {
   if (!msgBox.value) return;
   msgBox.value.scrollTop = msgBox.value.scrollHeight;
+}
+
+function ensureLocalWelcome() {
+  if (conversationId.value) return;
+  if (messages.value.length > 0) return;
+
+  messages.value = [buildWelcomeMessage()];
+  nextTick(scrollBottom);
+}
+
+async function toggle() {
+  open.value = !open.value;
+
+  if (open.value) {
+    await syncConversation();
+
+    if (!conversationId.value) {
+      ensureLocalWelcome();
+    } else {
+      nextTick(scrollBottom);
+    }
+  }
 }
 
 function formatTime(iso) {
@@ -181,7 +222,7 @@ function publishMessage(content) {
     body: JSON.stringify({
       conversationId: conversationId.value,
       senderType: "CLIENT",
-      senderId: currentCustomerId.value,
+      senderId: getSenderId(),
       content: content.trim(),
     }),
   });
@@ -190,26 +231,31 @@ function publishMessage(content) {
 async function createConversationAndSendFirstMessage(content) {
   if (!content?.trim()) return;
 
-  const cv = await axios.post(`${API}/api/chat/conversation`, null, {
-    params: { customerId: currentCustomerId.value },
-  });
+  const userId = getLoggedInUserId();
+  const identityKey = getIdentityKey();
+
+  const params =
+    userId != null
+      ? { customerId: userId }
+      : { guestName: getGuestName() };
+
+  const cv = await axios.post(`${API}/api/chat/conversation`, null, { params });
 
   conversationId.value = cv.data.id;
-  localStorage.setItem(
-    convKey(currentCustomerId.value),
-    String(conversationId.value)
-  );
+  localStorage.setItem(convKey(identityKey), String(conversationId.value));
 
   if (stomp?.connected && conversationId.value) {
     subscribeRoom(conversationId.value);
   }
+
+  messages.value = messages.value.filter((m) => !m.localOnly);
 
   stomp.publish({
     destination: "/app/chat.send",
     body: JSON.stringify({
       conversationId: conversationId.value,
       senderType: "CLIENT",
-      senderId: currentCustomerId.value,
+      senderId: getSenderId(),
       content: content.trim(),
     }),
   });
@@ -231,12 +277,13 @@ async function sendQuickOption(text) {
   }
 }
 
-async function loadConversationAndHistory(cid) {
-  const cached = localStorage.getItem(convKey(cid));
+async function loadConversationAndHistory(identityKey) {
+  const cached = localStorage.getItem(convKey(identityKey));
 
   if (!cached) {
     conversationId.value = null;
     messages.value = [];
+    ensureLocalWelcome();
     return;
   }
 
@@ -280,13 +327,14 @@ function subscribeRoom(convId) {
 
     const exists = messages.value.some((m) => isSameMessage(m, msg));
     if (!exists) {
+      messages.value = messages.value.filter((m) => !m.localOnly);
       messages.value.push(msg);
       nextTick(scrollBottom);
     }
   });
 }
 
-async function reInitForCustomer(cid) {
+async function reInitForIdentity(identityKey) {
   try {
     sub?.unsubscribe();
   } catch (e) {}
@@ -296,27 +344,24 @@ async function reInitForCustomer(cid) {
   conversationId.value = null;
   input.value = "";
 
-  await loadConversationAndHistory(cid);
+  await loadConversationAndHistory(identityKey);
 
   if (stomp?.connected && conversationId.value) {
     subscribeRoom(conversationId.value);
   }
 }
 
-async function syncCustomerAndConversation() {
-  const cid = resolveCustomerId();
+async function syncConversation() {
+  const identityKey = getIdentityKey();
 
-  if (cid === currentCustomerId.value && conversationId.value) return;
-  if (cid === currentCustomerId.value && !conversationId.value) return;
+  if (identityKey === currentIdentityKey.value && conversationId.value) return;
+  if (identityKey === currentIdentityKey.value && !conversationId.value) return;
 
-  currentCustomerId.value = cid;
-  await reInitForCustomer(cid);
+  currentIdentityKey.value = identityKey;
+  await reInitForIdentity(identityKey);
 }
 
 async function handleAuthChanged() {
-  const oldGuestId = localStorage.getItem("guestId");
-  const loggedInId = getLoggedInUserId();
-
   try {
     sub?.unsubscribe();
   } catch (e) {}
@@ -326,26 +371,10 @@ async function handleAuthChanged() {
   conversationId.value = null;
   input.value = "";
 
-  // Nếu từ guest -> login user, chuyển conversation cũ sang user mới
-  if (loggedInId && oldGuestId) {
-    const guestConvKey = convKey(oldGuestId);
-    const userConvKey = convKey(loggedInId);
-
-    const guestConversationId = localStorage.getItem(guestConvKey);
-    const userConversationId = localStorage.getItem(userConvKey);
-
-    if (guestConversationId && !userConversationId) {
-      localStorage.setItem(userConvKey, guestConversationId);
-    }
-
-    // chỉ xóa sau khi đã migrate
-    localStorage.removeItem(guestConvKey);
-    localStorage.removeItem("guestId");
-  }
-
-  currentCustomerId.value = "";
-  await syncCustomerAndConversation();
+  currentIdentityKey.value = "";
+  await syncConversation();
 }
+
 async function send() {
   const content = input.value.trim();
   if (!content) return;
@@ -366,13 +395,13 @@ async function send() {
 
 async function handleFocusOrVisible() {
   if (document.visibilityState === "visible") {
-    await syncCustomerAndConversation();
+    await syncConversation();
   }
 }
 
 onMounted(async () => {
   connectWsIfNeeded();
-  await syncCustomerAndConversation();
+  await syncConversation();
 
   window.addEventListener("focus", handleFocusOrVisible);
   document.addEventListener("visibilitychange", handleFocusOrVisible);
@@ -392,7 +421,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("auth-changed", handleAuthChanged);
 });
 </script>
-
 <style scoped>
 .chat-fab {
   position: fixed;
