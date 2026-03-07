@@ -15,15 +15,13 @@ import axios from "axios";
 const route = useRoute();
 const router = useRouter();
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const BASE_URL = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
 function clearAuthStorage() {
   localStorage.removeItem("USER_ACCESS_TOKEN");
   sessionStorage.removeItem("USER_ACCESS_TOKEN");
   localStorage.removeItem("USER_NAME");
   sessionStorage.removeItem("USER_NAME");
-
-  // clear kiểu vest_ cũ luôn cho sạch
   localStorage.removeItem("vest_user");
   localStorage.removeItem("vest_token");
   localStorage.removeItem("vest_role");
@@ -49,8 +47,6 @@ onMounted(async () => {
     const me = res?.data || {};
 
     localStorage.setItem("USER_NAME", me.tenKhachHang || "");
-
-    // QUAN TRỌNG: chat widget đang đọc vest_user
     localStorage.setItem(
       "vest_user",
       JSON.stringify({
@@ -63,7 +59,6 @@ onMounted(async () => {
     );
     localStorage.setItem("vest_role", "CLIENT");
 
-    // báo cho UI/chat biết auth đã đổi
     window.dispatchEvent(new Event("auth-changed"));
   } catch (e) {
     console.warn("Không lấy được thông tin khách hàng:", e?.response?.data || e?.message);

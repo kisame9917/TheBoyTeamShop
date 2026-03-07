@@ -134,20 +134,39 @@
         </div>
       </div>
     </section>
-     <ChatWidget />
+    <ChatWidget :key="chatWidgetKey" />
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { getProducts } from "../../services/productClientApi";
 import ChatWidget from "../../components/ClientChatWidget.vue";
+
 const router = useRouter();
 
 const loading = ref(false);
 const error = ref("");
 const products = ref([]);
+
+const chatWidgetKey = computed(() => {
+  const raw = localStorage.getItem("vest_user");
+
+  if (!raw) {
+    const guestId = localStorage.getItem("guestId") || "guest";
+    return `guest-${guestId}`;
+  }
+
+  try {
+    const u = JSON.parse(raw);
+    const id = u?.id || u?.taiKhoan || "guest";
+    return `user-${id}`;
+  } catch {
+    const guestId = localStorage.getItem("guestId") || "guest";
+    return `guest-${guestId}`;
+  }
+});
 
 const fallbackProductImage =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='460'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3ENo Image%3C/text%3E%3C/svg%3E";

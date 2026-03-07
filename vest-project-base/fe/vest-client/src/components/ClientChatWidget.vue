@@ -57,10 +57,8 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import axios from "axios";
 import { Client } from "@stomp/stompjs";
 
-// ===== CONFIG =====
 const API = import.meta.env.VITE_API_BASE;
 
-// --- Auth helpers (localStorage) ---
 function getLoggedInUserId() {
   const raw = localStorage.getItem("vest_user");
   if (!raw) return null;
@@ -71,6 +69,7 @@ function getLoggedInUserId() {
     return null;
   }
 }
+
 function getGuestId() {
   let id = localStorage.getItem("guestId");
   if (!id) {
@@ -87,7 +86,6 @@ function resolveCustomerId() {
 function convKey(cid) {
   return `conversationId:${cid}`;
 }
-// ==================
 
 const open = ref(false);
 const conversationId = ref(null);
@@ -133,19 +131,15 @@ function getQuickOptions(message) {
   if (content.includes("shop có thể hỗ trợ gì")) {
     return ["Kiểm tra đơn hàng", "Phí ship", "Tư vấn size", "Gặp CSKH"];
   }
-
   if (content.includes("kiểm tra phí ship khu vực nào")) {
     return ["Nội thành TP.HCM", "Ngoại thành TP.HCM", "Tỉnh khác", "Gặp CSKH"];
   }
-
   if (content.includes("gửi mã đơn hàng")) {
     return ["Đơn của tôi", "Gặp CSKH"];
   }
-
   if (content.includes("thanh toán theo cách nào")) {
     return ["COD", "Chuyển khoản", "Gặp CSKH"];
   }
-
   if (content.includes("tư vấn size phù hợp")) {
     return ["Nam 1m70 65kg", "Nam 1m75 70kg", "Nữ 1m55 45kg", "Gặp CSKH"];
   }
@@ -280,6 +274,29 @@ async function syncCustomerAndConversation() {
   await reInitForCustomer(cid);
 }
 
+async function handleAuthChanged() {
+  const oldGuestId = localStorage.getItem("guestId");
+
+  try {
+    sub?.unsubscribe();
+  } catch (e) {}
+  sub = null;
+
+  messages.value = [];
+  conversationId.value = null;
+  input.value = "";
+
+  const loggedInId = getLoggedInUserId();
+
+  if (loggedInId && oldGuestId) {
+    localStorage.removeItem(`conversationId:${oldGuestId}`);
+    localStorage.removeItem("guestId");
+  }
+
+  currentCustomerId.value = "";
+  await syncCustomerAndConversation();
+}
+
 function send() {
   const content = input.value.trim();
   if (!content) return;
@@ -300,6 +317,7 @@ onMounted(async () => {
 
   window.addEventListener("focus", handleFocusOrVisible);
   document.addEventListener("visibilitychange", handleFocusOrVisible);
+  window.addEventListener("auth-changed", handleAuthChanged);
 });
 
 onBeforeUnmount(() => {
@@ -312,6 +330,7 @@ onBeforeUnmount(() => {
 
   window.removeEventListener("focus", handleFocusOrVisible);
   document.removeEventListener("visibilitychange", handleFocusOrVisible);
+  window.removeEventListener("auth-changed", handleAuthChanged);
 });
 </script>
 

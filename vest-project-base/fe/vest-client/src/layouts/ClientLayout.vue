@@ -346,7 +346,7 @@ function checkout() {
 }
 
 // Logo
-const logoUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/uploads/tbt_4_white.png`;
+const logoUrl = `${import.meta.env.VITE_API_BASE || ""}/uploads/tbt_4_white.png`;
 
 const keyword = ref("");
 
@@ -359,7 +359,6 @@ function doSearch() {
 const userMenuOpen = ref(false);
 const userWrap = ref(null);
 
-// ✅ reactive state thay cho computed đọc storage
 const isLoggedIn = ref(false);
 const userName = ref("Khách hàng");
 
@@ -374,6 +373,22 @@ function syncAuth() {
     localStorage.getItem("USER_NAME") ||
     sessionStorage.getItem("USER_NAME") ||
     "Khách hàng";
+}
+
+function clearChatStorage() {
+  const keysToRemove = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+
+    if (key.startsWith("conversationId:")) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem("guestId");
 }
 
 function toggleUserMenu() {
@@ -393,29 +408,36 @@ function logout() {
   localStorage.removeItem("USER_NAME");
   sessionStorage.removeItem("USER_NAME");
 
-  syncAuth(); // ✅ cập nhật UI ngay
-  router.push("/"); // ✅ logout về trang chủ
+  localStorage.removeItem("vest_user");
+  localStorage.removeItem("vest_token");
+  localStorage.removeItem("vest_role");
+
+  clearChatStorage();
+
+  window.dispatchEvent(new Event("auth-changed"));
+
+  syncAuth();
+  router.push("/");
 }
 
 function onDocClick(e) {
   if (!userWrap.value) return;
   if (!userWrap.value.contains(e.target)) userMenuOpen.value = false;
 
-  // close mini cart khi click ra ngoài
   if (cartOpen.value && cartWrap.value && !cartWrap.value.contains(e.target)) {
     cartOpen.value = false;
   }
 }
 
 function onAuthChanged() {
-  syncAuth(); // ✅ cập nhật khi login/logout
+  syncAuth();
 }
 
 onMounted(() => {
   syncAuth();
   document.addEventListener("click", onDocClick);
   window.addEventListener("auth-changed", onAuthChanged);
-  window.addEventListener("storage", onAuthChanged); // optional sync đa tab
+  window.addEventListener("storage", onAuthChanged);
 });
 
 onBeforeUnmount(() => {
