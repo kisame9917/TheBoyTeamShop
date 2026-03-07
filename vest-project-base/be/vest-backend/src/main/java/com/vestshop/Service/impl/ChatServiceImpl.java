@@ -2,6 +2,7 @@ package com.vestshop.Service.impl;
 
 import com.vestshop.Chatbot.RuleBasedChatbotService;
 import com.vestshop.Entity.Conversation;
+import com.vestshop.Entity.KhachHang;
 import com.vestshop.Entity.Message;
 import com.vestshop.Repository.ConversationRepo;
 import com.vestshop.Repository.MessageRepo;
@@ -18,22 +19,40 @@ public class ChatServiceImpl implements ChatService {
     private final MessageRepo messageRepo;
     private final RuleBasedChatbotService ruleBasedChatbotService;
 
-    public ChatServiceImpl(ConversationRepo conversationRepo, MessageRepo messageRepo, RuleBasedChatbotService ruleBasedChatbotService) {
+    public ChatServiceImpl(
+            ConversationRepo conversationRepo,
+            MessageRepo messageRepo,
+            RuleBasedChatbotService ruleBasedChatbotService
+    ) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
         this.ruleBasedChatbotService = ruleBasedChatbotService;
     }
 
     @Override
-    public Conversation getOrCreateOpenConversation(String customerId) {
+    public Conversation getOrCreateOpenConversation(KhachHang customer) {
         return conversationRepo
-                .findFirstByCustomerIdAndStatusOrderByCreatedAtDesc(customerId, "OPEN")
+                .findFirstByCustomerAndStatusOrderByCreatedAtDesc(customer, "OPEN")
                 .orElseGet(() -> {
                     Conversation cv = new Conversation();
-                    cv.setCustomerId(customerId);
+                    cv.setCustomer(customer);
+                    cv.setGuestName(null);
                     cv.setStatus("OPEN");
                     return conversationRepo.save(cv);
                 });
+    }
+
+    @Override
+    public Conversation getOrCreateOpenGuestConversation(String guestName) {
+        Conversation cv = new Conversation();
+        cv.setCustomer(null);
+        cv.setGuestName(
+                guestName != null && !guestName.isBlank()
+                        ? guestName.trim()
+                        : "Khách vãng lai"
+        );
+        cv.setStatus("OPEN");
+        return conversationRepo.save(cv);
     }
 
     @Override
@@ -74,6 +93,7 @@ public class ChatServiceImpl implements ChatService {
     public List<Message> getRecentMessages(Long conversationId) {
         return messageRepo.findTop50ByConversationIdOrderByCreatedAtAsc(conversationId);
     }
+
     @Override
     public List<ConversationSummaryResponse> getOpenConversationSummaries() {
         var cvs = conversationRepo.findByStatusOrderByUpdatedAtDesc("OPEN");
@@ -83,11 +103,25 @@ public class ChatServiceImpl implements ChatService {
 
             return ConversationSummaryResponse.builder()
                     .conversationId(cv.getId())
-                    .customerId(cv.getCustomerId())
+                    .customerName(resolveCustomerName(cv))
                     .lastMessage(last != null ? last.getContent() : "")
                     .lastAt(last != null ? last.getCreatedAt() : null)
                     .updatedAt(cv.getUpdatedAt())
                     .build();
         }).toList();
+    }
+
+    private String resolveCustomerName(Conversation cv) {
+        if (cv.getCustomer() != null
+                && cv.getCustomer().getTenKhachHang() != null
+                && !cv.getCustomer().getTenKhachHang().isBlank()) {
+            return cv.getCustomer().getTenKhachHang();
+        }
+
+        if (cv.getGuestName() != null && !cv.getGuestName().isBlank()) {
+            return cv.getGuestName();
+        }
+
+        return "Khách vãng lai";
     }
 }

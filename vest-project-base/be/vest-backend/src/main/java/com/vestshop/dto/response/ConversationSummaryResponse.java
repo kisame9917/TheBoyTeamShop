@@ -13,8 +13,8 @@ import java.time.Instant;
 @AllArgsConstructor
 public class ConversationSummaryResponse {
     private Long conversationId;
-    private String customerId;
-    private String lastMessage; // lấy từ messages (tin mới nhất)
-    private Instant lastAt;     // createdAt của tin mới nhất
-    private Instant updatedAt;  // từ conversations.updated_at
+    private String customerName;
+    private String lastMessage;
+    private Instant lastAt;
+    private Instant updatedAt;
 }
