@@ -6,7 +6,7 @@
       </div>
 
       <div class="join-box">
-        <button class="btn ghost" @click="refreshList">Refresh</button>
+        <!-- <button class="btn ghost" @click="refreshList">Refresh</button> -->
         <span class="ws-pill" :class="wsStatusClass">{{ wsStatus }}</span>
       </div>
     </div>
@@ -46,7 +46,7 @@
       <div class="chat">
         <div class="chat-top">
           <div class="chat-title">
-            Phòng: <b>{{ conversationId ?? "chưa chọn" }}</b>
+            Inbox: <b>{{ conversationId ?? "chưa chọn" }}</b>
           </div>
         </div>
 
@@ -59,11 +59,26 @@
             v-for="(m, idx) in messages"
             :key="m.id ?? idx"
             class="msg-row"
-            :class="m.senderType === 'ADMIN' ? 'me' : 'them'"
+            :class="['ADMIN', 'BOT'].includes(m.senderType) ? 'me' : 'them'"
           >
-            <div class="bubble">
+            <div
+              class="bubble"
+              :class="{
+                'bubble-admin': m.senderType === 'ADMIN',
+                'bubble-bot': m.senderType === 'BOT',
+                'bubble-client': m.senderType === 'CLIENT'
+              }"
+            >
               <div class="meta">
-                <span class="who">{{ m.senderType }}</span>
+                <span class="who">
+                  {{
+                    m.senderType === "BOT"
+                      ? "BOT"
+                      : m.senderType === "ADMIN"
+                      ? "ADMIN"
+                      : "KHÁCH"
+                  }}
+                </span>
                 <span class="time">{{ formatTime(m.createdAt) }}</span>
               </div>
               <div class="text">{{ m.content }}</div>
@@ -131,8 +146,15 @@ function scrollBottom() {
 
 function formatTime(v) {
   if (!v) return "";
-  const d = typeof v === "number" ? new Date(v) : new Date(v);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return d.toLocaleTimeString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function upsertConversationFromMessage(msg) {
@@ -177,7 +199,7 @@ async function refreshList() {
     const list = (res.data || []).map((c) => ({
       conversationId: c.id ?? c.conversationId,
       lastMessage: c.lastMessage ?? "",
-      lastAt: c.updatedAt ?? c.lastAt ?? c.createdAt ?? Date.now(),
+      lastAt: c.lastAt ?? c.createdAt ?? c.updatedAt ?? Date.now(),
       unreadCount: 0,
     }));
     list.sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt));
@@ -535,13 +557,22 @@ onBeforeUnmount(() => {
   max-width: 70%;
   padding: 10px;
   border-radius: 12px;
-  background: #fff;
   border: 1px solid rgba(2, 6, 23, 0.06);
 }
 
-.msg-row.me .bubble {
+.bubble-admin {
   background: #e9f3ff;
   border-color: rgba(10, 133, 237, 0.25);
+}
+
+.bubble-bot {
+  background: #ede9fe;
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
+.bubble-client {
+  background: #fff;
+  border-color: rgba(2, 6, 23, 0.06);
 }
 
 .meta {

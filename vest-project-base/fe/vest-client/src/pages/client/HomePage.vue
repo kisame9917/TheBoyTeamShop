@@ -134,6 +134,7 @@
         </div>
       </div>
     </section>
+     <ChatWidget />
   </div>
 </template>
 
@@ -141,7 +142,7 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { getProducts } from "../../services/productClientApi";
-
+import ChatWidget from "../../components/ClientChatWidget.vue";
 const router = useRouter();
 
 const loading = ref(false);

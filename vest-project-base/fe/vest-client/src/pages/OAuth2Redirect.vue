@@ -22,6 +22,11 @@ function clearAuthStorage() {
   sessionStorage.removeItem("USER_ACCESS_TOKEN");
   localStorage.removeItem("USER_NAME");
   sessionStorage.removeItem("USER_NAME");
+
+  // clear kiểu vest_ cũ luôn cho sạch
+  localStorage.removeItem("vest_user");
+  localStorage.removeItem("vest_token");
+  localStorage.removeItem("vest_role");
 }
 
 onMounted(async () => {
@@ -32,20 +37,35 @@ onMounted(async () => {
     return;
   }
 
-  // lưu token
   clearAuthStorage();
   localStorage.setItem("USER_ACCESS_TOKEN", token);
+  localStorage.setItem("vest_token", token);
 
   try {
-    // gọi backend lấy thông tin user để hiển thị tên
     const res = await axios.get(`${BASE_URL}/api/client/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const ten = res?.data?.tenKhachHang || "";
-    localStorage.setItem("USER_NAME", ten);
+    const me = res?.data || {};
+
+    localStorage.setItem("USER_NAME", me.tenKhachHang || "");
+
+    // QUAN TRỌNG: chat widget đang đọc vest_user
+    localStorage.setItem(
+      "vest_user",
+      JSON.stringify({
+        id: me.taiKhoan,
+        taiKhoan: me.taiKhoan,
+        tenKhachHang: me.tenKhachHang,
+        email: me.email,
+        role: "CLIENT",
+      })
+    );
+    localStorage.setItem("vest_role", "CLIENT");
+
+    // báo cho UI/chat biết auth đã đổi
+    window.dispatchEvent(new Event("auth-changed"));
   } catch (e) {
-    // nếu fail thì vẫn cho vào app, chỉ là header sẽ rơi về mặc định
     console.warn("Không lấy được thông tin khách hàng:", e?.response?.data || e?.message);
   }
 
