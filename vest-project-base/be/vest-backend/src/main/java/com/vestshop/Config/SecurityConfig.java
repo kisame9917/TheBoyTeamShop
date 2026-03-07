@@ -31,9 +31,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // auth + swagger
+                        // auth + oauth2 + swagger
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/oauth2/**",
+                                "/login/oauth2/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
@@ -62,8 +64,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/giao-ca/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/giao-ca/**").hasAnyRole("ADMIN", "STAFF")
 
-                        // còn lại mặc định admin
-                        .anyRequest().hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2LoginSuccessHandler)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
