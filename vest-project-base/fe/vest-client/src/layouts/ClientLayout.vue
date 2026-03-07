@@ -375,19 +375,9 @@ function syncAuth() {
     "Khách hàng";
 }
 
+// Chỉ xóa guestId tạm thời, KHÔNG xóa toàn bộ conversationId:*
+// để chat widget còn có thể giữ/lấy lại hội thoại cũ
 function clearChatStorage() {
-  const keysToRemove = [];
-
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-
-    if (key.startsWith("conversationId:")) {
-      keysToRemove.push(key);
-    }
-  }
-
-  keysToRemove.forEach((key) => localStorage.removeItem(key));
   localStorage.removeItem("guestId");
 }
 

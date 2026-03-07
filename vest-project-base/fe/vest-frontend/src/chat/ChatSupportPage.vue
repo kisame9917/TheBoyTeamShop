@@ -6,7 +6,6 @@
       </div>
 
       <div class="join-box">
-        <!-- <button class="btn ghost" @click="refreshList">Refresh</button> -->
         <span class="ws-pill" :class="wsStatusClass">{{ wsStatus }}</span>
       </div>
     </div>
@@ -18,7 +17,7 @@
           <div class="card-title">Inbox</div>
 
           <div v-if="conversations.length === 0" class="hint">
-            Chưa có hội thoại nào. Mở client chat thử để tạo conversation.
+            Chưa có hội thoại nào. Khi khách gửi tin nhắn đầu tiên, inbox sẽ hiện ở đây.
           </div>
 
           <div v-else class="conv-list">
@@ -57,7 +56,7 @@
 
           <div
             v-for="(m, idx) in messages"
-            :key="m.id ?? idx"
+            :key="m.id ?? `${m.senderType}-${m.createdAt}-${idx}`"
             class="msg-row"
             :class="['ADMIN', 'BOT'].includes(m.senderType) ? 'me' : 'them'"
           >
@@ -108,18 +107,20 @@ import axios from "axios";
 import { Client } from "@stomp/stompjs";
 import { useAuthStore } from "@/stores/auth";
 
-// ===== CONFIG =====
 const API = "http://localhost:8080";
 const auth = useAuthStore();
+
 const adminId = computed(
-  () => auth.user?.id || auth.username || localStorage.getItem("adminId") || "ADMIN_001"
+  () =>
+    auth.user?.id ||
+    auth.username ||
+    localStorage.getItem("adminId") ||
+    "ADMIN_001"
 );
-// ================
 
 const conversationId = ref(null);
 const messages = ref([]);
 const input = ref("");
-
 const msgBox = ref(null);
 
 const wsStatus = ref("DISCONNECTED"); // DISCONNECTED | CONNECTING | CONNECTED | ERROR
@@ -130,14 +131,13 @@ const wsStatusClass = computed(() => {
   return "muted";
 });
 
+const conversations = ref([]);
+
 let stomp = null;
 let roomSub = null;
 let adminSub = null;
 
-// ===== Conversations list (admin sidebar) =====
-const conversations = ref([]);
-
-const canSend = computed(() => !!conversationId.value && stomp?.connected);
+const canSend = computed(() => !!conversationId.value && !!stomp?.connected);
 
 function scrollBottom() {
   if (!msgBox.value) return;
@@ -157,55 +157,98 @@ function formatTime(v) {
   });
 }
 
+function isSameMessage(a, b) {
+  if (!a || !b) return false;
+
+  if (a.id != null && b.id != null) {
+    return String(a.id) === String(b.id);
+  }
+
+  return (
+    String(a.conversationId) === String(b.conversationId) &&
+    String(a.senderType) === String(b.senderType) &&
+    String(a.content) === String(b.content) &&
+    String(a.createdAt) === String(b.createdAt)
+  );
+}
+
+function dedupeMessages(list) {
+  const unique = [];
+  for (const msg of list || []) {
+    const exists = unique.some((m) => isSameMessage(m, msg));
+    if (!exists) unique.push(msg);
+  }
+  return unique;
+}
+
+function normalizeConversationItem(c) {
+  return {
+    conversationId: c.id ?? c.conversationId,
+    lastMessage: c.lastMessage ?? "",
+    lastAt: c.lastAt ?? c.createdAt ?? c.updatedAt ?? null,
+    unreadCount: Number(c.unreadCount || 0),
+  };
+}
+
+function hasRealMessage(c) {
+  return !!(c && c.conversationId && c.lastMessage && String(c.lastMessage).trim());
+}
+
 function upsertConversationFromMessage(msg) {
+  if (!msg?.conversationId || !msg?.content?.trim()) return;
+
   const id = msg.conversationId;
-  const idx = conversations.value.findIndex((x) => String(x.conversationId) === String(id));
+  const idx = conversations.value.findIndex(
+    (x) => String(x.conversationId) === String(id)
+  );
+
+  const isActive = String(conversationId.value) === String(id);
+
   const item = {
     conversationId: id,
     lastMessage: msg.content,
     lastAt: msg.createdAt,
-    unreadCount: 0,
+    unreadCount: isActive ? 0 : 1,
   };
 
   if (idx === -1) {
-    if (String(conversationId.value) !== String(id)) item.unreadCount = 1;
     conversations.value.unshift(item);
-  } else {
-    const current = conversations.value[idx];
-    const unread = current.unreadCount || 0;
-    const isActive = String(conversationId.value) === String(id);
-
-    conversations.value.splice(idx, 1);
-    conversations.value.unshift({
-      ...current,
-      lastMessage: msg.content,
-      lastAt: msg.createdAt,
-      unreadCount: isActive ? 0 : unread + 1,
-    });
+    return;
   }
+
+  const current = conversations.value[idx];
+  const unread = Number(current.unreadCount || 0);
+
+  conversations.value.splice(idx, 1);
+  conversations.value.unshift({
+    ...current,
+    lastMessage: msg.content,
+    lastAt: msg.createdAt,
+    unreadCount: isActive ? 0 : unread + 1,
+  });
 }
 
 async function loadHistory(id) {
   const res = await axios.get(`${API}/api/chat/messages`, {
     params: { conversationId: id },
   });
-  messages.value = res.data || [];
+
+  messages.value = dedupeMessages(Array.isArray(res.data) ? res.data : []);
   nextTick(scrollBottom);
 }
 
 async function refreshList() {
   try {
     const res = await axios.get(`${API}/api/chat/conversations/open`);
-    const list = (res.data || []).map((c) => ({
-      conversationId: c.id ?? c.conversationId,
-      lastMessage: c.lastMessage ?? "",
-      lastAt: c.lastAt ?? c.createdAt ?? c.updatedAt ?? Date.now(),
-      unreadCount: 0,
-    }));
-    list.sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt));
+
+    const list = (Array.isArray(res.data) ? res.data : [])
+      .map(normalizeConversationItem)
+      .filter(hasRealMessage)
+      .sort((a, b) => new Date(b.lastAt || 0) - new Date(a.lastAt || 0));
+
     conversations.value = list;
   } catch (e) {
-    console.warn("No /conversations/open API yet:", e?.message || e);
+    console.warn("Load conversations failed:", e?.message || e);
   }
 }
 
@@ -215,6 +258,7 @@ function connectWsIfNeeded() {
   const wsUrl = API.replace(/^http/, "ws") + "/ws";
 
   wsStatus.value = "CONNECTING";
+
   stomp = new Client({
     brokerURL: wsUrl,
     reconnectDelay: 2000,
@@ -233,18 +277,27 @@ function connectWsIfNeeded() {
       upsertConversationFromMessage(msg);
     });
 
-    if (conversationId.value) subscribeRoom(conversationId.value);
+    if (conversationId.value) {
+      subscribeRoom(conversationId.value);
+    }
   };
 
-  stomp.onStompError = () => (wsStatus.value = "ERROR");
+  stomp.onStompError = () => {
+    wsStatus.value = "ERROR";
+  };
+
   stomp.onWebSocketClose = () => {
-    if (wsStatus.value !== "ERROR") wsStatus.value = "DISCONNECTED";
+    if (wsStatus.value !== "ERROR") {
+      wsStatus.value = "DISCONNECTED";
+    }
   };
 
   stomp.activate();
 }
 
 function subscribeRoom(id) {
+  if (!stomp?.connected) return;
+
   try {
     roomSub?.unsubscribe();
   } catch (e) {}
@@ -252,9 +305,22 @@ function subscribeRoom(id) {
   roomSub = stomp.subscribe(`/topic/conversations/${id}`, (frame) => {
     const msg = JSON.parse(frame.body);
 
-    if (!messages.value.some((m) => m.id && msg.id && m.id === msg.id)) {
+    const exists = messages.value.some((m) => isSameMessage(m, msg));
+    if (!exists) {
       messages.value.push(msg);
       nextTick(scrollBottom);
+    }
+
+    const idx = conversations.value.findIndex(
+      (x) => String(x.conversationId) === String(id)
+    );
+    if (idx !== -1) {
+      conversations.value[idx].lastMessage = msg.content;
+      conversations.value[idx].lastAt = msg.createdAt;
+      conversations.value[idx].unreadCount =
+        msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
+          ? Number(conversations.value[idx].unreadCount || 0) + 1
+          : 0;
     }
   });
 }
@@ -264,18 +330,25 @@ async function openConversation(id) {
 
   conversationId.value = id;
 
-  const idx = conversations.value.findIndex((x) => String(x.conversationId) === String(id));
-  if (idx !== -1) conversations.value[idx].unreadCount = 0;
+  const idx = conversations.value.findIndex(
+    (x) => String(x.conversationId) === String(id)
+  );
+  if (idx !== -1) {
+    conversations.value[idx].unreadCount = 0;
+  }
 
   await loadHistory(id);
 
-  if (stomp?.connected) subscribeRoom(id);
+  if (stomp?.connected) {
+    subscribeRoom(id);
+  }
 }
 
 function leave() {
   try {
     roomSub?.unsubscribe();
   } catch (e) {}
+
   roomSub = null;
   conversationId.value = null;
   messages.value = [];

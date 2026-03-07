@@ -187,22 +187,60 @@ function publishMessage(content) {
   });
 }
 
-function sendQuickOption(text) {
-  publishMessage(text);
+async function createConversationAndSendFirstMessage(content) {
+  if (!content?.trim()) return;
+
+  const cv = await axios.post(`${API}/api/chat/conversation`, null, {
+    params: { customerId: currentCustomerId.value },
+  });
+
+  conversationId.value = cv.data.id;
+  localStorage.setItem(
+    convKey(currentCustomerId.value),
+    String(conversationId.value)
+  );
+
+  if (stomp?.connected && conversationId.value) {
+    subscribeRoom(conversationId.value);
+  }
+
+  stomp.publish({
+    destination: "/app/chat.send",
+    body: JSON.stringify({
+      conversationId: conversationId.value,
+      senderType: "CLIENT",
+      senderId: currentCustomerId.value,
+      content: content.trim(),
+    }),
+  });
+}
+
+async function sendQuickOption(text) {
+  const content = text?.trim();
+  if (!content) return;
+
+  try {
+    if (!conversationId.value) {
+      await createConversationAndSendFirstMessage(content);
+    } else {
+      publishMessage(content);
+    }
+    nextTick(scrollBottom);
+  } catch (e) {
+    console.error("Send quick option failed:", e);
+  }
 }
 
 async function loadConversationAndHistory(cid) {
   const cached = localStorage.getItem(convKey(cid));
 
-  if (cached) {
-    conversationId.value = Number(cached);
-  } else {
-    const cv = await axios.post(`${API}/api/chat/conversation`, null, {
-      params: { customerId: cid },
-    });
-    conversationId.value = cv.data.id;
-    localStorage.setItem(convKey(cid), String(conversationId.value));
+  if (!cached) {
+    conversationId.value = null;
+    messages.value = [];
+    return;
   }
+
+  conversationId.value = Number(cached);
 
   const hist = await axios.get(`${API}/api/chat/messages`, {
     params: { conversationId: conversationId.value },
@@ -269,6 +307,7 @@ async function syncCustomerAndConversation() {
   const cid = resolveCustomerId();
 
   if (cid === currentCustomerId.value && conversationId.value) return;
+  if (cid === currentCustomerId.value && !conversationId.value) return;
 
   currentCustomerId.value = cid;
   await reInitForCustomer(cid);
@@ -276,6 +315,7 @@ async function syncCustomerAndConversation() {
 
 async function handleAuthChanged() {
   const oldGuestId = localStorage.getItem("guestId");
+  const loggedInId = getLoggedInUserId();
 
   try {
     sub?.unsubscribe();
@@ -286,23 +326,42 @@ async function handleAuthChanged() {
   conversationId.value = null;
   input.value = "";
 
-  const loggedInId = getLoggedInUserId();
-
+  // Nếu từ guest -> login user, chuyển conversation cũ sang user mới
   if (loggedInId && oldGuestId) {
-    localStorage.removeItem(`conversationId:${oldGuestId}`);
+    const guestConvKey = convKey(oldGuestId);
+    const userConvKey = convKey(loggedInId);
+
+    const guestConversationId = localStorage.getItem(guestConvKey);
+    const userConversationId = localStorage.getItem(userConvKey);
+
+    if (guestConversationId && !userConversationId) {
+      localStorage.setItem(userConvKey, guestConversationId);
+    }
+
+    // chỉ xóa sau khi đã migrate
+    localStorage.removeItem(guestConvKey);
     localStorage.removeItem("guestId");
   }
 
   currentCustomerId.value = "";
   await syncCustomerAndConversation();
 }
-
-function send() {
+async function send() {
   const content = input.value.trim();
   if (!content) return;
 
-  publishMessage(content);
-  input.value = "";
+  try {
+    if (!conversationId.value) {
+      await createConversationAndSendFirstMessage(content);
+    } else {
+      publishMessage(content);
+    }
+
+    input.value = "";
+    nextTick(scrollBottom);
+  } catch (e) {
+    console.error("Send message failed:", e);
+  }
 }
 
 async function handleFocusOrVisible() {
