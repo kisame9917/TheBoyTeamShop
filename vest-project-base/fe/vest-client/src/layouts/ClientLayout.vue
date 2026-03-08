@@ -34,7 +34,7 @@
           </div>
 
           <div class="header-icons d-flex gap-3 fs-5 align-items-center">
-            <!-- USER: nếu chưa login thì link /login, nếu đã login thì dropdown -->
+            <!-- USER -->
             <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
               <button
                 class="user-btn text-white"
@@ -59,7 +59,7 @@
                 <button
                   class="user-menu-item danger"
                   type="button"
-                  @click="logout"
+                  @click="confirmLogout"
                 >
                   Đăng xuất
                 </button>
@@ -116,6 +116,7 @@
                 class="cart-overlay"
                 @click="closeCart"
               ></div>
+
               <CartMiniModal
                 v-if="cartOpen"
                 class="cart-mini"
@@ -135,38 +136,45 @@
           <router-link
             :to="{ name: 'Search', query: { cat: 'bo-vest-nam' } }"
             class="nav-link"
-            >Bộ vest nam</router-link
           >
+            Bộ vest nam
+          </router-link>
           <router-link
             :to="{ name: 'Search', query: { cat: 'trang-phuc' } }"
             class="nav-link"
-            >Trang phục</router-link
           >
+            Trang phục
+          </router-link>
           <router-link
             :to="{ name: 'Search', query: { cat: 'vest-nam' } }"
             class="nav-link"
-            >Vest nam</router-link
           >
+            Vest nam
+          </router-link>
           <router-link
             :to="{ name: 'Search', query: { cat: 'doc-quyen-online' } }"
             class="nav-link"
-            >Độc quyền online</router-link
           >
+            Độc quyền online
+          </router-link>
           <router-link
             :to="{ name: 'Search', query: { cat: 'slim-fit' } }"
             class="nav-link"
-            >Slim fit</router-link
           >
+            Slim fit
+          </router-link>
           <router-link
             :to="{ name: 'Search', query: { cat: 'lien-he' } }"
             class="nav-link"
-            >Liên hệ</router-link
           >
+            Liên hệ
+          </router-link>
           <router-link
             :to="{ name: 'Search', query: { cat: 'ankasa' } }"
             class="nav-link"
-            >Ankasa</router-link
           >
+            Ankasa
+          </router-link>
         </div>
       </nav>
     </div>
@@ -192,19 +200,19 @@
             <h6 class="fw-bold mb-3 text-white">Hỗ trợ</h6>
             <ul class="list-unstyled">
               <li>
-                <a href="#" class="footer-link" @click.prevent
-                  >Hướng dẫn mua hàng</a
-                >
+                <a href="#" class="footer-link" @click.prevent>
+                  Hướng dẫn mua hàng
+                </a>
               </li>
               <li>
-                <a href="#" class="footer-link" @click.prevent
-                  >Chính sách đổi trả</a
-                >
+                <a href="#" class="footer-link" @click.prevent>
+                  Chính sách đổi trả
+                </a>
               </li>
               <li>
-                <a href="#" class="footer-link" @click.prevent
-                  >Chính sách bảo hành</a
-                >
+                <a href="#" class="footer-link" @click.prevent>
+                  Chính sách bảo hành
+                </a>
               </li>
             </ul>
           </div>
@@ -213,23 +221,25 @@
             <h6 class="fw-bold mb-3 text-white">Danh mục</h6>
             <ul class="list-unstyled">
               <li>
-                <router-link to="/shop" class="footer-link"
-                  >Cửa hàng</router-link
-                >
+                <router-link to="/shop" class="footer-link">
+                  Cửa hàng
+                </router-link>
               </li>
               <li>
                 <router-link
                   :to="{ name: 'Search', query: { cat: 'vest-nam' } }"
                   class="footer-link"
-                  >Vest nam</router-link
                 >
+                  Vest nam
+                </router-link>
               </li>
               <li>
                 <router-link
                   :to="{ name: 'Search', query: { cat: 'slim-fit' } }"
                   class="footer-link"
-                  >Slim fit</router-link
                 >
+                  Slim fit
+                </router-link>
               </li>
             </ul>
           </div>
@@ -289,16 +299,17 @@
             <h6 class="fw-bold mb-3 text-white">Phương thức thanh toán</h6>
             <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
               <li>
-                <span class="payment-badge" title="Thanh toán khi nhận hàng"
-                  >COD</span
-                >
+                <span class="payment-badge" title="Thanh toán khi nhận hàng">
+                  COD
+                </span>
               </li>
               <li>
                 <span
                   class="payment-badge"
                   title="Thẻ nội địa / Internet Banking"
-                  >ATM</span
                 >
+                  ATM
+                </span>
               </li>
               <li><span class="payment-badge" title="Visa">VISA</span></li>
               <li><span class="payment-badge" title="JCB">JCB</span></li>
@@ -311,6 +322,37 @@
         </div>
       </div>
     </footer>
+
+    <!-- Confirm logout modal -->
+    <div
+      v-if="logoutConfirmOpen"
+      class="logout-modal-overlay"
+      @click="closeLogoutConfirm"
+    >
+      <div class="logout-modal" @click.stop>
+        <div class="logout-modal-title">Xác nhận đăng xuất</div>
+        <div class="logout-modal-text">
+          Bạn có chắc muốn đăng xuất không?
+        </div>
+
+        <div class="logout-modal-actions">
+          <button
+            type="button"
+            class="logout-cancel-btn"
+            @click="closeLogoutConfirm"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            class="logout-confirm-btn"
+            @click="logout"
+          >
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -322,7 +364,7 @@ import { useCart } from "../composables/useCart";
 
 const router = useRouter();
 
-/** ====== CART (UI trước: localStorage) ====== */
+/** ====== CART ====== */
 const cartOpen = ref(false);
 const cartWrap = ref(null);
 const { totalQty } = useCart();
@@ -345,9 +387,10 @@ function checkout() {
   router.push({ name: "Checkout" });
 }
 
-// Logo
+/** ====== BRAND ====== */
 const logoUrl = `${import.meta.env.VITE_API_BASE || ""}/uploads/tbt_4_white.png`;
 
+/** ====== SEARCH ====== */
 const keyword = ref("");
 
 function doSearch() {
@@ -355,12 +398,14 @@ function doSearch() {
   router.push({ name: "Search", query: q ? { q } : {} });
 }
 
-/** ====== USER MENU (REACTIVE) ====== */
+/** ====== USER MENU ====== */
 const userMenuOpen = ref(false);
 const userWrap = ref(null);
 
 const isLoggedIn = ref(false);
 const userName = ref("Khách hàng");
+
+const logoutConfirmOpen = ref(false);
 
 function syncAuth() {
   const token =
@@ -375,10 +420,27 @@ function syncAuth() {
     "Khách hàng";
 }
 
-// Chỉ xóa guestId tạm thời, KHÔNG xóa toàn bộ conversationId:*
-// để chat widget còn có thể giữ/lấy lại hội thoại cũ
 function clearChatStorage() {
   localStorage.removeItem("guestId");
+  sessionStorage.removeItem("guestId");
+
+  const localKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("conversationId:")) {
+      localKeys.push(key);
+    }
+  }
+  localKeys.forEach((key) => localStorage.removeItem(key));
+
+  const sessionKeys = [];
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (key && key.startsWith("conversationId:")) {
+      sessionKeys.push(key);
+    }
+  }
+  sessionKeys.forEach((key) => sessionStorage.removeItem(key));
 }
 
 function toggleUserMenu() {
@@ -387,10 +449,20 @@ function toggleUserMenu() {
 
 function openProfile() {
   userMenuOpen.value = false;
-  alert("Hồ sơ (demo) - sau bạn làm trang profile/me nhé.");
+  alert("Hồ sơ (demo).");
+}
+
+function confirmLogout() {
+  userMenuOpen.value = false;
+  logoutConfirmOpen.value = true;
+}
+
+function closeLogoutConfirm() {
+  logoutConfirmOpen.value = false;
 }
 
 function logout() {
+  logoutConfirmOpen.value = false;
   userMenuOpen.value = false;
 
   localStorage.removeItem("USER_ACCESS_TOKEN");
@@ -402,6 +474,10 @@ function logout() {
   localStorage.removeItem("vest_token");
   localStorage.removeItem("vest_role");
 
+  sessionStorage.removeItem("vest_user");
+  sessionStorage.removeItem("vest_token");
+  sessionStorage.removeItem("vest_role");
+
   clearChatStorage();
 
   window.dispatchEvent(new Event("auth-changed"));
@@ -411,8 +487,9 @@ function logout() {
 }
 
 function onDocClick(e) {
-  if (!userWrap.value) return;
-  if (!userWrap.value.contains(e.target)) userMenuOpen.value = false;
+  if (userWrap.value && !userWrap.value.contains(e.target)) {
+    userMenuOpen.value = false;
+  }
 
   if (cartOpen.value && cartWrap.value && !cartWrap.value.contains(e.target)) {
     cartOpen.value = false;
@@ -470,7 +547,6 @@ onBeforeUnmount(() => {
 }
 
 main {
-  /* chừa chỗ cho header + menu cố định */
   padding-top: 132px;
 }
 
@@ -529,7 +605,7 @@ main {
 
 .cart-mini {
   position: fixed;
-  top: 88px; /* ngay dưới header */
+  top: 88px;
   right: 18px;
   z-index: 1100;
 }
@@ -641,7 +717,7 @@ main {
   opacity: 1;
 }
 
-/* Payment methods (layout like OWEN) */
+/* Payment methods */
 .footer-payment {
   margin-top: 16px;
 }
@@ -673,7 +749,7 @@ main {
   }
 }
 
-/* ===== USER DROPDOWN (HEADER) ===== */
+/* USER DROPDOWN */
 .user-dd {
   position: relative;
   display: inline-flex;
@@ -746,6 +822,7 @@ main {
 .user-menu-item.danger {
   color: #b42318;
 }
+
 .mini-cart-trigger {
   border: 0;
   background: transparent;
@@ -754,5 +831,66 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Logout confirm modal */
+.logout-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.logout-modal {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+}
+
+.logout-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.logout-modal-text {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.logout-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-cancel-btn {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.logout-confirm-btn {
+  background: #dc2626;
+  color: #fff;
 }
 </style>

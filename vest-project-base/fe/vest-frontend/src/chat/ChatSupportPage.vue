@@ -25,17 +25,37 @@
               v-for="c in conversations"
               :key="c.conversationId"
               class="conv-item"
-              :class="{ active: c.conversationId === conversationId }"
+              :class="{
+                active: c.conversationId === conversationId,
+                urgent: c.needsHuman
+              }"
               @click="openConversation(c.conversationId)"
             >
               <div class="row1">
-                <span class="customer-name">{{ c.customerName }}</span>
+                <div class="customer-wrap">
+                  <span class="customer-name">{{ c.customerName }}</span>
+
+                  <span v-if="c.needsHuman" class="ping-wrap" aria-label="Cần tiếp nhận">
+                    <span class="ping-ring"></span>
+                    <span class="ping-dot"></span>
+                  </span>
+                </div>
+
                 <span class="badge" v-if="c.unreadCount > 0">{{ c.unreadCount }}</span>
               </div>
 
               <div class="row2">
                 <span class="preview">{{ c.lastMessage || "—" }}</span>
                 <span class="time">{{ formatTime(c.lastAt) }}</span>
+              </div>
+
+              <div v-if="c.needsHuman" class="conv-actions">
+                <button
+                  class="take-btn"
+                  @click.stop="takeConversation(c)"
+                >
+                  Tiếp nhận
+                </button>
               </div>
             </button>
           </div>
@@ -169,6 +189,31 @@ function formatTime(v) {
   });
 }
 
+function normalizeText(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function isHumanSupportRequest(text) {
+  const t = normalizeText(text);
+
+  return (
+    t.includes("gap nhan vien") ||
+    t.includes("gap cskh") ||
+    t.includes("ket noi") ||
+    t.includes("nhan vien tu van") ||
+    t.includes("vui long cho trong giay lat") ||
+    t.includes("se ket noi") ||
+    t.includes("tu van cua vestshop ngay")
+  );
+}
+
 function isSameMessage(a, b) {
   if (!a || !b) return false;
 
@@ -204,12 +249,15 @@ function normalizeConversationItem(c) {
     c.guestName ??
     "";
 
+  const lastMessage = c.lastMessage ?? "";
+
   return {
     conversationId: c.id ?? c.conversationId,
     customerName: String(rawName).trim() || "Khách vãng lai",
-    lastMessage: c.lastMessage ?? "",
+    lastMessage,
     lastAt: c.lastAt ?? c.createdAt ?? c.updatedAt ?? null,
     unreadCount: Number(c.unreadCount || 0),
+    needsHuman: isHumanSupportRequest(lastMessage),
   };
 }
 
@@ -245,6 +293,7 @@ function upsertConversationFromMessage(msg) {
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : 1,
+    needsHuman: isHumanSupportRequest(msg.content),
   };
 
   if (idx === -1) {
@@ -262,6 +311,7 @@ function upsertConversationFromMessage(msg) {
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : unread + 1,
+    needsHuman: isHumanSupportRequest(msg.content),
   });
 }
 
@@ -358,6 +408,7 @@ function subscribeRoom(id) {
         conversations.value[idx].customerName ||
         msg.customerName ||
         "Khách vãng lai";
+      conversations.value[idx].needsHuman = isHumanSupportRequest(msg.content);
       conversations.value[idx].unreadCount =
         msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
           ? Number(conversations.value[idx].unreadCount || 0) + 1
@@ -404,6 +455,30 @@ function send() {
   input.value = "";
 }
 
+async function takeConversation(c) {
+  await openConversation(c.conversationId);
+
+  if (!stomp?.connected) return;
+
+  stomp.publish({
+    destination: "/app/chat.send",
+    body: JSON.stringify({
+      conversationId: c.conversationId,
+      senderType: "ADMIN",
+      senderId: adminId.value,
+      content: "Em đã tiếp nhận cuộc trò chuyện này. Anh/chị cần hỗ trợ gì thêm ạ?",
+    }),
+  });
+
+  const idx = conversations.value.findIndex(
+    (x) => String(x.conversationId) === String(c.conversationId)
+  );
+  if (idx !== -1) {
+    conversations.value[idx].needsHuman = false;
+    conversations.value[idx].unreadCount = 0;
+  }
+}
+
 onMounted(async () => {
   connectWsIfNeeded();
   await refreshList();
@@ -442,12 +517,6 @@ onBeforeUnmount(() => {
   font-size: 20px;
   font-weight: 800;
   color: #0f172a;
-}
-
-.sub {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #64748b;
 }
 
 .join-box {
@@ -522,13 +591,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-.kv {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  color: #334155;
-}
-
 .hint {
   margin-top: 10px;
   font-size: 12px;
@@ -559,12 +621,24 @@ onBeforeUnmount(() => {
   background: rgba(41, 84, 184, 0.06);
 }
 
+.conv-item.urgent {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(255, 247, 237, 0.9);
+}
+
 .row1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
   color: #0f172a;
   gap: 10px;
+}
+
+.customer-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .customer-name {
@@ -574,7 +648,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 220px;
+  max-width: 190px;
 }
 
 .row2 {
@@ -609,6 +683,58 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.conv-actions {
+  margin-top: 10px;
+}
+
+.take-btn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: none;
+  background: #f59e0b;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ping-wrap {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.ping-dot {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #ef4444;
+}
+
+.ping-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.45);
+  animation: ping 1.4s infinite;
+}
+
+@keyframes ping {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
 .chat {
@@ -741,12 +867,6 @@ onBeforeUnmount(() => {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.btn.ghost {
-  background: transparent;
-  color: #2954b8;
-  border: 1px solid rgba(41, 84, 184, 0.25);
 }
 
 @media (max-width: 980px) {

@@ -23,16 +23,54 @@
             {{ m.senderType === 'BOT' ? 'Bot' : 'CSKH' }}
           </div>
 
-          <div class="text">{{ m.content }}</div>
+          <div class="text" :class="{ typing: m.localTyping }">
+            {{ m.content }}
+          </div>
 
-          <div v-if="getQuickOptions(m).length" class="quick-options">
-            <button
-              v-for="(opt, i) in getQuickOptions(m)"
-              :key="i"
-              class="quick-btn"
-              @click="sendQuickOption(opt)"
+          <div v-if="shouldShowProducts(m)" class="product-list">
+            <div
+              v-for="p in m.products"
+              :key="p.sanPhamChiTietId"
+              class="product-card clickable"
+              @click="goToProduct(p)"
             >
-              {{ opt }}
+              <img
+                v-if="p.anh"
+                :src="buildImageUrl(p.anh)"
+                :alt="p.tenSanPham"
+                class="product-image"
+                @error="onImageError"
+              />
+
+              <div class="product-info">
+                <div class="product-name">{{ p.tenSanPham }}</div>
+
+                <div class="product-meta">
+                  <span v-if="p.loaiSanPham">{{ p.loaiSanPham }}</span>
+                  <span v-if="p.mauSac">• {{ p.mauSac }}</span>
+                  <span v-if="p.kichCo">• Size {{ p.kichCo }}</span>
+                </div>
+
+                <div class="product-price">{{ formatPrice(p.donGia) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="showBotSupportPanel(m)" class="bot-support-panel">
+            <button
+              class="support-btn auto-btn"
+              @click="sendQuickOption('Hỗ trợ tự động')"
+            >
+              <span class="support-icon">✳</span>
+              <span>Hỗ trợ tự động</span>
+            </button>
+
+            <button
+              class="support-btn staff-btn"
+              @click="sendQuickOption('Gặp nhân viên')"
+            >
+              <span class="support-icon">⌁</span>
+              <span>Gặp nhân viên</span>
             </button>
           </div>
 
@@ -45,9 +83,9 @@
       <input
         v-model="input"
         @keyup.enter="send"
-        placeholder="Nhập tin nhắn..."
+        placeholder="Nhập câu hỏi của bạn..."
       />
-      <button @click="send">Gửi</button>
+      <button @click="send" aria-label="Gửi">➤</button>
     </div>
   </div>
 </template>
@@ -56,7 +94,9 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import axios from "axios";
 import { Client } from "@stomp/stompjs";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const API = import.meta.env.VITE_API_BASE;
 
 function getLoggedInUser() {
@@ -75,8 +115,7 @@ function getLoggedInUserId() {
     u?.khachHangId ??
     u?.customerId ??
     u?.id ??
-    u?.user?.id ??
-    u?.nguoiDung?.id ??
+    u?.userId ??
     null;
 
   if (id == null) return null;
@@ -84,7 +123,6 @@ function getLoggedInUserId() {
   const n = Number(id);
   return Number.isNaN(n) ? null : n;
 }
-
 function getGuestName() {
   return "Khách vãng lai";
 }
@@ -112,6 +150,33 @@ function buildWelcomeMessage() {
     content: "Chào bạn, shop có thể hỗ trợ gì cho bạn?",
     createdAt: new Date().toISOString(),
     localOnly: true,
+    products: [],
+  };
+}
+
+function buildLocalClientMessage(content) {
+  return {
+    id: `local-client-${Date.now()}-${Math.random()}`,
+    conversationId: conversationId.value,
+    senderType: "CLIENT",
+    senderId: getSenderId(),
+    content: content.trim(),
+    createdAt: new Date().toISOString(),
+    localOnly: true,
+    products: [],
+  };
+}
+
+function buildTypingMessage() {
+  return {
+    id: `local-typing-${Date.now()}-${Math.random()}`,
+    conversationId: conversationId.value,
+    senderType: "BOT",
+    senderId: "BOT_TYPING",
+    content: "Bot đang trả lời...",
+    createdAt: new Date().toISOString(),
+    localTyping: true,
+    products: [],
   };
 }
 
@@ -125,9 +190,83 @@ const msgBox = ref(null);
 let stomp = null;
 let sub = null;
 
+function normalizeText(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function isStaffHandoffMessage(message) {
+  if (!message || message.senderType !== "BOT") return false;
+
+  const content = normalizeText(message.content);
+
+  return (
+    content.includes("gap nhan vien") ||
+    content.includes("gap cskh") ||
+    content.includes("ket noi") ||
+    content.includes("tu van vien") ||
+    content.includes("nhan vien tu van") ||
+    content.includes("vui long cho trong giay lat") ||
+    content.includes("bo phan cskh") ||
+    content.includes("se ket noi") ||
+    content.includes("ho tro bo phan")
+  );
+}
+
+function shouldShowProducts(message) {
+  return (
+    !!message &&
+    Array.isArray(message.products) &&
+    message.products.length > 0 &&
+    !isStaffHandoffMessage(message)
+  );
+}
+
+function getLastBotMessageId() {
+  for (let i = messages.value.length - 1; i >= 0; i--) {
+    const m = messages.value[i];
+    if (m?.senderType === "BOT" && !m.localTyping) {
+      return m.id ?? `${m.senderType}-${m.createdAt}-${i}`;
+    }
+  }
+  return null;
+}
+
+function showBotSupportPanel(message) {
+  if (!message || message.senderType !== "BOT" || message.localTyping) {
+    return false;
+  }
+
+  if (isStaffHandoffMessage(message)) {
+    return false;
+  }
+
+  const currentId =
+    message.id ??
+    `${message.senderType}-${message.createdAt}-${messages.value.indexOf(message)}`;
+
+  return currentId === getLastBotMessageId();
+}
+
 function scrollBottom() {
   if (!msgBox.value) return;
   msgBox.value.scrollTop = msgBox.value.scrollHeight;
+}
+
+function removeLocalTyping() {
+  messages.value = messages.value.filter((m) => !m.localTyping);
+}
+
+function pushLocalClientMessage(content) {
+  const localMsg = buildLocalClientMessage(content);
+  messages.value.push(localMsg);
+  nextTick(scrollBottom);
 }
 
 function ensureLocalWelcome() {
@@ -164,28 +303,20 @@ function formatTime(iso) {
   });
 }
 
-function getQuickOptions(message) {
-  if (message.senderType !== "BOT") return [];
+function formatPrice(value) {
+  const n = Number(value);
+  if (Number.isNaN(n)) return "";
+  return n.toLocaleString("vi-VN") + " đ";
+}
 
-  const content = (message.content || "").toLowerCase();
+function buildImageUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API}${path}`;
+}
 
-  if (content.includes("shop có thể hỗ trợ gì")) {
-    return ["Kiểm tra đơn hàng", "Phí ship", "Tư vấn size", "Gặp CSKH"];
-  }
-  if (content.includes("kiểm tra phí ship khu vực nào")) {
-    return ["Nội thành TP.HCM", "Ngoại thành TP.HCM", "Tỉnh khác", "Gặp CSKH"];
-  }
-  if (content.includes("gửi mã đơn hàng")) {
-    return ["Đơn của tôi", "Gặp CSKH"];
-  }
-  if (content.includes("thanh toán theo cách nào")) {
-    return ["COD", "Chuyển khoản", "Gặp CSKH"];
-  }
-  if (content.includes("tư vấn size phù hợp")) {
-    return ["Nam 1m70 65kg", "Nam 1m75 70kg", "Nữ 1m55 45kg", "Gặp CSKH"];
-  }
-
-  return [];
+function onImageError(e) {
+  e.target.style.display = "none";
 }
 
 function isSameMessage(a, b) {
@@ -206,8 +337,15 @@ function isSameMessage(a, b) {
 function dedupeMessages(list) {
   const unique = [];
   for (const msg of list || []) {
-    const exists = unique.some((m) => isSameMessage(m, msg));
-    if (!exists) unique.push(msg);
+    const normalized = {
+      ...msg,
+      products: Array.isArray(msg?.products) ? msg.products : [],
+    };
+
+    const exists = unique.some((m) => isSameMessage(m, normalized));
+    if (!exists) {
+      unique.push(normalized);
+    }
   }
   return unique;
 }
@@ -248,7 +386,9 @@ async function createConversationAndSendFirstMessage(content) {
     subscribeRoom(conversationId.value);
   }
 
-  messages.value = messages.value.filter((m) => !m.localOnly);
+  messages.value = messages.value.filter(
+    (m) => !m.localOnly || m.senderType !== "BOT"
+  );
 
   stomp.publish({
     destination: "/app/chat.send",
@@ -261,19 +401,30 @@ async function createConversationAndSendFirstMessage(content) {
   });
 }
 
+function goToProduct(p) {
+  if (!p?.sanPhamChiTietId) return;
+  router.push(`/product/${p.sanPhamChiTietId}`);
+}
+
 async function sendQuickOption(text) {
   const content = text?.trim();
   if (!content) return;
 
   try {
+    pushLocalClientMessage(content);
+
+    removeLocalTyping();
+    messages.value.push(buildTypingMessage());
+    nextTick(scrollBottom);
+
     if (!conversationId.value) {
       await createConversationAndSendFirstMessage(content);
     } else {
       publishMessage(content);
     }
-    nextTick(scrollBottom);
   } catch (e) {
     console.error("Send quick option failed:", e);
+    removeLocalTyping();
   }
 }
 
@@ -320,15 +471,36 @@ function subscribeRoom(convId) {
 
   try {
     sub?.unsubscribe();
-  } catch (e) {}
+  } catch {}
 
   sub = stomp.subscribe(`/topic/conversations/${convId}`, (frame) => {
     const msg = JSON.parse(frame.body);
+    const normalized = {
+      ...msg,
+      products: Array.isArray(msg?.products) ? msg.products : [],
+    };
 
-    const exists = messages.value.some((m) => isSameMessage(m, msg));
+    removeLocalTyping();
+
+    if (normalized.senderType === "CLIENT") {
+      const idx = messages.value.findIndex(
+        (m) =>
+          m.localOnly &&
+          m.senderType === "CLIENT" &&
+          m.content === normalized.content
+      );
+
+      if (idx !== -1) {
+        messages.value.splice(idx, 1);
+      }
+    }
+
+    const exists = messages.value.some((m) => isSameMessage(m, normalized));
     if (!exists) {
-      messages.value = messages.value.filter((m) => !m.localOnly);
-      messages.value.push(msg);
+      messages.value = messages.value.filter(
+        (m) => !(m.localOnly && m.senderType === normalized.senderType)
+      );
+      messages.value.push(normalized);
       nextTick(scrollBottom);
     }
   });
@@ -337,7 +509,7 @@ function subscribeRoom(convId) {
 async function reInitForIdentity(identityKey) {
   try {
     sub?.unsubscribe();
-  } catch (e) {}
+  } catch {}
   sub = null;
 
   messages.value = [];
@@ -364,12 +536,13 @@ async function syncConversation() {
 async function handleAuthChanged() {
   try {
     sub?.unsubscribe();
-  } catch (e) {}
+  } catch {}
   sub = null;
 
   messages.value = [];
   conversationId.value = null;
   input.value = "";
+  open.value = false;
 
   currentIdentityKey.value = "";
   await syncConversation();
@@ -379,17 +552,23 @@ async function send() {
   const content = input.value.trim();
   if (!content) return;
 
+  input.value = "";
+
   try {
+    pushLocalClientMessage(content);
+
+    removeLocalTyping();
+    messages.value.push(buildTypingMessage());
+    nextTick(scrollBottom);
+
     if (!conversationId.value) {
       await createConversationAndSendFirstMessage(content);
     } else {
       publishMessage(content);
     }
-
-    input.value = "";
-    nextTick(scrollBottom);
   } catch (e) {
     console.error("Send message failed:", e);
+    removeLocalTyping();
   }
 }
 
@@ -411,16 +590,17 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   try {
     sub?.unsubscribe();
-  } catch (e) {}
+  } catch {}
   try {
     stomp?.deactivate();
-  } catch (e) {}
+  } catch {}
 
   window.removeEventListener("focus", handleFocusOrVisible);
   document.removeEventListener("visibilitychange", handleFocusOrVisible);
   window.removeEventListener("auth-changed", handleAuthChanged);
 });
 </script>
+
 <style scoped>
 .chat-fab {
   position: fixed;
@@ -496,7 +676,7 @@ onBeforeUnmount(() => {
 }
 
 .bubble {
-  max-width: 78%;
+  max-width: 82%;
   padding: 10px 10px 6px;
   border-radius: 12px;
   background: #fff;
@@ -520,25 +700,106 @@ onBeforeUnmount(() => {
   word-break: break-word;
 }
 
-.quick-options {
+.text.typing {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.product-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.product-card {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #f8fbff;
+  border: 1px solid rgba(10, 133, 237, 0.12);
+}
+
+.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.product-image {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+.product-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.product-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.product-meta {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.product-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0a85ed;
+}
+
+.bot-support-panel {
+  margin-top: 10px;
+}
+
+.support-btn {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
   margin-top: 8px;
 }
 
-.quick-btn {
-  border: 1px solid rgba(10, 133, 237, 0.18);
-  background: #eef4ff;
-  color: #0a85ed;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  cursor: pointer;
+.auto-btn {
+  border: 1px solid #98dbc3;
+  color: #51b897;
+  background: #fbfffd;
 }
 
-.quick-btn:hover {
-  background: #e4efff;
+.staff-btn {
+  border: 1px solid #e6c36a;
+  color: #9a7421;
+  background: #fffdfa;
+}
+
+.support-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .time {
@@ -558,20 +819,29 @@ onBeforeUnmount(() => {
 
 .chat-input input {
   flex: 1;
-  padding: 10px 10px;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
   outline: none;
+  font-size: 14px;
+  background: #f8f9fb;
+}
+
+.chat-input input::placeholder {
+  color: #a0a7b1;
 }
 
 .chat-input button {
-  padding: 10px 12px;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #0a85ed;
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 @media (max-width: 420px) {

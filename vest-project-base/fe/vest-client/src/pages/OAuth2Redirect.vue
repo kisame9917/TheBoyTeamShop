@@ -50,7 +50,7 @@ onMounted(async () => {
     localStorage.setItem(
       "vest_user",
       JSON.stringify({
-        id: me.taiKhoan,
+        id: me.id,
         taiKhoan: me.taiKhoan,
         tenKhachHang: me.tenKhachHang,
         email: me.email,
