@@ -371,7 +371,7 @@
                       v-if="activeOrder.loaiDon"
                       class="small text-muted mt-1"
                     >
-                      Ship toàn quốc cố định <b>30.000đ</b>
+                    
                     </div>
                   </div>
                   <!-- =======================
