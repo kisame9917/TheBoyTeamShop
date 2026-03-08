@@ -48,7 +48,7 @@
       <div class="card-body">
         <div v-if="!activeOrder" class="text-center py-5 text-muted">
           <div class="fs-1">👜</div>
-          <div class="fw-semibold">No Data Found</div>
+          <div class="fw-semibold">Chưa có đơn hàng nào</div>
         </div>
 
         <div v-else>
@@ -82,7 +82,7 @@
               class="text-center py-4 text-muted"
             >
               <div class="fs-1">👜</div>
-              <div class="fw-semibold">No Data Found</div>
+              <div class="fw-semibold">Chưa có sản phẩm nào</div>
             </div>
 
             <div v-else class="table-responsive">
@@ -175,7 +175,7 @@
             <div class="col-12 col-lg-6">
               <div class="card h-100">
                 <div
-                  class="card-header bg-white d-flex align-items-center justify-content-between"
+                  class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2"
                 >
                   <div>
                     <div class="fw-bold">Thông tin khách hàng</div>
@@ -187,13 +187,23 @@
                     </div>
                   </div>
 
-                  <button
-                    class="btn btn-outline-dark btn-sm"
-                    type="button"
-                    @click="openCustomerModal"
-                  >
-                    Chọn khách hàng
-                  </button>
+                  <div class="d-flex align-items-center gap-2">
+                    <button
+                      class="btn btn-outline-secondary btn-sm customer-action-btn"
+                      type="button"
+                      @click="resetToWalkInCustomer"
+                    >
+                      Đặt lại
+                    </button>
+
+                    <button
+                      class="btn btn-outline-dark btn-sm customer-action-btn"
+                      type="button"
+                      @click="openCustomerModal"
+                    >
+                      Chọn khách hàng
+                    </button>
+                  </div>
                 </div>
 
                 <div class="card-body">
@@ -761,10 +771,10 @@
 
     <!-- Toast -->
     <div
-  v-if="toast.show"
-  class="position-fixed top-0 end-0 p-3"
-  style="z-index: 2000"
->
+      v-if="toast.show"
+      class="position-fixed top-0 end-0 p-3"
+      style="z-index: 2000"
+    >
       <div
         class="toast show align-items-center text-white border-0"
         :class="toastClass"
@@ -811,154 +821,173 @@
             </div>
 
             <div class="modal-body">
-            <div class="card border-0 shadow-sm mb-3">
-  <div class="card-body pt-3">
-    <div class="row g-3 align-items-end">
-      <div class="col-12 col-lg-6">
-        <label class="form-label mb-1">Tìm kiếm</label>
-        <input
-          class="form-control"
-          placeholder="Tìm theo mã / tên sản phẩm..."
-          v-model.trim="productFilters.keyword"
-        />
-      </div>
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body pt-3">
+                  <div class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label mb-1">Tìm kiếm</label>
+                      <input
+                        class="form-control"
+                        placeholder="Tìm theo mã / tên sản phẩm..."
+                        v-model.trim="productFilters.keyword"
+                      />
+                    </div>
 
-      <div class="col-12 col-md-6 col-lg-3">
-        <label class="form-label mb-1">Màu sắc</label>
-        <select class="form-select" v-model="productFilters.color">
-          <option value="">-- Chọn màu sắc --</option>
-          <option
-            v-for="c in productColorOptions"
-            :key="c"
-            :value="c"
-          >
-            {{ c }}
-          </option>
-        </select>
-      </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                      <label class="form-label mb-1">Màu sắc</label>
+                      <select
+                        class="form-select"
+                        v-model="productFilters.color"
+                      >
+                        <option value="">-- Chọn màu sắc --</option>
+                        <option
+                          v-for="c in productColorOptions"
+                          :key="c"
+                          :value="c"
+                        >
+                          {{ c }}
+                        </option>
+                      </select>
+                    </div>
 
-      <div class="col-12 col-md-6 col-lg-3">
-        <label class="form-label mb-1">Size</label>
-        <select class="form-select" v-model="productFilters.size">
-          <option value="">-- Chọn size --</option>
-          <option
-            v-for="s in productSizeOptions"
-            :key="s"
-            :value="s"
-          >
-            {{ s }}
-          </option>
-        </select>
-      </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                      <label class="form-label mb-1">Size</label>
+                      <select class="form-select" v-model="productFilters.size">
+                        <option value="">-- Chọn size --</option>
+                        <option
+                          v-for="s in productSizeOptions"
+                          :key="s"
+                          :value="s"
+                        >
+                          {{ s }}
+                        </option>
+                      </select>
+                    </div>
 
-      <div class="col-12 col-lg-7">
-        <label class="form-label mb-2">Khoảng giá</label>
+                    <div class="col-12 col-lg-7">
+                      <label class="form-label mb-2">Khoảng giá</label>
 
-        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-          <span class="fw-semibold text-success">
-            {{ money(productPriceRange.min).replace(" đ", "") }}
-          </span>
-          <span>-</span>
-          <span class="fw-semibold text-success">
-            {{ money(productPriceRange.max).replace(" đ", "") }}
-          </span>
-        </div>
+                      <div
+                        class="d-flex align-items-center gap-2 flex-wrap mb-2"
+                      >
+                        <span class="fw-semibold text-success">
+                          {{ money(productPriceRange.min).replace(" đ", "") }}
+                        </span>
+                        <span>-</span>
+                        <span class="fw-semibold text-success">
+                          {{ money(productPriceRange.max).replace(" đ", "") }}
+                        </span>
+                      </div>
 
-        <div class="price-range-wrap">
-          <input
-            class="range-input"
-            type="range"
-            :min="productPriceBounds.min"
-            :max="productPriceBounds.max"
-            :step="productPriceStep"
-            v-model.number="productPriceRange.min"
-            @input="onPriceRangeMinInput"
-          />
+                      <div class="price-range-wrap">
+                        <input
+                          class="range-input"
+                          type="range"
+                          :min="productPriceBounds.min"
+                          :max="productPriceBounds.max"
+                          :step="productPriceStep"
+                          v-model.number="productPriceRange.min"
+                          @input="onPriceRangeMinInput"
+                        />
 
-          <input
-            class="range-input"
-            type="range"
-            :min="productPriceBounds.min"
-            :max="productPriceBounds.max"
-            :step="productPriceStep"
-            v-model.number="productPriceRange.max"
-            @input="onPriceRangeMaxInput"
-          />
-        </div>
+                        <input
+                          class="range-input"
+                          type="range"
+                          :min="productPriceBounds.min"
+                          :max="productPriceBounds.max"
+                          :step="productPriceStep"
+                          v-model.number="productPriceRange.max"
+                          @input="onPriceRangeMaxInput"
+                        />
+                      </div>
 
-        <div class="small text-muted mt-1">
-          Giá tối đa hiện tại:
-          <b>{{ money(productPriceRange.max) }}</b>
-        </div>
-      </div>
+                      <div class="small text-muted mt-1">
+                        Giá tối đa hiện tại:
+                        <b>{{ money(productPriceRange.max) }}</b>
+                      </div>
+                    </div>
 
-      <div class="col-12 col-lg-5">
-        <label class="form-label mb-2">Trạng thái</label>
-        <div class="product-status-group">
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              value=""
-              v-model="productFilters.stockStatus"
-              id="stock-all"
-            />
-            <label class="form-check-label" for="stock-all">Tất cả</label>
-          </div>
+                    <div class="col-12 col-lg-5">
+                      <label class="form-label mb-2">Trạng thái</label>
+                      <div class="product-status-group">
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="radio"
+                            value=""
+                            v-model="productFilters.stockStatus"
+                            id="stock-all"
+                          />
+                          <label class="form-check-label" for="stock-all"
+                            >Tất cả</label
+                          >
+                        </div>
 
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              value="in"
-              v-model="productFilters.stockStatus"
-              id="stock-in"
-            />
-            <label class="form-check-label" for="stock-in">Còn hàng</label>
-          </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="radio"
+                            value="in"
+                            v-model="productFilters.stockStatus"
+                            id="stock-in"
+                          />
+                          <label class="form-check-label" for="stock-in"
+                            >Còn hàng</label
+                          >
+                        </div>
 
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              value="out"
-              v-model="productFilters.stockStatus"
-              id="stock-out"
-            />
-            <label class="form-check-label" for="stock-out">Hết hàng</label>
-          </div>
-        </div>
-      </div>
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="radio"
+                            value="out"
+                            v-model="productFilters.stockStatus"
+                            id="stock-out"
+                          />
+                          <label class="form-check-label" for="stock-out"
+                            >Hết hàng</label
+                          >
+                        </div>
+                      </div>
+                    </div>
 
-      <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="small text-muted d-flex align-items-center gap-3 flex-wrap">
-          <span v-if="productLoading">Đang tải...</span>
-          <span>Hiển thị: <b>{{ filteredProducts.length }}</b></span>
-          <span>Tổng: <b>{{ productTotal }}</b></span>
-        </div>
+                    <div
+                      class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2"
+                    >
+                      <div
+                        class="small text-muted d-flex align-items-center gap-3 flex-wrap"
+                      >
+                        <span v-if="productLoading">Đang tải...</span>
+                        <span
+                          >Hiển thị: <b>{{ filteredProducts.length }}</b></span
+                        >
+                        <span
+                          >Tổng: <b>{{ productTotal }}</b></span
+                        >
+                      </div>
 
-        <div class="d-flex gap-2">
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            @click="resetProductFilters"
-          >
-            Đặt lại
-          </button>
+                      <div class="d-flex gap-2">
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          @click="resetProductFilters"
+                        >
+                          Đặt lại
+                        </button>
 
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            @click="reloadProducts"
-            :disabled="productLoading"
-          >
-            Tải lại
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          @click="reloadProducts"
+                          :disabled="productLoading"
+                        >
+                          Tải lại
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div class="table-responsive">
                 <table class="table table-bordered align-middle">
@@ -1098,13 +1127,7 @@
                   placeholder="Tìm theo tên/SĐT/email/địa chỉ..."
                   v-model.trim="customerKw"
                 />
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="resetToWalkInCustomer"
-                >
-                  Đặt lại
-                </button>
+
                 <button
                   class="btn btn-outline-secondary"
                   type="button"
@@ -1685,7 +1708,6 @@ let midnightTimer = null;
 async function handleMidnightReset() {
   // 1) FE reset
   clearDraftsFE();
-
 }
 
 function scheduleMidnightReset() {
@@ -1916,9 +1938,15 @@ const productSizeOptions = computed(() => {
 });
 
 const filteredProducts = computed(() => {
-  const kw = String(productFilters.keyword || "").trim().toLowerCase();
-  const color = String(productFilters.color || "").trim().toLowerCase();
-  const size = String(productFilters.size || "").trim().toLowerCase();
+  const kw = String(productFilters.keyword || "")
+    .trim()
+    .toLowerCase();
+  const color = String(productFilters.color || "")
+    .trim()
+    .toLowerCase();
+  const size = String(productFilters.size || "")
+    .trim()
+    .toLowerCase();
   const stockStatus = String(productFilters.stockStatus || "").trim();
 
   const minPrice = Number(productPriceRange.min || 0);
@@ -1928,14 +1956,15 @@ const filteredProducts = computed(() => {
     const textMatched =
       !kw ||
       [p.code, p.name, p.color, p.size].some((x) =>
-        String(x || "").toLowerCase().includes(kw),
+        String(x || "")
+          .toLowerCase()
+          .includes(kw),
       );
 
     const colorMatched =
       !color || String(p.color || "").toLowerCase() === color;
 
-    const sizeMatched =
-      !size || String(p.size || "").toLowerCase() === size;
+    const sizeMatched = !size || String(p.size || "").toLowerCase() === size;
 
     const stockMatched =
       !stockStatus ||
@@ -1946,11 +1975,7 @@ const filteredProducts = computed(() => {
     const priceMatched = price >= minPrice && price <= maxPrice;
 
     return (
-      textMatched &&
-      colorMatched &&
-      sizeMatched &&
-      stockMatched &&
-      priceMatched
+      textMatched && colorMatched && sizeMatched && stockMatched && priceMatched
     );
   });
 });

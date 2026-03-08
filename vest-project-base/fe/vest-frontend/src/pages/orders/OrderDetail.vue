@@ -100,37 +100,47 @@
     </div>
 
     <!-- Order Info (professional) -->
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3 order-detail-card">
       <div class="card-body">
-        <div
-          class="d-flex align-items-start justify-content-between flex-wrap gap-3"
-        >
-          <div>
-            <div class="d-flex align-items-center flex-wrap gap-2">
-              <h6 class="mb-0">Thông tin đơn hàng</h6>
-              <span class="badge" :class="statusBadgeClass(hd?.trangThaiDon)">
+        <div class="order-detail-top">
+          <div class="order-detail-left">
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+              <h5 class="mb-0 order-title">Thông tin đơn hàng</h5>
+
+              <span
+                class="badge order-badge"
+                :class="statusBadgeClass(hd?.trangThaiDon)"
+              >
                 {{ statusLabel(hd?.trangThaiDon) }}
               </span>
-              <span class="badge text-bg-light border">
+
+              <span class="badge order-type-badge">
                 {{ orderTypeText }}
               </span>
             </div>
 
-            <div class="text-muted small mt-1">
-              Mã: <b>{{ hd?.maHoaDon || "-" }}</b>
-              <span class="mx-1">•</span>
-              Tạo lúc: <b>{{ formatDateTimeVN(hd?.ngayTao) || "-" }}</b>
-              <span class="mx-1">•</span>
-              NV xử lý: <b>{{ staffCode }}</b> - <b>{{ staffName }}</b>
+            <div class="order-meta">
+              <span
+                >Mã: <b>{{ hd?.maHoaDon || "-" }}</b></span
+              >
+              <span>•</span>
+              <span
+                >Tạo lúc:
+                <b>{{ formatDateTimeVN(hd?.ngayTao) || "-" }}</b></span
+              >
+              <span>•</span>
+              <span
+                >NV xử lý: <b>{{ staffCode }}</b> - <b>{{ staffName }}</b></span
+              >
             </div>
           </div>
 
-          <div class="text-end">
-            <div class="text-muted small">Tổng thanh toán</div>
-            <div class="fs-5 fw-bold text-danger">
+          <div class="order-detail-right">
+            <div class="order-total-label">Tổng thanh toán</div>
+            <div class="order-total-value">
               {{ formatCurrency(hd?.tongTienSauGiam) }}
             </div>
-            <div class="text-muted small">
+            <div class="order-paid-label">
               Đã thanh toán: <b>{{ formatCurrency(paidTotal) }}</b>
             </div>
           </div>
@@ -247,19 +257,19 @@
         <!-- Quick summary chips -->
         <div class="summary-grid mt-3">
           <div class="summary-item">
-            <div class="text-muted small">Trạng thái hiện tại</div>
+            <div class="text-muted medium">Trạng thái hiện tại</div>
             <div class="fw-semibold">{{ statusLabel(hd?.trangThaiDon) }}</div>
           </div>
           <div class="summary-item">
-            <div class="text-muted small">Số SP</div>
+            <div class="text-muted medium">Số SP</div>
             <div class="fw-semibold">{{ (hd?.items || []).length }}</div>
           </div>
           <div class="summary-item">
-            <div class="text-muted small">Đơn giá trị</div>
+            <div class="text-muted medium">Đơn giá trị</div>
             <div class="fw-semibold">{{ formatCurrency(hd?.tongTien) }}</div>
           </div>
           <div class="summary-item">
-            <div class="text-muted small">Còn lại</div>
+            <div class="text-muted medium">Còn lại</div>
             <div class="fw-semibold">
               {{
                 formatCurrency(
@@ -279,7 +289,7 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="mb-0">Lịch sử thanh toán</h6>
+        <h6 class="section-title mb-2">Lịch sử thanh toán</h6>
         </div>
 
         <div class="table-responsive table-wrap">
@@ -328,7 +338,7 @@
     <!-- Items -->
     <div class="card shadow-sm">
       <div class="card-body">
-        <h6 class="mb-2">Sản phẩm</h6>
+        <h6 class="section-title mb-2">Sản phẩm</h6>
 
         <div class="table-responsive table-wrap">
           <table class="table table-fixed align-middle mb-0">
@@ -433,15 +443,15 @@
             ></button>
           </div>
 
-          <div class="modal-body">
-            <div class="table-responsive">
-              <table class="table align-middle">
-                <thead class="table-light">
+          <div class="modal-body history-modal-body">
+            <div class="table-responsive history-table-wrap">
+              <table class="table align-middle mb-0 history-table">
+                <thead>
                   <tr>
-                    <th style="width: 160px">Trạng thái</th>
-                    <th style="width: 180px">Thời gian</th>
-                    <th style="width: 140px">Mã NV</th>
-                    <th style="width: 220px">Tên NV</th>
+                    <th style="width: 140px">Trạng thái</th>
+                    <th style="width: 170px">Thời gian</th>
+                    <th style="width: 110px">Mã NV</th>
+                    <th style="width: 160px">Tên NV</th>
                     <th style="width: 220px">Hành động</th>
                     <th>Mô tả</th>
                   </tr>
@@ -456,15 +466,24 @@
 
                   <tr v-for="h in hd?.lichSuHoaDon || []" :key="h.id">
                     <td>
-                      <span class="badge text-bg-light border">
+                      <span class="history-status-badge">
                         {{ mapHistoryToStatusLabel(h.hanhDong) }}
                       </span>
                     </td>
+
                     <td>{{ formatDateTimeVN(h.thoiGian) }}</td>
-                    <td class="text-truncate">{{ historyStaffCode(h) }}</td>
-                    <td class="text-truncate">{{ historyStaffName(h) }}</td>
-                    <td class="fw-semibold">{{ h.hanhDong || "-" }}</td>
-                    <td>{{ h.ghiChu || "-" }}</td>
+
+                    <td>{{ historyStaffCode(h) }}</td>
+
+                    <td>{{ historyStaffName(h) }}</td>
+
+                    <td class="history-action-cell">
+                      {{ h.hanhDong || "-" }}
+                    </td>
+
+                    <td class="history-note-cell">
+                      {{ h.ghiChu || "-" }}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -921,17 +940,17 @@ const advanceBtnText = computed(() => {
   return `Đổi trạng thái: ${statusLabel(ns)}`;
 });
 
-const canCancel = computed(() => [0, 1, 2].includes(currentStatus.value));
-const canRequestRefund = computed(() => [3, 4].includes(currentStatus.value));
+const canCancel = computed(() => [0, 1].includes(currentStatus.value));
+const canRequestRefund = computed(() => [2, 3, 4].includes(currentStatus.value));
 
-/** ===== STEPPER (auto steps) ===== */
-const baseStepper = computed(() => {
-  const isShip = !!hd.value?.loaiDon; // true = có ship
+/** ===== STEPPER (chỉ hiện tới bước hiện tại) ===== */
+const fullStepper = computed(() => {
+  const isShip = !!hd.value?.loaiDon;
+
   if (!isShip) {
-    // ✅ bán tại quầy: hoàn thành ngay
     return [{ code: 4, label: "Hoàn thành" }];
   }
-  // ✅ có ship: full flow
+
   return [
     { code: 0, label: "Chờ xác nhận đơn" },
     { code: 1, label: "Đang xử lý đơn hàng" },
@@ -952,30 +971,32 @@ const actionToStepCode = (hanhDong) => {
   return m[hanhDong];
 };
 
-const stepCodes = computed(() => baseStepper.value.map((s) => s.code));
-
-/**
- * step hiện tại để tô stepper (0..4)
- * nếu trạng thái là hủy/hoàn (5/6/7) thì lấy “bước cao nhất” từ lịch sử để hiển thị hợp lý
- */
-const currentStepIndex = computed(() => {
+const currentStepCode = computed(() => {
   const st = Number(hd.value?.trangThaiDon ?? -1);
 
-  if (stepCodes.value.includes(st)) return stepCodes.value.indexOf(st);
+  if ([0, 1, 2, 3, 4].includes(st)) return st;
 
   if ([5, 6, 7].includes(st)) {
     const history = hd.value?.lichSuHoaDon || [];
     const codes = history
       .map((h) => actionToStepCode(h.hanhDong))
-      .filter((c) => stepCodes.value.includes(c));
-    if (codes.length) return stepCodes.value.indexOf(Math.max(...codes));
+      .filter((x) => x !== undefined);
+
+    if (codes.length) return Math.max(...codes);
   }
 
   return -1;
 });
 
+const visibleStepper = computed(() => {
+  const current = currentStepCode.value;
+  if (current < 0) return [];
+  return fullStepper.value.filter((s) => s.code <= current);
+});
+
 const stepperSteps = computed(() => {
   const history = hd.value?.lichSuHoaDon || [];
+
   const latestTimeByStep = (code) => {
     const matched = history
       .filter((h) => actionToStepCode(h.hanhDong) === code && h.thoiGian)
@@ -983,7 +1004,7 @@ const stepperSteps = computed(() => {
     return matched[0]?.thoiGian || null;
   };
 
-  return baseStepper.value.map((s) => ({
+  return visibleStepper.value.map((s) => ({
     ...s,
     timeText: latestTimeByStep(s.code)
       ? formatDateTimeVN(latestTimeByStep(s.code))
@@ -991,44 +1012,46 @@ const stepperSteps = computed(() => {
   }));
 });
 
-// progress theo index (0..n-1) => 0..100
+const stepCodes = computed(() => stepperSteps.value.map((s) => s.code));
+
+const currentStepIndex = computed(() => {
+  return stepCodes.value.indexOf(currentStepCode.value);
+});
+
 const progressPercent = computed(() => {
   const idx = currentStepIndex.value;
-  if (idx < 0) return 0;
+  const n = stepperSteps.value.length;
 
-  const n = baseStepper.value.length;
+  if (idx < 0 || n <= 1) return 0;
   return (idx / (n - 1)) * 100;
 });
+
 const isLastStep = computed(
-  () => currentStepIndex.value === baseStepper.value.length - 1,
+  () => currentStepIndex.value === stepperSteps.value.length - 1,
 );
 
 const isDoneStep = (code) => {
   const idx = currentStepIndex.value;
-  if (idx < 0) return false;
-
   const codeIdx = stepCodes.value.indexOf(code);
 
-  // Nếu đang ở bước cuối (Hoàn thành) => bước cuối cũng xem như DONE để hiện tick
+  if (idx < 0) return false;
   if (isLastStep.value) return codeIdx <= idx;
 
-  // Còn lại: chỉ những bước nhỏ hơn bước hiện tại
   return codeIdx < idx;
 };
 
 const isCurrentStep = (code) => {
   const codeIdx = stepCodes.value.indexOf(code);
-
-  // Nếu là bước cuối rồi thì không cần "current" nữa (để nó tick luôn)
   if (isLastStep.value) return false;
-
   return codeIdx === currentStepIndex.value;
 };
+
 const stepStateClass = (code) => {
   if (isDoneStep(code)) return "is-done";
   if (isCurrentStep(code)) return "is-current";
   return "is-todo";
 };
+
 /** ====== CONFIRM ACTION MODAL (ONE FOR ALL) ====== */
 const confirmActionModalRef = ref(null);
 let bsConfirmActionModal = null;
@@ -1331,6 +1354,7 @@ onMounted(async () => {
 <style scoped>
 .card {
   border-radius: 14px;
+  font-size: 15px;
 }
 
 /* Info blocks */
@@ -1345,13 +1369,16 @@ onMounted(async () => {
   margin-bottom: 10px;
   display: flex;
   align-items: center;
+  font-size: 15px; /* thêm */
 }
+
 .info-row {
   display: flex;
   justify-content: space-between;
   gap: 10px;
   padding: 6px 0;
   border-top: 1px dashed #e8edf3;
+  font-size: 14px; /* thêm */
 }
 .info-row:first-of-type {
   border-top: none;
@@ -1359,7 +1386,7 @@ onMounted(async () => {
 }
 .info-row span {
   color: #6c757d;
-  font-size: 12px;
+  font-size: 15px; /* từ 12px -> 13px */
   min-width: 90px;
 }
 
@@ -1374,6 +1401,7 @@ onMounted(async () => {
   border-radius: 12px;
   padding: 10px 12px;
   background: #fff;
+  font-size: 14px; /* thêm */
 }
 @media (max-width: 992px) {
   .summary-grid {
@@ -1400,6 +1428,7 @@ onMounted(async () => {
 .table th {
   border-color: #e9ecef;
   vertical-align: middle;
+  font-size: 14px; /* thêm */
 }
 .text-truncate {
   overflow: hidden;
@@ -1463,7 +1492,7 @@ onMounted(async () => {
   width: 80mm;
   margin: 0 auto;
   font-family: Arial, sans-serif;
-  font-size: 12px;
+  font-size: 13px; /* từ 12px -> 13px */
 }
 .receipt .center {
   text-align: center;
@@ -1474,12 +1503,15 @@ onMounted(async () => {
 .receipt .bold {
   font-weight: 700;
 }
+
 .receipt .big {
-  font-size: 16px;
+  font-size: 17px; /* từ 16px -> 17px */
 }
+
 .receipt .small {
-  font-size: 11px;
+  font-size: 12px; /* từ 11px -> 12px */
 }
+
 .receipt .muted {
   color: #555;
 }
@@ -1523,31 +1555,30 @@ onMounted(async () => {
   height: 28mm;
 }
 
-/* ===== Stepper: chữ ở trên thanh progress xanh (AUTO steps) ===== */
 .order-stepper {
   background: #fff;
   border: 1px solid #e6e9ef;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 14px 18px;
   box-shadow: 0 8px 22px rgba(31, 42, 68, 0.06);
 }
 
 .order-stepper__track {
-  --progress: 0; /* 0..100 (JS set) */
-  --steps: 4; /* stepperSteps.length sẽ override */
-  --label-h: 44px; /* chiều cao vùng chữ */
-  --gap: 8px; /* khoảng cách chữ -> circle */
-  --dot: 30px;
-  --dot-half: 15px;
+  --progress: 0;
+  --steps: 1;
+  --label-h: 46px;
+  --gap: 10px;
+  --dot: 32px;
+  --dot-half: 16px;
 
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
   align-items: start;
-  padding: 6px 8px 6px;
+  padding: 6px 4px 8px;
+  column-gap: 0;
 }
 
-/* line nền: chạy từ tâm step 1 tới tâm step cuối */
 .order-stepper__track::before {
   content: "";
   position: absolute;
@@ -1560,7 +1591,6 @@ onMounted(async () => {
   z-index: 0;
 }
 
-/* line progress xanh: co theo số step */
 .order-stepper__track::after {
   content: "";
   position: absolute;
@@ -1581,35 +1611,37 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
 }
 
-/* chữ nằm trên line */
 .os-label {
   height: var(--label-h);
   text-align: center;
-  padding: 0 6px;
-  overflow: hidden;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .os-text {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: #1f2a44;
-  line-height: 1.1;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .os-time {
-  margin-top: 3px;
-  font-size: 11px;
+  margin-top: 4px;
+  font-size: 12px;
   color: #8a93a1;
   line-height: 1.1;
   min-height: 14px;
 }
 
-/* circle nằm đúng trên thanh progress */
 .os-circle {
   margin-top: var(--gap);
   width: var(--dot);
@@ -1633,14 +1665,12 @@ onMounted(async () => {
   opacity: 0.9;
 }
 
-/* states */
 .os-step.is-done .os-circle {
   background: #0d6efd;
   border-color: #0d6efd;
   color: #fff;
 }
 
-/* current: vòng rỗng + chấm xanh + halo (giống ảnh) */
 .os-step.is-current .os-circle {
   background: #fff;
   border-color: #0d6efd;
@@ -1649,6 +1679,7 @@ onMounted(async () => {
     0 0 0 6px rgba(13, 110, 253, 0.14),
     0 14px 28px rgba(13, 110, 253, 0.22);
 }
+
 .os-step.is-current .os-dot {
   background: #0d6efd;
 }
@@ -1657,22 +1688,313 @@ onMounted(async () => {
   color: #6c757d;
   font-weight: 600;
 }
+
 .os-step.is-todo .os-circle {
   background: #f7f8fa;
 }
 
-/* responsive: nhỏ thì wrap và tắt line cho gọn */
 @media (max-width: 992px) {
   .order-stepper__track {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px 0;
   }
+
   .order-stepper__track::before,
   .order-stepper__track::after {
     display: none;
   }
+
   .os-text {
     white-space: normal;
+  }
+}
+
+h6.mb-0 {
+  font-size: 18px;
+}
+.order-detail-card {
+  border-radius: 16px;
+  border: 1px solid #e9edf3;
+  overflow: hidden;
+}
+
+.order-detail-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.order-detail-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.order-detail-right {
+  min-width: 220px;
+  text-align: right;
+}
+
+.order-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2a44;
+}
+
+.order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.order-total-label {
+  font-size: 13px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.order-total-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #dc3545;
+}
+
+.order-paid-label {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.order-badge,
+.order-type-badge {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.order-type-badge {
+  background: #f8f9fa;
+  color: #1f2a44;
+  border: 1px solid #dee2e6;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2a44;
+}
+
+/* info blocks đẹp hơn */
+.info-box {
+  border: 1px solid #e9edf3;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fcfdff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.info-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2a44;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px dashed #e8edf3;
+  font-size: 14px;
+}
+
+.info-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.info-row span {
+  color: #6c757d;
+  font-size: 13px;
+  min-width: 95px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-item {
+  border: 1px solid #e9edf3;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.table-fixed {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table td,
+.table th {
+  border-color: #e9ecef;
+  vertical-align: middle;
+  font-size: 14px;
+  padding: 12px 10px;
+}
+
+.thead-dark-custom th {
+  background-color: #1f2a44 !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 10px;
+}
+
+.table tbody tr:hover {
+  background: #fafcff;
+}
+
+/* badge đều và đẹp hơn */
+.badge {
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 6px 10px;
+  font-weight: 600;
+}
+
+/* image sản phẩm */
+.img-box {
+  width: 84px;
+  height: 64px;
+  border: 1px solid #e8ecf2;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+}
+
+.img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== History modal ===== */
+#historyModal .modal-content {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(31, 42, 68, 0.18);
+}
+
+#historyModal .modal-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #e9edf3;
+  padding: 16px 20px;
+}
+
+#historyModal .modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2a44;
+}
+
+.history-modal-body {
+  padding: 18px 20px;
+}
+
+.history-table-wrap {
+  border: 1px solid #e9edf3;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.history-table {
+  margin-bottom: 0;
+}
+
+.history-table thead th {
+  background: #f8fafc;
+  color: #1f2a44;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom: 1px solid #e9edf3;
+  padding: 12px 14px;
+  white-space: nowrap;
+}
+
+.history-table tbody td {
+  font-size: 14px;
+  padding: 14px;
+  border-color: #edf1f5;
+  vertical-align: middle;
+}
+
+.history-table tbody tr:hover {
+  background: #fafcff;
+}
+.history-status-badge {
+  display: inline-block;
+  max-width: 150px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  border: 1px solid #e2e8f0;
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+}
+.history-action-cell {
+  color: #1f2a44;
+  font-weight: 600;
+}
+
+.history-note-cell {
+  color: #495057;
+  line-height: 1.45;
+}
+
+#historyModal .modal-footer {
+  border-top: 1px solid #e9edf3;
+  background: #fcfdff;
+  padding: 14px 20px;
+}
+
+/* responsive */
+@media (max-width: 992px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-detail-right {
+    width: 100%;
+    text-align: left;
   }
 }
 </style>

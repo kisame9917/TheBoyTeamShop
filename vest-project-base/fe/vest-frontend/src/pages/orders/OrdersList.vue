@@ -223,95 +223,103 @@
         <div v-else class="table-responsive table-wrap">
          <table class="table align-middle mb-0 table-hover table-fixed table-normal">
 
-            <colgroup>
+           <colgroup>
   <col style="width: 5%" />   <!-- STT -->
-  <col style="width: 14%" />  <!-- Mã -->
-  <col style="width: 18%" />  <!-- Khách -->
-  <col style="width: 12%" />  <!-- SĐT -->
-  <col style="width: 10%" />  <!-- Loại -->
-  <col style="width: 12%" />  <!-- Tổng -->
-  <col style="width: 10%" />  <!-- Ngày -->
+  <col style="width: 16%" />  <!-- Mã hóa đơn -->
+  <col style="width: 18%" />  <!-- Khách hàng -->
+  <col style="width: 12%" />  <!-- Số điện thoại -->
+  <col style="width: 10%" />  <!-- Loại hóa đơn -->
+  <col style="width: 12%" />  <!-- Tổng tiền -->
+  <col style="width: 10%" />  <!-- Ngày tạo -->
   <col style="width: 11%" />  <!-- Trạng thái -->
-  <col style="width: 8%" />   <!-- Hành động -->
+  <col style="width: 6%" />   <!-- Hành động -->
 </colgroup>
+<thead class="thead-dark-custom">
+  <tr>
+    <th class="text-center">STT</th>
+    <th>Mã hóa đơn</th>
+    <th>Khách hàng</th>
+    <th>Số điện thoại</th>
+    <th class="text-center">Loại hóa đơn</th>
+    <th class="text-end">Tổng tiền</th>
+    <th class="text-center">Ngày tạo</th>
+    <th class="text-center">Trạng thái</th>
+    <th class="text-center">Hành động</th>
+  </tr>
+</thead>
 
-            <thead class="thead-dark-custom">
-              <tr>
-                <th>STT</th>
-                <th>Mã hóa đơn</th>
-                <th>Khách hàng</th>
-                <th>Số điện thoại</th>
-                <th>Loại hóa đơn</th>
-                <th class="text-end">Tổng tiền</th>
-                <th>Ngày tạo</th>
-                <th>Trạng thái</th>
-                <th class="text-end">Hành động</th>
-              </tr>
-            </thead>
+<tbody>
+  <tr v-if="rows.length === 0">
+    <td colspan="9" class="text-center text-muted py-4">
+      Không có dữ liệu
+    </td>
+  </tr>
 
-            <tbody>
-              <tr v-if="rows.length === 0">
-                <td colspan="9" class="text-center text-muted py-4">
-                  Không có dữ liệu
-                </td>
-              </tr>
+  <tr v-for="(r, idx) in rows" :key="r.id">
+    <td class="text-center">
+      {{ page.page * page.size + idx + 1 }}
+    </td>
 
-              <tr v-for="(r, idx) in rows" :key="r.id">
-                <td>{{ page.page * page.size + idx + 1 }}</td>
+    <td class="fw-semibold">
+      <span class="cell-ellipsis" :title="r.maHoaDon">
+        {{ r.maHoaDon }}
+      </span>
+    </td>
 
-                <td class="fw-semibold">
-                  <span class="cell-ellipsis" :title="r.maHoaDon">{{
-                    r.maHoaDon
-                  }}</span>
-                </td>
+    <td>
+      <span class="cell-ellipsis" :title="r.tenKhachHang || 'Khách lẻ'">
+        {{ r.tenKhachHang || "Khách lẻ" }}
+      </span>
+    </td>
 
-                <td>
-                  <span
-                    class="cell-ellipsis"
-                    :title="r.tenKhachHang || 'Khách lẻ'"
-                  >
-                    {{ r.tenKhachHang || "Khách lẻ" }}
-                  </span>
-                </td>
+    <td>
+      <span class="cell-ellipsis" :title="r.soDienThoai || '-'">
+        {{ r.soDienThoai || "-" }}
+      </span>
+    </td>
 
-                <td>{{ r.soDienThoai || "-" }}</td>
+    <td class="text-center">
+      <span class="badge text-bg-light border">
+        {{ r.loaiDon ? "Online" : "Tại quầy" }}
+      </span>
+    </td>
 
-                <td>
-                  <span class="badge text-bg-light border">
-                    {{ r.loaiDon ? "Online" : "Tại quầy" }}
-                  </span>
-                </td>
+    <td class="fw-semibold text-end text-danger">
+      {{ formatCurrency(r.tongTienSauGiam) }}
+    </td>
 
-                <td class="fw-semibold text-end">
-                  {{ formatCurrency(r.tongTienSauGiam) }}
-                </td>
+    <td class="text-center">
+      {{ formatDateVN(r.ngayTao) }}
+    </td>
 
-                <td>{{ formatDateVN(r.ngayTao) }}</td>
+    <td class="text-center">
+      <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
+        {{ r.tenTrangThaiDon }}
+      </span>
+    </td>
 
-                <td>
-                  <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
-                    {{ r.tenTrangThaiDon }}
-                  </span>
-                </td>
+    <td class="text-center">
+      <div class="action-group">
+        <button
+          class="btn btn-outline-secondary btn-sm"
+          @click="goDetail(r.id)"
+          title="Xem chi tiết"
+        >
+          <i class="bi bi-eye text-secondary eye-icon"></i>
+        </button>
 
-                <td class="text-end">
-                  <button
-                    class="btn btn-outline-secondary btn-sm me-2"
-                    @click="goDetail(r.id)"
-                  >
-                    <i class="bi bi-eye text-secondary eye-icon"></i>
-                  </button>
-
-                  <button
-                    class="btn btn-outline-success btn-sm"
-                    @click="goPrint(r.id)"
-                    title="Xuất hóa đơn"
-                  >
-                    <i class="bi bi-printer"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
+        <button
+          class="btn btn-outline-success btn-sm"
+          @click="goPrint(r.id)"
+          title="Xuất hóa đơn"
+        >
+          <i class="bi bi-printer"></i>
+        </button>
+      </div>
+    </td>
+  </tr>
+</tbody>
+          
           </table>
         </div>
 
@@ -1332,4 +1340,97 @@ onBeforeUnmount(() => {
 /* giúp ellipsis hoạt động đúng trong table-layout: fixed */
 .table-fixed th,
 .table-fixed td { max-width: 0; }
+.table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.table-fixed {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-fixed th,
+.table-fixed td {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.table-normal thead th {
+  font-size: 14px;
+  font-weight: 600 !important;
+  padding: 14px 12px;
+  white-space: nowrap;
+}
+
+.table-normal tbody td {
+  font-size: 14px;
+  padding: 12px;
+  font-weight: 400 !important;
+  white-space: nowrap;
+}
+
+.table-normal tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.table-normal tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.cell-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* badge nhìn gọn hơn */
+.table-normal .badge {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+/* nhóm nút hành động */
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* cột tiền nổi bật hơn */
+.table-normal tbody td.text-danger {
+  font-weight: 600 !important;
+}
+
+/* cột trạng thái căn giữa đẹp hơn */
+.table-normal tbody td.text-center .badge {
+  min-width: 96px;
+  text-align: center;
+}
+
+/* cột loại hóa đơn */
+.table-normal tbody td.text-center .text-bg-light {
+  min-width: 78px;
+  text-align: center;
+}
+
+/* nút hành động đồng đều */
+.action-group .btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
 </style>
