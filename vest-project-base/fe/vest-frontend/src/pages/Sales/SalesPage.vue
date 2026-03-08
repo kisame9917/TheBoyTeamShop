@@ -21,22 +21,31 @@
           class="d-flex align-items-center justify-content-between gap-2 flex-wrap"
         >
           <div class="d-flex flex-wrap gap-2">
-            <button
-              v-for="o in orders"
-              :key="o.id"
-              type="button"
-              class="btn btn-sm"
-              :class="o.id === activeId ? 'btn-dark' : 'btn-outline-dark'"
-              @click="activeId = o.id"
-            >
-              {{ o.label }}
-              <span
-                class="ms-2 tab-x"
-                title="Đóng"
-                @click.stop="closeOrder(o.id)"
-                >×</span
-              >
-            </button>
+           <button
+  v-for="o in orders"
+  :key="o.id"
+  type="button"
+  class="btn btn-sm order-tab-btn"
+  :class="o.id === activeId ? 'btn-dark' : 'btn-outline-dark'"
+  @click="activeId = o.id"
+>
+  <span class="order-tab-label">{{ o.label }}</span>
+
+  <span
+    v-if="getOrderItemCount(o) > 0"
+    class="order-count-badge"
+  >
+    {{ getOrderItemCount(o) }}
+  </span>
+
+  <span
+    class="tab-x"
+    title="Đóng"
+    @click.stop="closeOrder(o.id)"
+  >
+    ×
+  </span>
+</button>
           </div>
 
           <div class="text-muted small">
@@ -770,25 +779,27 @@
     </div>
 
     <!-- Toast -->
-    <div
-      v-if="toast.show"
-      class="position-fixed top-0 end-0 p-3"
-      style="z-index: 2000"
-    >
-      <div
-        class="toast show align-items-center text-white border-0"
-        :class="toastClass"
-      >
-        <div class="d-flex">
-          <div class="toast-body fw-semibold">{{ toast.msg }}</div>
-          <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            @click="toast.show = false"
-          ></button>
-        </div>
-      </div>
+   <div
+  v-if="toast.show"
+  class="position-fixed top-0 end-0 p-3"
+  style="z-index: 2000"
+>
+  <div class="custom-toast shadow-sm" :class="toastClass">
+    <div class="custom-toast-content">
+      <div class="custom-toast-title">{{ toast.title }}</div>
+      <div class="custom-toast-message">{{ toast.msg }}</div>
     </div>
+
+    <button
+      type="button"
+      class="custom-toast-close"
+      @click="toast.show = false"
+      aria-label="Close"
+    >
+      ×
+    </button>
+  </div>
+</div>
 
     <!-- ✅ Modal layer -->
     <teleport to="body">
@@ -1462,15 +1473,40 @@ function buildImgUrl(path) {
 /** =======================
  * TOAST
  * ======================= */
-const toast = reactive({ show: false, msg: "", type: "danger" });
+const toast = reactive({
+  show: false,
+  title: "",
+  msg: "",
+  type: "danger",
+});
 const toastClass = computed(() => {
-  if (toast.type === "success") return "bg-success";
-  if (toast.type === "info") return "bg-primary";
-  if (toast.type === "warning") return "bg-warning";
-  return "bg-danger";
+  if (toast.type === "success") return "custom-toast-success";
+  if (toast.type === "info") return "custom-toast-info";
+  if (toast.type === "warning") return "custom-toast-warning";
+  return "custom-toast-danger";
 });
 function toastShow(msg, type = "danger") {
+  toast.show = true;function toastShow(msg, type = "danger", title = "") {
   toast.show = true;
+  toast.msg = msg;
+  toast.type = type;
+
+  if (title) {
+    toast.title = title;
+  } else {
+    toast.title =
+      type === "success"
+        ? "Thành công"
+        : type === "warning"
+          ? "Cảnh báo"
+          : type === "info"
+            ? "Thông báo"
+            : "Thất bại";
+  }
+
+  clearTimeout(toastShow._t);
+  toastShow._t = setTimeout(() => (toast.show = false), 2600);
+}
   toast.msg = msg;
   toast.type = type;
   clearTimeout(toastShow._t);
@@ -1515,6 +1551,12 @@ function genUniqueMaHoaDon() {
   while (existed.has(code)) code = genMaHoaDon();
   return code;
 }
+
+function getOrderItemCount(order) {
+  if (!order || !Array.isArray(order.cart)) return 0;
+  return order.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+}
+
 
 /** =======================
  * NORMALIZE ORDER
@@ -2059,12 +2101,31 @@ async function setQtyByInput(cartIndex, nextQtyRaw) {
     if (delta > 0) await decreaseStock(Number(it.idSpct), delta);
     else if (delta < 0) await increaseStock(Number(it.idSpct), Math.abs(delta));
   } catch (err) {
-    const msg =
-      err?.response?.data?.message ||
-      err?.response?.data ||
-      "Không thể cập nhật tồn kho";
-    return toastShow(String(msg), "warning");
+  const rawMsg =
+    err?.response?.data?.message ||
+    err?.response?.data ||
+    "";
+
+  const remain = Math.max(0, Number(it.stock || 0));
+  const wantedQty = Number(nextQty || 0);
+
+  let fallbackMsg = "";
+
+  if (remain <= 0) {
+    fallbackMsg = `Sản phẩm ${it.code} hiện đã hết tồn kho trong DB, không thể tăng thêm số lượng`;
+  } else {
+    fallbackMsg =
+      `Số lượng mua không được vượt quá số lượng tồn kho còn lại tồn ${remain} `;
   }
+
+
+  const msg =
+    String(rawMsg).trim() === "Không đủ tồn kho"
+      ? fallbackMsg
+      : rawMsg || fallbackMsg;
+
+  return toastShow(String(msg), "warning");
+}
 
   const p = findModalProductById(it.idSpct);
   if (p) {
@@ -3454,5 +3515,105 @@ onBeforeUnmount(() => {
 
 .customer-pick-btn {
   min-width: 64px;
+}
+.order-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.order-tab-label {
+  white-space: nowrap;
+}
+
+.order-count-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tab-x {
+  opacity: 0.85;
+  cursor: pointer;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.tab-x:hover {
+  opacity: 1;
+}
+.custom-toast {
+  min-width: 320px;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 12px;
+  border-left: 5px solid #dc3545;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  color: #1f2937;
+}
+
+.custom-toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-toast-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.custom-toast-message {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #4b5563;
+  word-break: break-word;
+}
+
+.custom-toast-close {
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-top: -2px;
+}
+
+.custom-toast-close:hover {
+  color: #374151;
+}
+
+.custom-toast-success {
+  border-left-color: #22c55e;
+}
+
+.custom-toast-info {
+  border-left-color: #3b82f6;
+}
+
+.custom-toast-warning {
+  border-left-color: #f59e0b;
+}
+
+.custom-toast-danger {
+  border-left-color: #ef4444;
 }
 </style>
