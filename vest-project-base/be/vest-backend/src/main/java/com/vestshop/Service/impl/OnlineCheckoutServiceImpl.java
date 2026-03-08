@@ -1,5 +1,6 @@
 package com.vestshop.Service.impl;
-
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ThreadLocalRandom;
 import com.vestshop.Entity.GiaoDichThanhToan;
 import com.vestshop.Entity.HoaDon;
 import com.vestshop.Entity.HoaDonChiTiet;
@@ -134,6 +135,11 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
                 throw new BadRequestException("Sản phẩm không đủ tồn kho: " + spct.getMaSanPhamChiTiet());
             }
 
+            // Trừ tồn kho ngay khi tạo đơn
+            spct.setSoLuongTon(tonKho - soLuongDat);
+            spct.setNgayCapNhat(LocalDateTime.now());
+            sanPhamChiTietRepository.save(spct);
+
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(savedHoaDon);
             ct.setSanPhamChiTiet(spct);
@@ -142,10 +148,6 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             ct.setTrangThai(true);
 
             hoaDonChiTietRepository.save(ct);
-
-            spct.setSoLuongTon(tonKho - soLuongDat);
-            spct.setNgayCapNhat(LocalDateTime.now());
-            sanPhamChiTietRepository.save(spct);
         }
 
         OnlineCheckoutResponse response = new OnlineCheckoutResponse();
@@ -324,11 +326,13 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         if (!isBlank(maHoaDon)) {
             return maHoaDon.trim();
         }
-        return "HDONL" + System.currentTimeMillis() + random4Digits();
+
+        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+        return "HD" + datePart + random5Digits();
     }
 
-    private String random4Digits() {
-        int value = new Random().nextInt(9000) + 1000;
+    private String random5Digits() {
+        int value = ThreadLocalRandom.current().nextInt(10000, 100000);
         return String.valueOf(value);
     }
 }
