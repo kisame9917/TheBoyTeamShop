@@ -940,7 +940,7 @@ const advanceBtnText = computed(() => {
   return `Đổi trạng thái: ${statusLabel(ns)}`;
 });
 
-const canCancel = computed(() => [0, 1].includes(currentStatus.value));
+const canCancel = computed(() => currentStatus.value === 0);
 const canRequestRefund = computed(() => [2, 3, 4].includes(currentStatus.value));
 
 /** ===== STEPPER (chỉ hiện tới bước hiện tại) ===== */
@@ -1369,7 +1369,7 @@ onMounted(async () => {
   margin-bottom: 10px;
   display: flex;
   align-items: center;
-  font-size: 15px; /* thêm */
+  font-size: 1px; /* thêm */
 }
 
 .info-row {
@@ -1386,8 +1386,8 @@ onMounted(async () => {
 }
 .info-row span {
   color: #6c757d;
-  font-size: 15px; /* từ 12px -> 13px */
-  min-width: 90px;
+  font-size: 15px;
+  min-width: 110px;
 }
 
 /* Summary line */
@@ -1814,7 +1814,7 @@ h6.mb-0 {
   gap: 12px;
   padding: 8px 0;
   border-top: 1px dashed #e8edf3;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .info-row:first-of-type {
@@ -1824,7 +1824,7 @@ h6.mb-0 {
 
 .info-row span {
   color: #6c757d;
-  font-size: 13px;
+  font-size: 15px;
   min-width: 95px;
 }
 
@@ -1857,7 +1857,7 @@ h6.mb-0 {
 .table th {
   border-color: #e9ecef;
   vertical-align: middle;
-  font-size: 14px;
+  font-size: 15px;
   padding: 12px 10px;
 }
 
@@ -1877,7 +1877,7 @@ h6.mb-0 {
 /* badge đều và đẹp hơn */
 .badge {
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   padding: 6px 10px;
   font-weight: 600;
 }

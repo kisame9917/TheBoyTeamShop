@@ -120,6 +120,13 @@
                         CTSP: <span class="fw-semibold">{{ it.code }}</span> •
                         Tồn: <span class="fw-semibold">{{ it.stock }}</span>
                       </div>
+                      <div v-if="it.priceChangedLocked" class="small text-danger fw-semibold">
+  Giá sản phẩm đã thay đổi:
+  <span class="text-decoration-line-through">{{ money(it.price) }}</span>
+  →
+  <span>{{ money(it.newPrice) }}</span>.
+  
+</div>
                     </td>
 
                     <td class="text-end fw-semibold">{{ money(it.price) }}</td>
@@ -145,6 +152,7 @@
                         <button
                           class="btn btn-outline-secondary btn-sm"
                           @click="incQty(idx)"
+                          :disabled="it.priceChangedLocked"
                         >
                           +
                         </button>
@@ -1845,6 +1853,17 @@ function findModalProductById(idSpct) {
   const id = Number(idSpct);
   return products.value.find((x) => Number(x.idSpct) === id) || null;
 }
+function findRepricedProduct(cartItem) {
+  return products.value.find((p) => {
+    return (
+      Number(p.idSpct) !== Number(cartItem.idSpct) &&
+      String(p.name || "").trim().toLowerCase() === String(cartItem.name || "").trim().toLowerCase() &&
+      String(p.color || "").trim().toLowerCase() === String(cartItem.color || "").trim().toLowerCase() &&
+      String(p.size || "").trim().toLowerCase() === String(cartItem.size || "").trim().toLowerCase() &&
+      Number(p.price || 0) !== Number(cartItem.price || 0)
+    );
+  }) || null;
+}
 
 async function fetchProducts(page = 0) {
   if (productLoading.value) return;
@@ -2175,6 +2194,8 @@ async function chooseProduct(p) {
       qty: 0,
       stockBase: baseBefore,
       stock: baseBefore,
+       priceChangedLocked: false,
+       newPrice: null,
     });
     idx = o.cart.length - 1;
   }
@@ -3188,13 +3209,26 @@ async function refreshProductsInCartAndModal() {
       (p) => Number(p.idSpct) === Number(item.idSpct)
     );
 
+    const repriced = findRepricedProduct(item);
+
     if (!latest) {
       item.stockBase = 0;
       item.stock = 0;
+      item.priceChangedLocked = true;
+      item.newPrice = repriced ? Number(repriced.price || 0) : null;
       continue;
     }
 
     item.stockBase = Number(latest.stock || 0);
+
+    if (repriced) {
+      item.priceChangedLocked = true;
+      item.stock = 0;
+      item.newPrice = Number(repriced.price || 0);
+    } else {
+      item.priceChangedLocked = false;
+      item.newPrice = null;
+    }
   }
 
   syncAllCartStocks();

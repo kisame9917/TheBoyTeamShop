@@ -582,15 +582,24 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         return page.map(hd -> {
             TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
+            NhanVien nv = hd.getNhanVien();
+
             return HoaDonListResponse.builder()
                     .id(hd.getId())
                     .maHoaDon(hd.getMaHoaDon())
+                    .trangThai(hd.getTrangThai())
                     .trangThaiDon(hd.getTrangThaiDon())
                     .tenTrangThaiDon(st.getTen())
                     .loaiDon(hd.getLoaiDon())
                     .tongTienSauGiam(hd.getTongTienSauGiam())
                     .tenKhachHang(hd.getTenKhachHang())
                     .soDienThoai(hd.getSoDienThoai())
+                    .tenNhanVien(nv == null ? null : nv.getTenNhanVien())
+                    .tenChucVu(
+                            nv == null || nv.getQuyenHan() == null
+                                    ? null
+                                    : nv.getQuyenHan().getTenQuyenHan()
+                    )
                     .ngayTao(hd.getNgayTao())
                     .build();
         });
@@ -695,7 +704,9 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         TrangThaiDonHang newSt = TrangThaiDonHang.fromCode(req.getTrangThaiDon());
         TrangThaiDonHang oldSt = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
-
+        if (newSt == TrangThaiDonHang.DA_HUY && oldSt != TrangThaiDonHang.CHO_XAC_NHAN) {
+            throw new IllegalArgumentException("Chỉ được huỷ hoá đơn khi đang ở trạng thái Chờ xác nhận");
+        }
         // Rule tối thiểu (bạn có thể siết thêm):
         if (oldSt == TrangThaiDonHang.DA_HUY) {
             throw new IllegalArgumentException("Đơn đã huỷ, không thể đổi trạng thái");
