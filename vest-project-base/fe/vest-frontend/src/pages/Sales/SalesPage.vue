@@ -187,7 +187,9 @@
                   class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2"
                 >
                   <div>
-                    <div class="fw-bold">Thông tin khách hàng</div>
+                    <div class="fw-bold">
+  {{ activeOrder.loaiDon ? "Thông tin giao hàng" : "Thông tin khách hàng" }}
+</div>
                     <div class="text-muted small">
                       Mã HĐ:
                       <span class="fw-semibold font-monospace">{{
@@ -215,130 +217,121 @@
                   </div>
                 </div>
 
-                <div class="card-body">
-                  <div class="mb-2">
-                    <span class="text-muted">Tên khách hàng: </span>
-                    <span class="fw-bold">{{
-                      activeOrder.customer?.name || "Khách lẻ"
-                    }}</span>
-                  </div>
+               <div class="card-body">
+  <template v-if="!activeOrder.loaiDon">
+    <div class="mb-2">
+      <span class="text-muted">Tên khách hàng: </span>
+      <span class="fw-bold">{{
+        activeOrder.customer?.name || "Khách lẻ"
+      }}</span>
+    </div>
 
-                  <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                      <input
-                        class="form-control"
-                        placeholder="Số điện thoại"
-                        v-model="activeOrder.customerDraft.phone"
-                      />
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <input
-                        class="form-control"
-                        placeholder="Email (nếu có)"
-                        v-model="activeOrder.customerDraft.email"
-                      />
-                    </div>
+    <div class="row g-2">
+      <div class="col-12 col-md-6">
+        <input
+          class="form-control"
+          placeholder="Số điện thoại"
+          v-model="activeOrder.customerDraft.phone"
+        />
+      </div>
+      <div class="col-12 col-md-6">
+        <input
+          class="form-control"
+          placeholder="Email (nếu có)"
+          v-model="activeOrder.customerDraft.email"
+        />
+      </div>
 
-                    <div class="col-12">
-                      <textarea
-                        class="form-control"
-                        rows="2"
-                        placeholder="Địa chỉ (nếu có)"
-                        v-model="activeOrder.diaChi"
-                      ></textarea>
-                      <!-- ✅ Ship form (xổ CBB) -->
-                      <div
-                        v-if="activeOrder.loaiDon === true"
-                        class="mt-3 border rounded-3 p-2"
-                      >
-                        <div class="fw-bold mb-2">Thông tin nhận hàng</div>
+      <div class="col-12">
+        <textarea
+          class="form-control"
+          rows="2"
+          placeholder="Địa chỉ (nếu có)"
+          v-model="activeOrder.diaChi"
+        ></textarea>
+      </div>
+    </div>
+  </template>
 
-                        <div class="row g-2">
-                          <div class="col-12 col-md-6">
-                            <input
-                              class="form-control"
-                              placeholder="Tên người nhận"
-                              v-model.trim="activeOrder.tenNguoiNhanHang"
-                            />
-                          </div>
-                          <div class="col-12 col-md-6">
-                            <input
-                              class="form-control"
-                              placeholder="SĐT người nhận"
-                              v-model.trim="activeOrder.soDienThoaiNhanHang"
-                            />
-                          </div>
+  <template v-else>
+    <div class="border rounded-3 p-3">
+      <div class="fw-bold mb-2">Thông tin nhận hàng</div>
 
-                          <!-- Tỉnh/Thành -->
-                          <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Tỉnh/Thành</label>
-                            <select
-                              class="form-select"
-                              v-model="activeOrder.tinhThanhNhanHang"
-                              @change="onProvinceChange($event.target.value)"
-                              :disabled="provincesLoading"
-                            >
-                              <option value="" disabled>
-                                -- Chọn tỉnh/thành --
-                              </option>
-                              <option
-                                v-for="p in provinces"
-                                :key="p.code"
-                                :value="p.code"
-                              >
-                                {{ p.name }}
-                              </option>
-                            </select>
-                          </div>
+      <div class="row g-2">
+        <div class="col-12 col-md-6">
+          <input
+            class="form-control"
+            placeholder="Tên người nhận"
+            v-model.trim="activeOrder.tenNguoiNhanHang"
+          />
+        </div>
+        <div class="col-12 col-md-6">
+          <input
+            class="form-control"
+            placeholder="SĐT người nhận"
+            v-model.trim="activeOrder.soDienThoaiNhanHang"
+          />
+        </div>
 
-                          <!-- Phường/Xã -->
-                          <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Phường/Xã</label>
-                            <select
-                              class="form-select"
-                              v-model="activeOrder.phuongXaNhanHang"
-                              :disabled="
-                                !activeOrder.tinhThanhNhanHang || wardsLoading
-                              "
-                            >
-                              <option value="" disabled>
-                                -- Chọn phường/xã --
-                              </option>
-                              <option
-                                v-for="w in wards"
-                                :key="w.code"
-                                :value="w.code"
-                              >
-                                {{ w.name }}
-                              </option>
-                            </select>
-                          </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label mb-1">Tỉnh/Thành</label>
+          <select
+            class="form-select"
+            v-model="activeOrder.tinhThanhNhanHang"
+            @change="onProvinceChange($event.target.value)"
+            :disabled="provincesLoading"
+          >
+            <option value="" disabled>-- Chọn tỉnh/thành --</option>
+            <option
+              v-for="p in provinces"
+              :key="p.code"
+              :value="p.code"
+            >
+              {{ p.name }}
+            </option>
+          </select>
+        </div>
 
-                          <div class="col-12">
-                            <label class="form-label mb-1"
-                              >Địa chỉ chi tiết</label
-                            >
-                            <input
-                              class="form-control"
-                              placeholder="Số nhà, tên đường..."
-                              v-model.trim="activeOrder.diaChiNhanHangChiTiet"
-                            />
-                          </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label mb-1">Phường/Xã</label>
+          <select
+            class="form-select"
+            v-model="activeOrder.phuongXaNhanHang"
+            :disabled="!activeOrder.tinhThanhNhanHang || wardsLoading"
+          >
+            <option value="" disabled>-- Chọn phường/xã --</option>
+            <option
+              v-for="w in wards"
+              :key="w.code"
+              :value="w.code"
+            >
+              {{ w.name }}
+            </option>
+          </select>
+        </div>
 
-                          <!-- ✅ phí ship -->
-                          <div class="col-12 col-md-6">
-                            <label class="form-label mb-1">Phí ship</label>
-                            <input
-                              class="form-control"
-                              :value="money(activeOrder.phiVanChuyen)"
-                              disabled
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <div class="col-12">
+          <label class="form-label mb-1">Địa chỉ chi tiết</label>
+          <input
+            class="form-control"
+            placeholder="Số nhà, tên đường..."
+            v-model.trim="activeOrder.diaChiNhanHangChiTiet"
+          />
+        </div>
+
+          <div class="col-12 mt-3">
+          <div class="shipping-brand-box">
+            <img
+  :src="ghnLogo"
+  alt="GHN Express"
+  class="shipping-brand-logo"
+/>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
               </div>
             </div>
 
@@ -707,10 +700,18 @@
                   </div>
 
                   <ul class="list-group mb-3">
-                    <li class="list-group-item d-flex justify-content-between">
-                      <span class="text-muted">Tiền hàng</span>
-                      <span class="fw-semibold">{{ money(subTotal) }}</span>
-                    </li>
+                   <li class="list-group-item d-flex justify-content-between">
+  <span class="text-muted">Tiền hàng</span>
+  <span class="fw-semibold">{{ money(subTotal) }}</span>
+</li>
+
+<li
+  v-if="activeOrder.loaiDon"
+  class="list-group-item d-flex justify-content-between"
+>
+  <span class="text-muted">Phí ship</span>
+  <span class="fw-semibold">{{ money(shipMoney) }}</span>
+</li>
 
                     <li class="list-group-item d-flex justify-content-between">
                       <span class="text-muted">Giảm giá</span>
@@ -1429,6 +1430,7 @@ import {
   onBeforeUnmount,
 } from "vue";
 import http from "@/services/http";
+import ghnLogo from "@/assets/ghn-logo.png.webp";
 import {
   getAllDetails,
   decreaseStock,
@@ -1485,8 +1487,7 @@ const toastClass = computed(() => {
   if (toast.type === "warning") return "custom-toast-warning";
   return "custom-toast-danger";
 });
-function toastShow(msg, type = "danger") {
-  toast.show = true;function toastShow(msg, type = "danger", title = "") {
+function toastShow(msg, type = "danger", title = "") {
   toast.show = true;
   toast.msg = msg;
   toast.type = type;
@@ -1506,11 +1507,6 @@ function toastShow(msg, type = "danger") {
 
   clearTimeout(toastShow._t);
   toastShow._t = setTimeout(() => (toast.show = false), 2600);
-}
-  toast.msg = msg;
-  toast.type = type;
-  clearTimeout(toastShow._t);
-  toastShow._t = setTimeout(() => (toast.show = false), 2200);
 }
 const toastInfo = (m) => toastShow(m, "info");
 
@@ -2198,8 +2194,12 @@ async function chooseProduct(p) {
   const id = Number(p.idSpct);
   if (!Number.isFinite(id))
     return toastShow("Sản phẩm không hợp lệ", "warning");
-  if ((Number(p.stock) || 0) <= 0)
-    return toastShow("Sản phẩm đã hết hàng", "warning");
+ if ((Number(p.stock) || 0) <= 0) {
+  return toastShow(
+    `Sản phẩm ${p.code} hiện đã hết tồn kho`,
+    "warning",
+  );
+}
 
   let idx = o.cart.findIndex(
     (x) => Number(x.idSpct) === id && sameMoney(x.price, p.price),
@@ -3615,5 +3615,20 @@ onBeforeUnmount(() => {
 
 .custom-toast-danger {
   border-left-color: #ef4444;
+}
+.shipping-brand-box {
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.shipping-brand-logo {
+  max-height: 52px;
+  width: auto;
+  object-fit: contain;
 }
 </style>
