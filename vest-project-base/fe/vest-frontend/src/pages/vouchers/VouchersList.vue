@@ -377,6 +377,7 @@ import http from "@/services/http";
 import { useRouter, useRoute } from "vue-router";
 import * as XLSX from "xlsx";
 import { useToast } from "@/composables/useToast";
+import { emitTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 
 import flatpickr from "flatpickr";
 import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
@@ -792,6 +793,11 @@ async function onToggleBiz(v, evt) {
         await doWithLock(async () => {
           await apiStartNow(v.id);
           await reload();
+          emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
+      voucherId: v.id,
+      maGiamGia: v.maGiamGia,
+      action: "START_NOW",
+    });
         });
         toast.success(`✅ Đã bắt đầu áp dụng: ${label}`);
       });
@@ -804,6 +810,11 @@ async function onToggleBiz(v, evt) {
       await doWithLock(async () => {
         await apiStartNow(v.id);
         await reload();
+         emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
+      voucherId: v.id,
+      maGiamGia: v.maGiamGia,
+      action: "START_NOW",
+    });
       });
       toast.success(`✅ Đã bật: ${label}`);
     });
@@ -818,6 +829,11 @@ async function onToggleBiz(v, evt) {
         await doWithLock(async () => {
           await apiEndNow(v.id);
           await reload();
+          emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
+      voucherId: v.id,
+      maGiamGia: v.maGiamGia,
+      action: "END_NOW",
+    });
         });
         toast.info(`⛔ Đã kết thúc: ${label}`);
       });

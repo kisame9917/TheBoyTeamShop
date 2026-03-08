@@ -1431,6 +1431,7 @@ import {
 } from "vue";
 import http from "@/services/http";
 import ghnLogo from "@/assets/ghn-logo.png.webp";
+import { onTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 import {
   getAllDetails,
   decreaseStock,
@@ -1903,7 +1904,7 @@ async function fetchProducts(page = 0) {
     }
   } catch (e) {
     console.error(e);
-    toastShow("Không tải được danh sách biến thể từ DB", "danger");
+    toastShow("Không tải được danh sách biến thể ", "danger");
   } finally {
     productLoading.value = false;
   }
@@ -2108,7 +2109,7 @@ async function setQtyByInput(cartIndex, nextQtyRaw) {
   let fallbackMsg = "";
 
   if (remain <= 0) {
-    fallbackMsg = `Sản phẩm ${it.code} hiện đã hết tồn kho trong DB, không thể tăng thêm số lượng`;
+    fallbackMsg = `Sản phẩm ${it.code} hiện đã hết tồn kho, không thể tăng thêm số lượng`;
   } else {
     fallbackMsg =
       `Số lượng mua không được vượt quá số lượng tồn kho còn lại tồn ${remain} `;
@@ -2278,7 +2279,7 @@ async function fetchCustomers(page = 0) {
     customerPage.value = 0;
   } catch (e) {
     console.error(e);
-    toastShow("Không tải được danh sách khách hàng từ DB", "danger");
+    toastShow("Không tải được danh sách khách hàng ", "danger");
   } finally {
     customerLoading.value = false;
   }
@@ -3323,7 +3324,7 @@ async function confirmOrder() {
   const ok = await runVoucherPrecheckFlow();
   if (!ok) return;
 
-  if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo trong DB", "danger");
+  if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo ", "danger");
 
   const payload = buildPosPayload(o);
   submitting.value = true;
@@ -3366,20 +3367,94 @@ onMounted(async () => {
 
   window.addEventListener("beforeunload", saveDraftsNow);
   window.addEventListener("keydown", onKeydown);
+  window.addEventListener("focus", refreshWhenVisible);
+  document.addEventListener("visibilitychange", handleDocumentVisibility);
 
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") saveDraftsNow();
-  });
+  removeTabSyncListener = onTabSync(handleTabSync);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", saveDraftsNow);
   window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("focus", refreshWhenVisible);
+  document.removeEventListener("visibilitychange", handleDocumentVisibility);
 
   if (midnightTimer) clearTimeout(midnightTimer);
+  if (removeTabSyncListener) removeTabSyncListener();
 
   saveDraftsNow();
 });
+let removeTabSyncListener = null;
+
+function handleDocumentVisibility() {
+  if (document.visibilityState === "hidden") {
+    saveDraftsNow();
+    return;
+  }
+
+  if (document.visibilityState === "visible") {
+    refreshWhenVisible();
+  }
+}
+async function refreshProductsInCartAndModal() {
+  await fetchProducts(productPage.value || 0);
+
+  const o = activeOrder.value;
+  if (!o || !Array.isArray(o.cart)) return;
+
+  for (const item of o.cart) {
+    const latest = products.value.find(
+      (p) => Number(p.idSpct) === Number(item.idSpct),
+    );
+
+    if (!latest) {
+      item.stockBase = 0;
+      item.stock = 0;
+      continue;
+    }
+
+    // GIỮ NGUYÊN item.price cũ trong giỏ
+    item.stockBase = Number(latest.stock || 0);
+  }
+
+  syncAllCartStocks();
+}
+async function refreshWhenVisible() {
+  await loadVouchers();
+  await refreshProductsInCartAndModal();
+}
+
+
+async function handleTabSync(event) {
+  const msg = event?.data;
+  if (!msg?.type) return;
+
+ if (msg.type === TAB_SYNC_EVENTS.VOUCHER_CHANGED) {
+  await loadVouchers();
+
+  const o = activeOrder.value;
+  if (o?.pggId) {
+    const stillExists = vouchers.value.find((v) => v.id === o.pggId);
+    if (!stillExists) {
+      o.pggId = null;
+      o.voucherCode = "";
+      o.voucherSnapshot = null;
+      if (o.voucherMode !== "none") {
+        o.voucherMode = "best";
+      }
+    }
+  }
+
+  return;
+}
+
+  if (
+    msg.type === TAB_SYNC_EVENTS.PRODUCT_CHANGED ||
+    msg.type === TAB_SYNC_EVENTS.PRODUCT_STOCK_CHANGED
+  ) {
+    await refreshProductsInCartAndModal();
+  }
+}
 </script>
 
 <style scoped>

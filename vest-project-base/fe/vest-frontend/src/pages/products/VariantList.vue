@@ -397,6 +397,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { emitTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 import { useRouter } from 'vue-router'
 import { getAllDetails, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
 import attributeService from '../../services/attributeService'
@@ -604,6 +605,13 @@ async function confirmToggleStatus() {
       anh: v.anh
     })
 
+    emitTabSync(TAB_SYNC_EVENTS.PRODUCT_CHANGED, {
+      productDetailId: v.id,
+      soLuongTon: v.soLuongTon,
+      donGia: v.donGia,
+      trangThai: next,
+    })
+
     closeToggleModal()
     await loadData()
     success(`Đã đổi trạng thái biến thể thành ${next ? 'Còn hàng' : 'Hết hàng'}`)
@@ -646,6 +654,14 @@ async function submitEdit() {
       trangThai: editingVariant.trangThai,
       anh: editingVariant.anh
     })
+
+    emitTabSync(TAB_SYNC_EVENTS.PRODUCT_STOCK_CHANGED, {
+      productDetailId: editingVariant.id,
+      soLuongTon: editingVariant.soLuongTon,
+      donGia: editingVariant.donGia,
+      trangThai: editingVariant.trangThai,
+    })
+
     success('Cập nhật thành công')
     showEditModal.value = false
     await loadData()
@@ -654,6 +670,7 @@ async function submitEdit() {
     error('Cập nhật thất bại')
   }
 }
+
 
 async function handleFileUpload(event) {
   const file = event.target.files?.[0]
@@ -775,6 +792,7 @@ function formatPrice(val) {
   const num = Number(val ?? 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num)
 }
+
 </script>
 
 <style scoped>
