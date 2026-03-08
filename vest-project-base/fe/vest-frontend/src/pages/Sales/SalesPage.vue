@@ -1006,34 +1006,28 @@
                   </thead>
 
                   <tbody>
-                    <tr v-for="(p, i) in filteredProducts" :key="p.idSpct">
-                      <td>{{ i + 1 + productPage * productSize }}</td>
-                      <td class="fw-semibold">{{ p.code }}</td>
-                      <td>
-                        <img
-                          :src="p.image || placeholderImg"
-                          class="rounded"
-                          style="width: 44px; height: 44px; object-fit: cover"
-                        />
+                    <tr
+                      v-for="(c, i) in pagedCustomers"
+                      :key="c.id || c.phone || i"
+                    >
+                      <td class="text-center">
+                        {{ i + 1 + customerPage * customerSize }}
                       </td>
-                      <td>{{ p.name }}</td>
-                      <td>{{ p.color }}</td>
-                      <td>{{ p.size }}</td>
-                      <td class="text-end fw-semibold">{{ p.stock }}</td>
-                      <td class="text-end fw-semibold">{{ money(p.price) }}</td>
+                      <td class="fw-semibold">{{ c.name }}</td>
+                      <td>{{ c.phone }}</td>
+                      <td class="customer-address-cell">{{ c.address }}</td>
                       <td class="text-center">
                         <button
-                          class="btn btn-dark btn-sm"
-                          :disabled="p.stock <= 0"
-                          @click="chooseProduct(p)"
+                          class="btn btn-dark btn-sm customer-pick-btn"
+                          @click="chooseCustomer(c)"
                         >
                           Chọn
                         </button>
                       </td>
                     </tr>
 
-                    <tr v-if="filteredProducts.length === 0 && !productLoading">
-                      <td colspan="9" class="text-center text-muted py-3">
+                    <tr v-if="pagedCustomers.length === 0 && !customerLoading">
+                      <td colspan="5" class="text-center text-muted py-3">
                         Không có dữ liệu
                       </td>
                     </tr>
@@ -1109,7 +1103,9 @@
         aria-modal="true"
         style="display: block; z-index: 1055"
       >
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div
+          class="modal-dialog modal-xl modal-dialog-scrollable customer-modal-dialog"
+        >
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-bold">Chọn khách hàng</h5>
@@ -1147,30 +1143,42 @@
                 </div>
               </div>
 
-              <div class="table-responsive">
-                <table class="table table-bordered align-middle">
+              <div class="table-responsive customer-table-wrap">
+                <table
+                  class="table table-bordered align-middle mb-0 customer-table"
+                >
+                  <colgroup>
+                    <col style="width: 8%" />
+                    <col style="width: 25%" />
+                    <col style="width: 18%" />
+                    <col style="width: 37%" />
+                    <col style="width: 12%" />
+                  </colgroup>
+
                   <thead class="table-light">
                     <tr>
-                      <th style="width: 60px">#</th>
-                      <th style="width: 240px">Tên khách</th>
-                      <th style="width: 160px">SĐT</th>
+                      <th class="text-center">STT</th>
+                      <th>Tên khách</th>
+                      <th>SĐT</th>
                       <th>Địa chỉ</th>
-                      <th style="width: 110px" class="text-center">Chọn</th>
+                      <th class="text-center">Chọn</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     <tr
-                      v-for="(c, i) in filteredCustomers"
+                      v-for="(c, i) in pagedCustomers"
                       :key="c.id || c.phone || i"
                     >
-                      <td>{{ i + 1 + customerPage * customerSize }}</td>
+                      <td class="text-center">
+                        {{ i + 1 + customerPage * customerSize }}
+                      </td>
                       <td class="fw-semibold">{{ c.name }}</td>
                       <td>{{ c.phone }}</td>
-                      <td>{{ c.address }}</td>
+                      <td class="customer-address-cell">{{ c.address }}</td>
                       <td class="text-center">
                         <button
-                          class="btn btn-dark btn-sm"
+                          class="btn btn-dark btn-sm customer-pick-btn"
                           @click="chooseCustomer(c)"
                         >
                           Chọn
@@ -1193,7 +1201,7 @@
               <div class="d-flex align-items-center mt-2">
                 <!-- Left -->
                 <div class="text-muted small" style="min-width: 220px">
-                  Hiển thị {{ filteredCustomers.length }} / tổng
+                  Hiển thị {{ pagedCustomers.length }} / tổng
                   {{ customerTotal }} bản ghi
                 </div>
 
@@ -2172,9 +2180,6 @@ const customerLoading = ref(false);
 
 const customerPage = ref(0);
 const customerSize = ref(10);
-const customerTotal = ref(0);
-const customerTotalPages = ref(0);
-const customerLast = ref(false);
 
 function mapCustomer(x) {
   const addr =
@@ -2203,17 +2208,7 @@ async function fetchCustomers(page = 0) {
     const list = Array.isArray(data) ? data : data?.content || [];
     customers.value = list.map(mapCustomer);
 
-    if (!Array.isArray(data)) {
-      customerTotal.value = Number(data?.totalElements || 0);
-      customerTotalPages.value = Number(data?.totalPages || 0);
-      customerPage.value = Number(data?.number ?? page);
-      customerLast.value = !!data?.last;
-    } else {
-      customerTotal.value = customers.value.length;
-      customerTotalPages.value = 1;
-      customerPage.value = 0;
-      customerLast.value = true;
-    }
+    customerPage.value = 0;
   } catch (e) {
     console.error(e);
     toastShow("Không tải được danh sách khách hàng từ DB", "danger");
@@ -2227,25 +2222,54 @@ async function reloadCustomers() {
 }
 function customerPrev() {
   if (customerPage.value <= 0) return;
-  fetchCustomers(customerPage.value - 1);
+  customerPage.value--;
 }
+
 function customerNext() {
   if (customerLast.value) return;
-  fetchCustomers(customerPage.value + 1);
+  customerPage.value++;
 }
+
 function onCustomerSizeChange() {
-  fetchCustomers(0);
+  customerPage.value = 0;
 }
 
 const filteredCustomers = computed(() => {
   const kw = customerKw.value.trim().toLowerCase();
   if (!kw) return customers.value;
+
   return customers.value.filter((c) =>
     [c.name, c.phone, c.email, c.address].some((x) =>
-      String(x).toLowerCase().includes(kw),
+      String(x || "")
+        .toLowerCase()
+        .includes(kw),
     ),
   );
 });
+
+const pagedCustomers = computed(() => {
+  const start = customerPage.value * customerSize.value;
+  const end = start + customerSize.value;
+  return filteredCustomers.value.slice(start, end);
+});
+
+const customerTotalPages = computed(() => {
+  return Math.max(
+    1,
+    Math.ceil(filteredCustomers.value.length / customerSize.value),
+  );
+});
+
+const customerLast = computed(() => {
+  return customerPage.value >= customerTotalPages.value - 1;
+});
+
+const customerTotal = computed(() => filteredCustomers.value.length);
+
+watch(customerKw, () => {
+  customerPage.value = 0;
+});
+
 
 function openCustomerModal() {
   showProductModal.value = false;
@@ -3381,5 +3405,48 @@ onBeforeUnmount(() => {
   background: #d1fae5;
   border: 2px solid #198754;
   cursor: pointer;
+}
+.customer-modal-dialog {
+  max-width: 1150px;
+}
+
+.customer-table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.customer-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.customer-table thead th {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.customer-table tbody td {
+  font-size: 14px;
+  padding: 12px 10px;
+  vertical-align: middle;
+}
+
+.customer-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.customer-address-cell {
+  line-height: 1.45;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.customer-pick-btn {
+  min-width: 64px;
 }
 </style>
