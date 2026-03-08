@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface SanPhamChiTietRepository extends JpaRepository<SanPhamChiTiet, Long> {
     @org.springframework.data.jpa.repository.Query(
@@ -30,4 +31,27 @@ public interface SanPhamChiTietRepository extends JpaRepository<SanPhamChiTiet, 
     @Modifying
     @Query("UPDATE SanPhamChiTiet s SET s.soLuongTon = s.soLuongTon + :qty WHERE s.id = :id")
     int increaseStock(@Param("id") Long id, @Param("qty") Integer qty);
+
+    @Query("""
+    SELECT s FROM SanPhamChiTiet s
+    JOIN FETCH s.sanPham sp
+    JOIN FETCH s.kichCo kc
+    JOIN FETCH s.mauSac ms
+    JOIN FETCH sp.loaiSanPham lsp
+    JOIN FETCH sp.thuongHieu th
+    JOIN FETCH sp.fit f
+    WHERE s.trangThai = true
+      AND s.soLuongTon > 0
+      AND sp.trangThai = true
+""")
+    java.util.List<SanPhamChiTiet> findAllAvailableForAI();
+    @Query("""
+    SELECT s FROM SanPhamChiTiet s
+    JOIN FETCH s.sanPham sp
+    JOIN FETCH sp.loaiSanPham
+    JOIN FETCH s.kichCo
+    JOIN FETCH s.mauSac
+    WHERE s.id IN :ids
+""")
+    List<SanPhamChiTiet> findByIdIn(@Param("ids") List<Long> ids);
 }

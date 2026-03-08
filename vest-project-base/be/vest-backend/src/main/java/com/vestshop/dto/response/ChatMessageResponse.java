@@ -1,15 +1,13 @@
 package com.vestshop.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.vestshop.dto.AI.ProductSuggestionDto;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChatMessageResponse {
     private Long id;
     private Long conversationId;
@@ -18,5 +16,5 @@ public class ChatMessageResponse {
     private String content;
     private Instant createdAt;
 
-
+    private List<ProductSuggestionDto> products;
 }

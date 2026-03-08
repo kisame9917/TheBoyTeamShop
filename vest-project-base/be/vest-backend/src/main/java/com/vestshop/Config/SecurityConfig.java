@@ -30,7 +30,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
+                        .requestMatchers("/api/ai/**").permitAll()
+                        .requestMatchers("/api/gemini/**").permitAll()
                         // auth + oauth2 + swagger
                         .requestMatchers(
                                 "/api/auth/**",

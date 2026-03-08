@@ -2,11 +2,14 @@ package com.vestshop.Controller;
 
 import com.vestshop.Entity.Conversation;
 import com.vestshop.Entity.KhachHang;
-import com.vestshop.Entity.Message;
 import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Service.ChatService;
+import com.vestshop.dto.response.ChatMessageResponse;
+import com.vestshop.dto.response.ConversationCreateResponse;
 import com.vestshop.dto.response.ConversationSummaryResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,18 +26,29 @@ public class ChatRestController {
     }
 
     @PostMapping("/conversation")
-    public Conversation createOrGet(
+    public ConversationCreateResponse createOrGet(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String guestName
     ) {
+        Conversation conversation;
+
         if (customerId != null) {
             KhachHang customer = khachHangRepository.findById(customerId)
-                    .orElseThrow(() -> new RuntimeException("Khong tim thay khach hang voi id = " + customerId));
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Khong tim thay khach hang voi id = " + customerId
+                    ));
 
-            return chatService.getOrCreateOpenConversation(customer);
+            conversation = chatService.getOrCreateOpenConversation(customer);
+        } else {
+            conversation = chatService.getOrCreateOpenGuestConversation(guestName);
         }
 
-        return chatService.getOrCreateOpenGuestConversation(guestName);
+        return new ConversationCreateResponse(
+                conversation.getId(),
+                guestName != null && !guestName.isBlank() ? guestName : null,
+                conversation.getStatus()
+        );
     }
 
     @GetMapping("/conversations/open")
@@ -43,7 +57,7 @@ public class ChatRestController {
     }
 
     @GetMapping("/messages")
-    public List<Message> recent(@RequestParam Long conversationId) {
-        return chatService.getRecentMessages(conversationId);
+    public List<ChatMessageResponse> recent(@RequestParam Long conversationId) {
+        return chatService.getRecentMessageResponses(conversationId);
     }
 }

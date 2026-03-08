@@ -38,6 +38,7 @@ public class ClientAuthController {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
         return ResponseEntity.ok(Map.of(
+                "id", kh.getId(),
                 "taiKhoan", kh.getTaiKhoan(),
                 "tenKhachHang", kh.getTenKhachHang(),
                 "email", kh.getEmail()

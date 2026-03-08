@@ -4,6 +4,7 @@ import com.vestshop.Entity.Message;
 import com.vestshop.Service.ChatService;
 import com.vestshop.dto.request.ChatSendRequest;
 import com.vestshop.dto.response.ChatMessageResponse;
+import com.vestshop.dto.response.ChatSaveResult;
 import jakarta.validation.Valid;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -24,36 +25,22 @@ public class ChatWsController {
 
     @MessageMapping("/chat.send")
     public void send(@Valid ChatSendRequest req) {
-        Message saved = chatService.saveMessage(
+        List<ChatSaveResult> results = chatService.saveMessage(
                 req.getConversationId(),
                 req.getSenderType(),
                 req.getSenderId(),
                 req.getContent()
         );
 
-        // broadcast message user/admin vừa gửi
-        ChatMessageResponse res = toResponse(saved);
-        broadcast(req.getConversationId(), res);
-
-        // nếu client gửi, có thể bot đã auto reply trong saveMessage()
-        if ("CLIENT".equalsIgnoreCase(req.getSenderType())) {
-            List<Message> messages = chatService.getRecentMessages(req.getConversationId());
-
-            if (!messages.isEmpty()) {
-                Message lastMessage = messages.get(messages.size() - 1);
-
-                // nếu message cuối là BOT và không trùng với message vừa gửi thì broadcast thêm bot
-                if ("BOT".equalsIgnoreCase(lastMessage.getSenderType())
-                        && !lastMessage.getId().equals(saved.getId())) {
-
-                    ChatMessageResponse botRes = toResponse(lastMessage);
-                    broadcast(req.getConversationId(), botRes);
-                }
-            }
+        for (ChatSaveResult item : results) {
+            ChatMessageResponse res = toResponse(item);
+            broadcast(req.getConversationId(), res);
         }
     }
 
-    private ChatMessageResponse toResponse(Message message) {
+    private ChatMessageResponse toResponse(ChatSaveResult item) {
+        Message message = item.getMessage();
+
         ChatMessageResponse res = new ChatMessageResponse();
         res.setId(message.getId());
         res.setConversationId(message.getConversationId());
@@ -61,6 +48,7 @@ public class ChatWsController {
         res.setSenderId(message.getSenderId());
         res.setContent(message.getContent());
         res.setCreatedAt(message.getCreatedAt());
+        res.setProducts(item.getProducts());
         return res;
     }
 
