@@ -1005,33 +1005,39 @@
                     </tr>
                   </thead>
 
-                  <tbody>
-                    <tr
-                      v-for="(c, i) in pagedCustomers"
-                      :key="c.id || c.phone || i"
-                    >
-                      <td class="text-center">
-                        {{ i + 1 + customerPage * customerSize }}
-                      </td>
-                      <td class="fw-semibold">{{ c.name }}</td>
-                      <td>{{ c.phone }}</td>
-                      <td class="customer-address-cell">{{ c.address }}</td>
-                      <td class="text-center">
-                        <button
-                          class="btn btn-dark btn-sm customer-pick-btn"
-                          @click="chooseCustomer(c)"
-                        >
-                          Chọn
-                        </button>
-                      </td>
-                    </tr>
+               <tbody>
+  <tr v-for="(p, i) in filteredProducts" :key="p.idSpct">
+    <td>{{ i + 1 + productPage * productSize }}</td>
+    <td class="fw-semibold">{{ p.code }}</td>
+    <td>
+      <img
+        :src="p.image || placeholderImg"
+        class="rounded"
+        style="width: 44px; height: 44px; object-fit: cover"
+      />
+    </td>
+    <td>{{ p.name }}</td>
+    <td>{{ p.color }}</td>
+    <td>{{ p.size }}</td>
+    <td class="text-end fw-semibold">{{ p.stock }}</td>
+    <td class="text-end fw-semibold">{{ money(p.price) }}</td>
+    <td class="text-center">
+      <button
+        class="btn btn-dark btn-sm"
+        :disabled="p.stock <= 0"
+        @click="chooseProduct(p)"
+      >
+        Chọn
+      </button>
+    </td>
+  </tr>
 
-                    <tr v-if="pagedCustomers.length === 0 && !customerLoading">
-                      <td colspan="5" class="text-center text-muted py-3">
-                        Không có dữ liệu
-                      </td>
-                    </tr>
-                  </tbody>
+  <tr v-if="filteredProducts.length === 0 && !productLoading">
+    <td colspan="9" class="text-center text-muted py-3">
+      Không có dữ liệu
+    </td>
+  </tr>
+</tbody>
                 </table>
               </div>
 
