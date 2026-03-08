@@ -42,7 +42,7 @@
             </div>
 
             <div class="col-12 col-lg-3">
-              <label class="form-label">Trạng thái</label>
+              <label class="form-label">Trạng thái </label>
               <select
                 v-model="filters.trangThaiDon"
                 class="form-select"
@@ -221,105 +221,118 @@
         </div>
 
         <div v-else class="table-responsive table-wrap">
-         <table class="table align-middle mb-0 table-hover table-fixed table-normal">
-
-           <colgroup>
+          <table
+            class="table align-middle mb-0 table-hover table-fixed table-normal"
+          >
+         <colgroup>
   <col style="width: 5%" />   <!-- STT -->
-  <col style="width: 16%" />  <!-- Mã hóa đơn -->
-  <col style="width: 18%" />  <!-- Khách hàng -->
-  <col style="width: 12%" />  <!-- Số điện thoại -->
-  <col style="width: 10%" />  <!-- Loại hóa đơn -->
-  <col style="width: 12%" />  <!-- Tổng tiền -->
+  <col style="width: 13%" />  <!-- Mã hóa đơn -->
+  <col style="width: 15%" />  <!-- Tên nhân viên -->
+  <col style="width: 12%" />  <!-- Khách hàng -->
+  <col style="width: 11%" />  <!-- Số điện thoại -->
+  <col style="width: 12%" />  <!-- Loại hóa đơn -->
+  <col style="width: 11%" />  <!-- Tổng tiền -->
   <col style="width: 10%" />  <!-- Ngày tạo -->
   <col style="width: 11%" />  <!-- Trạng thái -->
-  <col style="width: 6%" />   <!-- Hành động -->
+  <col style="width: 10%" />  <!-- Hành động -->
 </colgroup>
-<thead class="thead-dark-custom">
-  <tr>
-    <th class="text-center">STT</th>
-    <th>Mã hóa đơn</th>
-    <th>Khách hàng</th>
-    <th>Số điện thoại</th>
-    <th class="text-center">Loại hóa đơn</th>
-    <th class="text-end">Tổng tiền</th>
-    <th class="text-center">Ngày tạo</th>
-    <th class="text-center">Trạng thái</th>
-    <th class="text-center">Hành động</th>
-  </tr>
-</thead>
+            <thead class="thead-dark-custom">
+              <tr>
+                <th class="text-center">STT</th>
+                <th>Mã hóa đơn</th>
+                <th>Tên nhân viên</th>
+                <th>Khách hàng</th>
+                <th>Số điện thoại</th>
+                <th class="text-center">Loại hóa đơn</th>
+                <th class="text-end">Tổng tiền</th>
+                <th class="text-center">Ngày tạo</th>
+                <th class="text-center">Trạng thái</th>
+               <th class="text-center action-col">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="rows.length === 0">
+                <td colspan="10" class="text-center text-muted py-4">
+                  Không có dữ liệu
+                </td>
+              </tr>
 
-<tbody>
-  <tr v-if="rows.length === 0">
-    <td colspan="9" class="text-center text-muted py-4">
-      Không có dữ liệu
-    </td>
-  </tr>
+              <tr v-for="(r, idx) in rows" :key="r.id">
+                <td class="text-center">
+                  {{ page.page * page.size + idx + 1 }}
+                </td>
 
-  <tr v-for="(r, idx) in rows" :key="r.id">
-    <td class="text-center">
-      {{ page.page * page.size + idx + 1 }}
-    </td>
+                <td class="fw-semibold">
+                  <span class="cell-ellipsis" :title="r.maHoaDon">
+                    {{ r.maHoaDon }}
+                  </span>
+                </td>
 
-    <td class="fw-semibold">
-      <span class="cell-ellipsis" :title="r.maHoaDon">
-        {{ r.maHoaDon }}
-      </span>
-    </td>
+                <td>
+                  <div
+                    class="staff-cell"
+                    :title="`${getStaffName(r)} - ${getStaffRole(r)}`"
+                  >
+                    <div class="staff-name">{{ getStaffName(r) }}</div>
+                    <div class="staff-role">{{ getStaffRole(r) }}</div>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="cell-ellipsis"
+                    :title="r.tenKhachHang || 'Khách lẻ'"
+                  >
+                    {{ r.tenKhachHang || "Khách lẻ" }}
+                  </span>
+                </td>
 
-    <td>
-      <span class="cell-ellipsis" :title="r.tenKhachHang || 'Khách lẻ'">
-        {{ r.tenKhachHang || "Khách lẻ" }}
-      </span>
-    </td>
+                <td>
+                  <span class="cell-ellipsis" :title="r.soDienThoai || '-'">
+                    {{ r.soDienThoai || "-" }}
+                  </span>
+                </td>
 
-    <td>
-      <span class="cell-ellipsis" :title="r.soDienThoai || '-'">
-        {{ r.soDienThoai || "-" }}
-      </span>
-    </td>
+                <td class="text-center">
+                  <span class="badge text-bg-light border">
+                    {{ r.loaiDon ? "Online" : "Tại quầy" }}
+                  </span>
+                </td>
 
-    <td class="text-center">
-      <span class="badge text-bg-light border">
-        {{ r.loaiDon ? "Online" : "Tại quầy" }}
-      </span>
-    </td>
+                <td class="fw-semibold text-end text-danger">
+                  {{ formatCurrency(r.tongTienSauGiam) }}
+                </td>
 
-    <td class="fw-semibold text-end text-danger">
-      {{ formatCurrency(r.tongTienSauGiam) }}
-    </td>
+                <td class="text-center">
+                  {{ formatDateVN(r.ngayTao) }}
+                </td>
 
-    <td class="text-center">
-      {{ formatDateVN(r.ngayTao) }}
-    </td>
+                <td class="text-center">
+                  <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
+                    {{ r.tenTrangThaiDon }}
+                  </span>
+                </td>
 
-    <td class="text-center">
-      <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
-        {{ r.tenTrangThaiDon }}
-      </span>
-    </td>
+                <td class="text-center action-col">
+  <div class="action-group">
+    <button
+      class="btn btn-outline-secondary btn-sm"
+      @click="goDetail(r.id)"
+      title="Xem chi tiết"
+    >
+      <i class="bi bi-eye text-secondary eye-icon"></i>
+    </button>
 
-    <td class="text-center">
-      <div class="action-group">
-        <button
-          class="btn btn-outline-secondary btn-sm"
-          @click="goDetail(r.id)"
-          title="Xem chi tiết"
-        >
-          <i class="bi bi-eye text-secondary eye-icon"></i>
-        </button>
-
-        <button
-          class="btn btn-outline-success btn-sm"
-          @click="goPrint(r.id)"
-          title="Xuất hóa đơn"
-        >
-          <i class="bi bi-printer"></i>
-        </button>
-      </div>
-    </td>
-  </tr>
-</tbody>
-          
+    <button
+      class="btn btn-outline-success btn-sm"
+      @click="goPrint(r.id)"
+      title="Xuất hóa đơn"
+    >
+      <i class="bi bi-printer"></i>
+    </button>
+  </div>
+</td>
+              </tr>
+            </tbody>
           </table>
         </div>
 
@@ -494,7 +507,7 @@ const filters = reactive({
   trangThaiDon: null,
   loaiDonMode: "",
   fromDate: todayYMD(), // ✅ mặc định hôm nay
-  toDate: todayYMD(),   // ✅ mặc định hôm nay
+  toDate: todayYMD(), // ✅ mặc định hôm nay
   minTotal: TOTAL_MIN,
   maxTotal: TOTAL_MAX,
 });
@@ -613,7 +626,13 @@ function formatDateVN(isoDateTime) {
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
+function getStaffName(row) {
+  return row?.tenNhanVien || "-";
+}
 
+function getStaffRole(row) {
+  return row?.tenChucVu || "-";
+}
 /** =======================
  * ✅ Flatpickr: dd/mm/yyyy UI - yyyy-MM-dd data
  * ======================= */
@@ -695,7 +714,7 @@ watch(
  * ======================= */
 async function fetchData() {
   const minSend = Number(filters.minTotal ?? TOTAL_MIN);
-const maxSend = Number(filters.maxTotal ?? TOTAL_MAX);
+  const maxSend = Number(filters.maxTotal ?? TOTAL_MAX);
   loading.value = true;
   try {
     const loaiDon =
@@ -722,7 +741,7 @@ const maxSend = Number(filters.maxTotal ?? TOTAL_MAX);
       to: filters.toDate || undefined,
 
       minTotal: minSend !== TOTAL_MIN ? minSend : undefined,
-  maxTotal: maxSend !== TOTAL_MAX ? maxSend : undefined,
+      maxTotal: maxSend !== TOTAL_MAX ? maxSend : undefined,
     };
 
     const res = await hoaDonApi.search(params);
@@ -785,21 +804,35 @@ function goDetail(id) {
 
 /** =======================
  * EXCEL
- * ======================= */async function exportListExcel() {
+ * ======================= */ async function exportListExcel() {
   if (!rows.value.length) return;
 
   const filterLines = [
     ["DANH SÁCH HÓA ĐƠN (TRANG HIỆN TẠI)"],
     ["Xuất lúc", new Date().toLocaleString("vi-VN")],
     ["Từ khóa", filters.keyword || "-"],
-    ["Trạng thái", filters.trangThaiDon == null ? "Tất cả" : labelTrangThai(filters.trangThaiDon)],
-    ["Loại hóa đơn", labelLoaiDon(
-      filters.loaiDonMode === "online" ? true :
-      filters.loaiDonMode === "taiquay" ? false : undefined
-    )],
+    [
+      "Trạng thái",
+      filters.trangThaiDon == null
+        ? "Tất cả"
+        : labelTrangThai(filters.trangThaiDon),
+    ],
+    [
+      "Loại hóa đơn",
+      labelLoaiDon(
+        filters.loaiDonMode === "online"
+          ? true
+          : filters.loaiDonMode === "taiquay"
+            ? false
+            : undefined,
+      ),
+    ],
     ["Từ ngày", filters.fromDate || "-"],
     ["Đến ngày", filters.toDate || "-"],
-    ["Khoảng tiền", `${formatPrice(filters.minTotal)} - ${formatPrice(filters.maxTotal)}`],
+    [
+      "Khoảng tiền",
+      `${formatPrice(filters.minTotal)} - ${formatPrice(filters.maxTotal)}`,
+    ],
     ["Trang", `${page.page + 1} / ${page.totalPages || 1}`],
     ["Số bản ghi trang", rows.value.length],
     [], // dòng trống
@@ -807,15 +840,15 @@ function goDetail(id) {
 
   // --- 2) Data bảng chi tiết ---
   const data = rows.value.map((r, idx) => ({
-    "STT": page.page * page.size + idx + 1,
+    STT: page.page * page.size + idx + 1,
     "Mã hóa đơn": r.maHoaDon,
-    "Loại": r.loaiDon ? "Online" : "Tại quầy",
+    Loại: r.loaiDon ? "Online" : "Tại quầy",
     "Trạng thái": r.tenTrangThaiDon,
     "Ngày tạo": formatDateVN(r.ngayTao),
     "Khách hàng": r.tenKhachHang || "Khách lẻ",
-    "SĐT": r.soDienThoai || "-",
+    SĐT: r.soDienThoai || "-",
     "Tổng tiền": Number(r.tongTien ?? 0),
-    "Giảm": Number(r.tongTienGiam ?? 0),
+    Giảm: Number(r.tongTienGiam ?? 0),
     "Phí VC": Number(r.phiVanChuyen ?? 0),
     "Sau giảm": Number(r.tongTienSauGiam ?? 0),
     "Ghi chú": r.ghiChu || "",
@@ -826,22 +859,25 @@ function goDetail(id) {
 
   // add json ở dòng dưới header
   const startRow = filterLines.length + 1; // +1 để chừa 1 dòng trống
-  XLSX.utils.sheet_add_json(ws, data, { origin: `A${startRow}`, skipHeader: false });
+  XLSX.utils.sheet_add_json(ws, data, {
+    origin: `A${startRow}`,
+    skipHeader: false,
+  });
 
   // set độ rộng cột cho đẹp
   ws["!cols"] = [
-    { wch: 6 },   // STT
-    { wch: 18 },  // mã
-    { wch: 10 },  // loại
-    { wch: 18 },  // trạng thái
-    { wch: 14 },  // ngày tạo
-    { wch: 22 },  // khách
-    { wch: 14 },  // sđt
-    { wch: 14 },  // tổng
-    { wch: 12 },  // giảm
-    { wch: 12 },  // phí VC
-    { wch: 14 },  // sau giảm
-    { wch: 28 },  // ghi chú
+    { wch: 6 }, // STT
+    { wch: 18 }, // mã
+    { wch: 10 }, // loại
+    { wch: 18 }, // trạng thái
+    { wch: 14 }, // ngày tạo
+    { wch: 22 }, // khách
+    { wch: 14 }, // sđt
+    { wch: 14 }, // tổng
+    { wch: 12 }, // giảm
+    { wch: 12 }, // phí VC
+    { wch: 14 }, // sau giảm
+    { wch: 28 }, // ghi chú
   ];
 
   const wb = XLSX.utils.book_new();
@@ -857,19 +893,19 @@ async function exportOneExcel(id) {
 
     // --- Sheet 1: Thông tin ---
     const thongTin = [
-      { "Trường": "Mã hóa đơn", "Giá trị": hd.maHoaDon },
-      { "Trường": "Loại hóa đơn", "Giá trị": hd.loaiDon ? "Online" : "Tại quầy" },
-      { "Trường": "Trạng thái", "Giá trị": hd.tenTrangThaiDon },
-      { "Trường": "Ngày tạo", "Giá trị": formatDateVN(hd.ngayTao) },
-      { "Trường": "Khách hàng", "Giá trị": hd.tenKhachHang || "Khách lẻ" },
-      { "Trường": "SĐT", "Giá trị": hd.soDienThoai || "-" },
-      { "Trường": "Email", "Giá trị": hd.emailKhachHang || "-" },
-      { "Trường": "Địa chỉ", "Giá trị": hd.diaChiKhachHang || "-" },
-      { "Trường": "Ghi chú", "Giá trị": hd.ghiChu || "-" },
-      { "Trường": "Tổng tiền", "Giá trị": Number(hd.tongTien ?? 0) },
-      { "Trường": "Giảm", "Giá trị": Number(hd.tongTienGiam ?? 0) },
-      { "Trường": "Phí vận chuyển", "Giá trị": Number(hd.phiVanChuyen ?? 0) },
-      { "Trường": "Tổng sau giảm", "Giá trị": Number(hd.tongTienSauGiam ?? 0) },
+      { Trường: "Mã hóa đơn", "Giá trị": hd.maHoaDon },
+      { Trường: "Loại hóa đơn", "Giá trị": hd.loaiDon ? "Online" : "Tại quầy" },
+      { Trường: "Trạng thái", "Giá trị": hd.tenTrangThaiDon },
+      { Trường: "Ngày tạo", "Giá trị": formatDateVN(hd.ngayTao) },
+      { Trường: "Khách hàng", "Giá trị": hd.tenKhachHang || "Khách lẻ" },
+      { Trường: "SĐT", "Giá trị": hd.soDienThoai || "-" },
+      { Trường: "Email", "Giá trị": hd.emailKhachHang || "-" },
+      { Trường: "Địa chỉ", "Giá trị": hd.diaChiKhachHang || "-" },
+      { Trường: "Ghi chú", "Giá trị": hd.ghiChu || "-" },
+      { Trường: "Tổng tiền", "Giá trị": Number(hd.tongTien ?? 0) },
+      { Trường: "Giảm", "Giá trị": Number(hd.tongTienGiam ?? 0) },
+      { Trường: "Phí vận chuyển", "Giá trị": Number(hd.phiVanChuyen ?? 0) },
+      { Trường: "Tổng sau giảm", "Giá trị": Number(hd.tongTienSauGiam ?? 0) },
     ];
 
     // --- Sheet 2: Sản phẩm ---
@@ -877,8 +913,8 @@ async function exportOneExcel(id) {
       "#": i + 1,
       "Mã SPCT": x.maSanPhamChiTiet || "",
       "Sản phẩm": x.tenSanPham || "",
-      "Màu": x.mauSac || "",
-      "Size": x.kichCo || "",
+      Màu: x.mauSac || "",
+      Size: x.kichCo || "",
       "Số lượng": Number(x.soLuong ?? 0),
       "Đơn giá": Number(x.donGia ?? 0),
       "Thành tiền": Number(x.thanhTien ?? 0),
@@ -910,13 +946,24 @@ async function exportOneExcel(id) {
 
     const wsItems = XLSX.utils.json_to_sheet(sanPham);
     wsItems["!cols"] = [
-      { wch: 5 }, { wch: 18 }, { wch: 30 }, { wch: 12 }, { wch: 10 },
-      { wch: 10 }, { wch: 14 }, { wch: 14 },
+      { wch: 5 },
+      { wch: 18 },
+      { wch: 30 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 14 },
     ];
 
     const wsPay = XLSX.utils.json_to_sheet(thanhToan);
     wsPay["!cols"] = [
-      { wch: 5 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 28 },
+      { wch: 5 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 28 },
     ];
 
     const wsHistory = XLSX.utils.json_to_sheet(lichSu);
@@ -1335,11 +1382,16 @@ onBeforeUnmount(() => {
   font-weight: 400 !important; /* chữ thường */
 }
 /* quan trọng: cho table co theo container */
-.table-fixed { width: 100%; table-layout: fixed; }
+.table-fixed {
+  width: 100%;
+  table-layout: fixed;
+}
 
 /* giúp ellipsis hoạt động đúng trong table-layout: fixed */
 .table-fixed th,
-.table-fixed td { max-width: 0; }
+.table-fixed td {
+  max-width: 0;
+}
 .table-wrap {
   border: 1px solid #dee2e6;
   border-radius: 14px;
@@ -1369,9 +1421,10 @@ onBeforeUnmount(() => {
 
 .table-normal tbody td {
   font-size: 14px;
-  padding: 12px;
+  padding: 10px 12px;
   font-weight: 400 !important;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .table-normal tbody tr {
@@ -1432,5 +1485,52 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
+}
+.staff-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.staff-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #212529;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.staff-role {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-col {
+  min-width: 96px;
+}
+
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.action-group .btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex: 0 0 34px;
 }
 </style>
