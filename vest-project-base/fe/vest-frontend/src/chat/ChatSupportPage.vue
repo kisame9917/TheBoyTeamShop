@@ -64,8 +64,7 @@
           </div>
 
           <div v-if="filteredConversations.length === 0" class="hint">
-            Chưa có hội thoại nào. Khi khách gửi tin nhắn đầu tiên, inbox sẽ
-            hiện ở đây.
+            Chưa có hội thoại nào. Khi khách gửi tin nhắn đầu tiên, inbox sẽ hiện ở đây.
           </div>
 
           <div v-else class="conv-list">
@@ -75,7 +74,7 @@
               class="conv-item list-style"
               :class="{
                 active: c.conversationId === conversationId,
-                urgent: c.needsHuman,
+                urgent: c.needsHuman
               }"
               @click="openConversation(c.conversationId)"
             >
@@ -128,9 +127,7 @@
             </div>
 
             <div
-              v-if="
-                activeConversation?.isTaken && activeConversation?.takenByName
-              "
+              v-if="activeConversation?.isTaken && activeConversation?.takenByName"
               class="assigned-admin"
             >
               Người đang hỗ trợ: {{ activeConversation.takenByName }}
@@ -146,9 +143,7 @@
             </span>
 
             <span
-              v-else-if="
-                activeConversation.handledByAI && !activeConversation.isTaken
-              "
+              v-else-if="activeConversation.handledByAI && !activeConversation.isTaken"
               class="status-chip bot-chip"
             >
               AI đang xử lý
@@ -179,7 +174,7 @@
               :class="{
                 'bubble-admin': m.senderType === 'ADMIN',
                 'bubble-bot': m.senderType === 'BOT',
-                'bubble-client': m.senderType === 'CLIENT',
+                'bubble-client': m.senderType === 'CLIENT'
               }"
             >
               <div class="meta">
@@ -188,8 +183,8 @@
                     m.senderType === "BOT"
                       ? "BOT"
                       : m.senderType === "ADMIN"
-                        ? activeConversation?.takenByName || adminDisplayName
-                        : "KHÁCH"
+                      ? (activeConversation?.takenByName || adminLabel)
+                      : "KHÁCH"
                   }}
                 </span>
                 <span class="time">{{ formatTime(m.createdAt) }}</span>
@@ -207,7 +202,9 @@
             placeholder="Nhập trả lời..."
             @keyup.enter="send"
           />
-          <button class="btn" @click="send" :disabled="!canSend">Gửi</button>
+          <button class="btn" @click="send" :disabled="!canSend">
+            Gửi
+          </button>
         </div>
       </div>
     </div>
@@ -224,7 +221,7 @@ const API = "http://localhost:8080";
 const auth = useAuthStore();
 
 const adminId = computed(
-  () => auth.user?.id || localStorage.getItem("adminId") || "1",
+  () => auth.user?.id || localStorage.getItem("adminId") || "1"
 );
 
 const adminCode = computed(() => {
@@ -250,8 +247,12 @@ const adminName = computed(() => {
   );
 });
 
-const adminDisplayName = computed(() => {
-  return `Nhân viên ${adminCode.value} - ${adminName.value}`;
+const adminLabel = computed(() => {
+  return `${adminCode.value} - ${adminName.value}`;
+});
+
+const adminTakeMessageName = computed(() => {
+  return adminName.value;
 });
 
 const conversationId = ref(null);
@@ -275,16 +276,16 @@ const subTab = ref("ACTIVE");
 const activeConversation = computed(
   () =>
     conversations.value.find(
-      (x) => String(x.conversationId) === String(conversationId.value),
-    ) || null,
+      (x) => String(x.conversationId) === String(conversationId.value)
+    ) || null
 );
 
 const activeConversationName = computed(
-  () => activeConversation.value?.customerName || "",
+  () => activeConversation.value?.customerName || ""
 );
 
 const waitingCount = computed(
-  () => conversations.value.filter((c) => c.needsHuman).length,
+  () => conversations.value.filter((c) => c.needsHuman).length
 );
 
 const filteredConversations = computed(() => {
@@ -409,12 +410,7 @@ function normalizeConversationItem(c) {
 }
 
 function hasRealMessage(c) {
-  return !!(
-    c &&
-    c.conversationId &&
-    c.lastMessage &&
-    String(c.lastMessage).trim()
-  );
+  return !!(c && c.conversationId && c.lastMessage && String(c.lastMessage).trim());
 }
 
 function upsertConversationFromMessage(msg) {
@@ -422,7 +418,7 @@ function upsertConversationFromMessage(msg) {
 
   const id = msg.conversationId;
   const idx = conversations.value.findIndex(
-    (x) => String(x.conversationId) === String(id),
+    (x) => String(x.conversationId) === String(id)
   );
 
   const isActive = String(conversationId.value) === String(id);
@@ -473,7 +469,7 @@ function upsertConversationFromMessage(msg) {
     isTaken: msg.senderType === "ADMIN" ? true : current.isTaken,
     takenByName:
       msg.senderType === "ADMIN"
-        ? current.takenByName || adminDisplayName.value
+        ? current.takenByName || adminLabel.value
         : current.takenByName,
   });
 }
@@ -562,7 +558,7 @@ function subscribeRoom(id) {
     }
 
     const idx = conversations.value.findIndex(
-      (x) => String(x.conversationId) === String(id),
+      (x) => String(x.conversationId) === String(id)
     );
 
     if (idx !== -1) {
@@ -579,13 +575,12 @@ function subscribeRoom(id) {
 
       if (msg.senderType === "ADMIN") {
         current.isTaken = true;
-        current.takenByName = current.takenByName || adminDisplayName.value;
+        current.takenByName = current.takenByName || adminLabel.value;
         current.needsHuman = false;
       }
 
       current.unreadCount =
-        msg.senderType === "CLIENT" &&
-        String(conversationId.value) !== String(id)
+        msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
           ? Number(current.unreadCount || 0) + 1
           : 0;
     }
@@ -598,7 +593,7 @@ async function openConversation(id) {
   conversationId.value = id;
 
   const idx = conversations.value.findIndex(
-    (x) => String(x.conversationId) === String(id),
+    (x) => String(x.conversationId) === String(id)
   );
   if (idx !== -1) {
     conversations.value[idx].unreadCount = 0;
@@ -628,23 +623,23 @@ function send() {
   });
 
   const idx = conversations.value.findIndex(
-    (x) => String(x.conversationId) === String(conversationId.value),
+    (x) => String(x.conversationId) === String(conversationId.value)
   );
-
   if (idx !== -1) {
     conversations.value[idx].isTaken = true;
-    conversations.value[idx].takenByName = adminDisplayName.value;
+    conversations.value[idx].takenByName = adminLabel.value;
     conversations.value[idx].needsHuman = false;
   }
 
   input.value = "";
 }
+
 async function takeConversation(c) {
   await openConversation(c.conversationId);
 
   if (!stomp?.connected) return;
 
-  const message = `${adminDisplayName.value} sẽ hỗ trợ anh/chị từ bây giờ ạ. Anh/chị cần em hỗ trợ gì thêm không?`;
+  const message = `${adminTakeMessageName.value} sẽ hỗ trợ anh/chị từ bây giờ ạ. Anh/chị cần em hỗ trợ gì thêm không?`;
 
   stomp.publish({
     destination: "/app/chat.send",
@@ -657,13 +652,13 @@ async function takeConversation(c) {
   });
 
   const idx = conversations.value.findIndex(
-    (x) => String(x.conversationId) === String(c.conversationId),
+    (x) => String(x.conversationId) === String(c.conversationId)
   );
 
   if (idx !== -1) {
     conversations.value[idx].needsHuman = false;
     conversations.value[idx].isTaken = true;
-    conversations.value[idx].takenByName = adminDisplayName.value;
+    conversations.value[idx].takenByName = adminLabel.value;
     conversations.value[idx].unreadCount = 0;
   }
 }
