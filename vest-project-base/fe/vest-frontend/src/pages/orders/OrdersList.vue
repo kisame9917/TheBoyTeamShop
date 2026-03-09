@@ -29,185 +29,99 @@
       <div id="filterBody" class="collapse show">
         <div class="card-body filter-body">
           <div class="row g-3">
-            <div class="col-12 col-lg-6">
-              <label class="form-label">Tìm kiếm</label>
-              <input
-                v-model.trim="filters.keyword"
-                type="text"
-                class="form-control"
-                placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
-                @input="autoApplyFilters()"
-                @keyup.enter="applyFilters"
-              />
-            </div>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label">Tìm kiếm</label>
+    <input
+      v-model.trim="filters.keyword"
+      type="text"
+      class="form-control"
+      placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
+      @input="autoApplyFilters()"
+      @keyup.enter="applyFilters"
+    />
+  </div>
 
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Trạng thái </label>
-              <select
-                v-model="filters.trangThaiDon"
-                class="form-select"
-                @change="applyFilters"
-              >
-                <option :value="null">Tất cả</option>
-                <option
-                  v-for="s in statusOptions"
-                  :key="s.code"
-                  :value="s.code"
-                >
-                  {{ s.label }}
-                </option>
-              </select>
-            </div>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label">Loại hóa đơn</label>
+    <select
+      v-model="filters.loaiDonMode"
+      class="form-select"
+      @change="applyFilters"
+    >
+      <option value="">Tất cả</option>
+      <option value="taiquay">Tại quầy</option>
+      <option value="online">Online</option>
+    </select>
+  </div>
 
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Loại hóa đơn</label>
-              <div class="d-flex align-items-center gap-3 mt-2 flex-wrap">
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    id="ld_all"
-                    value=""
-                    v-model="filters.loaiDonMode"
-                    @change="applyFilters"
-                  />
-                  <label class="form-check-label" for="ld_all">Tất cả</label>
-                </div>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label">Từ ngày</label>
+    <div class="input-group">
+      <input
+        ref="fromPickerRef"
+        type="text"
+        class="form-control"
+        placeholder="dd/mm/yyyy"
+      />
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        @click="openFromPicker"
+        title="Chọn ngày"
+      >
+        <i class="bi bi-calendar3"></i>
+      </button>
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        @click="clearFromDate"
+        title="Xóa"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
 
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    id="ld_tq"
-                    value="taiquay"
-                    v-model="filters.loaiDonMode"
-                    @change="applyFilters"
-                  />
-                  <label class="form-check-label" for="ld_tq">Tại quầy</label>
-                </div>
+  <div class="col-12 col-md-6 col-lg-3">
+    <label class="form-label">Đến ngày</label>
+    <div class="input-group">
+      <input
+        ref="toPickerRef"
+        type="text"
+        class="form-control"
+        placeholder="dd/mm/yyyy"
+      />
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        @click="openToPicker"
+        title="Chọn ngày"
+      >
+        <i class="bi bi-calendar3"></i>
+      </button>
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        @click="clearToDate"
+        title="Xóa"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
 
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    id="ld_on"
-                    value="online"
-                    v-model="filters.loaiDonMode"
-                    @change="applyFilters"
-                  />
-                  <label class="form-check-label" for="ld_on">Online</label>
-                </div>
-              </div>
-            </div>
+<div class="col-12 d-flex justify-content-end gap-2">
+  <button class="btn btn-light" @click="resetFilters">
+    <i class="bi bi-arrow-counterclockwise me-1"></i>
+    Đặt lại
+  </button>
+  <button class="btn btn-outline-success" @click="exportListExcel">
+    <i class="bi bi-file-earmark-excel me-1"></i>
+    Xuất Excel trang HĐ
+  </button>
 
-            <!-- ✅ Từ ngày -->
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Từ ngày</label>
-              <div class="input-group">
-                <input
-                  ref="fromPickerRef"
-                  type="text"
-                  class="form-control"
-                  placeholder="dd/mm/yyyy"
-                />
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="openFromPicker"
-                  title="Chọn ngày"
-                >
-                  <i class="bi bi-calendar3"></i>
-                </button>
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="clearFromDate"
-                  title="Xóa"
-                >
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- ✅ Đến ngày -->
-            <div class="col-12 col-lg-3">
-              <label class="form-label">Đến ngày</label>
-              <div class="input-group">
-                <input
-                  ref="toPickerRef"
-                  type="text"
-                  class="form-control"
-                  placeholder="dd/mm/yyyy"
-                />
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="openToPicker"
-                  title="Chọn ngày"
-                >
-                  <i class="bi bi-calendar3"></i>
-                </button>
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  @click="clearToDate"
-                  title="Xóa"
-                >
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <label class="form-label">Khoảng giá (tổng tiền)</label>
-
-              <div class="price-label mb-2">
-                Khoảng giá:
-                <span class="price-green">
-                  {{ formatPrice(filters.minTotal) }} -
-                  {{ formatPrice(filters.maxTotal) }}
-                </span>
-              </div>
-
-              <div class="range-slider">
-                <div class="track"></div>
-                <div class="range" :style="rangeStyle"></div>
-
-                <!-- thumb trái -->
-                <input
-                  class="thumb thumb--left"
-                  type="range"
-                  :min="TOTAL_MIN"
-                  :max="TOTAL_MAX"
-                  :step="TOTAL_STEP"
-                  v-model.number="filters.minTotal"
-                  @input="onMinTotalInput"
-                />
-
-                <!-- thumb phải -->
-                <input
-                  class="thumb thumb--right"
-                  type="range"
-                  :min="TOTAL_MIN"
-                  :max="TOTAL_MAX"
-                  :step="TOTAL_STEP"
-                  v-model.number="filters.maxTotal"
-                  @input="onMaxTotalInput"
-                />
-              </div>
-
-              <div class="d-flex justify-content-between small text-muted mt-1">
-                <span>{{ formatPrice(TOTAL_MIN) }}</span>
-                <span>{{ formatPrice(TOTAL_MAX) }}</span>
-              </div>
-            </div>
-
-            <div class="col-12 d-flex justify-content-end gap-2">
-              <button class="btn btn-light" @click="resetFilters">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
-              </button>
-            </div>
-          </div>
+</div>
+</div>
         </div>
       </div>
     </div>
@@ -215,6 +129,39 @@
     <!-- Table -->
     <div class="card shadow-sm">
       <div class="card-body">
+        <div class="invoice-list-head mb-3">
+  <div class="d-flex align-items-center gap-2 mb-1">
+    <div class="invoice-list-icon">
+      <i class="bi bi-file-earmark-text"></i>
+    </div>
+    <div>
+      <div class="invoice-list-title">Danh sách hóa đơn</div>
+      <div class="invoice-list-subtitle">Lọc nhanh theo trạng thái</div>
+    </div>
+  </div>
+
+  <div class="status-filter-tabs mt-3">
+    <button
+      type="button"
+      class="status-filter-tab"
+      :class="{ active: filters.trangThaiDon === null }"
+      @click="setStatusFilter(null)"
+    >
+      Tất cả
+    </button>
+
+    <button
+      v-for="s in statusOptions"
+      :key="s.code"
+      type="button"
+      class="status-filter-tab"
+      :class="{ active: filters.trangThaiDon === s.code }"
+      @click="setStatusFilter(s.code)"
+    >
+      {{ s.label }}
+    </button>
+  </div>
+</div>
         <div v-if="loading" class="text-center py-5">
           <div class="spinner-border" role="status"></div>
           <div class="mt-2 text-muted">Đang tải...</div>
@@ -765,7 +712,10 @@ function applyFilters() {
   page.page = 0;
   fetchData();
 }
-
+function setStatusFilter(status) {
+  filters.trangThaiDon = status;
+  applyFilters();
+}
 function resetFilters() {
   filters.keyword = "";
   filters.trangThaiDon = null;
@@ -1532,5 +1482,59 @@ onBeforeUnmount(() => {
   justify-content: center;
   border-radius: 8px;
   flex: 0 0 34px;
+}
+.invoice-list-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.invoice-list-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.invoice-list-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.invoice-list-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.status-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-filter-tab {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #4b5563;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+}
+
+.status-filter-tab:hover {
+  background: #f8fafc;
+}
+
+.status-filter-tab.active {
+  background: #4b6372;
+  border-color: #4b6372;
+  color: #fff;
 }
 </style>
