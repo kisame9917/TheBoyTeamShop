@@ -2,6 +2,7 @@
   <!-- Icon chat nổi -->
   <button class="chat-fab" @click="toggle" aria-label="Chat hỗ trợ">
     💬
+    <span v-if="unreadCount > 0" class="chat-badge">{{ unreadCount }}</span>
   </button>
 
   <!-- Popup chat -->
@@ -123,6 +124,7 @@ function getLoggedInUserId() {
   const n = Number(id);
   return Number.isNaN(n) ? null : n;
 }
+
 function getGuestName() {
   return "Khách vãng lai";
 }
@@ -186,6 +188,7 @@ const currentIdentityKey = ref("");
 const messages = ref([]);
 const input = ref("");
 const msgBox = ref(null);
+const unreadCount = ref(0);
 
 let stomp = null;
 let sub = null;
@@ -281,6 +284,8 @@ async function toggle() {
   open.value = !open.value;
 
   if (open.value) {
+    unreadCount.value = 0;
+
     await syncConversation();
 
     if (!conversationId.value) {
@@ -501,6 +506,14 @@ function subscribeRoom(convId) {
         (m) => !(m.localOnly && m.senderType === normalized.senderType)
       );
       messages.value.push(normalized);
+
+      const isIncoming =
+        normalized.senderType === "BOT" || normalized.senderType === "ADMIN";
+
+      if (!open.value && isIncoming) {
+        unreadCount.value += 1;
+      }
+
       nextTick(scrollBottom);
     }
   });
@@ -543,6 +556,7 @@ async function handleAuthChanged() {
   conversationId.value = null;
   input.value = "";
   open.value = false;
+  unreadCount.value = 0;
 
   currentIdentityKey.value = "";
   await syncConversation();
@@ -616,6 +630,24 @@ onBeforeUnmount(() => {
   cursor: pointer;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.22);
   z-index: 2147483647;
+}
+
+.chat-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 .chat-box {

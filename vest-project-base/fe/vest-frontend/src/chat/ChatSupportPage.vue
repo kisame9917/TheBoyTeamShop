@@ -74,14 +74,22 @@
               class="conv-item list-style"
               :class="{
                 active: c.conversationId === conversationId,
-                urgent: c.needsHuman
+                urgent: c.needsHuman,
+                closed: c.status === 'CLOSED'
               }"
               @click="openConversation(c.conversationId)"
             >
               <div class="conv-top">
                 <div class="customer-name">{{ c.customerName }}</div>
 
-                <span v-if="c.needsHuman" class="status-chip waiting">
+                <span v-if="c.status === 'CLOSED'" class="status-chip closed-chip">
+                  Đã đóng
+                </span>
+
+                <span
+                  v-else-if="c.needsHuman"
+                  class="status-chip waiting"
+                >
                   Chờ tiếp nhận
                 </span>
 
@@ -108,7 +116,7 @@
                 </span>
               </div>
 
-              <div v-if="c.needsHuman" class="conv-actions">
+              <div v-if="c.needsHuman && c.status !== 'CLOSED'" class="conv-actions">
                 <button class="take-btn" @click.stop="takeConversation(c)">
                   Chat tiếp nhận
                 </button>
@@ -136,7 +144,14 @@
 
           <div v-if="activeConversation" class="chat-top-right">
             <span
-              v-if="activeConversation.needsHuman"
+              v-if="activeConversation.status === 'CLOSED'"
+              class="status-chip closed-chip"
+            >
+              Đã đóng
+            </span>
+
+            <span
+              v-else-if="activeConversation.needsHuman"
               class="status-chip waiting"
             >
               Chờ tiếp nhận
@@ -155,6 +170,14 @@
             >
               Đã tiếp nhận
             </span>
+
+            <button
+              v-if="activeConversation.status !== 'CLOSED'"
+              class="close-btn"
+              @click="closeConversation"
+            >
+              Đóng
+            </button>
           </div>
         </div>
 
@@ -198,11 +221,15 @@
         <div class="input">
           <input
             v-model="input"
-            :disabled="!canSend"
+            :disabled="!canSend || activeConversation?.status === 'CLOSED'"
             placeholder="Nhập trả lời..."
             @keyup.enter="send"
           />
-          <button class="btn" @click="send" :disabled="!canSend">
+          <button
+            class="btn"
+            @click="send"
+            :disabled="!canSend || activeConversation?.status === 'CLOSED'"
+          >
             Gửi
           </button>
         </div>
@@ -285,7 +312,10 @@ const activeConversationName = computed(
 );
 
 const waitingCount = computed(
-  () => conversations.value.filter((c) => c.needsHuman).length
+  () =>
+    conversations.value.filter(
+      (c) => c.needsHuman && c.status !== "CLOSED"
+    ).length
 );
 
 const filteredConversations = computed(() => {
@@ -298,7 +328,7 @@ const filteredConversations = computed(() => {
   }
 
   if (subTab.value === "PENDING") {
-    list = list.filter((c) => c.needsHuman);
+    list = list.filter((c) => c.needsHuman && c.status !== "CLOSED");
   } else if (subTab.value === "CLOSED") {
     list = list.filter((c) => c.status === "CLOSED");
   } else if (subTab.value === "ACTIVE") {
@@ -464,9 +494,18 @@ function upsertConversationFromMessage(msg) {
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : unread + 1,
-    needsHuman: isHumanSupportRequest(msg.content),
+    needsHuman:
+      msg.status === "CLOSED"
+        ? false
+        : isHumanSupportRequest(msg.content),
+    status: msg.status ?? current.status,
     handledByAI: msg.senderType === "BOT" ? true : current.handledByAI,
-    isTaken: msg.senderType === "ADMIN" ? true : current.isTaken,
+    isTaken:
+      msg.status === "CLOSED"
+        ? current.isTaken
+        : msg.senderType === "ADMIN"
+        ? true
+        : current.isTaken,
     takenByName:
       msg.senderType === "ADMIN"
         ? current.takenByName || adminLabel.value
@@ -567,7 +606,14 @@ function subscribeRoom(id) {
       current.lastAt = msg.createdAt;
       current.customerName =
         current.customerName || msg.customerName || "Khách vãng lai";
-      current.needsHuman = isHumanSupportRequest(msg.content);
+
+      if (msg.status === "CLOSED") {
+        current.status = "CLOSED";
+        current.needsHuman = false;
+        current.unreadCount = 0;
+      } else {
+        current.needsHuman = isHumanSupportRequest(msg.content);
+      }
 
       if (msg.senderType === "BOT") {
         current.handledByAI = true;
@@ -579,10 +625,12 @@ function subscribeRoom(id) {
         current.needsHuman = false;
       }
 
-      current.unreadCount =
-        msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
-          ? Number(current.unreadCount || 0) + 1
-          : 0;
+      if (current.status !== "CLOSED") {
+        current.unreadCount =
+          msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
+            ? Number(current.unreadCount || 0) + 1
+            : 0;
+      }
     }
   });
 }
@@ -611,6 +659,7 @@ function send() {
   if (!content) return;
   if (!conversationId.value) return;
   if (!stomp?.connected) return;
+  if (activeConversation.value?.status === "CLOSED") return;
 
   stomp.publish({
     destination: "/app/chat.send",
@@ -638,6 +687,7 @@ async function takeConversation(c) {
   await openConversation(c.conversationId);
 
   if (!stomp?.connected) return;
+  if (c.status === "CLOSED") return;
 
   const message = `${adminTakeMessageName.value} sẽ hỗ trợ anh/chị từ bây giờ ạ. Anh/chị cần em hỗ trợ gì thêm không?`;
 
@@ -660,6 +710,50 @@ async function takeConversation(c) {
     conversations.value[idx].isTaken = true;
     conversations.value[idx].takenByName = adminLabel.value;
     conversations.value[idx].unreadCount = 0;
+  }
+}
+
+async function closeConversation() {
+  if (!conversationId.value) return;
+
+  const closingId = conversationId.value;
+
+  const idx = conversations.value.findIndex(
+    (x) => String(x.conversationId) === String(closingId)
+  );
+  if (idx === -1) return;
+
+  const closingText = `Cuộc trò chuyện đã được kết thúc. ${adminTakeMessageName.value} cảm ơn anh/chị ạ.`;
+
+  if (stomp?.connected) {
+    stomp.publish({
+      destination: "/app/chat.send",
+      body: JSON.stringify({
+        conversationId: closingId,
+        senderType: "ADMIN",
+        senderId: adminId.value,
+        content: closingText,
+        status: "CLOSED",
+      }),
+    });
+  }
+
+  conversations.value[idx].status = "CLOSED";
+  conversations.value[idx].needsHuman = false;
+  conversations.value[idx].isTaken = true;
+  conversations.value[idx].takenByName =
+    conversations.value[idx].takenByName || adminLabel.value;
+  conversations.value[idx].lastMessage = closingText;
+  conversations.value[idx].lastAt = new Date().toISOString();
+  conversations.value[idx].unreadCount = 0;
+
+  const justClosedId = conversationId.value;
+  subTab.value = "CLOSED";
+
+  try {
+    await axios.patch(`${API}/api/chat/conversations/${justClosedId}/close`);
+  } catch (e) {
+    console.warn("Close conversation API failed:", e?.message || e);
   }
 }
 
@@ -907,6 +1001,10 @@ onBeforeUnmount(() => {
   background: #f8fbff;
 }
 
+.conv-item.list-style.closed {
+  opacity: 0.92;
+}
+
 .conv-top {
   display: flex;
   align-items: center;
@@ -1006,6 +1104,12 @@ onBeforeUnmount(() => {
   border-color: #bfdbfe;
 }
 
+.status-chip.closed-chip {
+  background: #e2e8f0;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
 .handler-line {
   margin-top: 4px;
   font-size: 12px;
@@ -1043,6 +1147,9 @@ onBeforeUnmount(() => {
 
 .chat-top-right {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chat-title {
@@ -1056,6 +1163,22 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: #2954b8;
   font-weight: 700;
+}
+
+.close-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 
 .messages {
@@ -1193,6 +1316,10 @@ onBeforeUnmount(() => {
   .chat-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .chat-top-right {
+    flex-wrap: wrap;
   }
 }
 </style>
