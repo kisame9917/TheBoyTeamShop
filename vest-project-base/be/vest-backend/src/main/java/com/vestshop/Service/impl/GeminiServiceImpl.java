@@ -8,6 +8,8 @@ import com.vestshop.dto.AI.OpenAiExtractResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -18,6 +20,9 @@ import java.util.Map;
 @Slf4j
 @Service
 public class GeminiServiceImpl implements GeminiService {
+
+    private static final BigDecimal ONE_MILLION = new BigDecimal("1000000");
+    private static final BigDecimal TWO_MILLION = new BigDecimal("2000000");
 
     private final GeminiProperties properties;
     private final RestTemplate restTemplate;
@@ -53,7 +58,7 @@ public class GeminiServiceImpl implements GeminiService {
             content.put("parts", List.of(textPart));
 
             Map<String, Object> generationConfig = new HashMap<>();
-            generationConfig.put("temperature", 0.35);
+            generationConfig.put("temperature", 0.2);
             generationConfig.put("responseMimeType", "application/json");
 
             Map<String, Object> body = new HashMap<>();
@@ -70,14 +75,8 @@ public class GeminiServiceImpl implements GeminiService {
                     + ":generateContent?key="
                     + properties.getApiKey();
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
+            String rawBody = executeGeminiWithRetry(url, entity);
 
-            String rawBody = response.getBody();
             log.info("Gemini raw response = {}", rawBody);
 
             if (rawBody == null || rawBody.isBlank()) {
@@ -113,13 +112,86 @@ public class GeminiServiceImpl implements GeminiService {
 
             enrichByRules(parsed, userMessage);
             mergeWithPreviousContext(parsed, previousExtracted);
-            normalizeResponse(parsed, userMessage, previousContext);
+            normalizeResponse(parsed);
 
+            log.info("Gemini parsed normalized = {}", objectMapper.writeValueAsString(parsed));
             return parsed;
 
+        } catch (RestClientResponseException e) {
+            log.error(
+                    "Gemini HTTP fail, using fallback. status={}, body={}, userMessage={}, previousContext={}",
+                    e.getRawStatusCode(),
+                    e.getResponseBodyAsString(),
+                    userMessage,
+                    previousContext,
+                    e
+            );
+            return buildSoftFallback(userMessage, previousContext);
+        } catch (ResourceAccessException e) {
+            log.error(
+                    "Gemini network fail, using fallback. userMessage={}, previousContext={}",
+                    userMessage,
+                    previousContext,
+                    e
+            );
+            return buildSoftFallback(userMessage, previousContext);
         } catch (Exception e) {
-            log.error("Gemini extractFilters failed", e);
-            return buildSmartFallback(userMessage, previousContext);
+            log.error(
+                    "Gemini parse/internal fail, using fallback. userMessage={}, previousContext={}",
+                    userMessage,
+                    previousContext,
+                    e
+            );
+            return buildSoftFallback(userMessage, previousContext);
+        }
+    }
+
+    private String executeGeminiWithRetry(String url, HttpEntity<Map<String, Object>> entity) {
+        try {
+            return executeGeminiOnce(url, entity);
+        } catch (RestClientResponseException e) {
+            log.error(
+                    "Gemini HTTP error lần 1. status={}, body={}",
+                    e.getRawStatusCode(),
+                    e.getResponseBodyAsString(),
+                    e
+            );
+
+            if (e.getRawStatusCode() == 429) {
+                sleepQuietly(1200);
+
+                try {
+                    return executeGeminiOnce(url, entity);
+                } catch (RestClientResponseException retryEx) {
+                    log.error(
+                            "Gemini HTTP error lần 2. status={}, body={}",
+                            retryEx.getRawStatusCode(),
+                            retryEx.getResponseBodyAsString(),
+                            retryEx
+                    );
+                    throw retryEx;
+                }
+            }
+
+            throw e;
+        }
+    }
+
+    private String executeGeminiOnce(String url, HttpEntity<Map<String, Object>> entity) {
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+        );
+        return response.getBody();
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -140,10 +212,14 @@ public class GeminiServiceImpl implements GeminiService {
 Ngữ cảnh hội thoại trước đó:
 "%s"
 
-Lưu ý rất quan trọng:
+Lưu ý:
 - Tin nhắn mới nhất có thể chỉ là điều kiện bổ sung cho nhu cầu trước đó.
 - Nếu tin nhắn mới không nhắc lại loại sản phẩm hoặc khoảng giá, hãy giữ lại thông tin hợp lý từ ngữ cảnh trước đó.
-- Nếu trước đó khách nói "tôi muốn vest hơn 1 triệu", sau đó nói "màu đen và size 48", thì vẫn hiểu là:
+- Ví dụ:
+  trước đó: "tôi muốn vest hơn 1 triệu"
+  mới nhất: "màu đen size 48"
+  thì vẫn hiểu:
+  - intent = product_search
   - loaiSanPham = Vest
   - mauSac = đen
   - kichCo = 48
@@ -153,39 +229,39 @@ Lưu ý rất quan trọng:
         }
 
         return """
-Bạn là trợ lý tư vấn bán hàng cho shop VestShop, chuyên về vest nam, áo sơ mi, quần âu và phụ kiện nam.
+Bạn là trợ lý hiểu nhu cầu mua vest cho VestShop.
 
-Nhiệm vụ:
-1. Đọc tin nhắn người dùng.
-2. Kết hợp với ngữ cảnh hội thoại trước đó nếu có.
-3. Trích xuất nhu cầu mua hàng thành dữ liệu JSON.
-4. Với câu bổ sung như "màu đen", "size 48", "xanh navi", "dưới 1 triệu", hãy hiểu đây có thể là phần bổ sung cho nhu cầu trước.
-5. Không làm mất các điều kiện cũ nếu tin nhắn mới không phủ định chúng.
-6. Tạo câu trả lời tiếng Việt tự nhiên, thân thiện.
-7. Không bịa mã sản phẩm, tồn kho hay giá cụ thể nếu không có dữ liệu xác nhận.
-8. Nếu giá là 999.999 đồng thì vẫn là dưới 1 triệu đồng và nếu khach hàng hỏi hơn 1 triệu thì không đề xuất
-9. Nếu không co size nào trong db thi gợi ý cho khách hàng cac sản phẩm khác
+Mục tiêu:
+- Chỉ trích xuất ý định và bộ lọc tìm sản phẩm thành JSON.
+- Shop chỉ bán vest, nên không suy ra áo sơ mi, quần âu hay sản phẩm khác.
+- Không được bịa tồn kho, giá cụ thể, mã sản phẩm, ưu đãi hoặc xác nhận có hàng.
+
 %s
 
 Hãy trả về JSON thuần, không markdown, không giải thích ngoài JSON, với đúng cấu trúc:
 
 {
+  "intent": "...",
   "loaiSanPham": "...",
   "mauSac": "...",
   "kichCo": "...",
   "priceMin": ...,
   "priceMax": ...,
   "fit": "...",
-  "chatLieu": "...",
-  "occasion": "...",
-  "reply": "...",
-  "fallbackSuggestions": ["...", "...", "..."]
+  "chatLieu": "..."
 }
 
 Quy tắc:
 - Chỉ trả JSON hợp lệ.
-- Nếu không rõ field nào thì để null.
-- "priceMin" là giá tối thiểu, "priceMax" là giá tối đa.
+- intent chỉ nhận một trong 3 giá trị:
+  - "greeting"
+  - "handoff"
+  - "product_search"
+- Nếu người dùng chỉ chào hỏi như "chào", "hello", "shop ơi" => intent = "greeting"
+- Nếu người dùng muốn gặp người thật như "gặp nhân viên", "gặp CSKH" => intent = "handoff"
+- Còn lại nếu đang hỏi mua hoặc lọc sản phẩm => intent = "product_search"
+- Field nào không rõ thì để null.
+- loaiSanPham nếu có thì chỉ trả "Vest"
 - "xanh navi", "xanh navy", "navy" => "xanh navy"
 - "đen", "den" => "đen"
 - Nếu người dùng nói "trên 1 triệu", "hơn 1 triệu", "từ 1 triệu trở lên":
@@ -198,27 +274,8 @@ Quy tắc:
   - priceMin = null
   - priceMax = 2000000
 - Nếu tin nhắn mới chỉ bổ sung màu, size, fit hoặc giá, hãy giữ lại loại sản phẩm và các điều kiện trước đó từ context.
-- Nếu người dùng hỏi size 49, có thể gợi ý thêm 48 hoặc 50 trong reply hoặc fallbackSuggestions.
-- reply phải ngắn gọn, tự nhiên, lịch sự, 2 đến 4 câu.
-- fallbackSuggestions là 2 đến 4 gợi ý ngắn gọn, dễ bấm tiếp.
-- Không bịa thông tin xác nhận tồn kho, số lượng, giá cụ thể, ưu đãi hoặc mã sản phẩm.
-
-Ví dụ:
-Ngữ cảnh trước đó: "tôi muốn vest hơn 1 triệu"
-Người dùng mới nhất: "màu đen và size 48"
-Kết quả:
-{
-  "loaiSanPham": "Vest",
-  "mauSac": "đen",
-  "kichCo": "48",
-  "priceMin": 1000000,
-  "priceMax": null,
-  "fit": null,
-  "chatLieu": null,
-  "occasion": null,
-  "reply": "Dạ anh đang muốn tìm vest màu đen size 48 trong tầm giá từ 1 triệu trở lên đúng không ạ? Nếu anh muốn, em có thể gợi ý thêm các mẫu phù hợp theo form hoặc phong cách để mình dễ chọn hơn.",
-  "fallbackSuggestions": ["Vest đen size 48", "Vest đen", "Vest trên 1 triệu", "Gặp CSKH"]
-}
+- Không sinh reply.
+- Không sinh fallbackSuggestions.
 
 Tin nhắn người dùng mới nhất: "%s"
 """.formatted(contextBlock, userMessage);
@@ -249,21 +306,17 @@ Tin nhắn người dùng mới nhất: "%s"
         return cleaned;
     }
 
-    private void normalizeResponse(OpenAiExtractResponse response, String userMessage, String previousContext) {
+    private void normalizeResponse(OpenAiExtractResponse response) {
         if (response == null) return;
 
-        OpenAiExtractResponse smartFallback = buildSmartFallback(userMessage, previousContext);
-
-        if (isBlank(response.getReply())) {
-            response.setReply(smartFallback.getReply());
-        }
-
-        if (response.getFallbackSuggestions() == null || response.getFallbackSuggestions().isEmpty()) {
-            response.setFallbackSuggestions(smartFallback.getFallbackSuggestions());
+        if (!isBlank(response.getIntent())) {
+            response.setIntent(response.getIntent().trim().toLowerCase());
+        } else {
+            response.setIntent("product_search");
         }
 
         if (!isBlank(response.getLoaiSanPham())) {
-            response.setLoaiSanPham(response.getLoaiSanPham().trim());
+            response.setLoaiSanPham("Vest");
         }
 
         if (!isBlank(response.getMauSac())) {
@@ -282,8 +335,10 @@ Tin nhắn người dùng mới nhất: "%s"
             response.setChatLieu(response.getChatLieu().trim());
         }
 
-        if (!isBlank(response.getOccasion())) {
-            response.setOccasion(response.getOccasion().trim());
+        if (!"greeting".equals(response.getIntent())
+                && !"handoff".equals(response.getIntent())
+                && !"product_search".equals(response.getIntent())) {
+            response.setIntent("product_search");
         }
     }
 
@@ -317,22 +372,26 @@ Tin nhắn người dùng mới nhất: "%s"
         if (isBlank(current.getChatLieu())) {
             current.setChatLieu(previous.getChatLieu());
         }
-
-        if (isBlank(current.getOccasion())) {
-            current.setOccasion(previous.getOccasion());
-        }
     }
 
     private OpenAiExtractResponse extractContextByRules(String textRaw) {
         String text = normalize(textRaw);
         OpenAiExtractResponse res = new OpenAiExtractResponse();
 
+        if (isGreeting(text)) {
+            res.setIntent("greeting");
+            return res;
+        }
+
+        if (isHandoff(text)) {
+            res.setIntent("handoff");
+            return res;
+        }
+
+        res.setIntent("product_search");
+
         if (text.contains("vest")) {
             res.setLoaiSanPham("Vest");
-        } else if (text.contains("ao so mi") || text.contains("so mi")) {
-            res.setLoaiSanPham("Áo sơ mi");
-        } else if (text.contains("quan au") || text.contains("quan tay")) {
-            res.setLoaiSanPham("Quần âu");
         }
 
         if (containsNavy(text)) {
@@ -354,18 +413,14 @@ Tin nhắn người dùng mới nhất: "%s"
         }
 
         if (containsAboveOneMillion(text)) {
-            res.setPriceMin(new BigDecimal("1000000"));
+            res.setPriceMin(ONE_MILLION);
             res.setPriceMax(null);
-        }
-
-        if (containsUnderOneMillion(text)) {
+        } else if (containsUnderOneMillion(text)) {
             res.setPriceMin(null);
-            res.setPriceMax(new BigDecimal("1000000"));
-        }
-
-        if (containsUnderTwoMillion(text)) {
+            res.setPriceMax(ONE_MILLION);
+        } else if (containsUnderTwoMillion(text)) {
             res.setPriceMin(null);
-            res.setPriceMax(new BigDecimal("2000000"));
+            res.setPriceMax(TWO_MILLION);
         }
 
         return res;
@@ -376,14 +431,18 @@ Tin nhắn người dùng mới nhất: "%s"
 
         String text = normalize(userMessage);
 
-        if (isBlank(res.getLoaiSanPham())) {
-            if (text.contains("vest")) {
-                res.setLoaiSanPham("Vest");
-            } else if (text.contains("ao so mi") || text.contains("so mi")) {
-                res.setLoaiSanPham("Áo sơ mi");
-            } else if (text.contains("quan au") || text.contains("quan tay")) {
-                res.setLoaiSanPham("Quần âu");
+        if (isBlank(res.getIntent())) {
+            if (isGreeting(text)) {
+                res.setIntent("greeting");
+            } else if (isHandoff(text)) {
+                res.setIntent("handoff");
+            } else {
+                res.setIntent("product_search");
             }
+        }
+
+        if (isBlank(res.getLoaiSanPham()) && text.contains("vest")) {
+            res.setLoaiSanPham("Vest");
         }
 
         if (isBlank(res.getMauSac())) {
@@ -409,18 +468,18 @@ Tin nhắn người dùng mới nhất: "%s"
         }
 
         if (containsAboveOneMillion(text)) {
-            res.setPriceMin(new BigDecimal("1000000"));
+            res.setPriceMin(ONE_MILLION);
             res.setPriceMax(null);
         } else if (containsUnderOneMillion(text)) {
             res.setPriceMin(null);
-            res.setPriceMax(new BigDecimal("1000000"));
+            res.setPriceMax(ONE_MILLION);
         } else if (containsUnderTwoMillion(text)) {
             res.setPriceMin(null);
-            res.setPriceMax(new BigDecimal("2000000"));
+            res.setPriceMax(TWO_MILLION);
         }
     }
 
-    private OpenAiExtractResponse buildSmartFallback(String userMessage, String previousContext) {
+    private OpenAiExtractResponse buildSoftFallback(String userMessage, String previousContext) {
         OpenAiExtractResponse current = extractContextByRules(userMessage);
         OpenAiExtractResponse previous = isBlank(previousContext) ? null : extractContextByRules(previousContext);
 
@@ -428,99 +487,10 @@ Tin nhắn người dùng mới nhất: "%s"
 
         if (current == null) {
             current = new OpenAiExtractResponse();
+            current.setIntent("product_search");
         }
 
-        if (isBlank(current.getLoaiSanPham())
-                && isBlank(current.getMauSac())
-                && isBlank(current.getKichCo())
-                && current.getPriceMin() == null
-                && current.getPriceMax() == null) {
-            current.setReply("Dạ em đã nhận được nhu cầu của anh/chị. Anh/chị có thể nói rõ thêm loại sản phẩm, màu, size hoặc tầm giá để em hỗ trợ sát hơn nhé.");
-            current.setFallbackSuggestions(List.of("Vest đen", "Áo sơ mi trắng", "Quần âu", "Gặp CSKH"));
-            return current;
-        }
-
-        String loai = defaultValue(current.getLoaiSanPham(), "sản phẩm");
-        String mau = current.getMauSac();
-        String size = current.getKichCo();
-
-        if ("49".equals(size)) {
-            current.setReply("Dạ anh đang cần " + loai.toLowerCase() + " size 49 đúng không ạ? Size này hơi đặc thù nên nếu chưa có đúng mẫu mong muốn, anh có thể tham khảo thêm size lân cận như 48 hoặc 50 để dễ chọn form phù hợp hơn. Nếu anh muốn, em có thể gợi ý tiếp theo màu hoặc kiểu dáng anh đang tìm.");
-            current.setFallbackSuggestions(List.of(loai + " size 48", loai + " size 50", loai + " đen", "Gặp CSKH"));
-            return current;
-        }
-
-        if (current.getPriceMin() != null && current.getPriceMax() == null) {
-            current.setReply("Dạ anh đang cần " + buildReadableNeed(loai, mau, size) + " trong tầm giá từ 1 triệu trở lên đúng không ạ? Nếu anh muốn, em có thể gợi ý thêm các mẫu phù hợp theo form hoặc phong cách để mình dễ chọn hơn.");
-            current.setFallbackSuggestions(List.of(
-                    buildQuickLabel(loai, mau, size),
-                    loai + " trên 1 triệu",
-                    loai + " công sở",
-                    "Gặp CSKH"
-            ));
-            return current;
-        }
-
-        if (current.getPriceMin() == null
-                && current.getPriceMax() != null
-                && current.getPriceMax().compareTo(new BigDecimal("1000000")) == 0) {
-            current.setReply("Dạ anh đang muốn tìm " + buildReadableNeed(loai, mau, size) + " trong tầm giá dưới 1 triệu đúng không ạ? Nếu anh muốn, em có thể gợi ý thêm theo size, form hoặc kiểu để lọc sát hơn.");
-            current.setFallbackSuggestions(List.of(
-                    buildQuickLabel(loai, mau, size),
-                    loai + " dưới 1 triệu",
-                    loai + " công sở",
-                    "Gặp CSKH"
-            ));
-            return current;
-        }
-
-        if (current.getPriceMin() == null
-                && current.getPriceMax() != null
-                && current.getPriceMax().compareTo(new BigDecimal("2000000")) == 0) {
-            current.setReply("Dạ anh đang muốn tìm " + buildReadableNeed(loai, mau, size) + " trong tầm giá dưới 2 triệu đúng không ạ? Với mức này mình vẫn có thể ưu tiên các mẫu cơ bản, dễ mặc và phù hợp nhiều dịp. Nếu anh muốn, em gợi ý thêm theo màu hoặc size để sát hơn nhé.");
-            current.setFallbackSuggestions(List.of(
-                    buildQuickLabel(loai, mau, size),
-                    loai + " dưới 2 triệu",
-                    loai + " công sở",
-                    "Gặp CSKH"
-            ));
-            return current;
-        }
-
-        current.setReply("Dạ em đã ghi nhận nhu cầu của anh/chị về " + buildReadableNeed(loai, mau, size) + ". Anh/chị có thể nói thêm về tầm giá hoặc kiểu dáng mong muốn để em hỗ trợ sát hơn nhé.");
-        current.setFallbackSuggestions(List.of(
-                buildQuickLabel(loai, mau, size),
-                loai + " đen",
-                loai + " công sở",
-                "Gặp CSKH"
-        ));
         return current;
-    }
-
-    private String buildReadableNeed(String loai, String mau, String size) {
-        StringBuilder sb = new StringBuilder(loai.toLowerCase());
-        if (!isBlank(mau)) {
-            sb.append(" màu ").append(mau);
-        }
-        if (!isBlank(size)) {
-            sb.append(" size ").append(size);
-        }
-        return sb.toString();
-    }
-
-    private String buildQuickLabel(String loai, String mau, String size) {
-        StringBuilder sb = new StringBuilder(loai);
-        if (!isBlank(mau)) {
-            sb.append(" ").append(mau);
-        }
-        if (!isBlank(size)) {
-            sb.append(" size ").append(size);
-        }
-        return sb.toString().trim();
-    }
-
-    private String defaultValue(String value, String fallback) {
-        return isBlank(value) ? fallback : value;
     }
 
     private String normalizeColorLabel(String color) {
@@ -550,8 +520,27 @@ Tin nhắn người dùng mới nhất: "%s"
                 .trim();
     }
 
+    private boolean isGreeting(String text) {
+        return "chao".equals(text)
+                || "chao shop".equals(text)
+                || "hello".equals(text)
+                || "hi".equals(text)
+                || "shop oi".equals(text)
+                || "alo".equals(text)
+                || "xin chao".equals(text);
+    }
+
+    private boolean isHandoff(String text) {
+        return text.contains("gap nhan vien")
+                || text.contains("gap cskh")
+                || text.contains("nhan vien tu van");
+    }
+
     private boolean containsNavy(String text) {
-        return text.contains("xanh navi") || text.contains("xanh navy") || text.contains("navy") || text.contains("navi");
+        return text.contains("xanh navi")
+                || text.contains("xanh navy")
+                || text.contains("navy")
+                || text.contains("navi");
     }
 
     private boolean containsBlack(String text) {
