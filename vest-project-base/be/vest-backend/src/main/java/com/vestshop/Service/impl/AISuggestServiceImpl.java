@@ -13,21 +13,16 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class AISuggestServiceImpl implements AISuggestService {
 
-    private static final int MIN_VALID_SIZE = 44;
-    private static final int MAX_VALID_SIZE = 58;
-    private static final int MAX_SIZE_DISTANCE = 2;
+    private static final int MAX_RESULTS = 4;
 
     private final SanPhamChiTietRepository sanPhamChiTietRepository;
     private final GeminiService geminiService;
@@ -95,262 +90,240 @@ public class AISuggestServiceImpl implements AISuggestService {
         OpenAiExtractResponse ai = null;
         try {
             ai = geminiService.extractFilters(message);
-            log.info("Gemini extracted -> loaiSanPham={}, mauSac={}, kichCo={}, priceMin={}, priceMax={}, fit={}, chatLieu={}, occasion={}, reply={}",
+            log.info(
+                    "Gemini extracted -> intent={}, loaiSanPham={}, mauSac={}, kichCo={}, priceMin={}, priceMax={}, fit={}, chatLieu={}",
+                    ai != null ? ai.getIntent() : null,
                     ai != null ? ai.getLoaiSanPham() : null,
                     ai != null ? ai.getMauSac() : null,
                     ai != null ? ai.getKichCo() : null,
                     ai != null ? ai.getPriceMin() : null,
                     ai != null ? ai.getPriceMax() : null,
                     ai != null ? ai.getFit() : null,
-                    ai != null ? ai.getChatLieu() : null,
-                    ai != null ? ai.getOccasion() : null,
-                    ai != null ? ai.getReply() : null
+                    ai != null ? ai.getChatLieu() : null
             );
         } catch (Exception e) {
-            log.error("Gemini extract failed, fallback to rule-based", e);
+            log.error("Gemini extract failed, fallback local rules", e);
+        }
+
+        String intent = firstNonBlank(
+                ai != null ? normalizeNullable(ai.getIntent()) : null,
+                detectIntent(text)
+        );
+
+        if ("greeting".equals(intent)) {
+            AISuggestResponse response = new AISuggestResponse();
+            response.setReply("Em chào anh/chị ạ. Anh/chị đang muốn tìm mẫu vest như thế nào để em hỗ trợ nhanh hơn nhé.");
+            response.setProducts(List.of());
+            return response;
+        }
+
+        if ("handoff".equals(intent)) {
+            AISuggestResponse response = new AISuggestResponse();
+            response.setReply("Dạ em đã nhận được yêu cầu của anh/chị. Em sẽ kết nối anh/chị với nhân viên tư vấn ngay ạ.");
+            response.setProducts(List.of());
+            return response;
         }
 
         String loaiSanPham = firstNonBlank(
                 ai != null ? normalizeNullable(ai.getLoaiSanPham()) : null,
-                extractLoaiSanPham(text)
+                text.contains("vest") ? "vest" : null
         );
 
-        String mauSac = firstNonBlank(
-                ai != null ? normalizeNullable(ai.getMauSac()) : null,
-                extractMauSac(text)
+        String mauSac = ai != null ? normalizeNullable(ai.getMauSac()) : null;
+        String kichCo = ai != null ? normalizeNullable(ai.getKichCo()) : null;
+        String fit = ai != null ? normalizeNullable(ai.getFit()) : null;
+        String chatLieu = ai != null ? normalizeNullable(ai.getChatLieu()) : null;
+
+        BigDecimal priceMin = ai != null ? ai.getPriceMin() : null;
+        BigDecimal priceMax = ai != null ? ai.getPriceMax() : null;
+
+        log.info(
+                "Final filter -> intent={}, loaiSanPham={}, mauSac={}, kichCo={}, priceMin={}, priceMax={}, fit={}, chatLieu={}",
+                intent, loaiSanPham, mauSac, kichCo, priceMin, priceMax, fit, chatLieu
         );
 
-        String kichCo = firstNonBlank(
-                ai != null ? normalizeNullable(ai.getKichCo()) : null,
-                extractKichCo(text)
-        );
+        boolean hasAnyFilter =
+                loaiSanPham != null
+                        || mauSac != null
+                        || kichCo != null
+                        || fit != null
+                        || chatLieu != null
+                        || priceMin != null
+                        || priceMax != null;
 
-        String fit = firstNonBlank(
-                ai != null ? normalizeNullable(ai.getFit()) : null,
-                null
-        );
-
-        String chatLieu = firstNonBlank(
-                ai != null ? normalizeNullable(ai.getChatLieu()) : null,
-                null
-        );
-
-        String occasion = firstNonBlank(
-                ai != null ? normalizeNullable(ai.getOccasion()) : null,
-                null
-        );
-
-        BigDecimal priceMin = ai != null && ai.getPriceMin() != null
-                ? ai.getPriceMin()
-                : extractPriceMin(text);
-
-        BigDecimal priceMax = ai != null && ai.getPriceMax() != null
-                ? ai.getPriceMax()
-                : extractPriceMax(text);
-
-        String aiReply = ai != null ? ai.getReply() : null;
-
-        log.info("Final filter -> loaiSanPham={}, mauSac={}, kichCo={}, priceMin={}, priceMax={}, fit={}, chatLieu={}, occasion={}",
-                loaiSanPham, mauSac, kichCo, priceMin, priceMax, fit, chatLieu, occasion);
+        if (!hasAnyFilter) {
+            AISuggestResponse response = new AISuggestResponse();
+            response.setReply("Anh/chị muốn em ưu tiên màu, size hay tầm giá nào để em lọc vest sát hơn nhé.");
+            response.setProducts(List.of());
+            return response;
+        }
 
         List<SanPhamChiTiet> allProducts = sanPhamChiTietRepository.findAllAvailableForAI();
         log.info("Total available products={}", allProducts.size());
 
-        AISuggestResponse response = new AISuggestResponse();
-
-        List<SanPhamChiTiet> afterLoai = allProducts.stream()
-                .filter(spct -> matchLoaiSanPham(spct, loaiSanPham))
+        List<SanPhamChiTiet> baseProducts = allProducts.stream()
+                .filter(spct -> loaiSanPham == null || matchLoaiSanPham(spct, loaiSanPham))
                 .collect(Collectors.toList());
 
-        if (loaiSanPham != null && afterLoai.isEmpty()) {
-            response.setReply("Hiện tại shop chưa có sản phẩm loại " + loaiSanPham + " phù hợp ạ.");
+        if (loaiSanPham != null && baseProducts.isEmpty()) {
+            AISuggestResponse response = new AISuggestResponse();
+            response.setReply("Hiện tại shop chưa có mẫu vest phù hợp ạ.");
             response.setProducts(List.of());
             return response;
         }
 
-        List<SanPhamChiTiet> afterMau = afterLoai.stream()
-                .filter(spct -> matchMauSac(spct, mauSac))
-                .collect(Collectors.toList());
-
-        boolean missingColor = mauSac != null && afterMau.isEmpty();
-
-        List<SanPhamChiTiet> afterSize = afterLoai.stream()
-                .filter(spct -> matchKichCo(spct, kichCo))
-                .collect(Collectors.toList());
-
-        boolean missingSize = kichCo != null && afterSize.isEmpty();
-
-        if (missingColor && missingSize) {
-            List<Integer> nearestSizes = findNearestAvailableSizes(kichCo, afterMau);
-
-            if (!nearestSizes.isEmpty()) {
-                List<SanPhamChiTiet> fallbackByNearestSize = afterMau.stream()
-                        .filter(spct -> matchNearestSizes(spct, nearestSizes))
-                        .filter(spct -> matchFit(spct, fit))
-                        .filter(spct -> matchChatLieu(spct, chatLieu))
-                        .filter(spct -> matchPriceMin(spct, priceMin))
-                        .filter(spct -> matchPriceMax(spct, priceMax))
-                        .limit(5)
-                        .collect(Collectors.toList());
-
-                if (!fallbackByNearestSize.isEmpty()) {
-                    String sizeText = nearestSizes.stream()
-                            .map(String::valueOf)
-                            .collect(Collectors.joining(" hoặc "));
-
-                    response.setReply("Hiện tại shop chưa có đúng màu " + mauSac + " và size " + kichCo
-                            + " ạ. Tuy nhiên anh/chị có thể tham khảo một số mẫu gần nhất với size "
-                            + sizeText + " để dễ chọn hơn.");
-                    response.setProducts(toDtoList(fallbackByNearestSize));
-                    return response;
-                }
-            }
-
-            response.setReply("Hiện tại shop chưa có sản phẩm đúng màu " + mauSac + " và size " + kichCo + " ạ.");
-            response.setProducts(List.of());
-            return response;
-        }
-
-        if (missingColor) {
-            response.setReply("Hiện tại shop chưa có sản phẩm đúng màu " + mauSac + " ạ.");
-            response.setProducts(List.of());
-            return response;
-        }
-
-        if (missingSize) {
-            List<SanPhamChiTiet> baseForNearestSize = afterLoai.stream()
-                    .filter(spct -> matchMauSac(spct, mauSac))
-                    .filter(spct -> matchFit(spct, fit))
-                    .filter(spct -> matchChatLieu(spct, chatLieu))
-                    .filter(spct -> matchPriceMin(spct, priceMin))
-                    .filter(spct -> matchPriceMax(spct, priceMax))
-                    .collect(Collectors.toList());
-
-            List<Integer> nearestSizes = findNearestAvailableSizes(kichCo, baseForNearestSize);
-
-            if (!nearestSizes.isEmpty()) {
-                List<SanPhamChiTiet> fallbackByNearestSize = baseForNearestSize.stream()
-                        .filter(spct -> matchNearestSizes(spct, nearestSizes))
-                        .limit(5)
-                        .collect(Collectors.toList());
-
-                if (!fallbackByNearestSize.isEmpty()) {
-                    String sizeText = nearestSizes.stream()
-                            .map(String::valueOf)
-                            .collect(Collectors.joining(" hoặc "));
-
-                    response.setReply("Hiện tại shop chưa có đúng size " + kichCo
-                            + " ạ. Anh/chị có thể tham khảo size gần nhất như "
-                            + sizeText + " để dễ chọn form phù hợp hơn.");
-                    response.setProducts(toDtoList(fallbackByNearestSize));
-                    return response;
-                }
-            }
-
-            response.setReply("Hiện tại shop chưa có sản phẩm đúng size " + kichCo + " ạ.");
-            response.setProducts(List.of());
-            return response;
-        }
-
-        List<SanPhamChiTiet> matched = afterLoai.stream()
+        List<SanPhamChiTiet> exactMatches = baseProducts.stream()
                 .filter(spct -> matchMauSac(spct, mauSac))
                 .filter(spct -> matchKichCo(spct, kichCo))
                 .filter(spct -> matchFit(spct, fit))
                 .filter(spct -> matchChatLieu(spct, chatLieu))
                 .filter(spct -> matchPriceMin(spct, priceMin))
                 .filter(spct -> matchPriceMax(spct, priceMax))
-                .limit(5)
+                .limit(MAX_RESULTS)
                 .collect(Collectors.toList());
 
-        log.info("Matched products={}", matched.size());
-
-        matched.forEach(spct -> log.info(
-                "Matched -> spctId={}, tenSanPham={}, loai={}, mau={}, size={}, fit={}, chatLieu={}, gia={}",
-                spct.getId(),
-                spct.getSanPham() != null ? spct.getSanPham().getTenSanPham() : null,
-                spct.getSanPham() != null && spct.getSanPham().getLoaiSanPham() != null
-                        ? spct.getSanPham().getLoaiSanPham().getTen()
-                        : null,
-                spct.getMauSac() != null ? spct.getMauSac().getTen() : null,
-                spct.getKichCo() != null ? spct.getKichCo().getSoSize() : null,
-                spct.getSanPham() != null && spct.getSanPham().getFit() != null
-                        ? spct.getSanPham().getFit().getTen()
-                        : null,
-                spct.getChatLieu(),
-                spct.getDonGia()
-        ));
-
-        if (matched.isEmpty()) {
-            response.setReply(buildNoMatchReply(loaiSanPham, mauSac, kichCo, priceMin, priceMax, fit, chatLieu, occasion));
-            response.setProducts(List.of());
+        if (!exactMatches.isEmpty()) {
+            AISuggestResponse response = new AISuggestResponse();
+            response.setReply(buildExactReply(exactMatches));
+            response.setProducts(toDtoList(exactMatches));
             return response;
         }
 
-        if (aiReply != null && !aiReply.isBlank()) {
-            response.setReply(aiReply);
-        } else {
-            response.setReply(buildReply(loaiSanPham, mauSac, kichCo, matched.size(), occasion));
+        List<SanPhamChiTiet> similarMatches = baseProducts.stream()
+                .map(spct -> new ProductScore(
+                        spct,
+                        scoreProduct(spct, loaiSanPham, mauSac, kichCo, priceMin, priceMax, fit, chatLieu)
+                ))
+                .filter(x -> x.score() > 0)
+                .sorted((a, b) -> Integer.compare(b.score(), a.score()))
+                .map(ProductScore::product)
+                .limit(MAX_RESULTS)
+                .collect(Collectors.toList());
+
+        if (!similarMatches.isEmpty()) {
+            AISuggestResponse response = new AISuggestResponse();
+            response.setReply(buildSimilarReply(similarMatches));
+            response.setProducts(toDtoList(similarMatches));
+            return response;
         }
 
-        response.setProducts(toDtoList(matched));
+        AISuggestResponse response = new AISuggestResponse();
+        response.setReply("Hiện shop chưa tìm được mẫu vest phù hợp với yêu cầu của anh/chị. Anh/chị thử cho em thêm màu, size hoặc tầm giá để em lọc lại kỹ hơn nhé.");
+        response.setProducts(List.of());
         return response;
     }
 
-    private String buildReply(String loaiSanPham, String mauSac, String kichCo, int count, String occasion) {
-        StringBuilder sb = new StringBuilder("Em tìm thấy ");
-        sb.append(count).append(" sản phẩm");
+    private String buildExactReply(List<SanPhamChiTiet> products) {
+        if (products.size() == 1) {
+            return "Em thấy mẫu này khá phù hợp với nhu cầu của anh/chị. " + buildSingleProductIntro(products.get(0));
+        }
+        return "Dưới đây là các sản phẩm phù hợp với yêu cầu của anh/chị:";
+    }
 
-        if (loaiSanPham != null) {
-            sb.append(" ").append(loaiSanPham);
+    private String buildSimilarReply(List<SanPhamChiTiet> products) {
+        if (products.size() == 1) {
+            return "Hiện shop chưa có mẫu khớp hoàn toàn, nhưng đây là sản phẩm gần nhất với nhu cầu của anh/chị. "
+                    + buildSingleProductIntro(products.get(0));
         }
-        if (mauSac != null) {
-            sb.append(" màu ").append(mauSac);
-        }
-        if (kichCo != null) {
-            sb.append(" size ").append(kichCo);
-        }
-        if (occasion != null) {
-            sb.append(" phù hợp cho ").append(occasion);
+        return "Hiện shop chưa có mẫu khớp hoàn toàn, nhưng dưới đây là các sản phẩm gần với yêu cầu của anh/chị:";
+    }
+
+    private String buildSingleProductIntro(SanPhamChiTiet spct) {
+        String ten = spct.getSanPham() != null ? spct.getSanPham().getTenSanPham() : "Sản phẩm này";
+        String loai = spct.getSanPham() != null && spct.getSanPham().getLoaiSanPham() != null
+                ? spct.getSanPham().getLoaiSanPham().getTen()
+                : null;
+        String mau = spct.getMauSac() != null ? spct.getMauSac().getTen() : null;
+        String size = spct.getKichCo() != null ? spct.getKichCo().getSoSize() : null;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(ten);
+
+        if (loai != null && !loai.isBlank()) {
+            sb.append(" là mẫu ").append(loai.toLowerCase());
         }
 
-        sb.append(" ạ.");
+        if (mau != null && !mau.isBlank()) {
+            sb.append(" màu ").append(mau);
+        }
+
+        if (size != null && !size.isBlank()) {
+            sb.append(" size ").append(size);
+        }
+
+        if (spct.getDonGia() != null) {
+            sb.append(", giá ").append(formatPrice(spct.getDonGia()));
+        }
+
+        sb.append(".");
         return sb.toString();
     }
 
-    private String buildNoMatchReply(String loaiSanPham,
-                                     String mauSac,
-                                     String kichCo,
-                                     BigDecimal priceMin,
-                                     BigDecimal priceMax,
-                                     String fit,
-                                     String chatLieu,
-                                     String occasion) {
-        StringBuilder sb = new StringBuilder("Em chưa tìm thấy sản phẩm");
+    private String formatPrice(BigDecimal price) {
+        return String.format("%,d đ", price.longValue()).replace(',', '.');
+    }
 
-        if (loaiSanPham != null) {
-            sb.append(" ").append(loaiSanPham);
+    private int scoreProduct(SanPhamChiTiet spct,
+                             String loaiSanPham,
+                             String mauSac,
+                             String kichCo,
+                             BigDecimal priceMin,
+                             BigDecimal priceMax,
+                             String fit,
+                             String chatLieu) {
+        int score = 0;
+
+        if (loaiSanPham != null && matchLoaiSanPham(spct, loaiSanPham)) {
+            score += 40;
         }
-        if (mauSac != null) {
-            sb.append(" màu ").append(mauSac);
+
+        if (mauSac != null && matchMauSac(spct, mauSac)) {
+            score += 25;
         }
+
+        if (fit != null && matchFit(spct, fit)) {
+            score += 10;
+        }
+
+        if (chatLieu != null && matchChatLieu(spct, chatLieu)) {
+            score += 10;
+        }
+
         if (kichCo != null) {
-            sb.append(" size ").append(kichCo);
-        }
-        if (fit != null) {
-            sb.append(" ").append(fit);
-        }
-        if (chatLieu != null) {
-            sb.append(" chất liệu ").append(chatLieu);
-        }
-        if (priceMin != null || priceMax != null) {
-            sb.append(" trong mức giá yêu cầu");
-        }
-        if (occasion != null) {
-            sb.append(" cho ").append(occasion);
+            Integer wanted = parseSizeNumber(kichCo);
+            Integer actual = spct.getKichCo() != null ? parseSizeNumber(spct.getKichCo().getSoSize()) : null;
+
+            if (wanted != null && actual != null) {
+                int diff = Math.abs(wanted - actual);
+                if (diff == 0) {
+                    score += 25;
+                } else if (diff == 1) {
+                    score += 18;
+                } else if (diff == 2) {
+                    score += 10;
+                }
+            }
         }
 
-        sb.append(" ạ.");
-        return sb.toString();
+        if (spct.getDonGia() != null) {
+            if (priceMin != null) {
+                if (spct.getDonGia().compareTo(priceMin) >= 0) {
+                    score += 15;
+                } else {
+                    score -= 8;
+                }
+            }
+
+            if (priceMax != null) {
+                if (spct.getDonGia().compareTo(priceMax) <= 0) {
+                    score += 15;
+                } else {
+                    score -= 8;
+                }
+            }
+        }
+
+        return score;
     }
 
     private boolean matchLoaiSanPham(SanPhamChiTiet spct, String loaiSanPham) {
@@ -375,14 +348,6 @@ public class AISuggestServiceImpl implements AISuggestService {
 
         String value = normalize(spct.getKichCo().getSoSize());
         return value.equals(kichCo);
-    }
-
-    private boolean matchNearestSizes(SanPhamChiTiet spct, List<Integer> nearestSizes) {
-        if (nearestSizes == null || nearestSizes.isEmpty()) return false;
-        if (spct.getKichCo() == null || spct.getKichCo().getSoSize() == null) return false;
-
-        Integer value = parseSizeNumber(spct.getKichCo().getSoSize());
-        return value != null && nearestSizes.contains(value);
     }
 
     private boolean matchFit(SanPhamChiTiet spct, String fit) {
@@ -425,67 +390,26 @@ public class AISuggestServiceImpl implements AISuggestService {
         return spct.getDonGia().compareTo(priceMax) <= 0;
     }
 
-    private String extractLoaiSanPham(String text) {
-        if (text.contains("vest")) return "vest";
-        if (text.contains("ao so mi") || text.contains("so mi") || text.contains("somi")) return "so mi";
-        if (text.contains("quan au") || text.contains("quan tay")) return "quan";
-        return null;
+    private String detectIntent(String text) {
+        if (isGreeting(text)) return "greeting";
+        if (isHandoff(text)) return "handoff";
+        return "product_search";
     }
 
-    private String extractMauSac(String text) {
-        if (text.contains("den")) return "den";
-        if (text.contains("trang")) return "trang";
-        if (text.contains("xanh")) return "xanh";
-        if (text.contains("do")) return "do";
-        if (text.contains("xam")) return "xam";
-        if (text.contains("nau")) return "nau";
-        return null;
+    private boolean isGreeting(String text) {
+        return "chao".equals(text)
+                || "chao shop".equals(text)
+                || "hello".equals(text)
+                || "hi".equals(text)
+                || "shop oi".equals(text)
+                || "alo".equals(text)
+                || "xin chao".equals(text);
     }
 
-    private String extractKichCo(String text) {
-        Matcher m = Pattern.compile("\\bsize\\s*(\\d{2,3})\\b").matcher(text);
-        if (m.find()) {
-            return m.group(1);
-        }
-
-        Matcher m2 = Pattern.compile("\\b(44|45|46|47|48|49|50|51|52|53|54|55|56|57|58)\\b").matcher(text);
-        if (m2.find() && text.contains("size")) {
-            return m2.group(1);
-        }
-
-        return null;
-    }
-
-    private BigDecimal extractPriceMin(String text) {
-        if (text.contains("tren 500k") || text.contains("hon 500k") || text.contains("tren 500 nghin")) {
-            return new BigDecimal("500000");
-        }
-        if (text.contains("tren 1 trieu") || text.contains("hon 1 trieu") || text.contains("tren 1m") || text.contains("hon 1m")) {
-            return new BigDecimal("1000000");
-        }
-        if (text.contains("tren 2 trieu") || text.contains("hon 2 trieu") || text.contains("tren 2m") || text.contains("hon 2m")) {
-            return new BigDecimal("2000000");
-        }
-        if (text.contains("tren 3 trieu") || text.contains("hon 3 trieu") || text.contains("tren 3m") || text.contains("hon 3m")) {
-            return new BigDecimal("3000000");
-        }
-        return null;
-    }
-
-    private BigDecimal extractPriceMax(String text) {
-        if (text.contains("duoi 500k") || text.contains("duoi 500 nghin")) {
-            return new BigDecimal("500000");
-        }
-        if (text.contains("duoi 1 trieu") || text.contains("duoi 1m")) {
-            return new BigDecimal("1000000");
-        }
-        if (text.contains("duoi 2 trieu") || text.contains("duoi 2m")) {
-            return new BigDecimal("2000000");
-        }
-        if (text.contains("duoi 3 trieu") || text.contains("duoi 3m")) {
-            return new BigDecimal("3000000");
-        }
-        return null;
+    private boolean isHandoff(String text) {
+        return text.contains("gap nhan vien")
+                || text.contains("gap cskh")
+                || text.contains("nhan vien tu van");
     }
 
     private Integer parseSizeNumber(String size) {
@@ -494,39 +418,6 @@ public class AISuggestServiceImpl implements AISuggestService {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private List<Integer> extractAvailableSizes(List<SanPhamChiTiet> products) {
-        return products.stream()
-                .map(SanPhamChiTiet::getKichCo)
-                .filter(Objects::nonNull)
-                .map(k -> k.getSoSize())
-                .filter(s -> s != null && !s.isBlank())
-                .map(this::parseSizeNumber)
-                .filter(Objects::nonNull)
-                .filter(size -> size >= MIN_VALID_SIZE && size <= MAX_VALID_SIZE)
-                .distinct()
-                .sorted()
-                .toList();
-    }
-
-    private List<Integer> findNearestAvailableSizes(String requestedSize, List<SanPhamChiTiet> products) {
-        Integer requested = parseSizeNumber(requestedSize);
-        if (requested == null) return List.of();
-
-        if (requested < MIN_VALID_SIZE || requested > MAX_VALID_SIZE) {
-            return List.of();
-        }
-
-        List<Integer> availableSizes = extractAvailableSizes(products);
-        if (availableSizes.isEmpty()) return List.of();
-
-        return availableSizes.stream()
-                .filter(size -> !size.equals(requested))
-                .filter(size -> Math.abs(size - requested) <= MAX_SIZE_DISTANCE)
-                .sorted(Comparator.comparingInt(size -> Math.abs(size - requested)))
-                .limit(2)
-                .toList();
     }
 
     private String normalize(String input) {
@@ -551,5 +442,8 @@ public class AISuggestServiceImpl implements AISuggestService {
         if (first != null && !first.isBlank()) return first;
         if (second != null && !second.isBlank()) return second;
         return null;
+    }
+
+    private record ProductScore(SanPhamChiTiet product, int score) {
     }
 }
