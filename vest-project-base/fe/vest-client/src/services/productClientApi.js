@@ -1,32 +1,32 @@
-import axios from "axios";
+import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').trim(),
   timeout: 15000,
 });
 
 export async function getProducts(params = {}) {
-  const res = await api.get("/san-pham", { params });
+  const res = await api.get('/api/san-pham', { params });
   return res.data;
 }
 
 export async function getProductById(productId) {
-  const res = await api.get(`/san-pham/${productId}`);
+  const res = await api.get(`/api/san-pham/${productId}`);
   return res.data;
 }
 
 export async function getProductVariantsByProductId(productId) {
-  const res = await api.get(`/san-pham-chi-tiet/by-product/${productId}`);
+  const res = await api.get(`/api/san-pham-chi-tiet/by-product/${productId}`);
   return res.data;
 }
 
 export async function getGiaMaxDb() {
-  const res = await api.get("/san-pham/gia-max");
+  const res = await api.get('/api/san-pham/gia-max');
   return res.data;
 }
 
 export async function getLoaiSanPhamList() {
-  const res = await api.get("/loai-san-pham/list");
+  const res = await api.get('/api/loai-san-pham/list');
   return res.data;
 }
 

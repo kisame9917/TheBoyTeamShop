@@ -21,10 +21,10 @@
           <div class="mb-3">
             <label class="form-label">Tìm kiếm</label>
             <input
-              v-model="keyword"
-              type="text"
-              class="form-control"
-              placeholder="Tên sản phẩm..."
+                v-model="keyword"
+                type="text"
+                class="form-control"
+                placeholder="Tên sản phẩm..."
             />
           </div>
 
@@ -33,9 +33,9 @@
             <select v-model="selectedCategory" class="form-select">
               <option value="">Tất cả</option>
               <option
-                v-for="item in categories"
-                :key="item.id"
-                :value="item.id"
+                  v-for="item in categories"
+                  :key="item.id"
+                  :value="item.id"
               >
                 {{ item.tenLoaiSanPham || item.name || item.ten || `Loại ${item.id}` }}
               </option>
@@ -65,12 +65,12 @@
           <div class="mb-3">
             <label class="form-label">Giá tối đa</label>
             <input
-              v-model.number="maxPriceFilter"
-              type="range"
-              class="form-range"
-              min="0"
-              :max="safeMaxDbPrice"
-              step="10000"
+                v-model.number="maxPriceFilter"
+                type="range"
+                class="form-range"
+                min="0"
+                :max="safeMaxDbPrice"
+                step="10000"
             />
             <div class="small text-muted">
               {{ money(maxPriceFilter) }} đ
@@ -105,17 +105,17 @@
 
         <div v-else class="row g-4">
           <div
-            v-for="item in filteredProducts"
-            :key="item.id"
-            class="col-sm-6 col-xl-4"
+              v-for="item in filteredProducts"
+              :key="item.id"
+              class="col-sm-6 col-xl-4"
           >
             <div class="product-card" @click="goDetail(item.id)">
               <div class="product-image-wrap">
                 <img
-                  :src="item.displayImage"
-                  class="product-img"
-                  :alt="item.displayName"
-                  @error="onImgError"
+                    :src="item.displayImage"
+                    class="product-img"
+                    :alt="item.displayName"
+                    @error="onImgError"
                 />
               </div>
 
@@ -136,9 +136,9 @@
                   <div class="meta-label">Màu sắc</div>
                   <div class="chip-wrap">
                     <span
-                      v-for="color in item.colors.slice(0, 4)"
-                      :key="color"
-                      class="chip"
+                        v-for="color in item.colors.slice(0, 4)"
+                        :key="color"
+                        class="chip"
                     >
                       {{ color }}
                     </span>
@@ -149,9 +149,9 @@
                   <div class="meta-label">Kích thước</div>
                   <div class="chip-wrap">
                     <span
-                      v-for="size in item.sizes.slice(0, 5)"
-                      :key="size"
-                      class="chip chip-light"
+                        v-for="size in item.sizes.slice(0, 5)"
+                        :key="size"
+                        class="chip chip-light"
                     >
                       {{ size }}
                     </span>
@@ -164,9 +164,9 @@
                   </div>
 
                   <button
-                    class="btn btn-dark btn-sm"
-                    type="button"
-                    @click.stop="goDetail(item.id)"
+                      class="btn btn-dark btn-sm"
+                      type="button"
+                      @click.stop="goDetail(item.id)"
                   >
                     Xem chi tiết
                   </button>
@@ -177,14 +177,14 @@
         </div>
 
         <div
-          v-if="!loading && !error && totalPages > 1"
-          class="d-flex justify-content-center align-items-center gap-2 mt-4"
+            v-if="!loading && !error && totalPages > 1"
+            class="d-flex justify-content-center align-items-center gap-2 mt-4"
         >
           <button
-            class="btn btn-outline-secondary btn-sm"
-            type="button"
-            :disabled="page <= 0"
-            @click="changePage(page - 1)"
+              class="btn btn-outline-secondary btn-sm"
+              type="button"
+              :disabled="page <= 0"
+              @click="changePage(page - 1)"
           >
             Trước
           </button>
@@ -194,10 +194,10 @@
           </span>
 
           <button
-            class="btn btn-outline-secondary btn-sm"
-            type="button"
-            :disabled="page >= totalPages - 1"
-            @click="changePage(page + 1)"
+              class="btn btn-outline-secondary btn-sm"
+              type="button"
+              :disabled="page >= totalPages - 1"
+              @click="changePage(page + 1)"
           >
             Sau
           </button>
@@ -216,6 +216,7 @@ import {
   getLoaiSanPhamList,
   getProductVariantsByProductId,
 } from "../../services/productClientApi";
+import { pickProductImage, pickVariantImage, resolveMediaUrl, sortNewestFirst } from "../../utils/media";
 const router = useRouter();
 const route = useRoute();
 
@@ -239,12 +240,10 @@ const maxDbPrice = ref(0);
 const maxPriceFilter = ref(0);
 
 const fallbackImage =
-  "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='460'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3ENo Image%3C/text%3E%3C/svg%3E";
+    "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='460'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 function normalizeImage(value) {
-  if (!value) return fallbackImage;
-  if (Array.isArray(value)) return value[0] || fallbackImage;
-  return value;
+  return resolveMediaUrl(value) || fallbackImage;
 }
 
 function normalizeColorName(raw) {
@@ -268,13 +267,13 @@ function baseProductDesc(item) {
 }
 function slugify(text) {
   return String(text || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 }
 
 function syncFilterFromQuery() {
@@ -290,33 +289,33 @@ function syncFilterFromQuery() {
 
   const matchedCategory = (categories.value || []).find((item) => {
     const name =
-      item.tenLoaiSanPham || item.name || item.ten || `Loai ${item.id}`;
+        item.tenLoaiSanPham || item.name || item.ten || `Loai ${item.id}`;
     return slugify(name) === cat;
   });
 
   selectedCategory.value = matchedCategory ? String(matchedCategory.id) : "";
 }
 watch(
-  () => route.query,
-  async () => {
-    page.value = 0;
-    syncFilterFromQuery();
-    await fetchProductsData();
-  },
-  { deep: true }
+    () => route.query,
+    async () => {
+      page.value = 0;
+      syncFilterFromQuery();
+      await fetchProductsData();
+    },
+    { deep: true }
 );
 function mapVariant(v) {
   const colorName =
-    normalizeColorName(v.mauSac) ||
-    normalizeColorName(v.tenMauSac) ||
-    normalizeColorName(v.mau) ||
-    "";
+      normalizeColorName(v.mauSac) ||
+      normalizeColorName(v.tenMauSac) ||
+      normalizeColorName(v.mau) ||
+      "";
 
   const sizeName =
-    normalizeSizeName(v.kichCo) ||
-    normalizeSizeName(v.tenKichCo) ||
-    normalizeSizeName(v.size) ||
-    "";
+      normalizeSizeName(v.kichCo) ||
+      normalizeSizeName(v.tenKichCo) ||
+      normalizeSizeName(v.size) ||
+      "";
 
   return {
     idSanPhamChiTiet: v.id,
@@ -324,10 +323,7 @@ function mapVariant(v) {
     size: sizeName,
     price: Number(v.donGia ?? v.giaBan ?? v.price ?? 0),
     stock: Number(v.soLuongTon ?? v.soLuong ?? 0),
-    image:
-      normalizeImage(v.hinhAnh) ||
-      normalizeImage(v.anh) ||
-      normalizeImage(v.image),
+    image: pickVariantImage(v, fallbackImage),
     code: v.maSanPhamChiTiet || v.code || "",
   };
 }
@@ -336,18 +332,18 @@ function enrichProduct(product, variants) {
   const mappedVariants = (variants || []).map(mapVariant);
 
   const prices = mappedVariants
-    .map((v) => Number(v.price || 0))
-    .filter((p) => p > 0);
+      .map((v) => Number(v.price || 0))
+      .filter((p) => p > 0);
 
   const images = mappedVariants
-    .map((v) => v.image)
-    .filter(Boolean);
+      .map((v) => v.image)
+      .filter(Boolean);
 
   const colors = [...new Set(mappedVariants.map((v) => v.color).filter(Boolean))];
   const sizes = [...new Set(mappedVariants.map((v) => v.size).filter(Boolean))];
   const totalStock = mappedVariants.reduce(
-    (sum, v) => sum + Number(v.stock || 0),
-    0
+      (sum, v) => sum + Number(v.stock || 0),
+      0
   );
 
   return {
@@ -355,15 +351,11 @@ function enrichProduct(product, variants) {
     variants: mappedVariants,
     displayName: baseProductName(product),
     displayDescription: baseProductDesc(product),
-    displayImage:
-      images[0] ||
-      normalizeImage(product.hinhAnh) ||
-      normalizeImage(product.image) ||
-      fallbackImage,
+    displayImage: pickProductImage(product, mappedVariants, fallbackImage),
     displayPrice:
-      prices.length > 0
-        ? Math.min(...prices)
-        : Number(product.giaBan || product.price || 0),
+        prices.length > 0
+            ? Math.min(...prices)
+            : Number(product.giaBan || product.price || 0),
     colors,
     sizes,
     totalStock,
@@ -391,25 +383,25 @@ const filteredProducts = computed(() => {
     const matchKeyword = !kw || name.includes(kw);
 
     const productCategoryId =
-      item.idLoaiSanPham ||
-      item.loaiSanPhamId ||
-      item.loaiSanPham?.id ||
-      null;
+        item.idLoaiSanPham ||
+        item.loaiSanPhamId ||
+        item.loaiSanPham?.id ||
+        null;
 
     const matchCategory =
-      !selectedCategory.value ||
-      String(productCategoryId) === String(selectedCategory.value);
+        !selectedCategory.value ||
+        String(productCategoryId) === String(selectedCategory.value);
 
     const matchColor =
-      !selectedColor.value ||
-      (item.colors || []).includes(selectedColor.value);
+        !selectedColor.value ||
+        (item.colors || []).includes(selectedColor.value);
 
     const matchSize =
-      !selectedSize.value ||
-      (item.sizes || []).includes(selectedSize.value);
+        !selectedSize.value ||
+        (item.sizes || []).includes(selectedSize.value);
 
     const matchPrice =
-      Number(item.displayPrice || 0) <= Number(maxPriceFilter.value || 0);
+        Number(item.displayPrice || 0) <= Number(maxPriceFilter.value || 0);
 
     return matchKeyword && matchCategory && matchColor && matchSize && matchPrice;
   });
@@ -463,37 +455,37 @@ async function fetchProductsData() {
     loading.value = true;
     error.value = "";
 
-const data = await getProducts({
-  page: page.value,
-  size: size.value,
-});
+    const data = await getProducts({
+      page: page.value,
+      size: size.value,
+    });
 
-if (Array.isArray(data)) {
-  rawProducts.value = data;
-  totalPages.value = 1;
-} else {
-  rawProducts.value = Array.isArray(data?.content) ? data.content : [];
-  totalPages.value = Number(data?.totalPages || 1);
-}
+    if (Array.isArray(data)) {
+      rawProducts.value = data;
+      totalPages.value = 1;
+    } else {
+      rawProducts.value = Array.isArray(data?.content) ? data.content : [];
+      totalPages.value = Number(data?.totalPages || 1);
+    }
     const enriched = await Promise.all(
-      rawProducts.value.map(async (product) => {
-        try {
-          const variants = await getProductVariantsByProductId(product.id);
-          return enrichProduct(product, Array.isArray(variants) ? variants : []);
-        } catch (variantErr) {
-          console.error("fetch variants error:", product.id, variantErr);
-          return enrichProduct(product, []);
-        }
-      })
+        rawProducts.value.map(async (product) => {
+          try {
+            const variants = await getProductVariantsByProductId(product.id);
+            return enrichProduct(product, Array.isArray(variants) ? variants : []);
+          } catch (variantErr) {
+            console.error("fetch variants error:", product.id, variantErr);
+            return enrichProduct(product, []);
+          }
+        })
     );
 
-    products.value = enriched;
+    products.value = sortNewestFirst(enriched);
   } catch (err) {
     console.error("fetchProductsData error:", err);
     console.error("fetchProductsData response:", err?.response?.data);
     error.value =
-      err?.response?.data?.message ||
-      `Không tải được danh sách sản phẩm (${err?.response?.status || "no-status"})`;
+        err?.response?.data?.message ||
+        `Không tải được danh sách sản phẩm (${err?.response?.status || "no-status"})`;
   } finally {
     loading.value = false;
   }
@@ -525,7 +517,7 @@ onMounted(async () => {
 
 .page-title {
   font-size: 38px;
-  font-weight: 800;
+  font-weight: 750;
   color: #111;
   margin: 0;
 }
@@ -541,7 +533,7 @@ onMounted(async () => {
 
 .filter-title {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 750;
   margin-bottom: 16px;
   color: #111;
 }
@@ -592,7 +584,7 @@ onMounted(async () => {
 
 .product-name {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 750;
   color: #111;
   line-height: 1.35;
   min-height: 48px;
@@ -608,7 +600,7 @@ onMounted(async () => {
 
 .product-price {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 750;
   color: #c1121f;
   margin-top: 12px;
 }

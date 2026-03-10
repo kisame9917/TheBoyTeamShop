@@ -162,7 +162,7 @@
             <div class="col-12 col-lg-6">
               <label class="form-label">
                 Tài khoản
-<!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
+                <!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
               </label>
               <input
                   class="form-control"
@@ -176,7 +176,7 @@
             <div class="col-12 col-lg-6">
               <label class="form-label">
                 Mật khẩu
-<!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
+                <!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
               </label>
               <input
                   class="form-control"
@@ -252,6 +252,7 @@ import { useRoute, useRouter } from 'vue-router'
 import http from '../../services/http'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from '@/composables/useToast'
+import { normalizeUploadResponse, resolveMediaUrl } from '@/utils/media'
 
 const toast = useToast()
 const MAX_AVATAR_MB = 5
@@ -314,7 +315,8 @@ const form = reactive({
   gioiTinh: null,
   diaChi: '',
   trangThai: true,
-  anhDaiDien: ''
+  anhDaiDien: '',
+  mediaAvatarId: null
 })
 
 /** ===== Ngày sinh (✅ nhập tay dd/mm/yyyy + picker đúng vị trí) ===== */
@@ -431,37 +433,16 @@ function onAvatarImgError() {
   else avatarPreview.value = ''
 }
 
-/** ===== Resolve URL /uploads ===== */
-const FALLBACK_BACKEND = 'http://localhost:8080'
-function getBackendOrigin() {
-  let base = ''
-  if (http?.defaults?.baseURL) base = String(http.defaults.baseURL).trim()
-  if (base.startsWith('http://') || base.startsWith('https://')) {
-    try {
-      return new URL(base).origin
-    } catch {
-      return FALLBACK_BACKEND
-    }
-  }
-  return FALLBACK_BACKEND
-}
-function resolveFileUrl(url) {
-  const u = String(url || '').trim()
-  if (!u) return ''
-  if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:image')) return u
-  const origin = getBackendOrigin()
-  return u.startsWith('/') ? origin + u : origin + '/' + u
-}
-
+/** ===== Resolve media url / cloudinary ===== */
 async function uploadNhanVienAvatar(file) {
   const fd = new FormData()
   fd.append('file', file)
   const res = await http.post('/api/upload/nhan-vien-avatar', fd, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
-  const url = res?.data?.url || ''
-  if (!url) throw new Error('Upload thành công nhưng không nhận được url')
-  return String(url)
+  const uploaded = normalizeUploadResponse(res)
+  if (!uploaded.url) throw new Error('Upload thành công nhưng không nhận được url')
+  return uploaded
 }
 
 async function onAvatarFileChange(e) {
@@ -481,9 +462,10 @@ async function onAvatarFileChange(e) {
 
   uploading.value = true
   try {
-    const url = await uploadNhanVienAvatar(file)
-    form.anhDaiDien = url
-    avatarPreview.value = resolveFileUrl(url) + '?t=' + Date.now()
+    const uploaded = await uploadNhanVienAvatar(file)
+    form.anhDaiDien = uploaded.url
+    form.mediaAvatarId = uploaded.mediaAssetId
+    avatarPreview.value = resolveMediaUrl(uploaded.url) + '?t=' + Date.now()
     toast.success('Upload ảnh thành công!')
   } catch (ex) {
     const msg = ex?.response?.data?.message || ex?.message || 'Upload thất bại'
@@ -623,7 +605,8 @@ function normalizeStaff(x) {
     trangThai: (x.trangThai === true || x.trangThai === false) ? x.trangThai : true,
     quyenHanId,
     tenQuyenHan,
-    anhDaiDien: x.anhDaiDien ?? x.anh_dai_dien ?? ''
+    anhDaiDien: x.anhDaiDien ?? x.anh_dai_dien ?? '',
+    mediaAvatarId: x.mediaAvatarId ?? x.idMediaAvatar ?? x.id_media_avatar ?? null
   }
 }
 
@@ -761,7 +744,7 @@ async function loadData() {
 
   form.anhDaiDien = s.anhDaiDien || ''
   if (form.anhDaiDien) {
-    avatarPreview.value = resolveFileUrl(form.anhDaiDien) + '?t=' + Date.now()
+    avatarPreview.value = resolveMediaUrl(form.anhDaiDien) + '?t=' + Date.now()
   }
 
   if (s.diaChi) {
@@ -810,7 +793,8 @@ async function submit() {
         gioiTinh: (form.gioiTinh === true || form.gioiTinh === false) ? form.gioiTinh : null,
         diaChi: buildDiaChi(),
         trangThai: isEdit.value ? form.trangThai : true,
-        anhDaiDien: form.anhDaiDien
+        anhDaiDien: form.anhDaiDien,
+        mediaAvatarId: form.mediaAvatarId
       }
 
 

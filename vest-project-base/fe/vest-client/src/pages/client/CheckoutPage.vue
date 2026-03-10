@@ -1,385 +1,533 @@
 <template>
-  <div class="checkout container py-4">
-    <nav aria-label="breadcrumb" class="mb-3">
-      <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item">
-          <router-link to="/" class="text-muted text-decoration-none">
-            Trang chủ
-          </router-link>
-        </li>
-        <li class="breadcrumb-item active text-dark" aria-current="page">
-          Thanh toán
-        </li>
-      </ol>
-    </nav>
+  <div class="checkout-page">
+    <div class="checkout container py-4">
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item">
+            <router-link to="/" class="text-muted text-decoration-none">
+              Trang chủ
+            </router-link>
+          </li>
+          <li class="breadcrumb-item active text-dark" aria-current="page">
+            Thanh toán
+          </li>
+        </ol>
+      </nav>
 
-    <div class="row g-4">
-      <div class="col-lg-7">
-        <h1 class="page-title mb-4">Thanh toán</h1>
-
-        <section class="box mb-4">
-          <div class="box-title">1. Địa chỉ giao hàng</div>
-
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">
-                Họ và Tên <span class="req">*</span>
-              </label>
-              <input
-                v-model="form.fullName"
-                type="text"
-                class="form-control"
-                placeholder="Nhập họ tên"
-              />
-              <div v-if="errors.fullName" class="text-danger small mt-1">
-                {{ errors.fullName }}
-              </div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label">
-                Số điện thoại <span class="req">*</span>
-              </label>
-              <input
-                v-model="form.phone"
-                type="text"
-                class="form-control"
-                placeholder="Nhập số điện thoại"
-              />
-              <div v-if="errors.phone" class="text-danger small mt-1">
-                {{ errors.phone }}
-              </div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label">
-                Tỉnh/Thành phố <span class="req">*</span>
-              </label>
-              <select
-                v-model="form.province"
-                class="form-select"
-                @change="onProvinceChange"
-              >
-                <option value="">Chọn tỉnh/thành phố</option>
-                <option
-                  v-for="province in provinces"
-                  :key="province.Code"
-                  :value="province.Code"
-                >
-                  {{ province.FullName }}
-                </option>
-              </select>
-              <div v-if="errors.province" class="text-danger small mt-1">
-                {{ errors.province }}
-              </div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label">
-                Phường/xã <span class="req">*</span>
-              </label>
-              <select
-                v-model="form.ward"
-                class="form-select"
-                :disabled="!form.province"
-              >
-                <option value="">Vui lòng chọn phường/xã</option>
-                <option
-                  v-for="ward in wards"
-                  :key="ward.Code"
-                  :value="ward.Code"
-                >
-                  {{ ward.FullName }}
-                </option>
-              </select>
-              <div v-if="errors.ward" class="text-danger small mt-1">
-                {{ errors.ward }}
-              </div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label">
-                Địa chỉ chi tiết <span class="req">*</span>
-              </label>
-              <input
-                v-model="form.address"
-                type="text"
-                class="form-control"
-                placeholder="Số nhà, tên đường..."
-              />
-              <div v-if="errors.address" class="text-danger small mt-1">
-                {{ errors.address }}
-              </div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label">Ghi chú</label>
-              <textarea
-                v-model="form.note"
-                class="form-control"
-                rows="3"
-                placeholder="Ghi chú"
-              ></textarea>
-            </div>
+      <div class="checkout-head mb-4">
+        <div>
+          <h1 class="page-title mb-1">THANH TOÁN</h1>
+          <div class="page-subtitle">
+            Hoàn tất thông tin giao hàng và kiểm tra lại đơn hàng của bạn
           </div>
-        </section>
-
-        <section class="box mb-4">
-          <div class="box-title">2. Vận chuyển</div>
-
-          <label class="ship-row">
-            <input
-              class="form-check-input me-2"
-              type="radio"
-              value="standard"
-              v-model="form.shippingMethod"
-            />
-            <span class="ship-name">Giao hàng - Tiêu chuẩn</span>
-            <span class="ship-fee">+ {{ money(shippingFee) }} đ</span>
-          </label>
-        </section>
-
-        <section class="box mb-4">
-          <div class="box-title">3. Phương thức thanh toán</div>
-
-          <label class="pay-row">
-            <input
-              class="form-check-input me-2"
-              type="radio"
-              value="cod"
-              v-model="form.paymentMethod"
-            />
-            <span>Thanh toán khi nhận hàng (COD)</span>
-          </label>
-
-          <label class="pay-row">
-            <input
-              class="form-check-input me-2"
-              type="radio"
-              value="qr"
-              v-model="form.paymentMethod"
-            />
-            <span>Chuyển khoản QR</span>
-          </label>
-        </section>
-
-        <section class="box mb-4">
-          <div class="box-title">4. Áp dụng mã giảm giá</div>
-
-          <div class="coupon">
-            <input
-              v-model="couponCode"
-              class="form-control"
-              placeholder="Nhập mã giảm giá"
-            />
-            <button
-              class="btn btn-dark coupon-btn"
-              type="button"
-              @click="applyCoupon"
-            >
-              Sử dụng
-            </button>
-          </div>
-
-          <button class="btn btn-link p-0 mt-2 coupon-toggle" type="button">
-            MÃ GIẢM GIÁ <i class="bi bi-chevron-down ms-1"></i>
-          </button>
-        </section>
-
-        <section class="box">
-          <div class="total-row">
-            <span class="total-label">THÀNH TIỀN</span>
-            <span class="total-value">{{ money(safeGrandTotal) }} đ</span>
-          </div>
-
-          <label class="invoice mt-3">
-            <input
-              v-model="form.invoice"
-              type="checkbox"
-              class="form-check-input me-2"
-            />
-            <span>Xuất hóa đơn công ty</span>
-          </label>
-
-          <div v-if="errors.items" class="alert alert-danger py-2 mt-3 mb-2">
-            {{ errors.items }}
-          </div>
-
-          <div v-if="errors.general" class="alert alert-danger py-2 mt-2 mb-0">
-            {{ errors.general }}
-          </div>
-
-          <button
-            class="btn btn-order w-100 mt-3"
-            type="button"
-            :disabled="cartItems.length === 0 || loading"
-            @click="placeOrder"
-          >
-            {{ loading ? "ĐANG XỬ LÝ..." : "ĐẶT HÀNG" }}
-          </button>
-        </section>
+        </div>
+        <div class="checkout-badge">{{ safeTotalQty }} sản phẩm</div>
       </div>
 
-      <div class="col-lg-5">
-        <div class="summary">
-          <div class="summary-title">Đơn hàng</div>
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>1. Địa chỉ giao hàng</span>
+            </div>
 
-          <div v-if="cartItems.length === 0" class="summary-empty">
-            Chưa có sản phẩm trong giỏ hàng.
-          </div>
+            <div class="checkout-card__body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">
+                    Họ và Tên <span class="req">*</span>
+                  </label>
+                  <input
+                      v-model="form.fullName"
+                      type="text"
+                      class="form-control input-ui"
+                      placeholder="Nhập họ tên"
+                  />
+                  <div v-if="errors.fullName" class="text-danger small mt-1">
+                    {{ errors.fullName }}
+                  </div>
+                </div>
 
-          <div v-else class="summary-table-wrap">
-            <table class="table summary-table align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Sản phẩm</th>
-                  <th class="text-center">Số lượng</th>
-                  <th class="text-end">Giá</th>
-                  <th class="text-end">Tổng tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="it in cartItems"
-                  :key="it.idSanPhamChiTiet || it.key || `${it.productId}-${it.size}-${it.color}`"
+                <div class="col-12">
+                  <label class="form-label">
+                    Số điện thoại <span class="req">*</span>
+                  </label>
+                  <input
+                      v-model="form.phone"
+                      type="text"
+                      class="form-control input-ui"
+                      placeholder="Nhập số điện thoại"
+                  />
+                  <div v-if="errors.phone" class="text-danger small mt-1">
+                    {{ errors.phone }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    Tỉnh/Thành phố <span class="req">*</span>
+                  </label>
+                  <select
+                      v-model="form.province"
+                      class="form-select input-ui"
+                      :disabled="provinceLoading"
+                      @change="onProvinceChange"
+                  >
+                    <option value="">
+                      {{ provinceLoading ? "Đang tải tỉnh/thành..." : "Chọn tỉnh/thành phố" }}
+                    </option>
+                    <option
+                        v-for="province in provinces"
+                        :key="province.code"
+                        :value="province.code"
+                    >
+                      {{ province.name }}
+                    </option>
+                  </select>
+                  <div v-if="errors.province" class="text-danger small mt-1">
+                    {{ errors.province }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    Quận/Huyện <span class="req">*</span>
+                  </label>
+                  <select
+                      v-model="form.district"
+                      class="form-select input-ui"
+                      :disabled="!form.province || districtLoading"
+                      @change="onDistrictChange"
+                  >
+                    <option value="">
+                      {{ districtLoading ? "Đang tải quận/huyện..." : "Chọn quận/huyện" }}
+                    </option>
+                    <option
+                        v-for="district in districts"
+                        :key="district.code"
+                        :value="district.code"
+                    >
+                      {{ district.name }}
+                    </option>
+                  </select>
+                  <div v-if="errors.district" class="text-danger small mt-1">
+                    {{ errors.district }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    Phường/Xã <span class="req">*</span>
+                  </label>
+                  <select
+                      v-model="form.ward"
+                      class="form-select input-ui"
+                      :disabled="!form.district || wardLoading"
+                  >
+                    <option value="">
+                      {{ wardLoading ? "Đang tải phường/xã..." : "Chọn phường/xã" }}
+                    </option>
+                    <option
+                        v-for="ward in wards"
+                        :key="ward.code"
+                        :value="ward.code"
+                    >
+                      {{ ward.name }}
+                    </option>
+                  </select>
+                  <div v-if="errors.ward" class="text-danger small mt-1">
+                    {{ errors.ward }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    Địa chỉ chi tiết <span class="req">*</span>
+                  </label>
+                  <input
+                      v-model="form.address"
+                      type="text"
+                      class="form-control input-ui"
+                      placeholder="Số nhà, tên đường..."
+                  />
+                  <div v-if="errors.address" class="text-danger small mt-1">
+                    {{ errors.address }}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Ghi chú</label>
+                  <textarea
+                      v-model="form.note"
+                      class="form-control input-ui textarea-ui"
+                      rows="4"
+                      placeholder="Ghi chú cho đơn hàng"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>2. Vận chuyển</span>
+            </div>
+
+            <div class="checkout-card__body">
+              <label class="option-row">
+                <div class="option-row__left">
+                  <input
+                      class="form-check-input me-2"
+                      type="radio"
+                      value="standard"
+                      v-model="form.shippingMethod"
+                  />
+                  <span class="option-row__title">Giao hàng tiêu chuẩn</span>
+                </div>
+                <span class="option-row__value">+ {{ money(shippingFee) }} đ</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>3. Phương thức thanh toán</span>
+            </div>
+
+            <div class="checkout-card__body">
+              <label class="option-row">
+                <div class="option-row__left">
+                  <input
+                      class="form-check-input me-2"
+                      type="radio"
+                      value="cod"
+                      v-model="form.paymentMethod"
+                  />
+                  <span class="option-row__title">Thanh toán khi nhận hàng (COD)</span>
+                </div>
+              </label>
+
+              <label class="option-row">
+                <div class="option-row__left">
+                  <input
+                      class="form-check-input me-2"
+                      type="radio"
+                      value="qr"
+                      v-model="form.paymentMethod"
+                  />
+                  <span class="option-row__title">Chuyển khoản QR</span>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>4. Áp dụng mã giảm giá</span>
+            </div>
+
+            <div class="checkout-card__body">
+              <div class="coupon-box">
+                <input
+                    v-model="couponCode"
+                    class="form-control input-ui"
+                    placeholder="Nhập mã giảm giá"
+                />
+                <button
+                    class="coupon-btn"
+                    type="button"
+                    @click="applyCoupon"
                 >
-                  <td>
-                    <div class="prod">
-                      <img
+                  Sử dụng
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="summary-card">
+            <div class="summary-card__header">TÓM TẮT ĐƠN HÀNG</div>
+
+            <div v-if="cartItems.length === 0" class="summary-empty">
+              Chưa có sản phẩm trong giỏ hàng.
+            </div>
+
+            <div v-else class="summary-card__body">
+              <div class="summary-list">
+                <div
+                    class="summary-item"
+                    v-for="it in cartItems"
+                    :key="it.idSanPhamChiTiet || it.key || `${it.productId}-${it.size}-${it.color}`"
+                >
+                  <div class="summary-item__left">
+                    <img
                         :src="it.image"
-                        class="prod-img"
+                        class="summary-item__img"
                         alt="sp"
                         @error="onImgError"
-                      />
-                      <div class="prod-info">
-                        <div class="prod-name">{{ it.name }}</div>
-                        <div class="prod-meta">
-                          <span v-if="it.color">Màu: {{ it.color }}</span>
-                          <span v-if="it.size">Kích cỡ: {{ it.size }}</span>
-                        </div>
-                        <div
-                          class="small text-muted"
+                    />
+
+                    <div class="summary-item__info">
+                      <div class="summary-item__name">{{ it.name }}</div>
+
+                      <div class="summary-item__meta">
+                        <span v-if="it.color">Màu: {{ it.color }}</span>
+                        <span v-if="it.size">Kích cỡ: {{ it.size }}</span>
+                      </div>
+
+                      <div
+                          class="summary-item__spct"
                           v-if="resolveProductDetailId(it)"
-                        >
-                          SPCT: {{ resolveProductDetailId(it) }}
-                        </div>
+                      >
+                        SPCT: {{ resolveProductDetailId(it) }}
+                      </div>
+
+                      <div class="summary-item__qty">
+                        Số lượng: {{ it.qty }}
                       </div>
                     </div>
-                  </td>
-                  <td class="text-center">{{ it.qty }}</td>
-                  <td class="text-end">{{ money(it.price) }} đ</td>
-                  <td class="text-end">
-                    {{ money((Number(it.price) || 0) * (Number(it.qty) || 0)) }} đ
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+
+                  <div class="summary-item__right">
+                    <div class="summary-item__price">
+                      {{ money(it.price) }} đ
+                    </div>
+                    <div class="summary-item__total">
+                      {{ money((Number(it.price) || 0) * (Number(it.qty) || 0)) }} đ
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="summary-footer">
+                <div class="sum-line">
+                  <span>Tổng sản phẩm</span>
+                  <strong>{{ safeTotalQty }}</strong>
+                </div>
+                <div class="sum-line">
+                  <span>Tổng tiền</span>
+                  <strong>{{ money(safeSubtotal) }} đ</strong>
+                </div>
+                <div class="sum-line">
+                  <span>Vận chuyển</span>
+                  <strong>{{ money(shippingFee) }} đ</strong>
+                </div>
+                <div class="sum-line total">
+                  <span>THÀNH TIỀN</span>
+                  <strong>{{ money(safeGrandTotal) }} đ</strong>
+                </div>
+
+                <label class="invoice-row mt-3">
+                  <input
+                      v-model="form.invoice"
+                      type="checkbox"
+                      class="form-check-input me-2"
+                  />
+                  <span>Xuất hóa đơn công ty</span>
+                </label>
+
+                <div v-if="errors.items" class="alert alert-danger py-2 mt-3 mb-2">
+                  {{ errors.items }}
+                </div>
+
+                <div v-if="errors.general" class="alert alert-danger py-2 mt-2 mb-0">
+                  {{ errors.general }}
+                </div>
+
+                <button
+                    class="btn-order w-100 mt-3"
+                    type="button"
+                    :disabled="cartItems.length === 0 || loading"
+                    @click="placeOrder"
+                >
+                  {{ loading ? "ĐANG XỬ LÝ..." : "ĐẶT HÀNG" }}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div class="summary-footer">
-            <div class="sum-line">
-              <span>Tổng sản phẩm</span>
-              <span>{{ safeTotalQty }}</span>
+          <div class="checkout-benefits mt-3">
+            <div class="benefit-item">
+              <i class="bi bi-shield-check"></i>
+              <span>Thanh toán an toàn</span>
             </div>
-            <div class="sum-line">
-              <span>Tổng tiền</span>
-              <span>{{ money(safeSubtotal) }} đ</span>
+            <div class="benefit-item">
+              <i class="bi bi-truck"></i>
+              <span>Giao hàng toàn quốc</span>
             </div>
-            <div class="sum-line">
-              <span>Vận chuyển</span>
-              <span>{{ money(shippingFee) }} đ</span>
+            <div class="benefit-item">
+              <i class="bi bi-arrow-repeat"></i>
+              <span>Hỗ trợ đổi trả theo chính sách</span>
             </div>
-            <div class="sum-line total">
-              <span>THÀNH TIỀN</span>
-              <span>{{ money(safeGrandTotal) }} đ</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showQrModal" class="qr-backdrop" @click.self="closeQrModal">
+        <div class="qr-modal">
+          <div class="qr-modal-header">
+            <h5 class="mb-0">Thanh toán chuyển khoản QR</h5>
+            <button class="btn-close" type="button" @click="closeQrModal"></button>
+          </div>
+
+          <div class="qr-modal-body">
+            <div class="text-center mb-3">
+              <img
+                  v-if="qrData.qrImageUrl"
+                  :src="normalizeQrUrl(qrData.qrImageUrl)"
+                  alt="QR thanh toán"
+                  class="qr-image"
+              />
+              <div v-else class="qr-placeholder">
+                Chưa có ảnh QR
+              </div>
             </div>
+
+            <div class="qr-info">
+              <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
+              <div><b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}</div>
+              <div><b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}</div>
+              <div><b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}</div>
+              <div><b>Số tiền:</b> {{ money(qrData.amount) }} đ</div>
+              <div><b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}</div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label">Mã giao dịch (nếu có)</label>
+              <input
+                  v-model="qrForm.maGiaoDich"
+                  type="text"
+                  class="form-control input-ui"
+                  placeholder="Ví dụ: TCB123456789"
+              />
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label">Ghi chú xác nhận</label>
+              <textarea
+                  v-model="qrForm.ghiChu"
+                  class="form-control input-ui textarea-ui"
+                  rows="3"
+                  placeholder="Khách đã chuyển khoản"
+              ></textarea>
+            </div>
+
+            <div v-if="qrError" class="alert alert-danger mt-3 mb-0">
+              {{ qrError }}
+            </div>
+          </div>
+
+          <div class="qr-modal-footer">
+            <button class="btn btn-outline-secondary" type="button" @click="closeQrModal">
+              Đóng
+            </button>
+            <button
+                class="btn btn-dark"
+                type="button"
+                :disabled="confirmingQr"
+                @click="confirmQrPayment"
+            >
+              {{ confirmingQr ? "ĐANG XÁC NHẬN..." : "Tôi đã chuyển khoản" }}
+            </button>
           </div>
         </div>
       </div>
     </div>
-
-    <div v-if="showQrModal" class="qr-backdrop" @click.self="closeQrModal">
-      <div class="qr-modal">
-        <div class="qr-modal-header">
-          <h5 class="mb-0">Thanh toán chuyển khoản QR</h5>
-          <button class="btn-close" type="button" @click="closeQrModal"></button>
-        </div>
-
-        <div class="qr-modal-body">
-          <div class="text-center mb-3">
-            <img
-              v-if="qrData.qrImageUrl"
-              :src="normalizeQrUrl(qrData.qrImageUrl)"
-              alt="QR thanh toán"
-              class="qr-image"
-            />
-            <div v-else class="qr-placeholder">
-              Chưa có ảnh QR
-            </div>
-          </div>
-
-          <div class="qr-info">
-            <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
-            <div><b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}</div>
-            <div><b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}</div>
-            <div><b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}</div>
-            <div><b>Số tiền:</b> {{ money(qrData.amount) }} đ</div>
-            <div><b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}</div>
-          </div>
-
-          <div class="mt-3">
-            <label class="form-label">Mã giao dịch (nếu có)</label>
-            <input
-              v-model="qrForm.maGiaoDich"
-              type="text"
-              class="form-control"
-              placeholder="Ví dụ: TCB123456789"
-            />
-          </div>
-
-          <div class="mt-3">
-            <label class="form-label">Ghi chú xác nhận</label>
-            <textarea
-              v-model="qrForm.ghiChu"
-              class="form-control"
-              rows="3"
-              placeholder="Khách đã chuyển khoản"
-            ></textarea>
-          </div>
-
-          <div v-if="qrError" class="alert alert-danger mt-3 mb-0">
-            {{ qrError }}
-          </div>
-        </div>
-
-        <div class="qr-modal-footer">
-          <button class="btn btn-outline-secondary" type="button" @click="closeQrModal">
-            Đóng
-          </button>
-          <button
-            class="btn btn-dark"
+  </div>
+  <!-- Modal xác nhận đặt hàng -->
+  <div
+      v-if="showConfirmModal"
+      class="confirm-backdrop"
+      @click.self="closeConfirmModal"
+  >
+    <div class="confirm-modal">
+      <div class="confirm-modal__header">
+        <h5 class="mb-0">Xác nhận đặt hàng</h5>
+        <button
+            class="btn-close btn-close-white"
             type="button"
-            :disabled="confirmingQr"
-            @click="confirmQrPayment"
-          >
-            {{ confirmingQr ? "ĐANG XÁC NHẬN..." : "Tôi đã chuyển khoản" }}
-          </button>
+            @click="closeConfirmModal"
+        ></button>
+      </div>
+
+      <div class="confirm-modal__body">
+        <div class="confirm-icon">
+          <i class="bi bi-bag-check"></i>
         </div>
+
+        <div class="confirm-title">Bạn có chắc muốn đặt đơn hàng này?</div>
+
+        <div class="confirm-desc">
+          Đơn hàng sẽ được tạo với tổng thanh toán là
+          <strong>{{ money(safeGrandTotal) }} đ</strong>.
+        </div>
+      </div>
+
+      <div class="confirm-modal__footer">
+        <button
+            class="btn-cancel"
+            type="button"
+            @click="closeConfirmModal"
+            :disabled="confirmSubmitting"
+        >
+          Hủy
+        </button>
+
+        <button
+            class="btn-confirm"
+            type="button"
+            @click="submitOrder"
+            :disabled="confirmSubmitting"
+        >
+          {{ confirmSubmitting ? "ĐANG XỬ LÝ..." : "Xác nhận đặt hàng" }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal thành công -->
+  <div
+      v-if="showSuccessModal"
+      class="success-backdrop"
+      @click.self="closeSuccessModal"
+  >
+    <div class="success-modal">
+      <div class="success-icon-wrap">
+        <div class="success-icon">
+          <i class="bi bi-check2"></i>
+        </div>
+      </div>
+
+      <div class="success-title">Thành công</div>
+      <div class="success-desc">
+        {{ successMessage }}
+      </div>
+
+      <div class="success-note">
+        Đang chuyển sang trang kết quả đơn hàng...
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch } from "vue";
+import { reactive, ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
-import units from "../../assets/vn_units.json";
 
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
 
-const provinces = units;
+const PROVINCE_API_BASE = "https://provinces.open-api.vn/api/v1";
+
+const provinces = ref([]);
+const districts = ref([]);
+const wards = ref([]);
+
+const provinceLoading = ref(false);
+const districtLoading = ref(false);
+const wardLoading = ref(false);
 
 const form = reactive({
   fullName: "",
@@ -401,7 +549,11 @@ const loading = ref(false);
 const showQrModal = ref(false);
 const confirmingQr = ref(false);
 const qrError = ref("");
+const showConfirmModal = ref(false);
+const confirmSubmitting = ref(false);
 
+const showSuccessModal = ref(false);
+const successMessage = ref("");
 const qrData = reactive({
   orderId: null,
   maHoaDon: "",
@@ -422,6 +574,7 @@ const errors = reactive({
   fullName: "",
   phone: "",
   province: "",
+  district: "",
   ward: "",
   address: "",
   shippingMethod: "",
@@ -431,11 +584,15 @@ const errors = reactive({
 });
 
 const selectedProvince = computed(() => {
-  return provinces.find((p) => String(p.Code) === String(form.province)) || null;
+  return provinces.value.find((p) => String(p.code) === String(form.province)) || null;
 });
 
-const wards = computed(() => {
-  return selectedProvince.value?.Wards || [];
+const selectedDistrict = computed(() => {
+  return districts.value.find((d) => String(d.code) === String(form.district)) || null;
+});
+
+const selectedWard = computed(() => {
+  return wards.value.find((w) => String(w.code) === String(form.ward)) || null;
 });
 
 const shippingFee = computed(() => 60000);
@@ -456,10 +613,83 @@ const safeGrandTotal = computed(() => {
   return safeSubtotal.value + (Number(shippingFee.value) || 0) - (Number(discount.value) || 0);
 });
 
-function onProvinceChange() {
+async function fetchProvinces() {
+  try {
+    provinceLoading.value = true;
+    const res = await fetch(`${PROVINCE_API_BASE}/p/`);
+    const data = await res.json();
+    provinces.value = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("fetchProvinces error:", error);
+    provinces.value = [];
+  } finally {
+    provinceLoading.value = false;
+  }
+}
+
+async function fetchDistrictsByProvince(provinceCode) {
+  if (!provinceCode) {
+    districts.value = [];
+    return;
+  }
+
+  try {
+    districtLoading.value = true;
+    const res = await fetch(`${PROVINCE_API_BASE}/p/${provinceCode}?depth=2`);
+    const data = await res.json();
+    districts.value = Array.isArray(data?.districts) ? data.districts : [];
+  } catch (error) {
+    console.error("fetchDistrictsByProvince error:", error);
+    districts.value = [];
+  } finally {
+    districtLoading.value = false;
+  }
+}
+
+async function fetchWardsByDistrict(districtCode) {
+  if (!districtCode) {
+    wards.value = [];
+    return;
+  }
+
+  try {
+    wardLoading.value = true;
+    const res = await fetch(`${PROVINCE_API_BASE}/d/${districtCode}?depth=2`);
+    const data = await res.json();
+    wards.value = Array.isArray(data?.wards) ? data.wards : [];
+  } catch (error) {
+    console.error("fetchWardsByDistrict error:", error);
+    wards.value = [];
+  } finally {
+    wardLoading.value = false;
+  }
+}
+
+async function onProvinceChange() {
+  form.district = "";
   form.ward = "";
+  districts.value = [];
+  wards.value = [];
+
   errors.province = "";
+  errors.district = "";
   errors.ward = "";
+
+  if (form.province) {
+    await fetchDistrictsByProvince(form.province);
+  }
+}
+
+async function onDistrictChange() {
+  form.ward = "";
+  wards.value = [];
+
+  errors.district = "";
+  errors.ward = "";
+
+  if (form.district) {
+    await fetchWardsByDistrict(form.district);
+  }
 }
 
 function money(v) {
@@ -488,13 +718,18 @@ function validateFullName(value) {
 function validatePhone(value) {
   if (!value?.trim()) return "Vui lòng nhập số điện thoại";
   const normalized = value.trim();
-  const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
+  const phoneRegex = /^(0|\\+84)[0-9]{9,10}$/;
   if (!phoneRegex.test(normalized)) return "Số điện thoại không hợp lệ";
   return "";
 }
 
 function validateProvince(value) {
   if (!value) return "Vui lòng chọn tỉnh/thành phố";
+  return "";
+}
+
+function validateDistrict(value) {
+  if (!value) return "Vui lòng chọn quận/huyện";
   return "";
 }
 
@@ -524,11 +759,11 @@ function validatePaymentMethod(value) {
 
 function resolveProductDetailId(it) {
   return (
-    it.idSanPhamChiTiet ||
-    it.productDetailId ||
-    it.idSpct ||
-    it.variantId ||
-    null
+      it.idSanPhamChiTiet ||
+      it.productDetailId ||
+      it.idSpct ||
+      it.variantId ||
+      null
   );
 }
 
@@ -564,6 +799,7 @@ function validateForm() {
   errors.fullName = validateFullName(form.fullName);
   errors.phone = validatePhone(form.phone);
   errors.province = validateProvince(form.province);
+  errors.district = validateDistrict(form.district);
   errors.ward = validateWard(form.ward);
   errors.address = validateAddress(form.address);
   errors.shippingMethod = validateShippingMethod(form.shippingMethod);
@@ -575,51 +811,58 @@ function validateForm() {
 }
 
 watch(
-  () => form.fullName,
-  (v) => {
-    errors.fullName = validateFullName(v);
-  }
+    () => form.fullName,
+    (v) => {
+      errors.fullName = validateFullName(v);
+    }
 );
 
 watch(
-  () => form.phone,
-  (v) => {
-    errors.phone = validatePhone(v);
-  }
+    () => form.phone,
+    (v) => {
+      errors.phone = validatePhone(v);
+    }
 );
 
 watch(
-  () => form.province,
-  (v) => {
-    errors.province = validateProvince(v);
-  }
+    () => form.province,
+    (v) => {
+      errors.province = validateProvince(v);
+    }
 );
 
 watch(
-  () => form.ward,
-  (v) => {
-    errors.ward = validateWard(v);
-  }
+    () => form.district,
+    (v) => {
+      errors.district = validateDistrict(v);
+    }
 );
 
 watch(
-  () => form.address,
-  (v) => {
-    errors.address = validateAddress(v);
-  }
+    () => form.ward,
+    (v) => {
+      errors.ward = validateWard(v);
+    }
 );
 
 watch(
-  () => form.paymentMethod,
-  (v) => {
-    errors.paymentMethod = validatePaymentMethod(v);
-  }
+    () => form.address,
+    (v) => {
+      errors.address = validateAddress(v);
+    }
+);
+
+watch(
+    () => form.paymentMethod,
+    (v) => {
+      errors.paymentMethod = validatePaymentMethod(v);
+    }
 );
 
 function buildOrderPayload() {
-  const provinceName = selectedProvince.value?.FullName || "";
-  const wardName =
-    wards.value.find((w) => String(w.Code) === String(form.ward))?.FullName || "";
+  const provinceName = selectedProvince.value?.name || "";
+  const districtName = selectedDistrict.value?.name || "";
+  const wardName = selectedWard.value?.name || "";
 
   const normalizedItems = cartItems.value.map((it) => {
     return {
@@ -637,7 +880,7 @@ function buildOrderPayload() {
   const calculatedShippingFee = Number(shippingFee.value) || 0;
   const calculatedDiscount = Number(discount.value) || 0;
   const calculatedGrandTotal =
-    calculatedSubtotal + calculatedShippingFee - calculatedDiscount;
+      calculatedSubtotal + calculatedShippingFee - calculatedDiscount;
 
   return {
     maHoaDon: null,
@@ -648,7 +891,7 @@ function buildOrderPayload() {
     tenKhachHang: form.fullName.trim(),
     soDienThoai: form.phone.trim(),
     emailKhachHang: "",
-    diaChiKhachHang: `${form.address.trim()}, ${wardName}, ${provinceName}`,
+    diaChiKhachHang: `${form.address.trim()}, ${wardName}, ${districtName}, ${provinceName}`,
 
     idPhieuGiamGia: null,
     giamThuCongPercent: 0,
@@ -663,7 +906,7 @@ function buildOrderPayload() {
     soDienThoaiNhanHang: form.phone.trim(),
     tinhThanhNhanHang: provinceName,
     phuongXaNhanHang: wardName,
-    quanHuyenNhanHang: "",
+    quanHuyenNhanHang: districtName,
     diaChiNhanHangChiTiet: form.address.trim(),
 
     tongTien: calculatedSubtotal,
@@ -697,14 +940,14 @@ async function checkoutApi(payload) {
 
 async function confirmQrPaymentApi(orderId, payload) {
   const response = await fetch(
-    `http://localhost:8080/api/online-checkout/${orderId}/confirm-payment`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
+      `http://localhost:8080/api/online-checkout/${orderId}/confirm-payment`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
   );
 
   const data = await response.json().catch(() => ({}));
@@ -771,12 +1014,17 @@ async function confirmQrPayment() {
     alert(data?.message || "Xác nhận thanh toán QR thành công");
     closeQrModal();
 
-    router.push({
-      path: "/checkout/success",
-      query: {
-        orderId: qrData.orderId || "",
-      },
-    });
+    successMessage.value = data?.message || "Xác nhận thanh toán QR thành công";
+    showSuccessModal.value = true;
+
+    setTimeout(() => {
+      router.push({
+        path: "/checkout/success",
+        query: {
+          orderId: qrData.orderId || "",
+        },
+      });
+    }, 1400);
   } catch (error) {
     console.error("CONFIRM QR ERROR:", error);
     qrError.value = error.message || "Xác nhận thanh toán thất bại";
@@ -785,13 +1033,18 @@ async function confirmQrPayment() {
   }
 }
 
-async function placeOrder() {
+function placeOrder() {
   if (!validateForm()) {
     errors.general = "Vui lòng kiểm tra lại thông tin đặt hàng";
     return;
   }
 
+  showConfirmModal.value = true;
+}
+
+async function submitOrder() {
   try {
+    confirmSubmitting.value = true;
     loading.value = true;
     errors.general = "";
 
@@ -801,16 +1054,18 @@ async function placeOrder() {
     console.log("ORDER PAYLOAD:", payload);
 
     const hasInvalidItem = payload.items.some(
-      (it) => !it.idSanPhamChiTiet || !it.soLuong
+        (it) => !it.idSanPhamChiTiet || !it.soLuong
     );
 
     if (hasInvalidItem) {
       errors.general = "Có sản phẩm chưa map được idSanPhamChiTiet";
-      alert(errors.general);
+      showConfirmModal.value = false;
       return;
     }
 
     const data = await checkoutApi(payload);
+
+    showConfirmModal.value = false;
 
     if (form.paymentMethod === "qr") {
       openQrModal(data);
@@ -821,244 +1076,360 @@ async function placeOrder() {
       clearCart();
     }
 
-    alert(data?.message || "Đặt hàng thành công");
+    successMessage.value = data?.message || "Đặt hàng thành công";
+    showSuccessModal.value = true;
 
-    router.push({
-      path: "/checkout/success",
-      query: {
-        orderId: data?.orderId || "",
-      },
-    });
+    setTimeout(() => {
+      router.push({
+        path: "/checkout/success",
+        query: {
+          orderId: data?.orderId || "",
+        },
+      });
+    }, 1400);
   } catch (error) {
     console.error("CHECKOUT ERROR:", error);
     console.error("CHECKOUT ERROR RAW:", error?.raw);
 
     errors.general = error.message || "Đặt hàng thất bại";
-    alert(errors.general);
+    showConfirmModal.value = false;
   } finally {
+    confirmSubmitting.value = false;
     loading.value = false;
   }
 }
 
+function closeConfirmModal() {
+  if (confirmSubmitting.value) return;
+  showConfirmModal.value = false;
+}
+
+function closeSuccessModal() {
+  showSuccessModal.value = false;
+}
+
 function onImgError(e) {
   e.target.src =
-    "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='14'%3E%E1%BA%A2nh%3C/text%3E%3C/svg%3E";
+      "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='14'%3E%E1%BA%A2nh%3C/text%3E%3C/svg%3E";
 }
+
+onMounted(() => {
+  fetchProvinces();
+});
 </script>
 
 <style scoped>
-.checkout {
+.checkout-page {
   --navy: #000f51;
-  --muted: #6c757d;
+  --navy-2: #0f2f98;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #f5f7fc 0%, #f3f4f8 100%);
+  min-height: 100vh;
+}
+
+.checkout {
+}
+
+.checkout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .page-title {
-  font-size: 26px;
-  font-weight: 700;
-  color: #111;
-}
-
-.box {
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding-top: 18px;
-}
-
-.box-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111;
-  margin-bottom: 12px;
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #111;
-}
-
-.req {
-  color: #d11;
-}
-
-.form-control,
-.form-select {
-  border-radius: 2px;
-  background: #f3f5f7;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 13.5px;
-}
-
-.ship-row,
-.pay-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 0;
-  font-size: 13.5px;
-  color: #111;
+  font-size: 28px;
+  font-weight: 750;
+  color: var(--text);
   margin: 0;
 }
 
-.ship-name {
-  font-weight: 600;
-}
-
-.ship-fee {
+.page-subtitle {
   color: var(--muted);
+  font-size: 14px;
 }
 
-.coupon {
-  display: grid;
-  grid-template-columns: 1fr 110px;
-  gap: 10px;
+.checkout-badge {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-weight: 750;
+  font-size: 14px;
+}
+
+.checkout-card,
+.summary-card,
+.checkout-benefits {
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 36px rgba(10, 24, 74, 0.06);
+  overflow: hidden;
+}
+
+.checkout-card__header,
+.summary-card__header {
+  padding: 16px 20px;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  font-weight: 750;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+.checkout-card__body,
+.summary-card__body {
+  padding: 20px;
+}
+
+.form-label {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.req {
+  color: #dc2626;
+}
+
+.input-ui {
+  min-height: 48px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #dbe2ee;
+  color: var(--text);
+  font-size: 15px;
+  padding-left: 14px;
+  padding-right: 14px;
+  box-shadow: none !important;
+}
+
+.input-ui:focus {
+  border-color: #9db4ff;
+  background: #fff;
+}
+
+.form-select.input-ui {
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.form-select.input-ui:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.textarea-ui {
+  min-height: 110px;
+  padding-top: 12px;
+}
+
+.option-row {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 16px;
+  margin: 0;
+}
+
+.option-row + .option-row {
+  margin-top: 12px;
+}
+
+.option-row__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.option-row__title {
+  font-weight: 750;
+}
+
+.option-row__value {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.coupon-box {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 12px;
 }
 
 .coupon-btn {
-  height: 38px;
-  border-radius: 2px;
-  font-weight: 700;
+  min-height: 48px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
 }
 
-.coupon-toggle {
-  font-size: 13px;
-  font-weight: 700;
-  color: #b28a2a;
-  text-decoration: none;
-}
-
-.total-row {
+.invoice-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding-top: 8px;
-}
-
-.total-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111;
-}
-
-.total-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111;
-}
-
-.invoice {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #111;
+  color: var(--text);
+  font-weight: 750;
 }
 
 .btn-order {
-  background: #cfcfcf;
+  min-height: 52px;
   border: none;
-  border-radius: 2px;
-  height: 46px;
-  font-weight: 700;
-  color: #111;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
 }
 
 .btn-order:disabled {
   opacity: 0.6;
 }
 
-.summary {
-  border-left: 1px solid rgba(0, 0, 0, 0.12);
-  padding-left: 18px;
-}
-
-.summary-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111;
-  margin-top: 6px;
-  margin-bottom: 10px;
-}
-
 .summary-empty {
-  font-size: 13.5px;
+  padding: 20px;
   color: var(--muted);
-  padding: 12px 0;
 }
 
-.summary-table th {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #111;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.summary-table td {
-  font-size: 13px;
-  color: #111;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  vertical-align: top;
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-
-.prod {
+.summary-list {
   display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 10px;
-  align-items: start;
+  gap: 14px;
 }
 
-.prod-img {
-  width: 44px;
-  height: 58px;
+.summary-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fbfcff;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.summary-item__left {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.summary-item__img {
+  width: 84px;
+  height: 84px;
   object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
   background: #f1f3f5;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.prod-name {
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 1.2;
+.summary-item__info {
+  min-width: 0;
 }
 
-.prod-meta {
-  margin-top: 4px;
+.summary-item__name {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--text);
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+.summary-item__meta {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  font-size: 12px;
   color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.summary-item__spct,
+.summary-item__qty {
+  font-size: 13px;
+  color: #475569;
+}
+
+.summary-item__right {
+  text-align: right;
+  min-width: 110px;
+}
+
+.summary-item__price {
+  color: #475569;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.summary-item__total {
+  color: var(--navy);
+  font-size: 16px;
+  font-weight: 750;
 }
 
 .summary-footer {
-  padding-top: 12px;
-  margin-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
 }
 
 .sum-line {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  color: #111;
-  padding: 6px 0;
+  align-items: center;
+  padding: 10px 0;
+  color: #334155;
 }
 
 .sum-line.total {
-  font-weight: 700;
-  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.sum-line.total strong {
+  color: var(--navy);
+  font-size: 20px;
+  font-weight: 750;
+}
+
+.checkout-benefits {
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-weight: 750;
+}
+
+.benefit-item i {
+  color: var(--navy);
 }
 
 .qr-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1050;
+  background: rgba(2, 6, 23, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1050;
   padding: 16px;
 }
 
@@ -1066,50 +1437,215 @@ function onImgError(e) {
   width: 100%;
   max-width: 520px;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.28);
 }
 
-.qr-modal-header,
-.qr-modal-footer {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.qr-modal-footer {
-  border-bottom: none;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+.qr-modal-header {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
 }
 
 .qr-modal-body {
-  padding: 16px;
+  padding: 20px;
+}
+
+.qr-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 20px 20px;
 }
 
 .qr-image {
-  width: 260px;
   max-width: 100%;
-  height: auto;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
+  max-height: 320px;
+  border-radius: 14px;
 }
 
 .qr-placeholder {
-  height: 260px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fa;
-  border-radius: 8px;
-  color: #6c757d;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 32px 16px;
+  color: var(--muted);
 }
 
 .qr-info {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+@media (max-width: 991.98px) {
+  .summary-item {
+    flex-direction: column;
+  }
+
+  .summary-item__right {
+    width: 100%;
+    text-align: left;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .coupon-box {
+    grid-template-columns: 1fr;
+  }
+}
+
+.confirm-backdrop,
+.success-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1060;
+  padding: 16px;
+}
+
+.confirm-modal,
+.success-modal {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
+
+}
+
+.confirm-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  background: linear-gradient(90deg, #000f51 0%, #0f2f98 100%);
+  color: #fff;
+}
+
+.confirm-modal__header h5 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.confirm-modal__body {
+  padding: 28px 22px 20px;
+  text-align: center;
+}
+
+.confirm-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: var(--navy);
+  font-size: 30px;
+
+}
+
+.confirm-title {
+  font-size: 22px;
+  font-weight: 750;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.confirm-desc {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.confirm-desc strong {
+  color: #000f51;
+  font-weight: 750;
+}
+
+.confirm-modal__footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 0 22px 22px;
+}
+
+.btn-cancel,
+.btn-confirm {
+  min-height: 46px;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-weight: 750;
+}
+
+.btn-cancel {
+  border: 1px solid #d8dfec;
+  background: #fff;
+  color: var(--text);
+}
+
+.btn-confirm {
+  border: none;
+  background: linear-gradient(135deg, #0d6efd 0%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+}
+
+.success-modal {
+  padding: 30px 22px;
+  text-align: center;
+}
+
+.success-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.success-icon {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  box-shadow: 0 18px 32px rgba(34, 197, 94, 0.24);
+}
+
+.success-title {
+  font-size: 26px;
+  font-weight: 750;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.success-desc {
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.success-note {
+  color: #64748b;
   font-size: 14px;
 }
 </style>

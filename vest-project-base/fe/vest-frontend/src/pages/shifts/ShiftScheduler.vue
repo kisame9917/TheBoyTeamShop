@@ -716,6 +716,7 @@ import * as XLSX from "xlsx";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 import { Vietnamese } from "flatpickr/dist/l10n/vn.js";
+import { resolveMediaUrl } from "@/utils/media";
 
 /** ✅ Searchable combo lib already in your project */
 import Multiselect from "vue-multiselect";
@@ -1253,27 +1254,8 @@ const formatDate = (d) => {
 const getDayOfWeek = (d) => ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"][new Date(d).getDay()];
 
 // Avatar helpers
-function getBackendOrigin() {
-  const base = String(import.meta.env.VITE_API_URL || "http://localhost:8080").trim();
-  try {
-    return new URL(base).origin;
-  } catch {
-    return "http://localhost:8080";
-  }
-}
-function resolveFileUrl(url) {
-  const u = String(url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image")) return u;
-  const origin = getBackendOrigin();
-  return u.startsWith("/") ? origin + u : origin + "/" + u;
-}
 function resolveAvatarUrl(item) {
-  const direct = String(item?.anhDaiDien || "").trim();
-  const fromStaff = String(staffById.value?.[item?.idNhanVien]?.anhDaiDien || "").trim();
-  const url = direct || fromStaff;
-  if (!url) return "";
-  return resolveFileUrl(url);
+  return resolveMediaUrl(item?.anhDaiDien || staffById.value?.[item?.idNhanVien]?.anhDaiDien || item?.avatarUrl || "");
 }
 function onEmpAvatarError(e, item) {
   if (item) item.anhDaiDien = "";

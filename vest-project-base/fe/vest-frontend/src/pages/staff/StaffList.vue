@@ -85,20 +85,20 @@
                 <option value="NHAN_VIEN">Nhân viên</option>
               </select>
             </div>
-<!--            <div class="col-12 col-lg-3">-->
-<!--              <label class="form-label">Email</label>-->
-<!--              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />-->
-<!--            </div>-->
+            <!--            <div class="col-12 col-lg-3">-->
+            <!--              <label class="form-label">Email</label>-->
+            <!--              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />-->
+            <!--            </div>-->
 
-<!--            <div class="col-12 col-lg-3">-->
-<!--              <label class="form-label">SĐT</label>-->
-<!--              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />-->
-<!--            </div>-->
+            <!--            <div class="col-12 col-lg-3">-->
+            <!--              <label class="form-label">SĐT</label>-->
+            <!--              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />-->
+            <!--            </div>-->
 
-<!--            <div class="col-12 col-lg-3">-->
-<!--              <label class="form-label">Mã nhân viên</label>-->
-<!--              <input v-model.trim="filters.maNhanVien" type="text" class="form-control" placeholder="Mã NV" />-->
-<!--            </div>-->
+            <!--            <div class="col-12 col-lg-3">-->
+            <!--              <label class="form-label">Mã nhân viên</label>-->
+            <!--              <input v-model.trim="filters.maNhanVien" type="text" class="form-control" placeholder="Mã NV" />-->
+            <!--            </div>-->
             <div class="col-12 col-lg-3">
               <label class="form-label">Trạng thái</label>
               <div class="d-flex align-items-center gap-3 mt-2">
@@ -355,6 +355,7 @@ import http from "../../services/http";
 import { useAuthStore } from "../../stores/auth";
 import { useToast } from "@/composables/useToast";
 import * as XLSX from "xlsx";
+import { resolveMediaUrl } from "@/utils/media";
 const router = useRouter();
 const auth = useAuthStore();
 const toast = useToast();
@@ -414,7 +415,7 @@ function doExportExcel() {
     "Chức vụ": getRoleText(s),
     "Trạng thái": s.trangThai ? "Đang làm" : "Đã nghỉ",
     "Địa chỉ": s.diaChi || "",
-    "Ảnh đại diện": s.anhDaiDien ? resolveFileUrl(s.anhDaiDien) : "",
+    "Ảnh đại diện": s.anhDaiDien ? resolveMediaUrl(s.anhDaiDien) : "",
     ID: s.id ?? "",
   }));
 
@@ -469,7 +470,7 @@ function exportExcel() {
     "Chức vụ": getRoleText(s),
     "Trạng thái": s.trangThai ? "Đang làm" : "Đã nghỉ",
     "Địa chỉ": s.diaChi || "",
-    "Ảnh đại diện": s.anhDaiDien ? resolveFileUrl(s.anhDaiDien) : "",
+    "Ảnh đại diện": s.anhDaiDien ? resolveMediaUrl(s.anhDaiDien) : "",
     ID: s.id ?? "",
   }));
 
@@ -540,6 +541,7 @@ function normalizeStaff(x) {
     tenQuyenHan: x.tenQuyenHan ?? quyenHan.tenQuyenHan ?? "",
     quyenHanId: x.quyenHanId ?? quyenHan.id ?? null,
     anhDaiDien: x.anhDaiDien ?? x.anh_dai_dien ?? "",
+    mediaAvatarId: x.mediaAvatarId ?? x.idMediaAvatar ?? x.id_media_avatar ?? null,
   };
 }
 
@@ -560,31 +562,8 @@ function getRoleText(s) {
   return getRoleCode(s) === "ADMIN" ? "Admin" : "Nhân viên";
 }
 
-const FALLBACK_BACKEND = "http://localhost:8080";
-function getBackendOrigin() {
-  const base = String((http && http.defaults && http.defaults.baseURL) || "").trim();
-  if (base.startsWith("http://") || base.startsWith("https://")) {
-    try {
-      return new URL(base).origin;
-    } catch {
-      return FALLBACK_BACKEND;
-    }
-  }
-  return FALLBACK_BACKEND;
-}
-
-function resolveFileUrl(url) {
-  const u = String(url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image")) return u;
-  const origin = getBackendOrigin();
-  return u.startsWith("/") ? origin + u : origin + "/" + u;
-}
-
 function resolveAvatar(s) {
-  const url = String(s?.anhDaiDien || "").trim();
-  if (!url) return "";
-  return resolveFileUrl(url);
+  return resolveMediaUrl(s?.anhDaiDien || s?.avatarUrl || s?.mediaAsset || "");
 }
 
 function onAvatarError(e, s) {

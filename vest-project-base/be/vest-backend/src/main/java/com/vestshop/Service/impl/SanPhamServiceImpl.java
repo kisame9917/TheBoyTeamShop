@@ -2,10 +2,11 @@ package com.vestshop.Service.impl;
 
 import com.vestshop.Entity.*;
 import com.vestshop.Repository.*;
+import com.vestshop.Service.CloudinaryMediaStorageService;
 import com.vestshop.Service.SanPhamService;
+import com.vestshop.dto.request.SanPhamChiTietRequest;
 import com.vestshop.dto.request.SanPhamRequest;
 import com.vestshop.dto.response.SanPhamResponse;
-import com.vestshop.dto.request.SanPhamChiTietRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,9 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,63 +35,42 @@ public class SanPhamServiceImpl implements SanPhamService {
     private final MauSacRepository mauSacRepository;
     private final KichCoRepository kichCoRepository;
     private final SanPhamChiTietRepository sanPhamChiTietRepository;
+    private final AnhChiTietSanPhamRepository anhChiTietSanPhamRepository;
+    private final CloudinaryMediaStorageService mediaStorageService;
 
     @Override
     @Transactional
     public SanPhamResponse create(SanPhamRequest request) {
         SanPham sanPham = mapToEntity(request);
-        sanPham.setNgayTao(LocalDateTime.now());
-        sanPham.setNgayCapNhat(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        sanPham.setNgayTao(now);
+        sanPham.setNgayCapNhat(now);
         SanPham saved = sanPhamRepository.save(sanPham);
 
         List<SanPhamChiTiet> details = new ArrayList<>();
 
         if (request.getVariants() != null && !request.getVariants().isEmpty()) {
             for (SanPhamChiTietRequest variantRequest : request.getVariants()) {
-                MauSac mauSac = mauSacRepository.findById(variantRequest.getIdMauSac())
-                        .orElseThrow(() -> new RuntimeException("MauSac not found: " + variantRequest.getIdMauSac()));
-                KichCo kichCo = kichCoRepository.findById(variantRequest.getIdKichCo())
-                        .orElseThrow(() -> new RuntimeException("KichCo not found: " + variantRequest.getIdKichCo()));
-
-                SanPhamChiTiet chiTiet = SanPhamChiTiet.builder()
-                        .sanPham(saved)
-                        .mauSac(mauSac)
-                        .kichCo(kichCo)
-                        .donGia(variantRequest.getDonGia())
-                        .soLuongTon(variantRequest.getSoLuongTon())
-                        .maSanPhamChiTiet(saved.getMaSanPham() + "-" + mauSac.getId() + "-" + kichCo.getId()) // Simple SKU logic
-                        .anh(variantRequest.getAnh())
-                        .chatLieu(variantRequest.getChatLieu())
-                        .trangThai(true)
-                        .ngayTao(LocalDateTime.now())
-                        .ngayCapNhat(LocalDateTime.now())
-                        .build();
-                details.add(chiTiet);
+                details.add(buildVariant(saved, variantRequest));
             }
         } else if (request.getMauSacId() != null && request.getKichCoId() != null) {
-            // Legacy single variant logic
-            MauSac mauSac = mauSacRepository.findById(request.getMauSacId())
-                    .orElseThrow(() -> new RuntimeException("MauSac not found"));
-            KichCo kichCo = kichCoRepository.findById(request.getKichCoId())
-                    .orElseThrow(() -> new RuntimeException("KichCo not found"));
-
-            SanPhamChiTiet chiTiet = SanPhamChiTiet.builder()
-                    .sanPham(saved)
-                    .mauSac(mauSac)
-                    .kichCo(kichCo)
-                    .donGia(request.getDonGia())
+            SanPhamChiTietRequest variantRequest = SanPhamChiTietRequest.builder()
+                    .idSanPham(saved.getId())
+                    .idMauSac(request.getMauSacId())
+                    .idKichCo(request.getKichCoId())
                     .soLuongTon(request.getSoLuongTon())
-                    .maSanPhamChiTiet(saved.getMaSanPham() + "-" + mauSac.getId() + "-" + kichCo.getId())
-                    .trangThai(true)
-                    .ngayTao(LocalDateTime.now())
-                    .ngayCapNhat(LocalDateTime.now())
+                    .donGia(request.getDonGia())
+                    .trangThai(Boolean.TRUE)
                     .build();
-            details.add(chiTiet);
+            details.add(buildVariant(saved, variantRequest));
         }
 
         if (!details.isEmpty()) {
-            sanPhamChiTietRepository.saveAll(details);
-            saved.setSanPhamChiTiets(details);
+            List<SanPhamChiTiet> persisted = sanPhamChiTietRepository.saveAll(details);
+            saved.setSanPhamChiTiets(persisted);
+            for (int i = 0; i < persisted.size(); i++) {
+                syncVariantGallery(persisted.get(i), request.getVariants() != null && request.getVariants().size() > i ? request.getVariants().get(i) : null);
+            }
         }
 
         return mapToResponse(saved);
@@ -134,11 +113,12 @@ public class SanPhamServiceImpl implements SanPhamService {
     }
 
     private SanPham mapToEntity(SanPhamRequest request) {
+        MediaAsset mediaCover = mediaStorageService.getOptional(request.getMediaCoverId());
+        String resolvedCoverUrl = mediaStorageService.resolveUrl(mediaCover, request.getAnh());
         return SanPham.builder()
                 .maSanPham(request.getMaSanPham())
                 .tenSanPham(request.getTenSanPham())
                 .trangThai(request.getTrangThai())
-                .moTa(request.getMoTa())
                 .moTa(request.getMoTa())
                 .chatLieu(getChatLieuOrDefault(request.getChatLieuId()))
                 .loaiSanPham(loaiSanPhamRepository.findById(request.getLoaiSanPhamId()).orElseThrow(() -> new RuntimeException("LoaiSanPham not found")))
@@ -149,7 +129,8 @@ public class SanPhamServiceImpl implements SanPhamService {
                 .xeTa(xeTaRepository.findById(request.getXeTaId()).orElseThrow(() -> new RuntimeException("XeTa not found")))
                 .xuatXu(xuatXuRepository.findById(request.getXuatXuId()).orElseThrow(() -> new RuntimeException("XuatXu not found")))
                 .fit(fitRepository.findById(request.getFitId()).orElseThrow(() -> new RuntimeException("Fit not found")))
-                .anh(request.getAnh())
+                .mediaCover(mediaCover)
+                .anh(resolvedCoverUrl)
                 .build();
     }
 
@@ -157,11 +138,15 @@ public class SanPhamServiceImpl implements SanPhamService {
         sanPham.setMaSanPham(request.getMaSanPham());
         sanPham.setTenSanPham(request.getTenSanPham());
         sanPham.setTrangThai(request.getTrangThai());
-        sanPham.setTrangThai(request.getTrangThai());
         sanPham.setMoTa(request.getMoTa());
-        sanPham.setAnh(request.getAnh());
 
-        if (!sanPham.getChatLieu().getId().equals(request.getChatLieuId())) {
+        MediaAsset mediaCover = mediaStorageService.getOptional(request.getMediaCoverId());
+        sanPham.setMediaCover(mediaCover);
+        if (request.getAnh() != null || mediaCover != null) {
+            sanPham.setAnh(mediaStorageService.resolveUrl(mediaCover, request.getAnh()));
+        }
+
+        if (request.getChatLieuId() != null && (sanPham.getChatLieu() == null || !sanPham.getChatLieu().getId().equals(request.getChatLieuId()))) {
             sanPham.setChatLieu(chatLieuRepository.findById(request.getChatLieuId()).orElseThrow(() -> new RuntimeException("ChatLieu not found")));
         }
         if (!sanPham.getLoaiSanPham().getId().equals(request.getLoaiSanPhamId())) {
@@ -190,28 +175,77 @@ public class SanPhamServiceImpl implements SanPhamService {
         }
     }
 
+    private SanPhamChiTiet buildVariant(SanPham sanPham, SanPhamChiTietRequest request) {
+        MauSac mauSac = mauSacRepository.findById(request.getIdMauSac())
+                .orElseThrow(() -> new RuntimeException("MauSac not found: " + request.getIdMauSac()));
+        KichCo kichCo = kichCoRepository.findById(request.getIdKichCo())
+                .orElseThrow(() -> new RuntimeException("KichCo not found: " + request.getIdKichCo()));
+
+        MediaAsset mediaPrimary = mediaStorageService.getOptional(request.getMediaPrimaryId());
+        String imageUrl = mediaStorageService.resolveUrl(mediaPrimary, request.getAnh());
+
+        return SanPhamChiTiet.builder()
+                .sanPham(sanPham)
+                .mauSac(mauSac)
+                .kichCo(kichCo)
+                .donGia(request.getDonGia())
+                .soLuongTon(request.getSoLuongTon())
+                .maSanPhamChiTiet(sanPham.getMaSanPham() + "-" + mauSac.getId() + "-" + kichCo.getId())
+                .anh(imageUrl)
+                .mediaPrimary(mediaPrimary)
+                .chatLieu(request.getChatLieu())
+                .ghiChu(request.getGhiChu())
+                .trangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE)
+                .ngayTao(LocalDateTime.now())
+                .ngayCapNhat(LocalDateTime.now())
+                .build();
+    }
+
+    private void syncVariantGallery(SanPhamChiTiet entity, SanPhamChiTietRequest request) {
+        if (request == null || request.getGalleryMediaIds() == null || request.getGalleryMediaIds().isEmpty()) {
+            return;
+        }
+
+        int order = 1;
+        for (Long mediaId : request.getGalleryMediaIds()) {
+            MediaAsset media = mediaStorageService.getOptional(mediaId);
+            if (media == null) continue;
+            AnhChiTietSanPham gallery = AnhChiTietSanPham.builder()
+                    .sanPhamChiTiet(entity)
+                    .ma("IMG-" + entity.getId() + "-" + order)
+                    .ten(media.getSecureUrl())
+                    .mediaAsset(media)
+                    .thuTuHienThi(order++)
+                    .trangThai(Boolean.TRUE)
+                    .build();
+            anhChiTietSanPhamRepository.save(gallery);
+        }
+    }
+
     private SanPhamResponse mapToResponse(SanPham sanPham) {
+        String imageUrl = mediaStorageService.resolveUrl(sanPham.getMediaCover(), sanPham.getAnh());
         return SanPhamResponse.builder()
                 .id(sanPham.getId())
                 .maSanPham(sanPham.getMaSanPham())
                 .tenSanPham(sanPham.getTenSanPham())
+                .anh(imageUrl)
+                .imageUrl(imageUrl)
+                .mediaCoverId(sanPham.getMediaCover() != null ? sanPham.getMediaCover().getId() : null)
                 .ngayTao(sanPham.getNgayTao())
                 .ngayCapNhat(sanPham.getNgayCapNhat())
                 .trangThai(sanPham.getTrangThai())
                 .moTa(sanPham.getMoTa())
-                .moTa(sanPham.getMoTa())
                 .chatLieuId(sanPham.getChatLieu() != null ? sanPham.getChatLieu().getId() : null)
-                .loaiSanPhamId(sanPham.getLoaiSanPham().getId())
-                .thuongHieuId(sanPham.getThuongHieu().getId())
-                .soKhuyId(sanPham.getSoKhuy().getId())
-                .kieuTuiId(sanPham.getKieuTui().getId())
-                .veAoId(sanPham.getVeAo().getId())
-                .xeTaId(sanPham.getXeTa().getId())
-                .xuatXuId(sanPham.getXuatXu().getId())
-                .fitId(sanPham.getFit().getId())
-                .tenLoaiSanPham(sanPham.getLoaiSanPham().getTen())
-                .tenThuongHieu(sanPham.getThuongHieu().getTen())
-                // Calculation logic for derived fields
+                .loaiSanPhamId(sanPham.getLoaiSanPham() != null ? sanPham.getLoaiSanPham().getId() : null)
+                .thuongHieuId(sanPham.getThuongHieu() != null ? sanPham.getThuongHieu().getId() : null)
+                .soKhuyId(sanPham.getSoKhuy() != null ? sanPham.getSoKhuy().getId() : null)
+                .kieuTuiId(sanPham.getKieuTui() != null ? sanPham.getKieuTui().getId() : null)
+                .veAoId(sanPham.getVeAo() != null ? sanPham.getVeAo().getId() : null)
+                .xeTaId(sanPham.getXeTa() != null ? sanPham.getXeTa().getId() : null)
+                .xuatXuId(sanPham.getXuatXu() != null ? sanPham.getXuatXu().getId() : null)
+                .fitId(sanPham.getFit() != null ? sanPham.getFit().getId() : null)
+                .tenLoaiSanPham(sanPham.getLoaiSanPham() != null ? sanPham.getLoaiSanPham().getTen() : null)
+                .tenThuongHieu(sanPham.getThuongHieu() != null ? sanPham.getThuongHieu().getTen() : null)
                 .soLuongTon(calculateSoLuongTon(sanPham))
                 .giaMin(calculateGiaMin(sanPham))
                 .giaMax(calculateGiaMax(sanPham))
@@ -223,29 +257,29 @@ public class SanPhamServiceImpl implements SanPhamService {
             return 0;
         }
         return sanPham.getSanPhamChiTiets().stream()
-                .filter(ct -> ct.getTrangThai() != null && ct.getTrangThai()) // Only count Active variants
-                .mapToInt(com.vestshop.Entity.SanPhamChiTiet::getSoLuongTon)
+                .filter(ct -> ct.getTrangThai() != null && ct.getTrangThai())
+                .mapToInt(SanPhamChiTiet::getSoLuongTon)
                 .sum();
     }
 
-    private java.math.BigDecimal calculateGiaMin(SanPham sanPham) {
+    private BigDecimal calculateGiaMin(SanPham sanPham) {
         if (sanPham.getSanPhamChiTiets() == null || sanPham.getSanPhamChiTiets().isEmpty()) {
-            return java.math.BigDecimal.ZERO;
+            return BigDecimal.ZERO;
         }
         return sanPham.getSanPhamChiTiets().stream()
-                .map(com.vestshop.Entity.SanPhamChiTiet::getDonGia)
+                .map(SanPhamChiTiet::getDonGia)
                 .min(java.util.Comparator.naturalOrder())
-                .orElse(java.math.BigDecimal.ZERO);
+                .orElse(BigDecimal.ZERO);
     }
 
-    private java.math.BigDecimal calculateGiaMax(SanPham sanPham) {
+    private BigDecimal calculateGiaMax(SanPham sanPham) {
         if (sanPham.getSanPhamChiTiets() == null || sanPham.getSanPhamChiTiets().isEmpty()) {
-            return java.math.BigDecimal.ZERO;
+            return BigDecimal.ZERO;
         }
         return sanPham.getSanPhamChiTiets().stream()
-                .map(com.vestshop.Entity.SanPhamChiTiet::getDonGia)
+                .map(SanPhamChiTiet::getDonGia)
                 .max(java.util.Comparator.naturalOrder())
-                .orElse(java.math.BigDecimal.ZERO);
+                .orElse(BigDecimal.ZERO);
     }
 
     private ChatLieu getChatLieuOrDefault(Long id) {

@@ -58,6 +58,10 @@ public class SanPhamChiTiet {
     @Column(name = "anh_dai_dien")
     private String anh;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_media_primary")
+    private MediaAsset mediaPrimary;
+
     @Column(name = "chat_lieu")
     private String chatLieu;
 

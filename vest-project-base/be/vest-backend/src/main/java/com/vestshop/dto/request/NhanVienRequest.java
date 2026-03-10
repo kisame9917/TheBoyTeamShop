@@ -56,5 +56,7 @@ public class NhanVienRequest {
 
     @Column(name="anh_dai_dien", length=500)
     private String anhDaiDien;
+
+    private Long mediaAvatarId;
 }
 

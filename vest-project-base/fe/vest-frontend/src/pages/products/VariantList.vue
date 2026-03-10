@@ -38,9 +38,9 @@
           <div class="col-12 col-lg-6">
             <label class="form-label small fw-semibold">Tìm kiếm</label>
             <input
-              v-model="filters.keyword"
-              class="form-control"
-              placeholder="Tìm theo mã, màu, kích cỡ..."
+                v-model="filters.keyword"
+                class="form-control"
+                placeholder="Tìm theo mã, màu, kích cỡ..."
             />
           </div>
 
@@ -81,22 +81,22 @@
 
             <div class="dual-range">
               <input
-                class="range-green"
-                type="range"
-                :min="PRICE_MIN"
-                :max="PRICE_MAX"
-                :step="PRICE_STEP"
-                v-model.number="filters.priceMin"
-                @input="syncPrice"
+                  class="range-green"
+                  type="range"
+                  :min="PRICE_MIN"
+                  :max="PRICE_MAX"
+                  :step="PRICE_STEP"
+                  v-model.number="filters.priceMin"
+                  @input="syncPrice"
               />
               <input
-                class="range-green"
-                type="range"
-                :min="PRICE_MIN"
-                :max="PRICE_MAX"
-                :step="PRICE_STEP"
-                v-model.number="filters.priceMax"
-                @input="syncPrice"
+                  class="range-green"
+                  type="range"
+                  :min="PRICE_MIN"
+                  :max="PRICE_MAX"
+                  :step="PRICE_STEP"
+                  v-model.number="filters.priceMax"
+                  @input="syncPrice"
               />
             </div>
           </div>
@@ -130,10 +130,10 @@
             </div>
 
             <button
-              class="btn btn-link btn-sm p-0 reset-btn"
-              type="button"
-              @click="resetFilters"
-              title="Reset"
+                class="btn btn-link btn-sm p-0 reset-btn"
+                type="button"
+                @click="resetFilters"
+                title="Reset"
             >
               <i class="bi bi-arrow-counterclockwise me-1"></i>Đặt lại
             </button>
@@ -147,97 +147,97 @@
       <div class="table-responsive">
         <table class="table align-middle mb-0">
           <thead class="thead-dark">
-            <tr>
-              <th class="text-center">STT</th>
-              <th class="text-center">Ảnh</th>
+          <tr>
+            <th class="text-center">STT</th>
+            <th class="text-center">Ảnh</th>
 
-              <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
-              <th class="text-center">Mã sản phẩm</th>
-              <th class="text-center">Tên sản phẩm</th>
-              <th class="text-center">Mã SP chi tiết</th>
+            <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
+            <th class="text-center">Mã sản phẩm</th>
+            <th class="text-center">Tên sản phẩm</th>
+            <th class="text-center">Mã SP chi tiết</th>
 
-              <th class="text-center">Màu sắc</th>
-              <th class="text-center">Kích cỡ</th>
-              <th class="text-center">Số lượng tồn</th>
-              <th class="text-center">Giá bán</th>
-              <th class="text-center">Trạng thái</th>
-              <th class="text-center">Hành động</th>
-            </tr>
+            <th class="text-center">Màu sắc</th>
+            <th class="text-center">Kích cỡ</th>
+            <th class="text-center">Số lượng tồn</th>
+            <th class="text-center">Giá bán</th>
+            <th class="text-center">Trạng thái</th>
+            <th class="text-center">Hành động</th>
+          </tr>
           </thead>
 
           <tbody>
-            <tr v-for="(v, index) in filteredItems" :key="v.id">
-              <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
+          <tr v-for="(v, index) in filteredItems" :key="v.id">
+            <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
-              <td class="text-center">
-                <img
+            <td class="text-center">
+              <img
                   v-if="v.anh"
-                  :src="'http://localhost:8080' + v.anh"
+                  :src="resolveMediaUrl(v.anh || v.primaryImageUrl || v.mediaAsset)"
                   class="variant-img"
-                />
-                <span v-else class="no-img">Ảnh biến thể</span>
-              </td>
+              />
+              <span v-else class="no-img">Ảnh biến thể</span>
+            </td>
 
-              <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
-              <td class="text-center">{{ v.maSanPham || '-' }}</td>
-              <td class="text-center fw-semibold">{{ v.tenSanPham }}</td>
-              <td class="text-center">{{ v.maSanPhamChiTiet }}</td>
+            <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
+            <td class="text-center">{{ v.maSanPham || '-' }}</td>
+            <td class="text-center fw-semibold">{{ v.tenSanPham }}</td>
+            <td class="text-center">{{ v.maSanPhamChiTiet }}</td>
 
-              <!-- ✅ chấm màu theo tên (Cách 2) -->
-              <td class="text-center">
+            <!-- ✅ chấm màu theo tên (Cách 2) -->
+            <td class="text-center">
                 <span
-                  class="color-dot"
-                  :style="{ backgroundColor: getColorCode(v.tenMauSac) }"
-                  :title="v.tenMauSac"
+                    class="color-dot"
+                    :style="{ backgroundColor: getColorCode(v.tenMauSac) }"
+                    :title="v.tenMauSac"
                 ></span>
-                {{ v.tenMauSac }}
-              </td>
+              {{ v.tenMauSac }}
+            </td>
 
-              <td class="text-center">{{ v.tenKichCo }}</td>
-              <td class="text-center">{{ v.soLuongTon }}</td>
-              <td class="text-center fw-semibold text-dark">{{ formatPrice(v.donGia) }}</td>
+            <td class="text-center">{{ v.tenKichCo }}</td>
+            <td class="text-center">{{ v.soLuongTon }}</td>
+            <td class="text-center fw-semibold text-dark">{{ formatPrice(v.donGia) }}</td>
 
-              <td class="text-center">
+            <td class="text-center">
                 <span
-                  :class="[
+                    :class="[
                     'badge rounded-pill px-3',
                     v.trangThai ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
                   ]"
                 >
                   {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                 </span>
-              </td>
+            </td>
 
-              <td class="text-center">
-                <div class="d-flex justify-content-center align-items-center gap-2">
-                  <button
+            <td class="text-center">
+              <div class="d-flex justify-content-center align-items-center gap-2">
+                <button
                     class="btn btn-outline-warning btn-sm"
                     title="Sửa"
                     @click="openEditModal(v)"
-                  >
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
+                >
+                  <i class="bi bi-pencil-square"></i>
+                </button>
 
-                  <div class="form-check form-switch m-0" title="Đổi trạng thái">
-                    <input
+                <div class="form-check form-switch m-0" title="Đổi trạng thái">
+                  <input
                       class="form-check-input"
                       type="checkbox"
                       :checked="!!v.trangThai"
                       @click.prevent="requestToggleStatus(v)"
-                    />
-                  </div>
+                  />
                 </div>
-              </td>
-            </tr>
+              </div>
+            </td>
+          </tr>
 
-            <tr v-if="loading">
-              <!-- ✅ colspan tăng 1 -->
-              <td colspan="11" class="text-center py-4">Đang tải dữ liệu...</td>
-            </tr>
-            <tr v-if="!loading && filteredItems.length === 0">
-              <!-- ✅ colspan tăng 1 -->
-              <td colspan="11" class="text-center py-4">Không có dữ liệu</td>
-            </tr>
+          <tr v-if="loading">
+            <!-- ✅ colspan tăng 1 -->
+            <td colspan="11" class="text-center py-4">Đang tải dữ liệu...</td>
+          </tr>
+          <tr v-if="!loading && filteredItems.length === 0">
+            <!-- ✅ colspan tăng 1 -->
+            <td colspan="11" class="text-center py-4">Không có dữ liệu</td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -353,7 +353,7 @@
             <label class="form-label small fw-semibold">Ảnh biến thể</label>
             <input type="file" class="form-control" accept="image/*" @change="handleFileUpload" />
             <div v-if="editingVariant.anh" class="mt-2">
-              <img :src="'http://localhost:8080' + editingVariant.anh" class="preview-img" />
+              <img :src="resolveMediaUrl(editingVariant.anh || editingVariant.primaryImageUrl || editingVariant.mediaAsset)" class="preview-img" />
             </div>
           </div>
         </div>
@@ -402,6 +402,7 @@ import { useRouter } from 'vue-router'
 import { getAllDetails, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
 import attributeService from '../../services/attributeService'
 import { useToast } from '../../composables/useToast'
+import { normalizeUploadResponse, resolveMediaUrl } from '@/utils/media'
 
 const { success, error } = useToast()
 const router = useRouter()
@@ -455,6 +456,7 @@ const editingVariant = reactive({
   ghiChu: '',
   trangThai: true,
   anh: '',
+  mediaPrimaryId: null,
   maSanPhamChiTiet: ''
 })
 
@@ -479,7 +481,7 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getAllDetails(currentPage.value, pageSize.value)
-    items.value = res.data.content
+    items.value = (res.data.content || []).map((item) => ({ ...item, mediaPrimaryId: item.mediaPrimaryId ?? item.idMediaPrimary ?? item.id_media_primary ?? null }))
     totalPages.value = res.data.totalPages
     totalElements.value = res.data.totalElements || 0
     pageInput.value = currentPage.value + 1
@@ -496,13 +498,13 @@ const filteredItems = computed(() => {
 
   return (items.value || []).filter(v => {
     const matchKeyword =
-      !kw ||
-      // ✅ thêm maSanPham vào search
-      (v.maSanPham && String(v.maSanPham).toLowerCase().includes(kw)) ||
-      (v.maSanPhamChiTiet && v.maSanPhamChiTiet.toLowerCase().includes(kw)) ||
-      (v.tenSanPham && v.tenSanPham.toLowerCase().includes(kw)) ||
-      (v.tenMauSac && v.tenMauSac.toLowerCase().includes(kw)) ||
-      (v.tenKichCo && String(v.tenKichCo).toLowerCase().includes(kw))
+        !kw ||
+        // ✅ thêm maSanPham vào search
+        (v.maSanPham && String(v.maSanPham).toLowerCase().includes(kw)) ||
+        (v.maSanPhamChiTiet && v.maSanPhamChiTiet.toLowerCase().includes(kw)) ||
+        (v.tenSanPham && v.tenSanPham.toLowerCase().includes(kw)) ||
+        (v.tenMauSac && v.tenMauSac.toLowerCase().includes(kw)) ||
+        (v.tenKichCo && String(v.tenKichCo).toLowerCase().includes(kw))
 
     const matchColor = !filters.color || v.tenMauSac === filters.color
     const matchSize = !filters.size || String(v.tenKichCo) === String(filters.size)
@@ -602,7 +604,8 @@ async function confirmToggleStatus() {
       donGia: v.donGia,
       ghiChu: v.ghiChu,
       trangThai: next,
-      anh: v.anh
+      anh: v.anh,
+      mediaPrimaryId: v.mediaPrimaryId ?? null
     })
 
     emitTabSync(TAB_SYNC_EVENTS.PRODUCT_CHANGED, {
@@ -634,6 +637,7 @@ function openEditModal(v) {
   editingVariant.donGia = v.donGia
   editingVariant.trangThai = v.trangThai
   editingVariant.anh = v.anh
+  editingVariant.mediaPrimaryId = v.mediaPrimaryId ?? null
   showEditModal.value = true
 }
 
@@ -652,7 +656,8 @@ async function submitEdit() {
       donGia: editingVariant.donGia,
       ghiChu: editingVariant.ghiChu,
       trangThai: editingVariant.trangThai,
-      anh: editingVariant.anh
+      anh: editingVariant.anh,
+      mediaPrimaryId: editingVariant.mediaPrimaryId
     })
 
     emitTabSync(TAB_SYNC_EVENTS.PRODUCT_STOCK_CHANGED, {
@@ -676,8 +681,9 @@ async function handleFileUpload(event) {
   const file = event.target.files?.[0]
   if (!file) return
   try {
-    const res = await uploadImage(file)
-    editingVariant.anh = res.data.url
+    const uploaded = normalizeUploadResponse(await uploadImage(file))
+    editingVariant.anh = uploaded.url
+    editingVariant.mediaPrimaryId = uploaded.mediaAssetId
     success('Upload ảnh thành công!')
   } catch (e) {
     console.error(e)
@@ -733,14 +739,14 @@ function downloadCsv() {
 /** 1) Chuẩn hoá tên màu: bỏ dấu, bỏ ngoặc, chuẩn hoá khoảng trắng */
 function normalizeColorName(name) {
   return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\(.*?\)/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+      .trim()
+      .toLowerCase()
+      .replace(/đ/g, 'd')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\(.*?\)/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
 }
 
 const COLOR_MAP = {

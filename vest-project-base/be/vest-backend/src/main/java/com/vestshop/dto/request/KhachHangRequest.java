@@ -23,7 +23,8 @@ public class KhachHangRequest {
     private String matKhau;
 
     private Boolean trangThai; // true: hoạt động, false: không hoạt động
-    private String anhDaiDien; // /uploads/khachhang/xxx.jpg
+    private String anhDaiDien; // /uploads/khachhang/xxx.jpg hoặc Cloudinary URL
+    private Long mediaAvatarId;
     private LocalDate ngaySinh;
     // ===== ĐỊA CHỈ MẶC ĐỊNH =====
     private String tenNguoiNhan;

@@ -18,10 +18,10 @@
             <div class="form-group">
               <label class="required">Tên sản phẩm</label>
               <input
-                v-model="product.tenSanPham"
-                class="form-input"
-                placeholder="Nhập tên sản phẩm"
-                :class="{ 'error-border': errors.tenSanPham }"
+                  v-model="product.tenSanPham"
+                  class="form-input"
+                  placeholder="Nhập tên sản phẩm"
+                  :class="{ 'error-border': errors.tenSanPham }"
               />
               <small v-if="errors.tenSanPham" class="error-text">{{ errors.tenSanPham }}</small>
             </div>
@@ -32,14 +32,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.loaiSanPhamId }]">
                   <Multiselect
-                    v-model="msLoaiSanPham"
-                    :options="attributes.loaiSanPham"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn loại sản phẩm --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msLoaiSanPham"
+                      :options="attributes.loaiSanPham"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn loại sản phẩm --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -47,10 +47,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'loai-san-pham', listKey:'loaiSanPham', productKey:'loaiSanPhamId', label:'Loại sản phẩm' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'loai-san-pham', listKey:'loaiSanPham', productKey:'loaiSanPhamId', label:'Loại sản phẩm' })"
                 >
                   +
                 </button>
@@ -64,14 +64,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.thuongHieuId }]">
                   <Multiselect
-                    v-model="msThuongHieu"
-                    :options="attributes.thuongHieu"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn thương hiệu --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msThuongHieu"
+                      :options="attributes.thuongHieu"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn thương hiệu --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -79,10 +79,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'thuong-hieu', listKey:'thuongHieu', productKey:'thuongHieuId', label:'Thương hiệu' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'thuong-hieu', listKey:'thuongHieu', productKey:'thuongHieuId', label:'Thương hiệu' })"
                 >
                   +
                 </button>
@@ -96,14 +96,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.soKhuyId }]">
                   <Multiselect
-                    v-model="msSoKhuy"
-                    :options="attributes.soKhuy"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn số khuy --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msSoKhuy"
+                      :options="attributes.soKhuy"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn số khuy --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -111,10 +111,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'so-khuy', listKey:'soKhuy', productKey:'soKhuyId', label:'Số khuy' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'so-khuy', listKey:'soKhuy', productKey:'soKhuyId', label:'Số khuy' })"
                 >
                   +
                 </button>
@@ -128,14 +128,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.kieuTuiId }]">
                   <Multiselect
-                    v-model="msKieuTui"
-                    :options="attributes.kieuTui"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn kiểu túi --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msKieuTui"
+                      :options="attributes.kieuTui"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn kiểu túi --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -143,10 +143,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'kieu-tui', listKey:'kieuTui', productKey:'kieuTuiId', label:'Kiểu túi' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'kieu-tui', listKey:'kieuTui', productKey:'kieuTuiId', label:'Kiểu túi' })"
                 >
                   +
                 </button>
@@ -160,14 +160,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.veAoId }]">
                   <Multiselect
-                    v-model="msVeAo"
-                    :options="attributes.veAo"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn ve áo --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msVeAo"
+                      :options="attributes.veAo"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn ve áo --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -175,10 +175,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'ve-ao', listKey:'veAo', productKey:'veAoId', label:'Ve áo' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'ve-ao', listKey:'veAo', productKey:'veAoId', label:'Ve áo' })"
                 >
                   +
                 </button>
@@ -192,14 +192,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.xeTaId }]">
                   <Multiselect
-                    v-model="msXeTa"
-                    :options="attributes.xeTa"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn xẻ tà --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msXeTa"
+                      :options="attributes.xeTa"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn xẻ tà --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -207,10 +207,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'xe-ta', listKey:'xeTa', productKey:'xeTaId', label:'Xẻ tà' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'xe-ta', listKey:'xeTa', productKey:'xeTaId', label:'Xẻ tà' })"
                 >
                   +
                 </button>
@@ -224,14 +224,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.xuatXuId }]">
                   <Multiselect
-                    v-model="msXuatXu"
-                    :options="attributes.xuatXu"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn xuất xứ --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msXuatXu"
+                      :options="attributes.xuatXu"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn xuất xứ --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -239,10 +239,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'xuat-xu', listKey:'xuatXu', productKey:'xuatXuId', label:'Xuất xứ' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'xuat-xu', listKey:'xuatXu', productKey:'xuatXuId', label:'Xuất xứ' })"
                 >
                   +
                 </button>
@@ -256,14 +256,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.fitId }]">
                   <Multiselect
-                    v-model="msFit"
-                    :options="attributes.fit"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn kiểu dáng --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msFit"
+                      :options="attributes.fit"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn kiểu dáng --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -271,10 +271,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'fit', listKey:'fit', productKey:'fitId', label:'Kiểu dáng' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'fit', listKey:'fit', productKey:'fitId', label:'Kiểu dáng' })"
                 >
                   +
                 </button>
@@ -288,14 +288,14 @@
               <div class="field-row">
                 <div :class="['ms-wrap', { 'error-border': errors.chatLieuId }]">
                   <Multiselect
-                    v-model="msChatLieu"
-                    :options="attributes.chatLieu"
-                    track-by="id"
-                    label="ten"
-                    placeholder="-- Chọn chất liệu --"
-                    :searchable="true"
-                    :taggable="false"
-                    :show-labels="false"
+                      v-model="msChatLieu"
+                      :options="attributes.chatLieu"
+                      track-by="id"
+                      label="ten"
+                      placeholder="-- Chọn chất liệu --"
+                      :searchable="true"
+                      :taggable="false"
+                      :show-labels="false"
                   >
                     <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                     <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -303,10 +303,10 @@
                 </div>
 
                 <button
-                  class="btn-plus"
-                  type="button"
-                  title="Thêm nhanh"
-                  @click="openAddModal({ typeCode:'chat-lieu', listKey:'chatLieu', productKey:'chatLieuId', label:'Chất liệu' })"
+                    class="btn-plus"
+                    type="button"
+                    title="Thêm nhanh"
+                    @click="openAddModal({ typeCode:'chat-lieu', listKey:'chatLieu', productKey:'chatLieuId', label:'Chất liệu' })"
                 >
                   +
                 </button>
@@ -318,11 +318,11 @@
           <div class="form-group mt-2">
             <label>Mô tả sản phẩm</label>
             <textarea
-              v-model="product.moTa"
-              class="form-input"
-              rows="4"
-              placeholder="Nhập mô tả chi tiết..."
-              :class="{ 'error-border': errors.moTa }"
+                v-model="product.moTa"
+                class="form-input"
+                rows="4"
+                placeholder="Nhập mô tả chi tiết..."
+                :class="{ 'error-border': errors.moTa }"
             />
             <small v-if="errors.moTa" class="error-text">{{ errors.moTa }}</small>
           </div>
@@ -338,16 +338,16 @@
               <label class="required">Màu sắc</label>
               <div :class="['ms-wrap', { 'error-border': errors.mauSac }]">
                 <Multiselect
-                  v-model="selectedColors"
-                  :options="attributes.mauSac"
-                  track-by="id"
-                  label="ten"
-                  placeholder="-- Chọn màu sắc --"
-                  :searchable="true"
-                  :multiple="true"
-                  :close-on-select="false"
-                  :show-labels="false"
-                  :taggable="false"
+                    v-model="selectedColors"
+                    :options="attributes.mauSac"
+                    track-by="id"
+                    label="ten"
+                    placeholder="-- Chọn màu sắc --"
+                    :searchable="true"
+                    :multiple="true"
+                    :close-on-select="false"
+                    :show-labels="false"
+                    :taggable="false"
                 >
                   <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                   <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -376,17 +376,17 @@
               <label class="required">Kích cỡ</label>
               <div :class="['ms-wrap', { 'error-border': errors.kichCo }]">
                 <Multiselect
-                  v-model="selectedSizes"
-                  :options="attributes.kichCo"
-                  track-by="id"
-                  label="soSize"
-                  placeholder="-- Chọn kích cỡ --"
-                  :searchable="true"
-                  :multiple="true"
-                  :close-on-select="false"
-                  :show-labels="false"
-                  :taggable="false"
-                  @select="onSizeSelect"
+                    v-model="selectedSizes"
+                    :options="attributes.kichCo"
+                    track-by="id"
+                    label="soSize"
+                    placeholder="-- Chọn kích cỡ --"
+                    :searchable="true"
+                    :multiple="true"
+                    :close-on-select="false"
+                    :show-labels="false"
+                    :taggable="false"
+                    @select="onSizeSelect"
                 >
                   <template #noResult><span class="ms-empty">Không tìm thấy.</span></template>
                   <template #noOptions><span class="ms-empty">Chưa có dữ liệu.</span></template>
@@ -411,14 +411,14 @@
 
               <small v-if="errors.kichCo" class="error-text">{{ errors.kichCo }}</small>
 
-             <small v-if="showPolicyHint" class="hint">
-  Kích cỡ đang áp dụng cho
-  <b>{{ policyTargetText }}</b>:
-  <b>{{ allowedSizeText }}</b>
-  <span v-if="policySource === 'default'"></span>
-  <span v-else-if="policySource === 'mix'"> </span>
-  <span v-else-if="policySource === 'both'"></span>
-</small>
+              <small v-if="showPolicyHint" class="hint">
+                Kích cỡ đang áp dụng cho
+                <b>{{ policyTargetText }}</b>:
+                <b>{{ allowedSizeText }}</b>
+                <span v-if="policySource === 'default'"></span>
+                <span v-else-if="policySource === 'mix'"> </span>
+                <span v-else-if="policySource === 'both'"></span>
+              </small>
 
             </div>
           </div>
@@ -451,25 +451,25 @@
             <div class="table-responsive">
               <table class="variants-table">
                 <thead>
-                  <tr>
-                    <th style="width:28%; text-align:center;">Kích cỡ</th>
-                    <th style="width:34%;">Số lượng tồn</th>
-                    <th style="width:34%;">Đơn giá</th>
-                    <th style="width:4%;"></th>
-                  </tr>
+                <tr>
+                  <th style="width:28%; text-align:center;">Kích cỡ</th>
+                  <th style="width:34%;">Số lượng tồn</th>
+                  <th style="width:34%;">Đơn giá</th>
+                  <th style="width:4%;"></th>
+                </tr>
                 </thead>
 
                 <tbody>
-                  <tr v-for="v in g.variants" :key="v._key">
-                    <td class="text-center"><span class="size-badge">{{ v.tenKichCo }}</span></td>
+                <tr v-for="v in g.variants" :key="v._key">
+                  <td class="text-center"><span class="size-badge">{{ v.tenKichCo }}</span></td>
 
-                    <td>
-                      <input class="form-input" type="number" min="0" step="1" v-model.number="v.soLuongTon" />
-                      <small v-if="v._qtyErr" class="error-text">{{ v._qtyErr }}</small>
-                    </td>
+                  <td>
+                    <input class="form-input" type="number" min="0" step="1" v-model.number="v.soLuongTon" />
+                    <small v-if="v._qtyErr" class="error-text">{{ v._qtyErr }}</small>
+                  </td>
 
-                    <td>
-                      <input
+                  <td>
+                    <input
                         class="form-input"
                         type="text"
                         inputmode="numeric"
@@ -477,14 +477,14 @@
                         :value="v.donGiaText"
                         @input="(e) => onMoneyInputVariant(e, v)"
                         @blur="() => normalizeMoneyVariant(v)"
-                      />
-                      <small v-if="v._priceErr" class="error-text">{{ v._priceErr }}</small>
-                    </td>
+                    />
+                    <small v-if="v._priceErr" class="error-text">{{ v._priceErr }}</small>
+                  </td>
 
-                    <td class="text-center">
-                      <button class="btn-icon danger" type="button" @click="removeVariantObj(v)">×</button>
-                    </td>
-                  </tr>
+                  <td class="text-center">
+                    <button class="btn-icon danger" type="button" @click="removeVariantObj(v)">×</button>
+                  </td>
+                </tr>
                 </tbody>
               </table>
             </div>
@@ -503,7 +503,7 @@
 
                 <label class="upload-area">
                   <div class="preview-box-lg" v-if="g.variants[0]?.anh">
-                    <img :src="resolveFileUrl(g.variants[0].anh)" />
+                    <img :src="resolveMediaUrl(g.variants[0].anh)" />
                   </div>
                   <div class="upload-placeholder" v-else>
                     <span class="icon-lg">🖼️</span>
@@ -563,13 +563,13 @@
           <div class="form-group">
             <label>Đơn giá</label>
             <input
-              class="form-input"
-              type="text"
-              inputmode="numeric"
-              placeholder="Giữ nguyên"
-              :value="applyForm.priceText"
-              @input="onMoneyInputApply"
-              @blur="normalizeMoneyApply"
+                class="form-input"
+                type="text"
+                inputmode="numeric"
+                placeholder="Giữ nguyên"
+                :value="applyForm.priceText"
+                @input="onMoneyInputApply"
+                @blur="normalizeMoneyApply"
             />
             <small v-if="applyForm._priceErr" class="error-text">{{ applyForm._priceErr }}</small>
           </div>
@@ -622,6 +622,7 @@ import 'vue-multiselect/dist/vue-multiselect.css'
 import attributeService from '../../services/attributeService'
 import { createSanPham, updateSanPham } from '../../services/sanPhamApi'
 import { uploadImage } from '../../services/sanPhamChiTietApi'
+import { normalizeUploadResponse, resolveMediaUrl } from '@/utils/media'
 
 /* ================= Router/Props ================= */
 const router = useRouter()
@@ -631,12 +632,6 @@ const isEditMode = computed(() => !!props.id)
 /* ================= Base ================= */
 const loading = ref(false)
 const globalError = ref('')
-const fileBase = (import.meta?.env?.VITE_FILE_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
-function resolveFileUrl(pathOrUrl) {
-  if (!pathOrUrl) return ''
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl
-  return fileBase + pathOrUrl
-}
 
 /* ================= Toast ================= */
 const toast = ref({ show: false, title: 'Thành công', message: '', type: 'success' })
@@ -698,11 +693,11 @@ function cleanText(s) {
 }
 function cleanTextarea(s) {
   return String(s ?? '')
-    .normalize('NFC')
-    .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .join('\n')
-    .trim()
+      .normalize('NFC')
+      .split('\n')
+      .map((line) => line.replace(/\s+/g, ' ').trim())
+      .join('\n')
+      .trim()
 }
 function validateInt0(label, n) {
   if (n === '' || n === null || n === undefined) return `${label} không được để trống`
@@ -835,11 +830,11 @@ const DEFAULT_SIZE_SET = new Set([46, 47, 48, 49, 50])
 
 function normKey(s) {
   return String(s || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/\s+/g, ' ')
 }
 
 const BRAND_POLICY = {
@@ -960,9 +955,9 @@ watch([() => product.thuongHieuId, () => product.fitId], () => {
   const invalid = selectedSizes.value.filter((x) => !allowed.has(Number(x.soSize)))
   if (invalid.length) {
     showToast(
-      `Đang có size không phù hợp: ${invalid.map((x) => x.soSize).join(', ')}. Hợp lệ: ${allowedSizeText.value}`,
-      'error',
-      { title: 'Cảnh báo' }
+        `Đang có size không phù hợp: ${invalid.map((x) => x.soSize).join(', ')}. Hợp lệ: ${allowedSizeText.value}`,
+        'error',
+        { title: 'Cảnh báo' }
     )
   }
 })
@@ -1030,12 +1025,12 @@ function pad2(n) {
 function genNextAttrCode(typeCode, list) {
   const prefix = (CODE_PREFIX[typeCode] || 'TT').toUpperCase()
   const nums = (list || [])
-    .map((i) => String(i.ma || '').toUpperCase())
-    .map((ma) => {
-      const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
-      return m ? Number(m[1]) : null
-    })
-    .filter((n) => Number.isFinite(n))
+      .map((i) => String(i.ma || '').toUpperCase())
+      .map((ma) => {
+        const m = ma.match(new RegExp(`^${prefix}(\\d+)$`))
+        return m ? Number(m[1]) : null
+      })
+      .filter((n) => Number.isFinite(n))
   const next = (nums.length ? Math.max(...nums) : 0) + 1
   return `${prefix}${pad2(next)}`
 }
@@ -1057,9 +1052,9 @@ function computeAddModalError() {
 const addModalCanSubmit = computed(() => addModal.open && !computeAddModalError())
 
 watch(
-  () => [addModal.open, addModal.value, addModal.listKey],
-  () => (addModal.error = computeAddModalError()),
-  { immediate: true }
+    () => [addModal.open, addModal.value, addModal.listKey],
+    () => (addModal.error = computeAddModalError()),
+    { immediate: true }
 )
 
 async function confirmAddModal() {
@@ -1133,6 +1128,7 @@ function generateVariants() {
           donGia: 0,
           donGiaText: '0',
           anh: '',
+          mediaPrimaryId: null,
           _qtyErr: '',
           _priceErr: ''
         })
@@ -1165,10 +1161,9 @@ async function handleGroupImageUpload(group, event) {
   const file = event.target.files?.[0]
   if (!file) return
   try {
-    const res = await uploadImage(file)
-    const url = res?.data?.url || res?.data || res?.url
-    if (!url) throw new Error('No url')
-    group.variants.forEach((v) => (v.anh = url))
+    const uploaded = normalizeUploadResponse(await uploadImage(file))
+    if (!uploaded.url) throw new Error('No url')
+    group.variants.forEach((v) => { v.anh = uploaded.url; v.mediaPrimaryId = uploaded.mediaAssetId })
     showToast(`Upload ảnh màu "${group.name}" thành công!`)
   } catch (e) {
     console.error(e)
@@ -1259,9 +1254,9 @@ function confirmApply() {
 onMounted(async () => {
   try {
     const tasks = Object.keys(attributeMap).map((key) =>
-      attributeService.getAllList(attributeMap[key]).then((res) => {
-        attributes[key] = (res.data || []).filter((x) => x.trangThai === true)
-      })
+        attributeService.getAllList(attributeMap[key]).then((res) => {
+          attributes[key] = (res.data || []).filter((x) => x.trangThai === true)
+        })
     )
     await Promise.all(tasks)
   } catch (e) {
@@ -1407,6 +1402,7 @@ async function doSubmit() {
     soLuongTon: Number(v.soLuongTon ?? 0),
     donGia: Number(v.donGia ?? 0),
     anh: v.anh,
+    mediaPrimaryId: v.mediaPrimaryId ?? null,
     ghiChu: '',
     trangThai: true,
     chatLieu: cl ? cl.ten : ''
