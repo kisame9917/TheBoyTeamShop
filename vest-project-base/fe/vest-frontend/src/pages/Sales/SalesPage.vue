@@ -1704,6 +1704,7 @@ async function createOrder() {
 
     activeId.value = localId;
     orderSeq.value++;
+    await syncActiveOrderToMobile();
     return;
   } catch (e) {
     console.error(e);
@@ -1841,6 +1842,7 @@ function onPaidInput(e) {
   const num = Number(raw.replace(/[^\d]/g, "")) || 0;
   o.paid = num;
   e.target.value = formatMoneyInput(num);
+  debounceSyncActiveOrder();
 }
 
 function onPaidBlur(e) {
@@ -2190,6 +2192,7 @@ async function incQty(i) {
   const it = o.cart[i];
   if (!it || it.priceChangedLocked) return;
   await setQtyByInput(i, Number(it.qty || 0) + 1);
+  debounceSyncActiveOrder();
 }
 
 async function decQty(i) {
@@ -2198,6 +2201,7 @@ async function decQty(i) {
   const it = o.cart[i];
   if (!it || it.priceChangedLocked) return;
   await setQtyByInput(i, Math.max(1, Number(it.qty || 0) - 1));
+  debounceSyncActiveOrder();
 }
 
 async function removeItem(i) {
@@ -2221,6 +2225,7 @@ async function removeItem(i) {
 
   o.cart.splice(i, 1);
   syncAllCartStocks(o);
+  debounceSyncActiveOrder();
 }
 
 function onQtyInput(idx, e) {
@@ -2236,6 +2241,7 @@ async function onQtyBlur(idx, e) {
 
   if (it.priceChangedLocked) {
     e.target.value = it.qty;
+    
     return;
   }
 
@@ -2243,6 +2249,7 @@ async function onQtyBlur(idx, e) {
   const num = Number(raw.replace(/[^\d]/g, "")) || 1;
   await setQtyByInput(idx, num);
   e.target.value = it.qty;
+  debounceSyncActiveOrder();
 }
 
 async function chooseProduct(p) {
@@ -2284,6 +2291,7 @@ async function chooseProduct(p) {
   }
 
   await setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
+  debounceSyncActiveOrder();
   toastShow(`Đã thêm ${p.code}`, "success");
 }
 
@@ -2416,6 +2424,7 @@ function chooseCustomer(c) {
 
   closeCustomerModal();
   loadVouchers();
+  debounceSyncActiveOrder();
 }
 
 function resetToWalkInCustomer() {
@@ -2429,6 +2438,7 @@ function resetToWalkInCustomer() {
   loadVouchers();
   closeCustomerModal();
   toastShow("Đã đặt lại về Khách lẻ", "info");
+  debounceSyncActiveOrder();
 }
 
 /* =========================
@@ -2523,6 +2533,7 @@ function toggleShip(e) {
     o.diaChiNhanHangChiTiet = "";
     wards.value = [];
   }
+  debounceSyncActiveOrder();
 }
 
 /* =========================
@@ -2808,6 +2819,7 @@ function applyVoucherManual(v) {
   setVoucherSnapshot(o, v);
 
   toastShow(`Đã chọn ${v.ma_giam_gia}`, "info");
+  debounceSyncActiveOrder();
 }
 
 function disableVoucher() {
@@ -2820,6 +2832,7 @@ function disableVoucher() {
   o.voucherSnapshot = null;
   clearVoucherSuggestionDismissed(o);
   toastShow("Đã tắt mã giảm giá", "info");
+  debounceSyncActiveOrder();
 }
 
 function applyBestVoucherNowForOrder(o) {
@@ -2842,6 +2855,7 @@ function applyBestVoucherNowForOrder(o) {
   o.discountPercent = 0;
   clearVoucherSuggestionDismissed(o);
   setVoucherSnapshot(o, best.v);
+  if (o.id === activeId.value) debounceSyncActiveOrder();
 }
 
 function removeVoucherNowForOrder(o) {
@@ -2851,6 +2865,7 @@ function removeVoucherNowForOrder(o) {
   o.voucherCode = "";
   o.voucherSnapshot = null;
   clearVoucherSuggestionDismissed(o);
+  if (o.id === activeId.value) debounceSyncActiveOrder();
 }
 
 const discountMoney = computed(() => {
@@ -3432,7 +3447,26 @@ function buildPosPayload(o) {
     })),
   };
 }
+let syncDraftTimer = null;
 
+async function syncActiveOrderToMobile() {
+  const o = activeOrder.value;
+  if (!o?.dbId) return;
+
+  try {
+    const payload = buildPosPayload(o);
+    await http.post(`/api/hoa-don/draft/${o.dbId}/sync-pos`, payload);
+  } catch (e) {
+    console.error("sync-pos failed", e);
+  }
+}
+
+function debounceSyncActiveOrder() {
+  clearTimeout(syncDraftTimer);
+  syncDraftTimer = setTimeout(() => {
+    syncActiveOrderToMobile();
+  }, 300);
+}
 async function resetOrderAfterPaid(o) {
   const idx = orders.value.findIndex((x) => x.id === o.id);
   if (idx !== -1) orders.value.splice(idx, 1);
@@ -3578,6 +3612,30 @@ async function handleTabSync(event) {
 /* =========================
    Lifecycle
 ========================= */
+watch(
+  () => ({
+    id: activeOrder.value?.id,
+    phone: activeOrder.value?.customerDraft?.phone,
+    email: activeOrder.value?.customerDraft?.email,
+    diaChi: activeOrder.value?.diaChi,
+    ghiChu: activeOrder.value?.ghiChu,
+    loaiDon: activeOrder.value?.loaiDon,
+    phiVanChuyen: activeOrder.value?.phiVanChuyen,
+    tenNguoiNhanHang: activeOrder.value?.tenNguoiNhanHang,
+    soDienThoaiNhanHang: activeOrder.value?.soDienThoaiNhanHang,
+    tinhThanhNhanHang: activeOrder.value?.tinhThanhNhanHang,
+    quanHuyenNhanHang: activeOrder.value?.quanHuyenNhanHang,
+    phuongXaNhanHang: activeOrder.value?.phuongXaNhanHang,
+    diaChiNhanHangChiTiet: activeOrder.value?.diaChiNhanHangChiTiet,
+    discountPercent: activeOrder.value?.discountPercent,
+    pggId: activeOrder.value?.pggId,
+    paid: activeOrder.value?.paid,
+  }),
+  () => {
+    if (activeOrder.value?.dbId) debounceSyncActiveOrder();
+  },
+  { deep: true }
+);
 onMounted(async () => {
   loadDrafts();
   scheduleMidnightReset();
@@ -3603,6 +3661,9 @@ onBeforeUnmount(() => {
   if (removeTabSyncListener) removeTabSyncListener();
 
   saveDraftsNow();
+});
+watch(activeId, () => {
+  if (activeOrder.value?.dbId) debounceSyncActiveOrder();
 });
 </script>
 
