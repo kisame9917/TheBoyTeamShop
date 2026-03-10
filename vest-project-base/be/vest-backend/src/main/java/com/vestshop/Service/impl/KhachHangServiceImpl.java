@@ -5,6 +5,7 @@ import com.vestshop.Entity.KhachHang;
 import com.vestshop.Exception.ApiException;
 import com.vestshop.Repository.DiaChiKhachHangRepository;
 import com.vestshop.Repository.KhachHangRepository;
+import com.vestshop.Service.CloudinaryMediaStorageService;
 import com.vestshop.Service.KhachHangService;
 import com.vestshop.dto.request.DiaChiKhachHangRequest;
 import com.vestshop.dto.request.KhachHangRequest;
@@ -24,6 +25,7 @@ public class KhachHangServiceImpl implements KhachHangService {
 
     private final KhachHangRepository khachHangRepository;
     private final DiaChiKhachHangRepository diaChiKhachHangRepository;
+    private final CloudinaryMediaStorageService mediaStorageService;
 
     private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
     private static final String MA_PREFIX_DEFAULT = "KH";
@@ -116,7 +118,9 @@ public class KhachHangServiceImpl implements KhachHangService {
                 .ngayTao(kh.getNgayTao())
                 .ngayCapNhat(kh.getNgayCapNhat())
                 .trangThai(kh.getTrangThai())
-                .anhDaiDien(normalizeAvatar(kh.getAnhDaiDien()))
+                .anhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(kh.getMediaAvatar(), kh.getAnhDaiDien())))
+                .avatarUrl(normalizeAvatar(mediaStorageService.resolveUrl(kh.getMediaAvatar(), kh.getAnhDaiDien())))
+                .mediaAvatarId(kh.getMediaAvatar() != null ? kh.getMediaAvatar().getId() : null)
                 .diaChi(joinAddress(dc))
                 .diaChiMacDinh(mapDiaChi(dc))
                 .build();
@@ -182,7 +186,9 @@ public class KhachHangServiceImpl implements KhachHangService {
         kh.setNgayTao(now);
         kh.setNgayCapNhat(now);
         kh.setTrangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE);
-        kh.setAnhDaiDien(normalizeAvatar(request.getAnhDaiDien()));
+        var mediaAvatar = mediaStorageService.getOptional(request.getMediaAvatarId());
+        kh.setMediaAvatar(mediaAvatar);
+        kh.setAnhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(mediaAvatar, request.getAnhDaiDien())));
 
         kh = khachHangRepository.save(kh);
 
@@ -230,8 +236,10 @@ public class KhachHangServiceImpl implements KhachHangService {
         }
 
         // ảnh: null => giữ, "" => default
-        if (request.getAnhDaiDien() != null) {
-            kh.setAnhDaiDien(normalizeAvatar(request.getAnhDaiDien()));
+        if (request.getAnhDaiDien() != null || request.getMediaAvatarId() != null) {
+            var mediaAvatar = mediaStorageService.getOptional(request.getMediaAvatarId());
+            kh.setMediaAvatar(mediaAvatar);
+            kh.setAnhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(mediaAvatar, request.getAnhDaiDien())));
         }
 
         // mật khẩu: chỉ đổi khi có gửi và không rỗng

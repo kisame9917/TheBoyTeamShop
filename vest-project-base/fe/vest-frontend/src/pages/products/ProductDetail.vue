@@ -27,10 +27,10 @@
 
         <template v-else>
           <button
-            class="btn btn-primary btn-sm"
-            type="button"
-            :disabled="selectedIds.length === 0 || exporting"
-            @click="exportSelectedToExcel"
+              class="btn btn-primary btn-sm"
+              type="button"
+              :disabled="selectedIds.length === 0 || exporting"
+              @click="exportSelectedToExcel"
           >
             <i class="bi bi-file-earmark-excel me-1"></i>
             {{ exporting ? 'Đang xuất...' : `Xuất Excel (${selectedIds.length})` }}
@@ -71,12 +71,12 @@
             <div class="col-12 col-lg-6">
               <label class="form-label">Tìm kiếm</label>
               <input
-                v-model="filters.keyword"
-                type="text"
-                class="form-control"
-                placeholder="Tìm theo mã SP, mã SPCT, màu, kích cỡ..."
-                @input="onKeywordInput"
-                @keyup.enter="applyFilters"
+                  v-model="filters.keyword"
+                  type="text"
+                  class="form-control"
+                  placeholder="Tìm theo mã SP, mã SPCT, màu, kích cỡ..."
+                  @input="onKeywordInput"
+                  @keyup.enter="applyFilters"
               />
             </div>
 
@@ -113,25 +113,25 @@
                 <div class="slider-range" :style="rangeStyle"></div>
 
                 <input
-                  type="range"
-                  min="0"
-                  :max="priceMaxSafe"
-                  :step="PRICE_STEP"
-                  v-model.number="filters.priceMin"
-                  :disabled="!isPriceReady"
-                  @input="onPriceInput('min')"
-                  @change="applyFilters"
+                    type="range"
+                    min="0"
+                    :max="priceMaxSafe"
+                    :step="PRICE_STEP"
+                    v-model.number="filters.priceMin"
+                    :disabled="!isPriceReady"
+                    @input="onPriceInput('min')"
+                    @change="applyFilters"
                 />
 
                 <input
-                  type="range"
-                  min="0"
-                  :max="priceMaxSafe"
-                  :step="PRICE_STEP"
-                  v-model.number="filters.priceMax"
-                  :disabled="!isPriceReady"
-                  @input="onPriceInput('max')"
-                  @change="applyFilters"
+                    type="range"
+                    min="0"
+                    :max="priceMaxSafe"
+                    :step="PRICE_STEP"
+                    v-model.number="filters.priceMax"
+                    :disabled="!isPriceReady"
+                    @input="onPriceInput('max')"
+                    @change="applyFilters"
                 />
               </div>
 
@@ -184,106 +184,106 @@
         <div class="table-responsive">
           <table class="table variants-table">
             <thead>
-              <tr>
-                <th v-if="exportMode" class="text-center col-check">
-                  <input
+            <tr>
+              <th v-if="exportMode" class="text-center col-check">
+                <input
                     type="checkbox"
                     :disabled="pagedVariants.length === 0"
                     :checked="allVisibleSelected"
                     @change="toggleSelectAllVisible($event.target.checked)"
                     title="Chọn tất cả dòng đang hiển thị"
-                  />
-                </th>
+                />
+              </th>
 
-                <th class="text-center col-stt">STT</th>
-                <th class="text-center col-img">Ảnh</th>
+              <th class="text-center col-stt">STT</th>
+              <th class="text-center col-img">Ảnh</th>
 
-                <th class="text-center col-pcode">Mã sản phẩm</th>
-                <th class="text-center col-name">Tên sản phẩm</th>
-                <th class="text-center col-code">Mã SP chi tiết</th>
+              <th class="text-center col-pcode">Mã sản phẩm</th>
+              <th class="text-center col-name">Tên sản phẩm</th>
+              <th class="text-center col-code">Mã SP chi tiết</th>
 
-                <th class="text-center col-color">Màu sắc</th>
-                <th class="text-center col-size">Kích cỡ</th>
-                <th class="text-center col-stock">Số lượng tồn</th>
-                <th class="text-center col-price">Giá bán</th>
-                <th class="text-center col-status">Trạng thái</th>
-                <th class="text-center col-action">Hành động</th>
-              </tr>
+              <th class="text-center col-color">Màu sắc</th>
+              <th class="text-center col-size">Kích cỡ</th>
+              <th class="text-center col-stock">Số lượng tồn</th>
+              <th class="text-center col-price">Giá bán</th>
+              <th class="text-center col-status">Trạng thái</th>
+              <th class="text-center col-action">Hành động</th>
+            </tr>
             </thead>
 
             <tbody>
-              <tr v-for="(v, index) in pagedVariants" :key="v.id">
-                <td v-if="exportMode" class="text-center col-check">
-                  <input type="checkbox" :checked="isSelected(v.id)" @change="toggleSelect(v, $event.target.checked)" />
-                </td>
+            <tr v-for="(v, index) in pagedVariants" :key="v.id">
+              <td v-if="exportMode" class="text-center col-check">
+                <input type="checkbox" :checked="isSelected(v.id)" @change="toggleSelect(v, $event.target.checked)" />
+              </td>
 
-                <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
+              <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
-                <td class="text-center">
-                  <div class="img-cell img-cell--lg">
-                    <img
+              <td class="text-center">
+                <div class="img-cell img-cell--lg">
+                  <img
                       v-if="v.anh && !v.__imgErr"
                       :src="buildImgUrl(v.anh)"
                       class="variant-img variant-img--lg"
                       alt="Ảnh biến thể"
                       @error="v.__imgErr = true"
-                    />
-                    <span v-else class="no-img no-img--lg">Ảnh biến thể</span>
-                  </div>
-                </td>
+                  />
+                  <span v-else class="no-img no-img--lg">Ảnh biến thể</span>
+                </div>
+              </td>
 
-                <td class="text-center">{{ getProductCode(v) || '-' }}</td>
-                <td class="text-center text-bold">{{ v.tenSanPham || productName || '-' }}</td>
-                <td class="text-center">{{ v.maSanPhamChiTiet || '-' }}</td>
+              <td class="text-center">{{ getProductCode(v) || '-' }}</td>
+              <td class="text-center text-bold">{{ v.tenSanPham || productName || '-' }}</td>
+              <td class="text-center">{{ v.maSanPhamChiTiet || '-' }}</td>
 
-                <td class="text-center">
-                  <div class="color-cell">
-                    <span class="color-dot" :style="{ backgroundColor: getColorCode(v.tenMauSac) }"></span>
-                    <span class="color-name">{{ v.tenMauSac || '-' }}</span>
-                  </div>
-                </td>
+              <td class="text-center">
+                <div class="color-cell">
+                  <span class="color-dot" :style="{ backgroundColor: getColorCode(v.tenMauSac) }"></span>
+                  <span class="color-name">{{ v.tenMauSac || '-' }}</span>
+                </div>
+              </td>
 
-                <td class="text-center">{{ v.tenKichCo || '-' }}</td>
-                <td class="text-center">{{ v.soLuongTon ?? 0 }}</td>
-                <td class="text-center text-highlight">{{ formatPrice(v.donGia ?? 0) }}</td>
+              <td class="text-center">{{ v.tenKichCo || '-' }}</td>
+              <td class="text-center">{{ v.soLuongTon ?? 0 }}</td>
+              <td class="text-center text-highlight">{{ formatPrice(v.donGia ?? 0) }}</td>
 
-                <!-- ✅ tồn = 0 => hết hàng -->
-                <td class="text-center">
+              <!-- ✅ tồn = 0 => hết hàng -->
+              <td class="text-center">
                   <span class="badge-pill" :class="v.trangThai ? 'badge-success' : 'badge-danger'">
                     {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                   </span>
-                </td>
+              </td>
 
-                <td class="text-center">
-                  <div class="action-buttons">
-                    <button
+              <td class="text-center">
+                <div class="action-buttons">
+                  <button
                       class="btn btn-outline-warning btn-sm edit-btn"
                       type="button"
                       title="Sửa"
                       @click="openEditModal(v)"
-                    >
-                      <i class="bi bi-pencil-square"></i>
-                    </button>
+                  >
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
 
-                    <label
+                  <label
                       class="switch"
                       :title="isOutOfStock(v) ? 'Số lượng tồn = 0 nên luôn Hết hàng' : 'Đổi trạng thái'"
-                    >
-                      <input
+                  >
+                    <input
                         type="checkbox"
                         :checked="!!v.trangThai"
                         :disabled="togglingIds.has(v.id) || isOutOfStock(v)"
                         @click.prevent="openConfirmToggle(v)"
-                      />
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                </td>
-              </tr>
+                    />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </td>
+            </tr>
 
-              <tr v-if="!pagedVariants.length">
-                <td :colspan="tableColspan" class="text-center py-4">Không tìm thấy biến thể nào.</td>
-              </tr>
+            <tr v-if="!pagedVariants.length">
+              <td :colspan="tableColspan" class="text-center py-4">Không tìm thấy biến thể nào.</td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -298,13 +298,13 @@
             <div class="input-group input-group-sm paging-page">
               <span class="input-group-text">Trang</span>
               <input
-                type="number"
-                min="1"
-                :max="totalPages"
-                class="form-control"
-                v-model.number="pageInput"
-                @keyup.enter="jumpPage"
-                @blur="jumpPage"
+                  type="number"
+                  min="1"
+                  :max="totalPages"
+                  class="form-control"
+                  v-model.number="pageInput"
+                  @keyup.enter="jumpPage"
+                  @blur="jumpPage"
               />
             </div>
 
@@ -361,13 +361,13 @@
             <div class="col-6">
               <label class="form-label">Đơn giá</label>
               <input
-                type="text"
-                inputmode="numeric"
-                class="form-control"
-                placeholder="Ví dụ: 999.999"
-                v-model="edit.donGiaText"
-                @input="onEditMoneyTyping"
-                @blur="onEditMoneyBlur"
+                  type="text"
+                  inputmode="numeric"
+                  class="form-control"
+                  placeholder="Ví dụ: 999.999"
+                  v-model="edit.donGiaText"
+                  @input="onEditMoneyTyping"
+                  @blur="onEditMoneyBlur"
               />
             </div>
 
@@ -436,6 +436,7 @@ import attributeService from '../../services/attributeService'
 import { getByProductId, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
 import { getGiaMaxDb } from '../../services/sanPhamApi'
 import { useToast } from '../../composables/useToast'
+import { normalizeUploadResponse, resolveMediaUrl } from '@/utils/media'
 
 const { success, error } = useToast()
 const router = useRouter()
@@ -444,16 +445,8 @@ const props = defineProps({
   id: { type: [String, Number], required: true }
 })
 
-/** ===== base url ảnh ===== */
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
-const fileBaseUrl = (import.meta.env.VITE_FILE_BASE_URL || apiBaseUrl).replace(/\/api\/?$/, '')
-
 function buildImgUrl(path) {
-  if (!path) return ''
-  const p = String(path).replace(/\\/g, '/')
-  if (p.startsWith('http://') || p.startsWith('https://')) return p
-  const b = String(fileBaseUrl).replace(/\/+$/, '')
-  return b + (p.startsWith('/') ? p : `/${p}`)
+  return resolveMediaUrl(path)
 }
 
 /** ===== state ===== */
@@ -472,19 +465,19 @@ function normalizeVariant(v) {
   const sl = Number(v?.soLuongTon ?? 0)
   // ✅ nếu tồn = 0 => luôn hết hàng
   const trangThai = sl > 0 ? !!v?.trangThai : false
-  return { ...v, trangThai, __imgErr: false }
+  return { ...v, trangThai, anh: v?.anh ?? v?.anhDaiDien ?? v?.primaryImageUrl ?? '', mediaPrimaryId: v?.mediaPrimaryId ?? v?.idMediaPrimary ?? v?.id_media_primary ?? null, __imgErr: false }
 }
 
 /** ===== product info ===== */
 function getProductCode(v) {
   return (
-    v?.maSanPham ||
-    v?.sanPhamMa ||
-    v?.maSP ||
-    v?.sanPham?.maSanPham ||
-    v?.sanPham?.ma ||
-    v?.productCode ||
-    ''
+      v?.maSanPham ||
+      v?.sanPhamMa ||
+      v?.maSP ||
+      v?.sanPham?.maSanPham ||
+      v?.sanPham?.ma ||
+      v?.productCode ||
+      ''
   )
 }
 
@@ -675,8 +668,8 @@ async function loadPriceMaxFromDb() {
     const res = await getGiaMaxDb()
     const raw = res?.data ?? res
     const maxNum = typeof raw === 'object'
-      ? Number(raw?.max ?? raw?.giaMax ?? raw?.value ?? 0)
-      : Number(raw ?? 0)
+        ? Number(raw?.max ?? raw?.giaMax ?? raw?.value ?? 0)
+        : Number(raw ?? 0)
 
     const maxDb = roundUpToStep(maxNum, PRICE_STEP)
     if (maxDb > 0) {
@@ -757,9 +750,9 @@ async function exportSelectedToExcel() {
   exporting.value = true
   try {
     const rows = selectedIds.value
-      .map((id) => selectedRows[id])
-      .filter(Boolean)
-      .map(toExcelRow)
+        .map((id) => selectedRows[id])
+        .filter(Boolean)
+        .map(toExcelRow)
 
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
@@ -808,7 +801,8 @@ const edit = reactive({
 
   ghiChu: '',
   trangThai: true,
-  anh: ''
+  anh: '',
+  mediaPrimaryId: null
 })
 
 watch(() => edit.soLuongTon, (sl) => {
@@ -834,6 +828,7 @@ function openEditModal(v) {
   edit.ghiChu = v.ghiChu ?? ''
   edit.trangThai = !!v.trangThai
   edit.anh = v.anh ?? ''
+  edit.mediaPrimaryId = v.mediaPrimaryId ?? null
 }
 function closeEditModal() { edit.open = false }
 
@@ -859,10 +854,10 @@ async function handleFileUpload(event) {
   const file = event.target.files?.[0]
   if (!file) return
   try {
-    const res = await uploadImage(file)
-    const url = res?.data?.url || res?.data || res?.url
-    if (!url) throw new Error('Upload không trả url')
-    edit.anh = url
+    const uploaded = normalizeUploadResponse(await uploadImage(file))
+    if (!uploaded.url) throw new Error('Upload không trả url')
+    edit.anh = uploaded.url
+    edit.mediaPrimaryId = uploaded.mediaAssetId
     success('Upload ảnh thành công!')
   } catch (e) {
     console.error(e)
@@ -893,7 +888,8 @@ async function submitEdit() {
       donGia: Number(edit.donGia),
       ghiChu: edit.ghiChu,
       trangThai: fixedTrangThai,
-      anh: edit.anh
+      anh: edit.anh,
+      mediaPrimaryId: edit.mediaPrimaryId
     })
     success('Cập nhật thành công')
     edit.open = false
@@ -953,7 +949,8 @@ async function confirmToggleNow() {
       donGia: v.donGia,
       ghiChu: v.ghiChu ?? '',
       trangThai: confirmToggle.next,
-      anh: v.anh ?? ''
+      anh: v.anh ?? '',
+      mediaPrimaryId: v.mediaPrimaryId ?? null
     })
     success(`Đã đổi trạng thái thành ${confirmToggle.next ? 'Còn hàng' : 'Hết hàng'}`)
     await loadVariants()
@@ -969,14 +966,14 @@ async function confirmToggleNow() {
 /** ================== COLOR DOT ================== */
 function normalizeColorName(name) {
   return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replace(/đ/g, 'd')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\(.*?\)/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+      .trim()
+      .toLowerCase()
+      .replace(/đ/g, 'd')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\(.*?\)/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
 }
 const COLOR_MAP = {
   den: '#111827',

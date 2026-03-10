@@ -33,4 +33,6 @@ public class NhanVienResponse {
     private Boolean trangThai;
 
     private String anhDaiDien;
+    private String avatarUrl;
+    private Long mediaAvatarId;
 }

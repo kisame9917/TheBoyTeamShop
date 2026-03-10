@@ -19,8 +19,9 @@ public class SanPhamRequest {
     @NotNull private Long xeTaId;
     @NotNull private Long xuatXuId;
     @NotNull private Long fitId;
-    
+
     private String anh;
+    private Long mediaCoverId;
     private String chatLieu;
 
     @NotBlank

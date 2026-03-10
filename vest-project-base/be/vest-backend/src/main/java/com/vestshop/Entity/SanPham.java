@@ -78,6 +78,10 @@ public class SanPham {
     @Column(name="anh_dai_dien")
     private String anh;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_media_cover")
+    private MediaAsset mediaCover;
+
     @OneToMany(mappedBy = "sanPham", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<SanPhamChiTiet> sanPhamChiTiets = new ArrayList<>();

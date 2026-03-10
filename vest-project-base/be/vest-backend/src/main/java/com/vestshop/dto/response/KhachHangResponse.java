@@ -26,6 +26,8 @@ public class KhachHangResponse {
 
     private Boolean trangThai;
     private String anhDaiDien;
+    private String avatarUrl;
+    private Long mediaAvatarId;
     // fill form
     private String tenNguoiNhan;
     private String sdtNguoiNhan;

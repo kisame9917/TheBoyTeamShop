@@ -10,12 +10,12 @@
     <div class="card shadow-sm mb-3 filter-card">
       <!-- Header (click để thu gọn/mở rộng) -->
       <div
-        class="filter-header d-flex align-items-center justify-content-between"
-        data-bs-toggle="collapse"
-        data-bs-target="#filterBody"
-        role="button"
-        aria-expanded="true"
-        aria-controls="filterBody"
+          class="filter-header d-flex align-items-center justify-content-between"
+          data-bs-toggle="collapse"
+          data-bs-target="#filterBody"
+          role="button"
+          aria-expanded="true"
+          aria-controls="filterBody"
       >
         <div class="d-flex align-items-center gap-2">
           <span class="filter-icon">▼</span>
@@ -29,99 +29,99 @@
       <div id="filterBody" class="collapse show">
         <div class="card-body filter-body">
           <div class="row g-3">
-  <div class="col-12 col-md-6 col-lg-3">
-    <label class="form-label">Tìm kiếm</label>
-    <input
-      v-model.trim="filters.keyword"
-      type="text"
-      class="form-control"
-      placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
-      @input="autoApplyFilters()"
-      @keyup.enter="applyFilters"
-    />
-  </div>
+            <div class="col-12 col-md-6 col-lg-3">
+              <label class="form-label">Tìm kiếm</label>
+              <input
+                  v-model.trim="filters.keyword"
+                  type="text"
+                  class="form-control"
+                  placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
+                  @input="autoApplyFilters()"
+                  @keyup.enter="applyFilters"
+              />
+            </div>
 
-  <div class="col-12 col-md-6 col-lg-3">
-    <label class="form-label">Loại hóa đơn</label>
-    <select
-      v-model="filters.loaiDonMode"
-      class="form-select"
-      @change="applyFilters"
-    >
-      <option value="">Tất cả</option>
-      <option value="taiquay">Tại quầy</option>
-      <option value="online">Online</option>
-    </select>
-  </div>
+            <div class="col-12 col-md-6 col-lg-3">
+              <label class="form-label">Loại hóa đơn</label>
+              <select
+                  v-model="filters.loaiDonMode"
+                  class="form-select"
+                  @change="applyFilters"
+              >
+                <option value="">Tất cả</option>
+                <option value="taiquay">Tại quầy</option>
+                <option value="online">Online</option>
+              </select>
+            </div>
 
-  <div class="col-12 col-md-6 col-lg-3">
-    <label class="form-label">Từ ngày</label>
-    <div class="input-group">
-      <input
-        ref="fromPickerRef"
-        type="text"
-        class="form-control"
-        placeholder="dd/mm/yyyy"
-      />
-      <button
-        class="btn btn-outline-secondary"
-        type="button"
-        @click="openFromPicker"
-        title="Chọn ngày"
-      >
-        <i class="bi bi-calendar3"></i>
-      </button>
-      <button
-        class="btn btn-outline-secondary"
-        type="button"
-        @click="clearFromDate"
-        title="Xóa"
-      >
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-  </div>
+            <div class="col-12 col-md-6 col-lg-3">
+              <label class="form-label">Từ ngày</label>
+              <div class="input-group">
+                <input
+                    ref="fromPickerRef"
+                    type="text"
+                    class="form-control"
+                    placeholder="dd/mm/yyyy"
+                />
+                <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="openFromPicker"
+                    title="Chọn ngày"
+                >
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="clearFromDate"
+                    title="Xóa"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
 
-  <div class="col-12 col-md-6 col-lg-3">
-    <label class="form-label">Đến ngày</label>
-    <div class="input-group">
-      <input
-        ref="toPickerRef"
-        type="text"
-        class="form-control"
-        placeholder="dd/mm/yyyy"
-      />
-      <button
-        class="btn btn-outline-secondary"
-        type="button"
-        @click="openToPicker"
-        title="Chọn ngày"
-      >
-        <i class="bi bi-calendar3"></i>
-      </button>
-      <button
-        class="btn btn-outline-secondary"
-        type="button"
-        @click="clearToDate"
-        title="Xóa"
-      >
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-  </div>
+            <div class="col-12 col-md-6 col-lg-3">
+              <label class="form-label">Đến ngày</label>
+              <div class="input-group">
+                <input
+                    ref="toPickerRef"
+                    type="text"
+                    class="form-control"
+                    placeholder="dd/mm/yyyy"
+                />
+                <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="openToPicker"
+                    title="Chọn ngày"
+                >
+                  <i class="bi bi-calendar3"></i>
+                </button>
+                <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="clearToDate"
+                    title="Xóa"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
 
-<div class="col-12 d-flex justify-content-end gap-2">
-  <button class="btn btn-light" @click="resetFilters">
-    <i class="bi bi-arrow-counterclockwise me-1"></i>
-    Đặt lại
-  </button>
-  <button class="btn btn-outline-success" @click="exportListExcel">
-    <i class="bi bi-file-earmark-excel me-1"></i>
-    Xuất Excel trang HĐ
-  </button>
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <button class="btn btn-light" @click="resetFilters">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                Đặt lại
+              </button>
+              <button class="btn btn-outline-success" @click="exportListExcel">
+                <i class="bi bi-file-earmark-excel me-1"></i>
+                Xuất Excel trang HĐ
+              </button>
 
-</div>
-</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -130,38 +130,38 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="invoice-list-head mb-3">
-  <div class="d-flex align-items-center gap-2 mb-1">
-    <div class="invoice-list-icon">
-      <i class="bi bi-file-earmark-text"></i>
-    </div>
-    <div>
-      <div class="invoice-list-title">Danh sách hóa đơn</div>
-      <div class="invoice-list-subtitle">Lọc nhanh theo trạng thái</div>
-    </div>
-  </div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="invoice-list-icon">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div>
+              <div class="invoice-list-title">Danh sách hóa đơn</div>
+              <div class="invoice-list-subtitle">Lọc nhanh theo trạng thái</div>
+            </div>
+          </div>
 
-  <div class="status-filter-tabs mt-3">
-    <button
-      type="button"
-      class="status-filter-tab"
-      :class="{ active: filters.trangThaiDon === null }"
-      @click="setStatusFilter(null)"
-    >
-      Tất cả
-    </button>
+          <div class="status-filter-tabs mt-3">
+            <button
+                type="button"
+                class="status-filter-tab"
+                :class="{ active: filters.trangThaiDon === null }"
+                @click="setStatusFilter(null)"
+            >
+              Tất cả
+            </button>
 
-    <button
-      v-for="s in statusOptions"
-      :key="s.code"
-      type="button"
-      class="status-filter-tab"
-      :class="{ active: filters.trangThaiDon === s.code }"
-      @click="setStatusFilter(s.code)"
-    >
-      {{ s.label }}
-    </button>
-  </div>
-</div>
+            <button
+                v-for="s in statusOptions"
+                :key="s.code"
+                type="button"
+                class="status-filter-tab"
+                :class="{ active: filters.trangThaiDon === s.code }"
+                @click="setStatusFilter(s.code)"
+            >
+              {{ s.label }}
+            </button>
+          </div>
+        </div>
         <div v-if="loading" class="text-center py-5">
           <div class="spinner-border" role="status"></div>
           <div class="mt-2 text-muted">Đang tải...</div>
@@ -169,116 +169,116 @@
 
         <div v-else class="table-responsive table-wrap">
           <table
-            class="table align-middle mb-0 table-hover table-fixed table-normal"
+              class="table align-middle mb-0 table-hover table-fixed table-normal"
           >
-         <colgroup>
-  <col style="width: 5%" />   <!-- STT -->
-  <col style="width: 13%" />  <!-- Mã hóa đơn -->
-  <col style="width: 15%" />  <!-- Tên nhân viên -->
-  <col style="width: 12%" />  <!-- Khách hàng -->
-  <col style="width: 11%" />  <!-- Số điện thoại -->
-  <col style="width: 12%" />  <!-- Loại hóa đơn -->
-  <col style="width: 11%" />  <!-- Tổng tiền -->
-  <col style="width: 10%" />  <!-- Ngày tạo -->
-  <col style="width: 11%" />  <!-- Trạng thái -->
-  <col style="width: 10%" />  <!-- Hành động -->
-</colgroup>
+            <colgroup>
+              <col style="width: 4%" />   <!-- STT -->
+              <col style="width: 12%" />  <!-- Mã hóa đơn -->
+              <col style="width: 15%" />  <!-- Tên nhân viên -->
+              <col style="width: 11%" />  <!-- Khách hàng -->
+              <col style="width: 10%" />  <!-- Số điện thoại -->
+              <col style="width: 11%" />  <!-- Loại hóa đơn -->
+              <col style="width: 10%" />  <!-- Tổng tiền -->
+              <col style="width: 9%" />   <!-- Ngày tạo -->
+              <col style="width: 9%" />   <!-- Trạng thái -->
+              <col style="width: 9%" />   <!-- Hành động -->
+            </colgroup>
             <thead class="thead-dark-custom">
-              <tr>
-                <th class="text-center">STT</th>
-                <th>Mã hóa đơn</th>
-                <th>Tên nhân viên</th>
-                <th>Khách hàng</th>
-                <th>Số điện thoại</th>
-                <th class="text-center">Loại hóa đơn</th>
-                <th class="text-end">Tổng tiền</th>
-                <th class="text-center">Ngày tạo</th>
-                <th class="text-center">Trạng thái</th>
-               <th class="text-center action-col">Hành động</th>
-              </tr>
+            <tr>
+              <th class="text-center">STT</th>
+              <th>Mã hóa đơn</th>
+              <th>Tên nhân viên</th>
+              <th>Khách hàng</th>
+              <th>Số điện thoại</th>
+              <th class="text-center">Loại hóa đơn</th>
+              <th class="text-end">Tổng tiền</th>
+              <th class="text-center">Ngày tạo</th>
+              <th class="text-center">Trạng thái</th>
+              <th class="text-center action-col">Hành động</th>
+            </tr>
             </thead>
             <tbody>
-              <tr v-if="rows.length === 0">
-                <td colspan="10" class="text-center text-muted py-4">
-                  Không có dữ liệu
-                </td>
-              </tr>
+            <tr v-if="rows.length === 0">
+              <td colspan="10" class="text-center text-muted py-4">
+                Không có dữ liệu
+              </td>
+            </tr>
 
-              <tr v-for="(r, idx) in rows" :key="r.id">
-                <td class="text-center">
-                  {{ page.page * page.size + idx + 1 }}
-                </td>
+            <tr v-for="(r, idx) in rows" :key="r.id">
+              <td class="text-center">
+                {{ page.page * page.size + idx + 1 }}
+              </td>
 
-                <td class="fw-semibold">
+              <td class="fw-semibold">
                   <span class="cell-ellipsis" :title="r.maHoaDon">
                     {{ r.maHoaDon }}
                   </span>
-                </td>
+              </td>
 
-                <td>
-                  <div
+              <td>
+                <div
                     class="staff-cell"
                     :title="`${getStaffName(r)} - ${getStaffRole(r)}`"
-                  >
-                    <div class="staff-name">{{ getStaffName(r) }}</div>
-                    <div class="staff-role">{{ getStaffRole(r) }}</div>
-                  </div>
-                </td>
-                <td>
+                >
+                  <div class="staff-name">{{ getStaffName(r) }}</div>
+                  <div class="staff-role">{{ getStaffRole(r) }}</div>
+                </div>
+              </td>
+              <td>
                   <span
-                    class="cell-ellipsis"
-                    :title="r.tenKhachHang || 'Khách lẻ'"
+                      class="cell-ellipsis"
+                      :title="r.tenKhachHang || 'Khách lẻ'"
                   >
                     {{ r.tenKhachHang || "Khách lẻ" }}
                   </span>
-                </td>
+              </td>
 
-                <td>
+              <td>
                   <span class="cell-ellipsis" :title="r.soDienThoai || '-'">
                     {{ r.soDienThoai || "-" }}
                   </span>
-                </td>
+              </td>
 
-                <td class="text-center">
+              <td class="text-center">
                   <span class="badge text-bg-light border">
                     {{ r.loaiDon ? "Online" : "Tại quầy" }}
                   </span>
-                </td>
+              </td>
 
-                <td class="fw-semibold text-end text-danger">
-                  {{ formatCurrency(r.tongTienSauGiam) }}
-                </td>
+              <td class="fw-semibold text-end text-danger">
+                {{ formatCurrency(r.tongTienSauGiam) }}
+              </td>
 
-                <td class="text-center">
-                  {{ formatDateVN(r.ngayTao) }}
-                </td>
+              <td class="text-center">
+                {{ formatDateVN(r.ngayTao) }}
+              </td>
 
-                <td class="text-center">
+              <td class="text-center">
                   <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
                     {{ r.tenTrangThaiDon }}
                   </span>
-                </td>
+              </td>
 
-                <td class="text-center action-col">
-  <div class="action-group">
-    <button
-      class="btn btn-outline-secondary btn-sm"
-      @click="goDetail(r.id)"
-      title="Xem chi tiết"
-    >
-      <i class="bi bi-eye text-secondary eye-icon"></i>
-    </button>
+              <td class="text-center action-col">
+                <div class="action-group">
+                  <button
+                      class="btn btn-outline-secondary btn-sm"
+                      @click="goDetail(r.id)"
+                      title="Xem chi tiết"
+                  >
+                    <i class="bi bi-eye text-secondary eye-icon"></i>
+                  </button>
 
-    <button
-      class="btn btn-outline-success btn-sm"
-      @click="goPrint(r.id)"
-      title="Xuất hóa đơn"
-    >
-      <i class="bi bi-printer"></i>
-    </button>
-  </div>
-</td>
-              </tr>
+                  <button
+                      class="btn btn-outline-success btn-sm"
+                      @click="goPrint(r.id)"
+                      title="Xuất hóa đơn"
+                  >
+                    <i class="bi bi-printer"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -286,7 +286,7 @@
         <!-- Pagination -->
         <!-- Pagination -->
         <div
-          class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2"
+            class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2"
         >
           <!-- Left -->
           <div class="text-muted flex-grow-1">
@@ -295,12 +295,12 @@
 
           <!-- Center -->
           <div
-            class="d-flex align-items-center gap-2 justify-content-center flex-grow-1"
+              class="d-flex align-items-center gap-2 justify-content-center flex-grow-1"
           >
             <button
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="page.page === 0"
-              @click="setPage(page.page - 1)"
+                class="btn btn-outline-secondary btn-sm"
+                :disabled="page.page === 0"
+                @click="setPage(page.page - 1)"
             >
               <i class="bi bi-chevron-left"></i>
             </button>
@@ -308,19 +308,19 @@
             <div class="input-group input-group-sm" style="width: 100px">
               <span class="input-group-text">Trang</span>
               <input
-                type="number"
-                min="1"
-                :max="page.totalPages || 1"
-                class="form-control"
-                v-model.number="pageInput"
-                @keyup.enter="jumpPage"
+                  type="number"
+                  min="1"
+                  :max="page.totalPages || 1"
+                  class="form-control"
+                  v-model.number="pageInput"
+                  @keyup.enter="jumpPage"
               />
             </div>
 
             <button
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="page.page >= page.totalPages - 1"
-              @click="setPage(page.page + 1)"
+                class="btn btn-outline-secondary btn-sm"
+                :disabled="page.page >= page.totalPages - 1"
+                @click="setPage(page.page + 1)"
             >
               <i class="bi bi-chevron-right"></i>
             </button>
@@ -329,10 +329,10 @@
           <!-- Right -->
           <div class="d-flex justify-content-md-end flex-grow-1">
             <select
-              class="form-select form-select-sm"
-              style="width: 160px"
-              v-model.number="page.size"
-              @change="applyFilters"
+                class="form-select form-select-sm"
+                style="width: 160px"
+                v-model.number="page.size"
+                @change="applyFilters"
             >
               <option :value="10">10 bản ghi / trang</option>
               <option :value="20">20 bản ghi / trang</option>
@@ -345,11 +345,11 @@
 
     <!-- QR Modal -->
     <div
-      class="modal fade"
-      id="qrModal"
-      tabindex="-1"
-      aria-hidden="true"
-      ref="qrModalRef"
+        class="modal fade"
+        id="qrModal"
+        tabindex="-1"
+        aria-hidden="true"
+        ref="qrModalRef"
     >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -358,10 +358,10 @@
               <i class="bi bi-qr-code-scan me-2"></i>Quét QR hóa đơn
             </h6>
             <button
-              type="button"
-              class="btn-close"
-              aria-label="Close"
-              @click="closeQrModal"
+                type="button"
+                class="btn-close"
+                aria-label="Close"
+                @click="closeQrModal"
             ></button>
           </div>
           <div class="modal-body">
@@ -383,22 +383,22 @@
 
     <!-- Toast -->
     <div
-      class="toast-container position-fixed top-0 end-0 p-3"
-      style="z-index: 9999"
+        class="toast-container position-fixed top-0 end-0 p-3"
+        style="z-index: 9999"
     >
       <div
-        class="toast align-items-center text-bg-success border-0"
-        ref="toastRef"
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
+          class="toast align-items-center text-bg-success border-0"
+          ref="toastRef"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
       >
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
           <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            @click="hideToast"
+              type="button"
+              class="btn-close btn-close-white me-2 m-auto"
+              @click="hideToast"
           ></button>
         </div>
       </div>
@@ -533,7 +533,7 @@ const page = reactive({
   totalElements: 0,
   totalPages: 0,
   sortBy: "ngayTao",
-  sortDir: "desc",
+  sortDir: "asc",
 });
 
 const pageInput = ref(1);
@@ -574,10 +574,12 @@ function formatDateVN(isoDateTime) {
   return `${dd}/${mm}/${yyyy}`;
 }
 function getStaffName(row) {
+  if (row?.loaiDon === true) return "System";
   return row?.tenNhanVien || "-";
 }
 
 function getStaffRole(row) {
+  if (row?.loaiDon === true) return "Hệ thống";
   return row?.tenChucVu || "-";
 }
 /** =======================
@@ -644,16 +646,16 @@ function clearToDate() {
 
 // (optional) khóa range: from <= to
 watch(
-  () => filters.fromDate,
-  (v) => {
-    if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
-  },
+    () => filters.fromDate,
+    (v) => {
+      if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
+    },
 );
 watch(
-  () => filters.toDate,
-  (v) => {
-    if (fpFrom) fpFrom.set("maxDate", v ? parseYMD(v) : null);
-  },
+    () => filters.toDate,
+    (v) => {
+      if (fpFrom) fpFrom.set("maxDate", v ? parseYMD(v) : null);
+    },
 );
 
 /** =======================
@@ -665,11 +667,11 @@ async function fetchData() {
   loading.value = true;
   try {
     const loaiDon =
-      filters.loaiDonMode === "online"
-        ? true
-        : filters.loaiDonMode === "taiquay"
-          ? false
-          : undefined;
+        filters.loaiDonMode === "online"
+            ? true
+            : filters.loaiDonMode === "taiquay"
+                ? false
+                : undefined;
 
     const params = {
       page: page.page,
@@ -678,9 +680,9 @@ async function fetchData() {
       sortDir: page.sortDir,
       keyword: filters.keyword || undefined,
       trangThaiDon:
-        filters.trangThaiDon === null || filters.trangThaiDon === undefined
-          ? undefined
-          : filters.trangThaiDon,
+          filters.trangThaiDon === null || filters.trangThaiDon === undefined
+              ? undefined
+              : filters.trangThaiDon,
       loaiDon,
 
       // ✅ giữ nguyên BE: yyyy-MM-dd
@@ -764,17 +766,17 @@ function goDetail(id) {
     [
       "Trạng thái",
       filters.trangThaiDon == null
-        ? "Tất cả"
-        : labelTrangThai(filters.trangThaiDon),
+          ? "Tất cả"
+          : labelTrangThai(filters.trangThaiDon),
     ],
     [
       "Loại hóa đơn",
       labelLoaiDon(
-        filters.loaiDonMode === "online"
-          ? true
-          : filters.loaiDonMode === "taiquay"
-            ? false
-            : undefined,
+          filters.loaiDonMode === "online"
+              ? true
+              : filters.loaiDonMode === "taiquay"
+                  ? false
+                  : undefined,
       ),
     ],
     ["Từ ngày", filters.fromDate || "-"],
@@ -1021,11 +1023,11 @@ async function startQr() {
     }
 
     await qr.start(
-      { deviceId: { exact: cameras[0].id } },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      async (decodedText) => {
-        await onQrDecoded(decodedText);
-      },
+        { deviceId: { exact: cameras[0].id } },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText) => {
+          await onQrDecoded(decodedText);
+        },
     );
   } catch (e) {
     console.error(e);
@@ -1492,8 +1494,8 @@ onBeforeUnmount(() => {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #fee2e2;
-  color: #dc2626;
+  background: #2954b8;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1533,7 +1535,7 @@ onBeforeUnmount(() => {
 }
 
 .status-filter-tab.active {
-  background: #4b6372;
+  background: #2954b8;
   border-color: #4b6372;
   color: #fff;
 }

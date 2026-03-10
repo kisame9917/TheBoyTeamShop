@@ -1,4 +1,5 @@
 import http from './http'
+import { uploadVariantPrimaryImage } from './mediaApi'
 
 export const getByProductId = (productId) => {
     return http.get(`/api/san-pham-chi-tiet/by-product/${productId}`)
@@ -21,20 +22,12 @@ export const deleteDetail = (id) => {
 }
 
 export const decreaseStock = (id, qty = 1) => {
-  return http.patch(`/api/san-pham-chi-tiet/${id}/decrease-stock`, null, { params: { qty } })
+    return http.patch(`/api/san-pham-chi-tiet/${id}/decrease-stock`, null, { params: { qty } })
 }
 
 export const increaseStock = (id, qty = 1) => {
-  return http.patch(`/api/san-pham-chi-tiet/${id}/increase-stock`, null, { params: { qty } });
+    return http.patch(`/api/san-pham-chi-tiet/${id}/increase-stock`, null, { params: { qty } });
 };
 
 
-export const uploadImage = (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return http.post('/api/upload', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
-}
+export const uploadImage = (file) => uploadVariantPrimaryImage(file)

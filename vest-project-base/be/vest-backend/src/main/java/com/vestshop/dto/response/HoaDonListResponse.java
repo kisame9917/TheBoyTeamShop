@@ -20,7 +20,7 @@ public class HoaDonListResponse {
 
     private String tenKhachHang;
     private String soDienThoai;
-
+    private String maNhanVien;
     private String tenNhanVien;
     private String tenChucVu;
 

@@ -282,6 +282,7 @@ import http from "../../services/http";
 import { useToast } from "@/composables/useToast";
 import { useAuthStore } from "@/stores/auth";
 import { useShiftStore } from "@/stores/shift";
+import { normalizeUploadResponse, resolveMediaUrl } from "@/utils/media";
 
 // Date picker (UI/UX giống VoucherList)
 import flatpickr from "flatpickr";
@@ -354,6 +355,7 @@ const form = reactive({
   matKhau: "",
   trangThai: true,
   anhDaiDien: "",
+  mediaAvatarId: null,
 });
 
 // ===== Date picker: Ngày sinh (flatpickr) =====
@@ -468,25 +470,6 @@ function onAddrDistrictChange() {
 }
 
 // ===== utils =====
-const FALLBACK_BACKEND = "http://localhost:8080";
-function getBackendOrigin() {
-  const base = String((http && http.defaults && http.defaults.baseURL) || "").trim();
-  if (base.startsWith("http://") || base.startsWith("https://")) {
-    try {
-      return new URL(base).origin;
-    } catch {
-      return FALLBACK_BACKEND;
-    }
-  }
-  return FALLBACK_BACKEND;
-}
-function resolveFileUrl(url) {
-  const u = String(url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image")) return u;
-  const origin = getBackendOrigin();
-  return u.startsWith("/") ? origin + u : origin + "/" + u;
-}
 
 // ✅ FIX LỖI BUTTON QUAY LẠI
 function goBack() {
@@ -533,13 +516,14 @@ async function fetchDetail() {
   form.email = kh.email || "";
   form.trangThai = kh.trangThai !== null && kh.trangThai !== undefined ? kh.trangThai : true;
   form.anhDaiDien = kh.anhDaiDien || "";
+  form.mediaAvatarId = kh.mediaAvatarId ?? kh.idMediaAvatar ?? kh.id_media_avatar ?? null;
 
   // Sync date picker view after model is populated
   await nextTick();
   initDobPicker();
   fpDob?.setDate(parseYMD(form.ngaySinh), false);
 
-  if (!selectedFile.value) avatarPreview.value = resolveFileUrl(form.anhDaiDien);
+  if (!selectedFile.value) avatarPreview.value = resolveMediaUrl(form.anhDaiDien);
 
   await fetchDiaChiList();
 }
@@ -551,10 +535,11 @@ async function uploadAvatarIfNeeded() {
   const res = await http.post("/api/khach-hang/upload-avatar", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  const url = res?.data?.url || "";
-  if (url) {
-    form.anhDaiDien = url;
-    avatarPreview.value = resolveFileUrl(url) + "?t=" + Date.now();
+  const uploaded = normalizeUploadResponse(res);
+  if (uploaded.url) {
+    form.anhDaiDien = uploaded.url;
+    form.mediaAvatarId = uploaded.mediaAssetId;
+    avatarPreview.value = resolveMediaUrl(uploaded.url) + "?t=" + Date.now();
   }
 }
 
@@ -870,6 +855,7 @@ async function doSubmit() {
       taiKhoan: taiKhoanAuto,
       trangThai: form.trangThai,
       anhDaiDien: form.anhDaiDien,
+      mediaAvatarId: form.mediaAvatarId,
     };
 
     if (!isEdit.value) {

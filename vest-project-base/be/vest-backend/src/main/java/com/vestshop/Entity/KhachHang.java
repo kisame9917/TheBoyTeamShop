@@ -59,6 +59,10 @@ public class KhachHang {
     @Column(name = "anh_dai_dien", length = 500)
     private String anhDaiDien;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_media_avatar")
+    private MediaAsset mediaAvatar;
+
     @OneToMany(mappedBy = "khachHang", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<HoaDon> hoaDons = new ArrayList<>();

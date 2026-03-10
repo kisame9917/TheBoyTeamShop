@@ -22,6 +22,9 @@ public class SanPhamResponse {
 
     private String maSanPham;
     private String tenSanPham;
+    private String anh;
+    private String imageUrl;
+    private Long mediaCoverId;
 
     private String tenLoaiSanPham;
     private String tenThuongHieu;

@@ -202,6 +202,7 @@ import { useRoute, useRouter } from "vue-router";
 import http from "@/services/http";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "@/composables/useToast";
+import { resolveMediaUrl } from "@/utils/media";
 
 const route = useRoute();
 const router = useRouter();
@@ -273,32 +274,8 @@ function formatDateTime(d) {
 }
 
 /** ===== Avatar ===== */
-const FALLBACK_BACKEND = "http://localhost:8080";
-
-function getBackendOrigin() {
-  const base = String((http?.defaults?.baseURL || "")).trim();
-  if (base.startsWith("http://") || base.startsWith("https://")) {
-    try {
-      return new URL(base).origin;
-    } catch {
-      return FALLBACK_BACKEND;
-    }
-  }
-  return FALLBACK_BACKEND;
-}
-
-function resolveFileUrl(url) {
-  const u = String(url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image")) return u;
-  const origin = getBackendOrigin();
-  return u.startsWith("/") ? origin + u : origin + "/" + u;
-}
-
 function resolveAvatar(s) {
-  const url = String(s?.anhDaiDien || "").trim();
-  if (!url) return "";
-  return resolveFileUrl(url);
+  return resolveMediaUrl(s?.anhDaiDien || s?.avatarUrl || s?.mediaAsset || "");
 }
 
 function onAvatarError(e, s) {

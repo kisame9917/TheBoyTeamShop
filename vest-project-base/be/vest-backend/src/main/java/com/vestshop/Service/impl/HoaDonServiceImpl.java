@@ -249,7 +249,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setTongTienSauGiam(BigDecimal.ZERO);
 
         hd.setNgayTao(LocalDateTime.now());
-        hd.setNguoiTao("system");
+        NhanVien nv = getCurrentNhanVien();
+        hd.setNhanVien(nv);
+        hd.setNguoiTao(nv != null ? nv.getTenNhanVien() : currentUser());
         hd.setTrangThai(true);
 
         hd = hoaDonRepository.save(hd);
@@ -534,7 +536,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setTrangThaiDon(TrangThaiDonHang.DA_HUY.getCode());
         hd.setTrangThai(false);
         hd.setNgayCapNhat(LocalDateTime.now());
-        hd.setNguoiCapNhat(currentUser());
+        NhanVien nv = getCurrentNhanVien();
+        hd.setNhanVien(nv != null ? nv : hd.getNhanVien());
+        hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
         hoaDonRepository.save(hd);
 
         // 4) Lịch sử hóa đơn
@@ -572,10 +576,19 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         // ✅ 2) Nếu người dùng KHÔNG lọc trạng thái => ẩn luôn trạng thái "chờ xác nhận" (0)
         // (Nếu user chọn trạng thái=0 thì vẫn xem được)
+//        if (trangThaiDon == null) {
+//            spec = spec.and((root, query, cb) -> cb.notEqual(root.get("trangThaiDon"), 0));
+//            // Nếu muốn ẩn thêm trạng thái khác, dùng:
+//            // spec = spec.and((root, query, cb) -> cb.not(root.get("trangThaiDon").in(List.of(0, 1))));
+//        }
         if (trangThaiDon == null) {
-            spec = spec.and((root, query, cb) -> cb.notEqual(root.get("trangThaiDon"), 0));
-            // Nếu muốn ẩn thêm trạng thái khác, dùng:
-            // spec = spec.and((root, query, cb) -> cb.not(root.get("trangThaiDon").in(List.of(0, 1))));
+            spec = spec.and((root, query, cb) -> {
+                var isDraftPos = cb.and(
+                        cb.equal(root.get("trangThaiDon"), 0),
+                        cb.equal(root.get("loaiDon"), false)
+                );
+                return cb.not(isDraftPos);
+            });
         }
 
         Page<HoaDon> page = hoaDonRepository.findAll(spec, pageable);
@@ -583,6 +596,19 @@ public class HoaDonServiceImpl implements HoaDonService {
         return page.map(hd -> {
             TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
             NhanVien nv = hd.getNhanVien();
+
+            String tenNhanVien;
+            String tenChucVu;
+
+            if (Boolean.TRUE.equals(hd.getLoaiDon())) {
+                tenNhanVien = "System";
+                tenChucVu = "Hệ thống";
+            } else {
+                tenNhanVien = (nv == null ? null : nv.getTenNhanVien());
+                tenChucVu = (nv == null || nv.getQuyenHan() == null)
+                        ? null
+                        : nv.getQuyenHan().getTenQuyenHan();
+            }
 
             return HoaDonListResponse.builder()
                     .id(hd.getId())
@@ -594,12 +620,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                     .tongTienSauGiam(hd.getTongTienSauGiam())
                     .tenKhachHang(hd.getTenKhachHang())
                     .soDienThoai(hd.getSoDienThoai())
-                    .tenNhanVien(nv == null ? null : nv.getTenNhanVien())
-                    .tenChucVu(
-                            nv == null || nv.getQuyenHan() == null
-                                    ? null
-                                    : nv.getQuyenHan().getTenQuyenHan()
-                    )
+                    .tenNhanVien(tenNhanVien)
+                    .tenChucVu(tenChucVu)
                     .ngayTao(hd.getNgayTao())
                     .build();
         });
@@ -704,9 +726,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         TrangThaiDonHang newSt = TrangThaiDonHang.fromCode(req.getTrangThaiDon());
         TrangThaiDonHang oldSt = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
-        if (newSt == TrangThaiDonHang.DA_HUY && oldSt != TrangThaiDonHang.CHO_XAC_NHAN) {
-            throw new IllegalArgumentException("Chỉ được huỷ hoá đơn khi đang ở trạng thái Chờ xác nhận");
-        }
+
         // Rule tối thiểu (bạn có thể siết thêm):
         if (oldSt == TrangThaiDonHang.DA_HUY) {
             throw new IllegalArgumentException("Đơn đã huỷ, không thể đổi trạng thái");
@@ -717,7 +737,9 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         hd.setTrangThaiDon(newSt.getCode());
         hd.setNgayCapNhat(LocalDateTime.now());
-        hd.setNguoiCapNhat(currentUser());
+        NhanVien nv = getCurrentNhanVien();
+        hd.setNhanVien(nv != null ? nv : hd.getNhanVien());
+        hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
         hoaDonRepository.save(hd);
 
         LichSuHoaDon ls = new LichSuHoaDon();
@@ -763,7 +785,9 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         hd.setTrangThaiDon(TrangThaiDonHang.DA_HOAN.getCode());
         hd.setNgayCapNhat(LocalDateTime.now());
-        hd.setNguoiCapNhat(currentUser());
+        NhanVien nv = getCurrentNhanVien();
+        hd.setNhanVien(nv != null ? nv : hd.getNhanVien());
+        hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
         hoaDonRepository.save(hd);
 
         LichSuHoaDon ls = new LichSuHoaDon();
@@ -798,9 +822,9 @@ public class HoaDonServiceImpl implements HoaDonService {
             String anh = null;
             if (spct != null) {
                 anh = anhChiTietSanPhamRepository
-                        .findTop1BySanPhamChiTiet_IdAndTrangThaiTrueOrderByIdDesc(spct.getId())
-                        .map(AnhChiTietSanPham::getTen)
-                        .orElse(null);
+                        .findTop1BySanPhamChiTiet_IdAndTrangThaiTrueOrderByThuTuHienThiAscIdAsc(spct.getId())
+                        .map(img -> img.getMediaAsset() != null && img.getMediaAsset().getSecureUrl() != null ? img.getMediaAsset().getSecureUrl() : img.getTen())
+                        .orElse(spct.getMediaPrimary() != null && spct.getMediaPrimary().getSecureUrl() != null ? spct.getMediaPrimary().getSecureUrl() : spct.getAnh());
             }
 
             return HoaDonDetailResponse.Item.builder()
@@ -818,13 +842,25 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
         NhanVien nv = hd.getNhanVien();
+
+        String maNhanVien;
+        String tenNhanVien;
+
+        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
+            maNhanVien = "SYSTEM";
+            tenNhanVien = "System";
+        } else {
+            maNhanVien = (nv == null ? null : nv.getMaNhanVien());
+            tenNhanVien = (nv == null ? null : nv.getTenNhanVien());
+        }
+
         return HoaDonDetailResponse.builder()
                 .id(hd.getId())
                 .maHoaDon(hd.getMaHoaDon())
                 .idKhachHang(hd.getKhachHang() == null ? null : hd.getKhachHang().getId())
                 .idNhanVien(nv == null ? null : nv.getId())
-                .maNhanVien(nv == null ? null : nv.getMaNhanVien())
-                .tenNhanVien(nv == null ? null : nv.getTenNhanVien())
+                .maNhanVien(maNhanVien)
+                .tenNhanVien(tenNhanVien)
                 .idPhieuGiamGia(hd.getPhieuGiamGia() == null ? null : hd.getPhieuGiamGia().getId())
                 .trangThaiDon(hd.getTrangThaiDon())
                 .tenTrangThaiDon(st.getTen())
@@ -846,7 +882,6 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .lichSuHoaDon(getLichSuHoaDon(hd.getId()))
                 .lichSuThanhToan(getLichSuThanhToan(hd.getId()))
                 .giaoDichThanhToan(getGiaoDichThanhToan(hd.getId()))
-                // ✅ map thông tin nhận hàng (ship)
                 .tenNguoiNhanHang(hd.getTenNguoiNhanHang())
                 .soDienThoaiNhanHang(hd.getSoDienThoaiNhanHang())
                 .tinhThanhNhanHang(hd.getTinhThanhNhanHang())

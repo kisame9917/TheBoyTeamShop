@@ -1,11 +1,15 @@
 package com.vestshop.Service.impl;
 
+import com.vestshop.Entity.AnhChiTietSanPham;
+import com.vestshop.Entity.MediaAsset;
 import com.vestshop.Entity.SanPham;
 import com.vestshop.Entity.SanPhamChiTiet;
+import com.vestshop.Repository.AnhChiTietSanPhamRepository;
 import com.vestshop.Repository.KichCoRepository;
 import com.vestshop.Repository.MauSacRepository;
 import com.vestshop.Repository.SanPhamChiTietRepository;
 import com.vestshop.Repository.SanPhamRepository;
+import com.vestshop.Service.CloudinaryMediaStorageService;
 import com.vestshop.Service.SanPhamChiTietService;
 import com.vestshop.dto.request.SanPhamChiTietRequest;
 import com.vestshop.dto.response.SanPhamChiTietResponse;
@@ -16,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +32,8 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
     private final SanPhamRepository sanPhamRepository;
     private final KichCoRepository kichCoRepository;
     private final MauSacRepository mauSacRepository;
+    private final AnhChiTietSanPhamRepository anhChiTietSanPhamRepository;
+    private final CloudinaryMediaStorageService mediaStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,9 +55,9 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         SanPham sanPham = sanPhamRepository.findById(request.getIdSanPham())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Generate SKU Code: SP + ProductId + SizeId + ColorId + Random/Timestamp? 
-        // Simple Logic: SP{id}-{Size}-{Color}
-        String sku = "SKU" + System.currentTimeMillis(); 
+        String sku = "SKU" + System.currentTimeMillis();
+        MediaAsset mediaPrimary = mediaStorageService.getOptional(request.getMediaPrimaryId());
+        String imageUrl = mediaStorageService.resolveUrl(mediaPrimary, request.getAnh());
 
         SanPhamChiTiet entity = SanPhamChiTiet.builder()
                 .sanPham(sanPham)
@@ -59,14 +66,18 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
                 .soLuongTon(request.getSoLuongTon())
                 .donGia(request.getDonGia())
                 .ghiChu(request.getGhiChu())
-                .trangThai(request.getTrangThai())
+                .trangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE)
                 .maSanPhamChiTiet(sku)
-                .anh(request.getAnh())
+                .anh(imageUrl)
+                .mediaPrimary(mediaPrimary)
+                .chatLieu(request.getChatLieu())
                 .ngayTao(LocalDateTime.now())
                 .ngayCapNhat(LocalDateTime.now())
                 .build();
 
-        return mapToResponse(repository.save(entity));
+        SanPhamChiTiet saved = repository.save(entity);
+        replaceGallery(saved, request.getGalleryMediaIds());
+        return mapToResponse(saved);
     }
 
     @Override
@@ -80,10 +91,11 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         }
 
         SanPhamChiTiet entity = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Ko tìm thấy chi tiết san phẩm "));
+                .orElseThrow(() -> new IllegalArgumentException("Ko tìm thấy chi tiết sản phẩm"));
 
         return mapToResponse(entity);
     }
+
     @Override
     @Transactional
     public SanPhamChiTietResponse increaseStock(Long id, Integer qty) {
@@ -97,6 +109,7 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
 
         return mapToResponse(entity);
     }
+
     @Override
     @Transactional
     public SanPhamChiTietResponse update(Long id, SanPhamChiTietRequest request) {
@@ -109,12 +122,20 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         entity.setDonGia(request.getDonGia());
         entity.setGhiChu(request.getGhiChu());
         entity.setTrangThai(request.getTrangThai());
-        // Initial image is null or handle via separate upload, assuming request might have it if added to request DTO
-        // For now, keeping it basic, will update Request DTO next.
-        entity.setAnh(request.getAnh()); // Assuming 'anh' field is added to SanPhamChiTietRequest
+        entity.setChatLieu(request.getChatLieu());
+
+        MediaAsset mediaPrimary = mediaStorageService.getOptional(request.getMediaPrimaryId());
+        entity.setMediaPrimary(mediaPrimary);
+        if (request.getAnh() != null || mediaPrimary != null) {
+            entity.setAnh(mediaStorageService.resolveUrl(mediaPrimary, request.getAnh()));
+        }
         entity.setNgayCapNhat(LocalDateTime.now());
 
-        return mapToResponse(repository.save(entity));
+        SanPhamChiTiet saved = repository.save(entity);
+        if (request.getGalleryMediaIds() != null) {
+            replaceGallery(saved, request.getGalleryMediaIds());
+        }
+        return mapToResponse(saved);
     }
 
     @Override
@@ -123,11 +144,49 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         repository.deleteById(id);
     }
 
+    private void replaceGallery(SanPhamChiTiet entity, List<Long> galleryMediaIds) {
+        if (galleryMediaIds == null) return;
+
+        List<AnhChiTietSanPham> existing = anhChiTietSanPhamRepository.findAllBySanPhamChiTiet_IdOrderByThuTuHienThiAscIdAsc(entity.getId());
+        if (!existing.isEmpty()) {
+            anhChiTietSanPhamRepository.deleteAll(existing);
+        }
+
+        int order = 1;
+        for (Long mediaId : galleryMediaIds) {
+            MediaAsset media = mediaStorageService.getOptional(mediaId);
+            if (media == null) continue;
+            AnhChiTietSanPham row = AnhChiTietSanPham.builder()
+                    .sanPhamChiTiet(entity)
+                    .ma("IMG-" + entity.getId() + "-" + order)
+                    .ten(media.getSecureUrl())
+                    .mediaAsset(media)
+                    .thuTuHienThi(order++)
+                    .trangThai(Boolean.TRUE)
+                    .build();
+            anhChiTietSanPhamRepository.save(row);
+        }
+    }
+
     private SanPhamChiTietResponse mapToResponse(SanPhamChiTiet entity) {
+        List<String> gallery = new ArrayList<>();
+        List<AnhChiTietSanPham> galleryRows = anhChiTietSanPhamRepository.findAllBySanPhamChiTiet_IdAndTrangThaiTrue(entity.getId());
+        for (AnhChiTietSanPham row : galleryRows) {
+            String url = row.getMediaAsset() != null && row.getMediaAsset().getSecureUrl() != null
+                    ? row.getMediaAsset().getSecureUrl()
+                    : row.getTen();
+            if (url != null && !url.isBlank()) gallery.add(url);
+        }
+
+        String imageUrl = mediaStorageService.resolveUrl(entity.getMediaPrimary(), entity.getAnh());
+        if ((imageUrl == null || imageUrl.isBlank()) && !gallery.isEmpty()) {
+            imageUrl = gallery.get(0);
+        }
+
         return SanPhamChiTietResponse.builder()
                 .id(entity.getId())
                 .idSanPham(entity.getSanPham().getId())
-                .maSanPham(entity.getSanPham().getMaSanPham()) // ✅ thêm dòng này
+                .maSanPham(entity.getSanPham().getMaSanPham())
                 .tenSanPham(entity.getSanPham().getTenSanPham())
                 .idKichCo(entity.getKichCo().getId())
                 .tenKichCo(entity.getKichCo().getSoSize())
@@ -138,7 +197,10 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
                 .donGia(entity.getDonGia())
                 .ghiChu(entity.getGhiChu())
                 .trangThai(entity.getTrangThai())
-                .anh(entity.getAnh())
+                .anh(imageUrl)
+                .imageUrl(imageUrl)
+                .mediaPrimaryId(entity.getMediaPrimary() != null ? entity.getMediaPrimary().getId() : null)
+                .gallery(gallery)
                 .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Exception.ApiException;
+import com.vestshop.Service.CloudinaryMediaStorageService;
 import com.vestshop.Service.KhachHangChiTietService;
 import com.vestshop.Service.KhachHangService;
 import com.vestshop.dto.request.KhachHangRequest;
@@ -10,13 +11,9 @@ import com.vestshop.dto.response.KhachHangResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 @RestController
@@ -37,6 +34,7 @@ import java.util.*;
 public class KhachHangController {
     private final KhachHangChiTietService khachHangChiTietService;
     private final KhachHangService khachHangService;
+    private final CloudinaryMediaStorageService mediaStorageService;
 
     // ========= LIST / DETAIL =========
     @GetMapping
@@ -85,34 +83,9 @@ public class KhachHangController {
     }
 
     // ========= UPLOAD AVATAR =========
-    private static final String UPLOAD_DIR = "D:/2_DATN/vest-project-base/uploads/khachhang";
-
     @PostMapping("/upload-avatar")
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        try {
-            if (file == null || file.isEmpty()) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "File rỗng");
-            }
-
-            Files.createDirectories(Paths.get(UPLOAD_DIR));
-
-            String original = file.getOriginalFilename();
-            String ext = "";
-            if (StringUtils.hasText(original) && original.contains(".")) {
-                ext = original.substring(original.lastIndexOf('.'));
-            }
-
-            String name = System.currentTimeMillis() + "-" + UUID.randomUUID() + ext;
-            Path target = Paths.get(UPLOAD_DIR).resolve(name).normalize();
-            file.transferTo(target.toFile());
-
-            String url = "/uploads/khachhang/" + name;
-            return ResponseEntity.ok(Map.of("url", url));
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload ảnh thất bại: " + e.getMessage());
-        }
+        return ResponseEntity.ok(mediaStorageService.uploadImage(file, "vestshop/customers/avatar"));
     }
     @GetMapping("/{id}/stats")
     public KhachHangChiTietResponse stats(@PathVariable Long id,

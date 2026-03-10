@@ -5,6 +5,7 @@ import com.vestshop.Entity.QuyenHan;
 import com.vestshop.Exception.ApiException;
 import com.vestshop.Repository.NhanVienRepository;
 import com.vestshop.Repository.QuyenHanRepository;
+import com.vestshop.Service.CloudinaryMediaStorageService;
 import com.vestshop.Service.EmailService;
 import com.vestshop.Service.NhanVienService;
 import com.vestshop.Util.CredentialUtil;
@@ -25,6 +26,7 @@ public class NhanVienServiceImpl implements NhanVienService {
     private final NhanVienRepository nhanVienRepository;
     private final QuyenHanRepository quyenHanRepository;
     private final EmailService emailService;
+    private final CloudinaryMediaStorageService mediaStorageService;
 
     private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
     private static final int USERNAME_MAX_LEN = 80;
@@ -167,7 +169,8 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .ngayTao(now)
                 .ngayCapNhat(now)
                 .trangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE)
-                .anhDaiDien(normalizeAvatar(request.getAnhDaiDien()))
+                .mediaAvatar(mediaStorageService.getOptional(request.getMediaAvatarId()))
+                .anhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(mediaStorageService.getOptional(request.getMediaAvatarId()), request.getAnhDaiDien())))
                 .build();
 
         NhanVien saved = nhanVienRepository.save(nv);
@@ -233,8 +236,10 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (request.getDiaChi() != null) nv.setDiaChi(request.getDiaChi());
         if (request.getTrangThai() != null) nv.setTrangThai(request.getTrangThai());
 
-        if (request.getAnhDaiDien() != null) {
-            nv.setAnhDaiDien(normalizeAvatar(request.getAnhDaiDien()));
+        if (request.getAnhDaiDien() != null || request.getMediaAvatarId() != null) {
+            var mediaAvatar = mediaStorageService.getOptional(request.getMediaAvatarId());
+            nv.setMediaAvatar(mediaAvatar);
+            nv.setAnhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(mediaAvatar, request.getAnhDaiDien())));
         }
 
         nv.setNgayCapNhat(LocalDateTime.now());
@@ -269,7 +274,9 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .ngayTao(nv.getNgayTao())
                 .ngayCapNhat(nv.getNgayCapNhat())
                 .trangThai(nv.getTrangThai())
-                .anhDaiDien(normalizeAvatar(nv.getAnhDaiDien()))
+                .anhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(nv.getMediaAvatar(), nv.getAnhDaiDien())))
+                .avatarUrl(normalizeAvatar(mediaStorageService.resolveUrl(nv.getMediaAvatar(), nv.getAnhDaiDien())))
+                .mediaAvatarId(nv.getMediaAvatar() != null ? nv.getMediaAvatar().getId() : null)
                 .build();
     }
 

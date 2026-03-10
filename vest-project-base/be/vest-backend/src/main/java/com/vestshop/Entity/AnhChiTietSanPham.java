@@ -28,6 +28,13 @@ public class AnhChiTietSanPham {
     @Column(name="ten", nullable=false, length=500)
     private String ten;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_media_asset")
+    private MediaAsset mediaAsset;
+
+    @Column(name = "thu_tu_hien_thi")
+    private Integer thuTuHienThi;
+
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
 

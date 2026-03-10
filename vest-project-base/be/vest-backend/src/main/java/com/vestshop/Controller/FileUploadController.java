@@ -1,26 +1,23 @@
 package com.vestshop.Controller;
 
-import com.vestshop.Service.StorageService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.vestshop.Service.CloudinaryMediaStorageService;
+import com.vestshop.dto.response.UploadResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/upload")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class FileUploadController {
 
-    @Autowired
-    private StorageService storageService;
+    private final CloudinaryMediaStorageService mediaStorageService;
 
-    @PostMapping
-    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
-        String filename = storageService.store(file);
-        Map<String, String> response = new HashMap<>();
-        // Return relative URL that will be served by static resource handler
-        response.put("url", "/images/" + filename); 
-        return ResponseEntity.ok(response);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UploadResponse> uploadFile(@RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(mediaStorageService.uploadImage(file, "vestshop/products/variants"));
     }
 }

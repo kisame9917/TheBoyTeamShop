@@ -144,6 +144,7 @@ import http from "../../services/http";
 import { useToast } from "@/composables/useToast";
 import { useAuthStore } from "@/stores/auth";
 import { useShiftStore } from "@/stores/shift";
+import { resolveMediaUrl } from "@/utils/media";
 
 const route = useRoute();
 const router = useRouter();
@@ -193,6 +194,7 @@ function normalizeCustomer(x) {
     taiKhoan: x.taiKhoan ?? x.tai_khoan ?? "",
     trangThai: x.trangThai ?? x.trang_thai ?? true,
     anhDaiDien: x.anhDaiDien ?? x.anh_dai_dien ?? "",
+    mediaAvatarId: x.mediaAvatarId ?? x.idMediaAvatar ?? x.id_media_avatar ?? null,
     diaChi: x.diaChi ?? "",
     diaChiMacDinh: x.diaChiMacDinh ?? null,
   };
@@ -228,32 +230,8 @@ function getInitials(name) {
 }
 
 /** ===== Avatar URL ===== */
-const FALLBACK_BACKEND = "http://localhost:8080";
-
-function getBackendOrigin() {
-  const base = String((http && http.defaults && http.defaults.baseURL) || "").trim();
-  if (base.startsWith("http://") || base.startsWith("https://")) {
-    try {
-      return new URL(base).origin;
-    } catch {
-      return FALLBACK_BACKEND;
-    }
-  }
-  return FALLBACK_BACKEND;
-}
-
-function resolveFileUrl(url) {
-  const u = String(url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image")) return u;
-  const origin = getBackendOrigin();
-  return u.startsWith("/") ? origin + u : origin + "/" + u;
-}
-
 function resolveAvatar(c) {
-  const url = String(c?.anhDaiDien || "").trim();
-  if (!url) return "";
-  return resolveFileUrl(url);
+  return resolveMediaUrl(c?.anhDaiDien || c?.avatarUrl || c?.mediaAsset || "");
 }
 
 function onAvatarError(e, c) {
