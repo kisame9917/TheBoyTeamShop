@@ -11,7 +11,7 @@ public interface LichSuThanhToanRepository extends JpaRepository<LichSuThanhToan
 
     // (optional) giữ lại cũng được
     List<LichSuThanhToan> findAllByHoaDon_IdOrderByNgayThanhToanDesc(Long hoaDonId);
-
+    boolean existsByHoaDon_Id(Long hoaDonId);
     @Query("""
     select lstt
     from LichSuThanhToan lstt

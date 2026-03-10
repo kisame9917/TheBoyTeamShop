@@ -199,18 +199,34 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         gdtt.setDuLieuPhanHoi(trim(request.getGhiChu()));
         gdtt.setTrangThai(true);
         gdtt.setThoiGianCapNhat(LocalDateTime.now());
-
         giaoDichThanhToanRepository.save(gdtt);
+
+        PhuongThucThanhToan pttt = gdtt.getPhuongThucThanhToan();
+        if (pttt == null) {
+            pttt = phuongThucThanhToanRepository
+                    .findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue("QR")
+                    .orElseGet(() -> phuongThucThanhToanRepository
+                            .findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue("CK")
+                            .orElseGet(() -> phuongThucThanhToanRepository
+                                    .findFirstByHinhThucAndTrangThaiTrue(2)
+                                    .orElse(null)));
+        }
 
         LichSuThanhToan lichSu = new LichSuThanhToan();
         lichSu.setHoaDon(hoaDon);
         lichSu.setMaGiaoDich(trim(request.getMaGiaoDich()));
         lichSu.setSoTien(soTien);
         lichSu.setNgayThanhToan(LocalDateTime.now());
-        lichSu.setHinhThucThanhToan("QR");
+
+        if (pttt != null) {
+            lichSu.setPhuongThucThanhToan(pttt);
+            lichSu.setHinhThucThanhToan(pttt.getTenPhuongThucThanhToan());
+        } else {
+            lichSu.setHinhThucThanhToan("QR");
+        }
+
         lichSu.setGhiChu(trim(request.getGhiChu()));
         lichSu.setTrangThai(true);
-
         lichSuThanhToanRepository.save(lichSu);
 
         hoaDon.setTrangThaiDon(0);
