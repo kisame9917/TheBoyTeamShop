@@ -741,7 +741,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setNhanVien(nv != null ? nv : hd.getNhanVien());
         hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
         hoaDonRepository.save(hd);
-
+        if (isOnlineCodNeedPaymentHistory(hd, newSt)) {
+            createCodPaymentHistoryIfNeeded(hd);
+        }
         LichSuHoaDon ls = new LichSuHoaDon();
         ls.setHoaDon(hd);
         ls.setHanhDong("Cập nhật trạng thái: " + oldSt.getTen() + " -> " + newSt.getTen());
@@ -799,6 +801,42 @@ public class HoaDonServiceImpl implements HoaDonService {
         lichSuHoaDonRepository.save(ls);
 
         return buildDetail(hd);
+    }
+
+    private void createCodPaymentHistoryIfNeeded(HoaDon hd) {
+        if (hd == null || hd.getId() == null) return;
+
+        if (lichSuThanhToanRepository.existsByHoaDon_Id(hd.getId())) {
+            return;
+        }
+
+        PhuongThucThanhToan pttt = phuongThucThanhToanRepository
+                .findFirstByHinhThucAndTrangThaiTrue(1)
+                .orElse(null);
+
+        LichSuThanhToan payHis = new LichSuThanhToan();
+        payHis.setHoaDon(hd);
+        payHis.setMaGiaoDich(null);
+        payHis.setSoTien(hd.getTongTienSauGiam() == null ? BigDecimal.ZERO : hd.getTongTienSauGiam());
+        payHis.setNgayThanhToan(LocalDateTime.now());
+
+        if (pttt != null) {
+            payHis.setPhuongThucThanhToan(pttt);
+            payHis.setHinhThucThanhToan(pttt.getTenPhuongThucThanhToan());
+        } else {
+            payHis.setHinhThucThanhToan("COD");
+        }
+
+        payHis.setGhiChu("Thanh toán khi nhận hàng");
+        payHis.setTrangThai(true);
+
+        lichSuThanhToanRepository.save(payHis);
+    }
+
+    private boolean isOnlineCodNeedPaymentHistory(HoaDon hd, TrangThaiDonHang newSt) {
+        if (hd == null || newSt == null) return false;
+        return Boolean.TRUE.equals(hd.getLoaiDon())
+                && newSt == TrangThaiDonHang.HOAN_THANH;
     }
 
     private HoaDonDetailResponse buildDetail(HoaDon hd) {
