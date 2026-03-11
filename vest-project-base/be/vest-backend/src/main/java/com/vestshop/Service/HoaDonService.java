@@ -39,4 +39,6 @@ public interface HoaDonService {
     TaohoadonResponse createDraft(TaoHoaDonChoXacNhanRequest req);
     HoaDonDetailResponse checkoutDraft(Long hoaDonId, BanHangRequest req);
     void cancelDraft(Long hoaDonId, CancelDraftRequest req);
+    List<HoaDonDetailResponse> getPosDrafts();
+    HoaDonDetailResponse syncPosDraft(Long hoaDonId, PosDraftSyncRequest req);
 }

@@ -3,6 +3,7 @@ package com.vestshop.Service.impl;
 import com.vestshop.Entity.*;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.HoaDonService;
+import com.vestshop.Service.PosRealtimeService;
 import com.vestshop.common.TrangThaiDonHang;
 import com.vestshop.dto.request.*;
 import com.vestshop.dto.response.*;
@@ -34,7 +35,7 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final KhachHangRepository khachHangRepository;
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
     private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
-
+    private final PosRealtimeService posRealtimeService;
 //    @Override
 //    @Transactional
 //    public HoaDonDetailResponse createPos(BanHangRequest req) {
@@ -255,6 +256,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setTrangThai(true);
 
         hd = hoaDonRepository.save(hd);
+
+        // cai nay cua anh nhe
+        posRealtimeService.pushUpsert(buildDetail(hd));
 
         return new TaohoadonResponse(hd.getId(), hd.getMaHoaDon(), hd.getTrangThaiDon());
     }
@@ -486,7 +490,9 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         lichSuThanhToanRepository.saveAndFlush(payHis);
 
-        return buildDetail(hd);
+        HoaDonDetailResponse detail = buildDetail(hd);
+        posRealtimeService.pushRemove(hd.getId());
+        return detail;
     }
 
 
@@ -549,6 +555,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
         lichSuHoaDonRepository.save(ls);
+        posRealtimeService.pushRemove(hd.getId());
     }
     @Override
     @Transactional(readOnly = true)
@@ -943,5 +950,131 @@ public class HoaDonServiceImpl implements HoaDonService {
             sb.append(x);
         }
         return sb.toString();
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<HoaDonDetailResponse> getPosDrafts() {
+        return hoaDonRepository.findAll().stream()
+                .filter(hd -> hd.getTrangThaiDon() != null && hd.getTrangThaiDon() == 0)
+                .filter(HoaDon::getTrangThai)
+                .sorted((a, b) -> b.getNgayTao().compareTo(a.getNgayTao()))
+                .map(this::buildDetail)
+                .toList();
+    }
+    @Override
+    @Transactional
+    public HoaDonDetailResponse syncPosDraft(Long hoaDonId, PosDraftSyncRequest req) {
+        HoaDon hd = hoaDonRepository.findById(hoaDonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hóa đơn không tồn tại"));
+
+        if (hd.getTrangThaiDon() == null || hd.getTrangThaiDon() != 0) {
+            throw new IllegalArgumentException("Chỉ sync hóa đơn nháp");
+        }
+
+        hoaDonChiTietRepository.deleteByHoaDonId(hoaDonId);
+
+        if (req.getItems() == null || req.getItems().isEmpty()) {
+            hd.setTongTien(BigDecimal.ZERO);
+            hd.setTongTienGiam(BigDecimal.ZERO);
+            hd.setTongTienSauGiam(BigDecimal.ZERO);
+            hd.setPhiVanChuyen(BigDecimal.ZERO);
+            hoaDonRepository.save(hd);
+
+            HoaDonDetailResponse res = buildDetail(hd);
+            posRealtimeService.pushUpsert(res);
+            return res;
+        }
+
+        Map<Long, Integer> buyMap = new HashMap<>();
+        for (PosDraftSyncRequest.Item it : req.getItems()) {
+            if (it == null || it.getIdSanPhamChiTiet() == null) continue;
+            int qty = it.getSoLuong() == null ? 0 : it.getSoLuong();
+            if (qty <= 0) continue;
+            buyMap.merge(it.getIdSanPhamChiTiet(), qty, Integer::sum);
+        }
+
+        List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(buyMap.keySet());
+        if (spcts.size() != buyMap.size()) {
+            throw new IllegalArgumentException("Có sản phẩm không tồn tại");
+        }
+
+        BigDecimal tongTien = BigDecimal.ZERO;
+        for (SanPhamChiTiet spct : spcts) {
+            int sl = buyMap.get(spct.getId());
+            BigDecimal donGia = spct.getDonGia() == null ? BigDecimal.ZERO : spct.getDonGia();
+            tongTien = tongTien.add(donGia.multiply(BigDecimal.valueOf(sl)));
+        }
+
+        BigDecimal tongTienGiam = BigDecimal.ZERO;
+        Long voucherId = req.getIdPhieuGiamGia() != null ? req.getIdPhieuGiamGia() : req.getPggId();
+
+        if (voucherId != null) {
+            PhieuGiamGia pgg = phieuGiamGiaRepository.findById(voucherId).orElse(null);
+            if (pgg != null && !Boolean.FALSE.equals(pgg.getTrangThai())) {
+                BigDecimal min = pgg.getDonHangToiThieu() == null ? BigDecimal.ZERO : pgg.getDonHangToiThieu();
+                if (tongTien.compareTo(min) >= 0) {
+                    BigDecimal pt = pgg.getGiaTriPhanTram();
+                    if (pt != null && pt.compareTo(BigDecimal.ZERO) > 0) {
+                        if (pt.compareTo(BigDecimal.ONE) <= 0) tongTienGiam = tongTien.multiply(pt);
+                        else tongTienGiam = tongTien.multiply(pt).divide(BigDecimal.valueOf(100));
+
+                        BigDecimal cap = pgg.getGiaTriGiamToiDa();
+                        if (cap != null && cap.compareTo(BigDecimal.ZERO) > 0 && tongTienGiam.compareTo(cap) > 0) {
+                            tongTienGiam = cap;
+                        }
+                    } else {
+                        BigDecimal tm = pgg.getGiaTriTienMat();
+                        tongTienGiam = tm == null ? BigDecimal.ZERO : tm;
+                    }
+                    hd.setPhieuGiamGia(pgg);
+                }
+            }
+        } else {
+            int p = req.getGiamThuCongPercent() == null ? 0 : Math.max(0, Math.min(100, req.getGiamThuCongPercent()));
+            tongTienGiam = tongTien.multiply(BigDecimal.valueOf(p)).divide(BigDecimal.valueOf(100));
+            hd.setPhieuGiamGia(null);
+        }
+
+        if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
+        BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
+        if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
+
+        hd.setLoaiDon(Boolean.TRUE.equals(req.getLoaiDon()));
+        hd.setPhiVanChuyen(req.getPhiVanChuyen() == null ? BigDecimal.ZERO : req.getPhiVanChuyen());
+
+        hd.setTenKhachHang(req.getTenKhachHang());
+        hd.setSoDienThoai(req.getSoDienThoai());
+        hd.setEmailKhachHang(req.getEmailKhachHang());
+        hd.setDiaChiKhachHang(req.getDiaChiKhachHang());
+        hd.setGhiChu(req.getGhiChu());
+
+        hd.setTenNguoiNhanHang(req.getTenNguoiNhanHang());
+        hd.setSoDienThoaiNhanHang(req.getSoDienThoaiNhanHang());
+        hd.setTinhThanhNhanHang(req.getTinhThanhNhanHang());
+        hd.setQuanHuyenNhanHang(req.getQuanHuyenNhanHang());
+        hd.setPhuongXaNhanHang(req.getPhuongXaNhanHang());
+        hd.setDiaChiNhanHangChiTiet(req.getDiaChiNhanHangChiTiet());
+
+        hd.setTongTien(tongTien);
+        hd.setTongTienGiam(tongTienGiam);
+        hd.setTongTienSauGiam(tongTienSauGiam);
+        hd.setNgayCapNhat(LocalDateTime.now());
+
+        hoaDonRepository.save(hd);
+
+        for (SanPhamChiTiet spct : spcts) {
+            HoaDonChiTiet ct = new HoaDonChiTiet();
+            ct.setHoaDon(hd);
+            ct.setSanPhamChiTiet(spct);
+            ct.setSoLuong(buyMap.get(spct.getId()));
+            ct.setNgayTao(LocalDateTime.now());
+            ct.setNguoiTao("system");
+            ct.setTrangThai(true);
+            hoaDonChiTietRepository.save(ct);
+        }
+
+        HoaDonDetailResponse res = buildDetail(hd);
+        posRealtimeService.pushUpsert(res);
+        return res;
     }
 }

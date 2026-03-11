@@ -111,4 +111,16 @@ public class HoaDonController {
                                            @RequestBody BanHangRequest req) {
         return ResponseEntity.ok(hoaDonService.checkoutDraft(id, req));
     }
+    @GetMapping("/drafts/pos-active")
+    public ResponseEntity<List<HoaDonDetailResponse>> getPosDrafts() {
+        return ResponseEntity.ok(hoaDonService.getPosDrafts());
+    }
+
+    @PostMapping("/draft/{id}/sync-pos")
+    public ResponseEntity<HoaDonDetailResponse> syncPosDraft(
+            @PathVariable Long id,
+            @RequestBody PosDraftSyncRequest req
+    ) {
+        return ResponseEntity.ok(hoaDonService.syncPosDraft(id, req));
+    }
 }
