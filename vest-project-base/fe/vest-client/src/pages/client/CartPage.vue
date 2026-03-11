@@ -241,57 +241,39 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref , onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
-
+import { getProducts } from "../../services/productClientApi"; // sửa đúng path service của bạn
 const router = useRouter();
 const { items, totalQty, subtotal, removeItem, updateQty } = useCart();
 
 const confirmOpen = ref(false);
 const pendingKey = ref(null);
+const relatedProducts = ref([]);
 
-const relatedProducts = [
-  {
-    name: "Vest nam xanh than lịch lãm",
-    desc: "Thiết kế hiện đại, dễ mặc trong nhiều dịp.",
-    price: 1799999,
-    image:
-        items.value?.[0]?.image ||
+onMounted(async () => {
+  try {
+    const res = await getProducts({ page: 0, size: 1000 });
+    const raw = res?.data?.content || res?.data || [];
+
+    relatedProducts.value = raw.map((p) => ({
+      name: p.tenSanPham || p.ten || "Sản phẩm",
+      desc: p.moTaNgan || p.moTa || "Sản phẩm phù hợp với phong cách của bạn.",
+      price: p.giaBan || p.donGia || 0,
+      image:
+        p.anh ||
+        p.image ||
+        p.hinhAnh ||
         "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E",
-    link: "/search",
-  },
-  {
-    name: "Vest trắng phối đen cao cấp",
-    desc: "Phong cách sang trọng, nổi bật và trẻ trung.",
-    price: 1599999,
-    image:
-        items.value?.[1]?.image ||
-        items.value?.[0]?.image ||
-        "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E",
-    link: "/search",
-  },
-  {
-    name: "Vest công sở form chuẩn",
-    desc: "Dễ phối áo sơ mi, phù hợp môi trường công sở.",
-    price: 1899999,
-    image:
-        items.value?.[2]?.image ||
-        items.value?.[0]?.image ||
-        "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E",
-    link: "/search",
-  },
-  {
-    name: "Vest dự tiệc tone sáng",
-    desc: "Phù hợp tiệc cưới, sự kiện, chụp hình.",
-    price: 1699999,
-    image:
-        items.value?.[0]?.image ||
-        "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E",
-    link: "/search",
-  },
-];
+      link: `/product/${p.id}`,
+    }));
+  } catch (e) {
+    console.error(e);
+    relatedProducts.value = [];
+  }
+});
 
 function askRemove(it) {
   pendingKey.value = it?.key || it?.idSanPhamChiTiet || null;
@@ -527,26 +509,12 @@ function checkout() {
   flex-wrap: wrap;
 }
 
-.btn-continue,
-.btn-checkout,
-.summary-btn {
-  min-height: 50px;
-  border-radius: 16px;
-  padding: 0 24px;
-  font-weight: 750;
-  transition: all 0.2s ease;
+.btn-checkout:hover:not(:disabled),
+.summary-btn:hover:not(:disabled) {
+  background: #001a72;
+  transform: translateY(-1px);
 }
 
-.btn-continue {
-  border: 1px solid #d8dfec;
-  background: #fff;
-  color: #0f172a;
-}
-
-.btn-continue:hover {
-  border-color: #001a72;
-  color: #001a72;
-}
 
 .btn-checkout,
 .summary-btn {
@@ -762,7 +730,7 @@ function checkout() {
   min-height: 38px;
   padding: 0 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #000f51 0%, #0f2c9c 100%);
+  background: #000f51;
   color: #fff;
   text-decoration: none;
   display: inline-flex;
@@ -770,6 +738,12 @@ function checkout() {
   justify-content: center;
   font-weight: 750;
   font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.related-cart-item__btn:hover {
+  background: #001a72;
+  color: #fff;
 }
 
 @media (max-width: 991.98px) {
@@ -786,5 +760,32 @@ function checkout() {
   .related-cart-item__img {
     height: 220px;
   }
+}
+.btn-continue,
+.btn-checkout,
+.summary-btn {
+  min-height: 50px;
+  border-radius: 16px;
+  padding: 0 24px;
+  font-weight: 750;
+  transition: all 0.2s ease;
+  border: none;
+  background: #000f51;
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+}
+
+.btn-continue:hover,
+.btn-checkout:hover:not(:disabled),
+.summary-btn:hover:not(:disabled) {
+  background: #001a72;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-checkout:disabled,
+.summary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

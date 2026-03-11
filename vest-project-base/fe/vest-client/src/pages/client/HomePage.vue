@@ -315,7 +315,7 @@ async function fetchProducts() {
     loading.value = true;
     error.value = '';
 
-    const data = await getProducts({ page: 0, size: 10 });
+const data = await getProducts({ page: 0, size: 1000 });
 
     const raw = Array.isArray(data?.content)
         ? data.content
@@ -327,7 +327,7 @@ async function fetchProducts() {
                     ? data
                     : [];
 
-    const sorted = sortNewestFirst(raw).slice(0, 10);
+  const sorted = sortNewestFirst(raw);
 
     const enriched = await Promise.all(
         sorted.map(async (item) => {
@@ -511,18 +511,22 @@ onBeforeUnmount(() => stopAuto());
 
 .hero-btn--primary {
   border: none;
-  background: #fff;
-  color: #000f51;
+  background: #000f51;
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
 }
 
 .hero-btn--outline {
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  background: transparent;
+  border: 1px solid #000f51;
+  background: #000f51;
   color: #fff;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
 }
 
 .hero-btn--primary:hover,
 .hero-btn--outline:hover {
+  background: #001a72;
+  color: #fff;
   transform: translateY(-2px);
 }
 
@@ -627,16 +631,18 @@ onBeforeUnmount(() => stopAuto());
   min-height: 46px;
   padding: 0 20px;
   border-radius: 14px;
-  border: 1px solid #d8dfec;
-  background: #fff;
-  color: #0f172a;
+  border: 1px solid #000f51;
+  background: #000f51;
+  color: #fff;
   font-weight: 750;
   transition: all 0.25s ease;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
 }
 
 .section-btn:hover {
+  background: #001a72;
   border-color: #001a72;
-  color: #001a72;
+  color: #fff;
 }
 
 .product-card {
@@ -747,16 +753,22 @@ onBeforeUnmount(() => stopAuto());
   color: rgba(255, 255, 255, 0.84);
   max-width: 520px;
   margin-bottom: 22px;
-}
+} 
 
 .mid-banner__btn {
   min-height: 48px;
   padding: 0 22px;
   border-radius: 14px;
   border: none;
-  background: #fff;
-  color: #000f51;
+  background: #000f51;
+  color: #fff;
   font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.25s ease;
+}
+
+.mid-banner__btn:hover {
+  background: #001a72;
 }
 
 .mid-banner__image-wrap {

@@ -57,7 +57,7 @@
                 <div class="price-note">Giá bán lẻ tại cửa hàng</div>
               </div>
 
-              <div class="stock-line" v-if="selectedVariant">
+              <!-- <div class="stock-line" v-if="selectedVariant">
                 <span
                     class="stock-badge"
                     :class="{ out: (selectedVariant.stock ?? 0) <= 0 }"
@@ -68,27 +68,27 @@
                         : "Hết hàng"
                   }}
                 </span>
-              </div>
+              </div> -->
 
               <div class="desc-box" v-if="productDescription">
                 {{ productDescription }}
               </div>
 
-              <div class="variant-section" v-if="availableColors.length">
-                <div class="variant-label">Màu sắc</div>
-                <div class="variant-options">
-                  <button
-                      v-for="color in availableColors"
-                      :key="color"
-                      type="button"
-                      class="variant-btn"
-                      :class="{ active: selectedColor === color }"
-                      @click="selectColor(color)"
-                  >
-                    {{ color }}
-                  </button>
-                </div>
-              </div>
+             <div class="variant-section" v-if="availableColors.length">
+  <div class="variant-label">Màu sắc</div>
+  <div class="variant-options">
+    <button
+      v-for="color in availableColors"
+      :key="color"
+      type="button"
+      class="variant-btn color-swatch-btn"
+      :class="{ active: selectedColor === color }"
+      :title="color"
+      @click="selectColor(color)"
+      :style="{ backgroundColor: getColorCode(color) }"
+    ></button>
+  </div>
+</div>
 
               <div class="variant-section" v-if="availableSizes.length">
                 <div class="variant-label">Kích thước</div>
@@ -373,12 +373,57 @@ const productDescription = computed(() => {
 function normalizeImage(value) {
   return resolveMediaUrl(value) || fallbackImage;
 }
+function normalizeColorName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-function normalizeColorName(raw) {
-  if (!raw) return "";
-  if (typeof raw === "string") return raw;
+const COLOR_MAP = {
+  den: "#111827",
+  trang: "#ffffff",
+  xam: "#9ca3af",
+  ghi: "#9ca3af",
+  do: "#ef4444",
+  vang: "#f59e0b",
+  cam: "#f97316",
+  hong: "#ec4899",
+  tim: "#a855f7",
+  nau: "#92400e",
+  be: "#f5f5dc",
+  kem: "#fff7ed",
+  "xanh la": "#22c55e",
+  "xanh luc": "#16a34a",
+  "xanh ngoc": "#14b8a6",
+  "xanh duong": "#3b82f6",
+  "xanh navy": "#1e3a8a",
+  "xanh than": "#1e3a8a",
+  navy: "#1e3a8a",
+  cyan: "#06b6d4",
+};
 
-  return raw.tenMauSac || raw.mauSac || raw.name || raw.value || "";
+function getColorCode(colorName) {
+  if (!colorName) return "#d1d5db";
+  const key = normalizeColorName(colorName);
+  if (COLOR_MAP[key]) return COLOR_MAP[key];
+  if (key.includes("navy") || key.includes("than")) return COLOR_MAP["xanh navy"];
+  if (key.includes("xanh") && key.includes("la")) return COLOR_MAP["xanh la"];
+  if (key.includes("xanh") && key.includes("duong")) return COLOR_MAP["xanh duong"];
+  if (key.includes("do")) return COLOR_MAP.do;
+  if (key.includes("vang")) return COLOR_MAP.vang;
+  if (key.includes("cam")) return COLOR_MAP.cam;
+  if (key.includes("hong")) return COLOR_MAP.hong;
+  if (key.includes("tim")) return COLOR_MAP.tim;
+  if (key.includes("nau")) return COLOR_MAP.nau;
+  if (key.includes("trang")) return COLOR_MAP.trang;
+  if (key.includes("den")) return COLOR_MAP.den;
+  return "#3b82f6";
 }
 
 function normalizeSizeName(raw) {
@@ -387,24 +432,25 @@ function normalizeSizeName(raw) {
 
   return raw.tenKichCo || raw.kichCo || raw.size || raw.name || raw.value || "";
 }
-
 function mapVariant(v) {
   const colorName =
-      normalizeColorName(v.mauSac) ||
-      normalizeColorName(v.tenMauSac) ||
-      normalizeColorName(v.mau) ||
-      "";
+    (typeof v.mauSac === "object"
+      ? v.mauSac?.ten || v.mauSac?.name || ""
+      : v.mauSac) ||
+    v.tenMauSac ||
+    v.mau ||
+    "";
 
   const sizeName =
-      normalizeSizeName(v.kichCo) ||
-      normalizeSizeName(v.tenKichCo) ||
-      normalizeSizeName(v.size) ||
-      "";
+    normalizeSizeName(v.kichCo) ||
+    normalizeSizeName(v.tenKichCo) ||
+    normalizeSizeName(v.size) ||
+    "";
 
   const image =
-      pickVariantImage(v) ||
-      pickProductImage(product.value, [], fallbackImage) ||
-      fallbackImage;
+    pickVariantImage(v) ||
+    pickProductImage(product.value, [], fallbackImage) ||
+    fallbackImage;
 
   return {
     idSanPhamChiTiet: v.id,
@@ -864,31 +910,9 @@ onMounted(fetchProductDetail);
   transition: all 0.2s ease;
 }
 
-.btn-add-cart {
-  border: none;
-  background: linear-gradient(135deg, #000f51 0%, #0f2c9c 100%);
-  color: #fff;
-  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.2);
-}
-
-.btn-add-cart:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
 .btn-add-cart:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.btn-view-cart {
-  background: #fff;
-  color: #0f172a;
-  border: 1px solid #d9deea;
-}
-
-.btn-view-cart:hover {
-  border-color: #001a72;
-  color: #001a72;
 }
 
 .extra-info {
@@ -906,7 +930,30 @@ onMounted(fetchProductDetail);
   color: #475569;
   font-weight: 600;
 }
+.btn-add-cart {
+  border: none;
+  background: #000f51;
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.2);
+}
 
+.btn-add-cart:hover:not(:disabled) {
+  background: #001a72;
+  transform: translateY(-1px);
+}
+
+.btn-view-cart {
+  background: #000f51;
+  color: #fff;
+  border: 1px solid #000f51;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+}
+
+.btn-view-cart:hover {
+  background: #001a72;
+  border-color: #001a72;
+  color: #fff;
+}
 .extra-item i {
   color: #000f51;
   font-size: 16px;
@@ -1046,6 +1093,21 @@ onMounted(fetchProductDetail);
   }
 }
 
+
+.color-swatch-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+
+.color-swatch-btn.active {
+  outline: 2px solid #000f51;
+  outline-offset: 2px;
+}
 @media (max-width: 767.98px) {
   .product-title {
     font-size: 28px;

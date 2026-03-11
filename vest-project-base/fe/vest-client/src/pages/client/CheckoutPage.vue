@@ -419,17 +419,17 @@
           </div>
 
           <div class="qr-modal-footer">
-            <button class="btn btn-outline-secondary" type="button" @click="closeQrModal">
-              Đóng
-            </button>
-            <button
-                class="btn btn-dark"
-                type="button"
-                :disabled="confirmingQr"
-                @click="confirmQrPayment"
-            >
-              {{ confirmingQr ? "ĐANG XÁC NHẬN..." : "Tôi đã chuyển khoản" }}
-            </button>
+         <button class="btn-qr-close" type="button" @click="closeQrModal">
+  Đóng
+</button>
+<button
+    class="btn-qr-confirm"
+    type="button"
+    :disabled="confirmingQr"
+    @click="confirmQrPayment"
+>
+  {{ confirmingQr ? "ĐANG XÁC NHẬN..." : "Tôi đã chuyển khoản" }}
+</button>
           </div>
         </div>
       </div>
@@ -1272,10 +1272,15 @@ onMounted(() => {
   min-height: 48px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  background: #000f51;
   color: #fff;
   font-weight: 750;
   box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.coupon-btn:hover {
+  background: #001a72;
 }
 
 .invoice-row {
@@ -1289,10 +1294,15 @@ onMounted(() => {
   min-height: 52px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  background: #000f51;
   color: #fff;
   font-weight: 750;
   box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-order:hover:not(:disabled) {
+  background: #001a72;
 }
 
 .btn-order:disabled {
@@ -1601,9 +1611,14 @@ onMounted(() => {
 
 .btn-confirm {
   border: none;
-  background: linear-gradient(135deg, #0d6efd 0%, #2563eb 100%);
+  background: #000f51;
   color: #fff;
   box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #001a72;
 }
 
 .success-modal {
@@ -1647,5 +1662,40 @@ onMounted(() => {
 .success-note {
   color: #64748b;
   font-size: 14px;
+}
+.btn-qr-close,
+.btn-qr-confirm {
+  min-height: 44px;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-weight: 750;
+  transition: all 0.2s ease;
+}
+
+.btn-qr-close {
+  border: 1px solid #d8dfec;
+  background: #fff;
+  color: #0f172a;
+}
+
+.btn-qr-close:hover {
+  border-color: #001a72;
+  color: #001a72;
+}
+
+.btn-qr-confirm {
+  border: none;
+  background: #000f51;
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+}
+
+.btn-qr-confirm:hover:not(:disabled) {
+  background: #001a72;
+}
+
+.btn-qr-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
