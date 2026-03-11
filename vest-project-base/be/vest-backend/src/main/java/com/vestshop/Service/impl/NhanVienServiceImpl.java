@@ -106,9 +106,9 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (nhanVienRepository.existsByEmail(request.getEmail())) {
             throw new ApiException(HttpStatus.CONFLICT, "Email đã tồn tại");
         }
-        if (request.getCccd() != null && nhanVienRepository.existsByCccd(request.getCccd())) {
-            throw new ApiException(HttpStatus.CONFLICT, "CCCD đã tồn tại");
-        }
+//        if (request.getCccd() != null && nhanVienRepository.existsByCccd(request.getCccd())) {
+//            throw new ApiException(HttpStatus.CONFLICT, "CCCD đã tồn tại");
+//        }
         if (request.getSoDienThoai() != null && nhanVienRepository.existsBySoDienThoai(request.getSoDienThoai())) {
             throw new ApiException(HttpStatus.CONFLICT, "Số điện thoại đã tồn tại");
         }
@@ -159,7 +159,7 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .maNhanVien(request.getMaNhanVien())
                 .tenNhanVien(request.getTenNhanVien())
                 .soDienThoai(request.getSoDienThoai())
-                .cccd(request.getCccd())
+//                .cccd(request.getCccd())
                 .email(request.getEmail())
                 .taiKhoan(generatedTaiKhoan)
                 .matKhau(generatedMatKhau)
@@ -216,12 +216,12 @@ public class NhanVienServiceImpl implements NhanVienService {
             nv.setEmail(request.getEmail());
         }
 
-        if (request.getCccd() != null && !request.getCccd().equals(nv.getCccd())) {
-            nhanVienRepository.findByCccd(request.getCccd())
-                    .filter(other -> !other.getId().equals(id))
-                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "CCCD đã tồn tại"); });
-            nv.setCccd(request.getCccd());
-        }
+//        if (request.getCccd() != null && !request.getCccd().equals(nv.getCccd())) {
+//            nhanVienRepository.findByCccd(request.getCccd())
+//                    .filter(other -> !other.getId().equals(id))
+//                    .ifPresent(other -> { throw new ApiException(HttpStatus.CONFLICT, "CCCD đã tồn tại"); });
+//            nv.setCccd(request.getCccd());
+//        }
 
         if (request.getSoDienThoai() != null && !request.getSoDienThoai().equals(nv.getSoDienThoai())) {
             nhanVienRepository.findBySoDienThoai(request.getSoDienThoai())
@@ -264,7 +264,7 @@ public class NhanVienServiceImpl implements NhanVienService {
                 .maNhanVien(nv.getMaNhanVien())
                 .tenNhanVien(nv.getTenNhanVien())
                 .soDienThoai(nv.getSoDienThoai())
-                .cccd(nv.getCccd())
+//                .cccd(nv.getCccd())
                 .email(nv.getEmail())
                 .taiKhoan(nv.getTaiKhoan())
                 .ngaySinh(nv.getNgaySinh())

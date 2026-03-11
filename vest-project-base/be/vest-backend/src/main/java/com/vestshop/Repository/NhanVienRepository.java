@@ -16,13 +16,13 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Long> {
     @EntityGraph(attributePaths = "quyenHan")
     Optional<NhanVien> findByTaiKhoan(String taiKhoan);
     Optional<NhanVien> findByEmail(String email);
-    Optional<NhanVien> findByCccd(String cccd);
+//    Optional<NhanVien> findByCccd(String cccd);
     Optional<NhanVien> findBySoDienThoai(String soDienThoai);
 
     boolean existsByMaNhanVien(String maNhanVien);
     boolean existsByTaiKhoan(String taiKhoan);
     boolean existsByEmail(String email);
-    boolean existsByCccd(String cccd);
+//    boolean existsByCccd(String cccd);
     boolean existsBySoDienThoai(String soDienThoai);
 
     @Query(value = """

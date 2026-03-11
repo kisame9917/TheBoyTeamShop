@@ -19,7 +19,7 @@ public class NhanVienResponse {
     private String maNhanVien;
     private String tenNhanVien;
     private String soDienThoai;
-    private String cccd;
+//    private String cccd;
     private String email;
     private String taiKhoan;
 

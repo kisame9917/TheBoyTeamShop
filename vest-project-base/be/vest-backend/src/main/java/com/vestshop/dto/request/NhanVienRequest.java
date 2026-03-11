@@ -31,8 +31,8 @@ public class NhanVienRequest {
     @Size(max = 20)
     private String soDienThoai;
 
-    @Size(max = 20)
-    private String cccd;
+//    @Size(max = 20)
+//    private String cccd;
 
     @Email
     @Size(max = 255)

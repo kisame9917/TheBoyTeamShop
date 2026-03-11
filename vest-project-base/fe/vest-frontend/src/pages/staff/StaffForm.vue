@@ -1,26 +1,47 @@
 <template>
   <div class="container-fluid py-3">
-    <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-person-badge fs-4"></i>
         <h5 class="mb-0">{{ isEdit ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h5>
       </div>
-      <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
-        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
-      </button>
+
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm" @click="openScanModal">
+          <i class="bi bi-qr-code-scan me-1"></i> Quét QR CCCD
+        </button>
+
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+          <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+        </button>
+      </div>
     </div>
 
-    <!-- Form card -->
-    <div class="card shadow-sm">
+    <div class="card shadow-sm staff-form-card">
       <div class="card-body">
-        <!-- Avatar centered -->
-        <div class="d-flex flex-column align-items-center mb-3">
+        <div class="avatar-top">
           <div class="avatar-wrap" @click="triggerPickFile" title="Bấm để chọn ảnh">
-            <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="avatar" @error="onAvatarImgError" />
+            <img
+                v-if="avatarPreview"
+                :src="avatarPreview"
+                class="avatar-img"
+                alt="avatar"
+                @error="onAvatarImgError"
+            />
             <div v-else class="avatar-fallback">NV</div>
-            <button v-if="avatarPreview" type="button" class="avatar-remove" @click.stop="clearAvatar" title="Xóa ảnh">×</button>
+
+            <button
+                v-if="avatarPreview"
+                type="button"
+                class="avatar-remove"
+                @click.stop="clearAvatar"
+                title="Xóa ảnh"
+            >
+              ×
+            </button>
+
             <div v-if="uploading" class="avatar-uploading">⏳</div>
+
             <input
                 ref="fileInput"
                 class="avatar-input"
@@ -36,13 +57,11 @@
 
         <form @submit.prevent="submit">
           <div class="row g-3">
-            <!-- 1) Mã nhân viên -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Mã nhân viên</label>
               <input class="form-control" v-model="form.maNhanVien" disabled />
             </div>
 
-            <!-- 2) Chức vụ -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Chức vụ</label>
               <select class="form-select" v-model="form.quyenHanKey" :disabled="!isAdmin">
@@ -51,16 +70,14 @@
               </select>
             </div>
 
-            <!-- 3) Tên nhân viên -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Tên nhân viên</label>
               <input class="form-control" v-model="form.tenNhanVien" />
             </div>
 
-            <!-- 4) Giới tính -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Giới tính</label>
-              <div class="d-flex flex-wrap gap-3 mt-2">
+              <div class="gender-box">
                 <div class="form-check">
                   <input class="form-check-input" type="radio" id="gt_nam" v-model="form.gioiTinh" :value="true" />
                   <label class="form-check-label" for="gt_nam">Nam</label>
@@ -73,25 +90,16 @@
               </div>
             </div>
 
-            <!-- 5) Số điện thoại -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Số điện thoại</label>
               <input class="form-control" v-model="form.soDienThoai" placeholder="Chỉ nhập số" />
             </div>
 
-            <!-- 6) Email -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Email</label>
               <input class="form-control" v-model="form.email" placeholder="Email" />
             </div>
 
-            <!-- 7) CCCD -->
-            <div class="col-12 col-lg-6">
-              <label class="form-label">Căn cước công dân</label>
-              <input class="form-control" v-model="form.cccd" placeholder="Chỉ nhập số" />
-            </div>
-
-            <!-- 8) Ngày sinh (✅ nhập tay + mở lịch đúng vị trí) -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Ngày sinh</label>
 
@@ -107,7 +115,6 @@
                     @keyup.enter="commitDobText"
                 />
 
-                <!-- input date thật để show picker (KHÔNG display:none) -->
                 <input
                     ref="dobPickerRef"
                     type="date"
@@ -119,51 +126,55 @@
                 <button class="btn btn-outline-secondary" type="button" @click="openDobPicker" title="Chọn ngày">
                   <i class="bi bi-calendar3"></i>
                 </button>
+
                 <button class="btn btn-outline-secondary" type="button" @click="clearDob" title="Xóa">
                   <i class="bi bi-x-lg"></i>
                 </button>
               </div>
             </div>
 
-            <!-- 9) Tỉnh/Thành phố -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Tỉnh/Thành phố</label>
               <select class="form-select" v-model="addr.provinceCode" @change="onProvinceChange">
                 <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                <option v-for="p in provinces" :key="p.code" :value="String(p.code)">{{ p.name }}</option>
+                <option v-for="p in provinces" :key="p.code" :value="String(p.code)">
+                  {{ p.name }}
+                </option>
               </select>
             </div>
 
-            <!-- 10) Quận/Huyện -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Quận/Huyện</label>
-              <select class="form-select" v-model="addr.districtCode" @change="onDistrictChange" :disabled="!addr.provinceCode">
+              <select
+                  class="form-select"
+                  v-model="addr.districtCode"
+                  @change="onDistrictChange"
+                  :disabled="!addr.provinceCode"
+              >
                 <option value="">-- Chọn Quận/Huyện --</option>
-                <option v-for="d in districts" :key="d.code" :value="String(d.code)">{{ d.name }}</option>
+                <option v-for="d in districts" :key="d.code" :value="String(d.code)">
+                  {{ d.name }}
+                </option>
               </select>
             </div>
 
-            <!-- 11) Xã/Phường -->
             <div class="col-12 col-lg-6">
               <label class="form-label">Xã/Phường</label>
               <select class="form-select" v-model="addr.wardCode" :disabled="!addr.districtCode">
                 <option value="">-- Chọn Xã/Phường --</option>
-                <option v-for="w in wards" :key="w.code" :value="String(w.code)">{{ w.name }}</option>
+                <option v-for="w in wards" :key="w.code" :value="String(w.code)">
+                  {{ w.name }}
+                </option>
               </select>
             </div>
 
-            <!-- 12) Tên đường -->
-            <div class="col-12 col-lg-6">
+            <div class="col-12">
               <label class="form-label">Tên đường</label>
               <input class="form-control" v-model="addr.detail" placeholder="Số nhà, tên đường..." />
             </div>
 
-            <!-- 13) Tài khoản (tự động tạo) -->
             <div class="col-12 col-lg-6">
-              <label class="form-label">
-                Tài khoản
-                <!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
-              </label>
+              <label class="form-label">Tài khoản</label>
               <input
                   class="form-control"
                   v-model="form.taiKhoan"
@@ -172,12 +183,8 @@
               />
             </div>
 
-            <!-- 14) Mật khẩu (tự động tạo) -->
             <div class="col-12 col-lg-6">
-              <label class="form-label">
-                Mật khẩu
-                <!--                <span class="small text-muted ms-1">(tự động tạo)</span>-->
-              </label>
+              <label class="form-label">Mật khẩu</label>
               <input
                   class="form-control"
                   type="password"
@@ -188,10 +195,8 @@
             </div>
           </div>
 
-          <!-- ✅ BỎ alert đỏ dưới form -->
-
-          <div class="d-flex align-items-center justify-content-between gap-2 mt-3">
-            <div class="me-auto fst-italic">Vui lòng điền đầy đủ các thông tin.</div>
+          <div class="form-footer">
+            <div class="footer-note">Vui lòng điền đầy đủ các thông tin.</div>
 
             <div class="d-flex gap-2">
               <button type="button" class="btn btn-light" @click="goBack">Hủy</button>
@@ -208,7 +213,6 @@
       </div>
     </div>
 
-    <!-- ✅ Confirm popup (KHÔNG dùng window.confirm) -->
     <div v-if="showConfirm" class="modal-overlay" @click.self="closeConfirm">
       <div class="modal-card">
         <h3 class="modal-title">Xác nhận</h3>
@@ -222,7 +226,71 @@
       </div>
     </div>
 
-    <!-- ✅ Toast -->
+    <div v-if="showScanModal" class="modal-overlay" @click.self="closeScanModal">
+      <div class="modal-card scan-modal">
+        <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+          <div>
+            <h3 class="modal-title mb-1">Quét QR CCCD</h3>
+            <div class="modal-desc mb-0">
+              Quét mã QR trên CCCD để tự động điền họ tên, ngày sinh, giới tính và địa chỉ.
+            </div>
+          </div>
+          <button type="button" class="btn-close" @click="closeScanModal"></button>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <button
+              type="button"
+              class="btn btn-sm"
+              :class="scanTab === 'camera' ? 'btn-primary text-white' : 'btn-outline-secondary'"
+              @click="switchScanTab('camera')"
+          >
+            Camera
+          </button>
+          <button
+              type="button"
+              class="btn btn-sm"
+              :class="scanTab === 'manual' ? 'btn-primary text-white' : 'btn-outline-secondary'"
+              @click="switchScanTab('manual')"
+          >
+            Dán dữ liệu QR
+          </button>
+        </div>
+
+        <div v-show="scanTab === 'camera'">
+          <div id="cccd-qr-reader" class="qr-reader-box"></div>
+          <div class="small text-muted mt-2">
+            Đưa mã QR trên CCCD vào giữa khung hình để quét.
+          </div>
+        </div>
+
+        <div v-show="scanTab === 'manual'">
+          <label class="form-label">Chuỗi QR CCCD</label>
+          <textarea
+              class="form-control"
+              rows="5"
+              v-model="manualQrText"
+              placeholder="Dán chuỗi QR CCCD vào đây..."
+          ></textarea>
+          <div class="small text-muted mt-2">
+            Dùng khi bạn đã có sẵn nội dung QR và muốn điền nhanh thông tin.
+          </div>
+        </div>
+
+        <div class="mt-3 d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-light" @click="closeScanModal">Đóng</button>
+          <button
+              v-if="scanTab === 'manual'"
+              type="button"
+              class="btn btn-primary text-white"
+              @click="applyManualQr"
+          >
+            Áp dụng dữ liệu QR
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
       <div
           v-for="t in toast.state.items"
@@ -247,8 +315,9 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Html5Qrcode } from 'html5-qrcode'
 import http from '../../services/http'
 import { useAuthStore } from '../../stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -268,7 +337,6 @@ const isEdit = computed(() => !!route.params.id)
 const saving = ref(false)
 const uploading = ref(false)
 
-/** ===== Confirm popup state ===== */
 const showConfirm = ref(false)
 const confirmText = ref('Bạn chắc chắn chứ?')
 const confirmLoading = ref(false)
@@ -299,19 +367,17 @@ async function confirmYes() {
   }
 }
 
-/** ===== Form ===== */
 const form = reactive({
   id: null,
   maNhanVien: '',
   quyenHanKey: 'NHAN_VIEN',
-  quyenHanId: null, // ✅ lưu lại role id nếu BE trả về
+  quyenHanId: null,
   tenNhanVien: '',
   soDienThoai: '',
-  cccd: '',
   email: '',
   taiKhoan: '',
   matKhau: '',
-  ngaySinh: '', // ✅ ISO yyyy-mm-dd
+  ngaySinh: '',
   gioiTinh: null,
   diaChi: '',
   trangThai: true,
@@ -319,13 +385,173 @@ const form = reactive({
   mediaAvatarId: null
 })
 
-/** ===== Ngày sinh (✅ nhập tay dd/mm/yyyy + picker đúng vị trí) ===== */
+const showScanModal = ref(false)
+const scanTab = ref('camera')
+const manualQrText = ref('')
+let qrScanner = null
+let qrScannerStarted = false
+
+function openScanModal() {
+  showScanModal.value = true
+  scanTab.value = 'camera'
+  manualQrText.value = ''
+  nextTick(() => startQrScanner())
+}
+
+async function closeScanModal() {
+  showScanModal.value = false
+  manualQrText.value = ''
+  await stopQrScanner()
+}
+
+async function switchScanTab(tab) {
+  scanTab.value = tab
+  if (tab === 'camera') {
+    await nextTick()
+    await startQrScanner()
+  } else {
+    await stopQrScanner()
+  }
+}
+
+async function startQrScanner() {
+  if (!showScanModal.value || scanTab.value !== 'camera') return
+  if (qrScannerStarted) return
+
+  try {
+    if (!qrScanner) {
+      qrScanner = new Html5Qrcode('cccd-qr-reader')
+    }
+
+    await qrScanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: 220, aspectRatio: 1.33 },
+        async (decodedText) => {
+          if (!decodedText) return
+          const parsed = parseCccdQr(decodedText)
+          if (!parsed) return
+
+          await stopQrScanner()
+          applyParsedCccd(parsed)
+          showScanModal.value = false
+          toast.success('Quét CCCD thành công, đã tự động điền thông tin.')
+        },
+        () => {}
+    )
+
+    qrScannerStarted = true
+  } catch (e) {
+    qrScannerStarted = false
+    toast.warning('Không mở được camera để quét QR. Bạn có thể chuyển sang tab "Dán dữ liệu QR".')
+  }
+}
+
+async function stopQrScanner() {
+  if (!qrScanner || !qrScannerStarted) return
+  try {
+    await qrScanner.stop()
+    await qrScanner.clear()
+  } catch {
+  } finally {
+    qrScannerStarted = false
+  }
+}
+
+function applyManualQr() {
+  const parsed = parseCccdQr(manualQrText.value)
+  if (!parsed) {
+    toast.warning('Chuỗi QR CCCD không hợp lệ hoặc không đọc được dữ liệu.')
+    return
+  }
+
+  applyParsedCccd(parsed)
+  closeScanModal()
+  toast.success('Đã áp dụng dữ liệu từ QR CCCD.')
+}
+
+function parseCccdQr(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return null
+
+  const parts = text.split('|').map(s => String(s || '').trim())
+  if (parts.length < 6) return null
+
+  const fullName = parts[2] || ''
+  const dob = normalizeDobFromQr(parts[3])
+  const gender = normalizeGender(parts[4])
+  const address = parts[5] || ''
+
+  if (!fullName && !dob && gender === null && !address) return null
+
+  return {
+    rawText: text,
+    fullName,
+    dateOfBirth: dob,
+    gender,
+    address
+  }
+}
+
+function normalizeDobFromQr(v) {
+  const s = String(v || '').trim()
+
+  if (/^\d{8}$/.test(s)) {
+    const dd = s.slice(0, 2)
+    const mm = s.slice(2, 4)
+    const yyyy = s.slice(4, 8)
+    return validateDateParts(dd, mm, yyyy) ? `${yyyy}-${mm}-${dd}` : ''
+  }
+
+  const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/)
+  if (m) {
+    const dd = String(m[1]).padStart(2, '0')
+    const mm = String(m[2]).padStart(2, '0')
+    const yyyy = m[3]
+    return validateDateParts(dd, mm, yyyy) ? `${yyyy}-${mm}-${dd}` : ''
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  return ''
+}
+
+function validateDateParts(dd, mm, yyyy) {
+  const d = Number(dd)
+  const m = Number(mm)
+  const y = Number(yyyy)
+  if (!d || !m || !y) return false
+  const dt = new Date(y, m - 1, d)
+  return dt.getFullYear() === y && dt.getMonth() === (m - 1) && dt.getDate() === d
+}
+
+function normalizeGender(v) {
+  const s = String(v || '').trim().toLowerCase()
+  if (!s) return null
+  if (s === 'nam' || s === 'male' || s === 'm') return true
+  if (s === 'nữ' || s === 'nu' || s === 'female' || s === 'f') return false
+  return null
+}
+
+async function applyParsedCccd(parsed) {
+  if (parsed.fullName) form.tenNhanVien = parsed.fullName
+  if (parsed.dateOfBirth) {
+    form.ngaySinh = parsed.dateOfBirth
+    syncDobUI()
+  }
+  if (parsed.gender === true || parsed.gender === false) {
+    form.gioiTinh = parsed.gender
+  }
+  if (parsed.address) {
+    form.diaChi = parsed.address
+    await prefillAddressFromDiaChi(parsed.address)
+  }
+}
+
 const dobPickerRef = ref(null)
 const dobTextRef = ref(null)
 const dobTextRaw = ref('')
 
 function toDMY(iso) {
-  const s = String(iso || '').trim() // yyyy-mm-dd
+  const s = String(iso || '').trim()
   if (!s) return ''
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (!m) return ''
@@ -387,7 +613,6 @@ function commitDobText() {
   const iso = parseDMY(s)
   if (!iso) {
     toast.warning('Ngày sinh không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy')
-    // trả lại giá trị hợp lệ hiện tại
     syncDobUI()
     return
   }
@@ -396,7 +621,6 @@ function commitDobText() {
   syncDobUI()
 }
 
-/** ===== Avatar ===== */
 const fileInput = ref(null)
 const avatarPreview = ref('')
 const localBlobUrl = ref('')
@@ -433,7 +657,6 @@ function onAvatarImgError() {
   else avatarPreview.value = ''
 }
 
-/** ===== Resolve media url / cloudinary ===== */
 async function uploadNhanVienAvatar(file) {
   const fd = new FormData()
   fd.append('file', file)
@@ -475,7 +698,6 @@ async function onAvatarFileChange(e) {
   }
 }
 
-/** ===== Address ===== */
 const provinces = ref([])
 const districts = ref([])
 const wards = ref([])
@@ -525,50 +747,75 @@ function buildDiaChi() {
   return parts.join(', ')
 }
 
-/** parse diaChi -> set lại dropdown khi edit */
 function normalizeText(s) {
   return String(s || '')
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/đ/g, 'd')
+      .replace(/\b(thanh pho|tp|tinh|quan|huyen|thi xa|thi tran|xa|phuong)\b/g, '')
       .replace(/\s+/g, ' ')
       .trim()
 }
+
 async function prefillAddressFromDiaChi(diaChi) {
-  const parts = String(diaChi || '').split(',').map(x => String(x).trim()).filter(Boolean)
+  const parts = String(diaChi || '')
+      .split(',')
+      .map(x => String(x).trim())
+      .filter(Boolean)
+
   if (parts.length < 4) {
-    addr.detail = parts[0] || ''
+    addr.detail = parts[0] || String(diaChi || '').trim()
     return
   }
+
   const provinceName = parts[parts.length - 1]
   const districtName = parts[parts.length - 2]
   const wardName = parts[parts.length - 3]
   const detail = parts.slice(0, parts.length - 3).join(', ')
 
-  const p = provinces.value.find(x => normalizeText(x.name) === normalizeText(provinceName))
+  const normProvince = normalizeText(provinceName)
+  const normDistrict = normalizeText(districtName)
+  const normWard = normalizeText(wardName)
+
+  const p = provinces.value.find(x => {
+    const n = normalizeText(x.name)
+    return n === normProvince || n.includes(normProvince) || normProvince.includes(n)
+  })
+
   if (!p) {
     addr.detail = detail || parts[0] || ''
     return
   }
+
   addr.provinceCode = String(p.code)
   await fetchDistricts(addr.provinceCode)
 
-  const d = districts.value.find(x => normalizeText(x.name) === normalizeText(districtName))
+  const d = districts.value.find(x => {
+    const n = normalizeText(x.name)
+    return n === normDistrict || n.includes(normDistrict) || normDistrict.includes(n)
+  })
+
   if (!d) {
     addr.detail = detail
     return
   }
+
   addr.districtCode = String(d.code)
   await fetchWards(addr.districtCode)
 
-  const w = wards.value.find(x => normalizeText(x.name) === normalizeText(wardName))
-  if (w) addr.wardCode = String(w.code)
+  const w = wards.value.find(x => {
+    const n = normalizeText(x.name)
+    return n === normWard || n.includes(normWard) || normWard.includes(n)
+  })
+
+  if (w) {
+    addr.wardCode = String(w.code)
+  }
 
   addr.detail = detail
 }
 
-/** ===== Helpers/API ===== */
 function unwrapList(data) {
   if (!data) return []
   if (Array.isArray(data)) return data
@@ -585,7 +832,6 @@ function safeStr(v) {
   return String(v == null ? '' : v).toLowerCase().trim()
 }
 
-/** ✅ normalize: bổ sung quyenHanId để fix đúng role ADMIN khi edit */
 function normalizeStaff(x) {
   x = x || {}
   const qh = x.quyenHan || {}
@@ -596,7 +842,6 @@ function normalizeStaff(x) {
     maNhanVien: x.maNhanVien ?? '',
     tenNhanVien: x.tenNhanVien ?? '',
     soDienThoai: x.soDienThoai ?? '',
-    cccd: x.cccd ?? '',
     email: x.email ?? '',
     taiKhoan: x.taiKhoan ?? '',
     ngaySinh: x.ngaySinh ?? null,
@@ -655,7 +900,6 @@ function isAtLeast18(dateStr) {
 
 async function validateDuplicates(all) {
   const excludeId = isEdit.value ? Number(route.params.id) : null
-
   const email = safeStr(form.email)
   if (email) {
     for (const it of (all || [])) {
@@ -663,15 +907,6 @@ async function validateDuplicates(all) {
       if (s.id !== excludeId && safeStr(s.email) === email) return 'Email đã tồn tại'
     }
   }
-
-  const cccd = String(form.cccd ?? '').trim()
-  if (cccd) {
-    for (const it of (all || [])) {
-      const s = normalizeStaff(it)
-      if (s.id !== excludeId && String(s.cccd ?? '').trim() === cccd) return 'CCCD đã tồn tại'
-    }
-  }
-
   return ''
 }
 
@@ -684,7 +919,6 @@ function validateForm() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Email không hợp lệ'
 
   if (!String(form.soDienThoai || '').trim() || !isDigitsOnly(form.soDienThoai)) return 'Số điện thoại phải là số'
-  if (!String(form.cccd || '').trim() || !isDigitsOnly(form.cccd)) return 'CCCD phải là số'
   if (!form.ngaySinh || !isAtLeast18(form.ngaySinh)) return 'Nhân viên phải đủ 18 tuổi'
 
   if (!addr.provinceCode || !addr.districtCode || !addr.wardCode || !String(addr.detail || '').trim()) {
@@ -694,12 +928,10 @@ function validateForm() {
   return ''
 }
 
-
 function goBack() {
   router.push({ name: 'staff' })
 }
 
-/** ===== Load ===== */
 async function loadData() {
   await fetchProvinces()
   const all = await apiGetAllStaff()
@@ -708,7 +940,7 @@ async function loadData() {
     form.maNhanVien = generateNextCode(all)
     form.trangThai = true
     form.ngaySinh = ''
-    syncDobUI() // ✅ sync UI ngày sinh
+    syncDobUI()
     return
   }
 
@@ -730,7 +962,6 @@ async function loadData() {
   form.maNhanVien = s.maNhanVien
   form.tenNhanVien = s.tenNhanVien
   form.soDienThoai = s.soDienThoai
-  form.cccd = s.cccd
   form.email = s.email
   form.taiKhoan = s.taiKhoan
   form.matKhau = ''
@@ -751,15 +982,13 @@ async function loadData() {
     await prefillAddressFromDiaChi(s.diaChi)
   }
 
-  // ✅ QUAN TRỌNG: sync UI ngày sinh sau khi form.ngaySinh đã có dữ liệu
   syncDobUI()
 }
 
-/** ===== Submit ===== */
 async function submit() {
   const msg = validateForm()
   if (msg) {
-    toast.warning(msg) // ✅ giống customer form
+    toast.warning(msg)
     return
   }
 
@@ -772,7 +1001,7 @@ async function submit() {
 
   const dupMsg = await validateDuplicates(all)
   if (dupMsg) {
-    toast.warning(dupMsg) // ✅ duplicate cũng là cảnh báo vàng
+    toast.warning(dupMsg)
     return
   }
 
@@ -787,8 +1016,7 @@ async function submit() {
         maNhanVien: String(form.maNhanVien || '').trim(),
         tenNhanVien: String(form.tenNhanVien || '').trim(),
         soDienThoai: String(form.soDienThoai || '').trim(),
-        cccd: String(form.cccd || '').trim(),
-        email: String(form.email || '').trim(), // ✅ bắt buộc
+        email: String(form.email || '').trim(),
         ngaySinh: form.ngaySinh,
         gioiTinh: (form.gioiTinh === true || form.gioiTinh === false) ? form.gioiTinh : null,
         diaChi: buildDiaChi(),
@@ -796,11 +1024,6 @@ async function submit() {
         anhDaiDien: form.anhDaiDien,
         mediaAvatarId: form.mediaAvatarId
       }
-
-
-      // chỉ gửi mật khẩu nếu user nhập (edit)
-      // if (!isEdit.value) payload.matKhau = String(form.matKhau || '').trim()
-      // else if (String(form.matKhau || '').trim()) payload.matKhau = String(form.matKhau || '').trim()
 
       if (isEdit.value) {
         await http.put('/api/nhan-vien/' + route.params.id, payload)
@@ -813,7 +1036,7 @@ async function submit() {
       goBack()
     } catch (e) {
       const m = e?.response?.data?.message || e?.message || 'Có lỗi xảy ra'
-      toast.error(m) // ✅ lỗi server vẫn đỏ
+      toast.error(m)
     } finally {
       saving.value = false
     }
@@ -829,18 +1052,33 @@ function toastClass(type) {
 }
 
 onMounted(loadData)
-onBeforeUnmount(() => revokeLocalBlob())
+onBeforeUnmount(async () => {
+  revokeLocalBlob()
+  await stopQrScanner()
+})
 </script>
 
 <style scoped>
-.card {
-  border-radius: 14px;
+.staff-form-card {
+  border: 0;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-/* Avatar */
+.card-body {
+  padding: 24px;
+}
+
+.avatar-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
 .avatar-wrap {
-  width: 78px;
-  height: 78px;
+  width: 88px;
+  height: 88px;
   border-radius: 999px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
@@ -851,8 +1089,18 @@ onBeforeUnmount(() => revokeLocalBlob())
   justify-content: center;
   background: #fff;
 }
-.avatar-img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-fallback { font-weight: 700; }
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  font-weight: 700;
+  font-size: 24px;
+  color: #111827;
+}
 
 .avatar-remove {
   position: absolute;
@@ -882,13 +1130,38 @@ onBeforeUnmount(() => revokeLocalBlob())
   font-size: 12px;
 }
 
-.avatar-input { display: none; }
+.avatar-input {
+  display: none;
+}
 
-/* ✅ Date group */
-.date-group { position: relative; }
+.gender-box {
+  min-height: 42px;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #fff;
+}
 
-/* input date thật: KHÔNG display:none để picker tính đúng vị trí */
-.dob-native{
+.form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.form-control,
+.form-select {
+  min-height: 42px;
+  border-radius: 10px;
+}
+
+.date-group {
+  position: relative;
+}
+
+.dob-native {
   position: absolute;
   left: 0;
   top: 0;
@@ -900,7 +1173,20 @@ onBeforeUnmount(() => revokeLocalBlob())
   pointer-events: none;
 }
 
-/* ✅ Confirm modal (overlay) */
+.form-footer {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.footer-note {
+  font-style: italic;
+  color: #6b7280;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -910,6 +1196,7 @@ onBeforeUnmount(() => revokeLocalBlob())
   justify-content: center;
   z-index: 9999;
 }
+
 .modal-card {
   width: min(420px, calc(100% - 32px));
   background: #fff;
@@ -917,20 +1204,36 @@ onBeforeUnmount(() => revokeLocalBlob())
   padding: 18px 18px 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
+
+.scan-modal {
+  width: min(720px, calc(100% - 32px));
+}
+
 .modal-title {
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 700;
 }
+
 .modal-desc {
   margin: 0 0 14px;
   color: #555;
   line-height: 1.4;
 }
+
 .modal-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.qr-reader-box {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
 }
 
 .btn-outline {
@@ -942,6 +1245,7 @@ onBeforeUnmount(() => revokeLocalBlob())
   cursor: pointer;
   font-weight: 500;
 }
+
 .btn-confirm-primary {
   height: 38px;
   padding: 0 14px;
@@ -952,12 +1256,31 @@ onBeforeUnmount(() => revokeLocalBlob())
   cursor: pointer;
   font-weight: 500;
 }
+
 .btn-confirm-primary:disabled,
 .btn-outline:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
-.btn-light{font-weight: 500}
-.btn-primary{font-weight: 500}
-.form-label{font-weight: 500}
+
+.btn-light,
+.btn-primary {
+  font-weight: 500;
+}
+
+@media (max-width: 991.98px) {
+  .card-body {
+    padding: 18px;
+  }
+
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-footer .d-flex {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
 </style>

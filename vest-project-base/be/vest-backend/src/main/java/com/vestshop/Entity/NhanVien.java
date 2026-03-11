@@ -35,8 +35,8 @@ public class NhanVien {
     @Column(name="so_dien_thoai", length=20)
     private String soDienThoai;
 
-    @Column(name="cccd", length=20)
-    private String cccd;
+//    @Column(name="cccd", length=20)
+//    private String cccd;
 
     @Column(name="email", length=255)
     private String email;
