@@ -199,7 +199,7 @@
                       Chọn khách hàng
                     </button>
 
-                    <button
+                    <!-- <button
                       v-if="activeOrder.loaiDon"
                       class="btn btn-outline-primary btn-sm"
                       type="button"
@@ -207,7 +207,7 @@
                       @click="openAddressModal"
                     >
                       Chọn địa chỉ
-                    </button>
+                    </button> -->
                   </div>
                 </div>
 
@@ -246,20 +246,27 @@
 
                   <template v-else>
                     <div class="customer-summary-box mb-3">
-                      <div class="summary-line">
-                        <span class="summary-label">Tên khách hàng</span>
-                        <span class="summary-value fw-bold">
-                          {{ activeOrder.customer?.name || "Khách lẻ" }}
-                        </span>
-                      </div>
+  <div class="summary-line">
+    <span class="summary-label">Tên khách hàng</span>
+    <span class="summary-value fw-bold">
+      {{ activeOrder.customer?.name || "Khách lẻ" }}
+    </span>
+  </div>
 
-                      <div class="summary-line">
-                        <span class="summary-label">Địa chỉ khách hàng</span>
-                        <span class="summary-value">
-                          {{ selectedAddressDisplay || "Chưa chọn địa chỉ" }}
-                        </span>
-                      </div>
-                    </div>
+  <div class="summary-line">
+    <span class="summary-label">Số điện thoại</span>
+    <span class="summary-value">
+      {{ activeOrder.customerDraft.phone || activeOrder.customer?.phone || "—" }}
+    </span>
+  </div>
+
+  <div class="summary-line">
+    <span class="summary-label">Địa chỉ khách hàng</span>
+    <span class="summary-value">
+      {{ selectedAddressDisplay || activeOrder.diaChi || "Chưa chọn địa chỉ" }}
+    </span>
+  </div>
+</div>
 
                     <div class="border rounded-3 p-3">
                       <div class="fw-bold mb-2">Thông tin nhận hàng</div>
@@ -281,42 +288,42 @@
                           />
                         </div>
 
-                        <div class="col-12 col-md-6">
+                       <div class="col-12 col-md-6">
   <label class="form-label mb-1">Tỉnh/Thành</label>
-  <select
-    class="form-select"
-    v-model="activeOrder.ghnProvinceId"
-    @change="onProvinceChange($event.target.value)"
+  <Multiselect
+    :model-value="activeOrder.ghnProvinceId ? String(activeOrder.ghnProvinceId) : null"
+    @update:model-value="onProvinceChange"
+    :options="provinceOptions"
+    value-prop="value"
+    label="label"
+    track-by="label"
+    placeholder="-- Chọn tỉnh/thành --"
+    :searchable="true"
+    :can-clear="true"
+    :can-deselect="true"
     :disabled="provincesLoading"
-  >
-    <option :value="null" disabled>-- Chọn tỉnh/thành --</option>
-    <option
-      v-for="p in provinces"
-      :key="p.provinceId"
-      :value="p.provinceId"
-    >
-      {{ p.provinceName }}
-    </option>
-  </select>
+    no-options-text="Không có dữ liệu"
+    no-results-text="Không tìm thấy"
+  />
 </div>
 
 <div class="col-12 col-md-6">
   <label class="form-label mb-1">Phường/Xã</label>
-  <select
-    class="form-select"
-    v-model="activeOrder.ghnWardCode"
-    @change="onWardChange($event.target.value)"
+  <Multiselect
+    :model-value="activeOrder.ghnWardCode ? String(activeOrder.ghnWardCode) : null"
+    @update:model-value="onWardChange"
+    :options="wardOptions"
+    value-prop="value"
+    label="label"
+    track-by="label"
+    placeholder="-- Chọn phường/xã --"
+    :searchable="true"
+    :can-clear="true"
+    :can-deselect="true"
     :disabled="!activeOrder.ghnProvinceId || wardsLoading"
-  >
-    <option value="" disabled>-- Chọn phường/xã --</option>
-    <option
-      v-for="w in wards"
-      :key="w.wardCode"
-      :value="w.wardCode"
-    >
-      {{ w.wardName }}
-    </option>
-  </select>
+    no-options-text="Không có dữ liệu"
+    no-results-text="Không tìm thấy"
+  />
 </div>
 
                         <div class="col-12">
@@ -613,15 +620,7 @@
                       <div class="d-flex align-items-center gap-2">
                         <span class="fw-semibold">{{ money(shipMoney) }}</span>
 
-                        <button
-                          class="btn btn-outline-secondary btn-sm"
-                          type="button"
-                          @click="refreshShipFee"
-                          :disabled="shippingFeeLoading"
-                          title="Lấy lại phí vận chuyển"
-                        >
-                          <i class="bi bi-arrow-clockwise"></i>
-                        </button>
+                      
                       </div>
                     </li>
 
@@ -1134,38 +1133,30 @@
 
   <div class="col-12 col-md-6">
     <label class="form-label mb-1">Tỉnh/Thành phố</label>
-    <select
-      class="form-select"
-      v-model="addressDraft.provinceId"
-      @change="onAddressProvinceChange($event.target.value)"
-    >
-      <option :value="null" disabled>-- Chọn Tỉnh/Thành phố --</option>
-      <option
-        v-for="p in provinces"
-        :key="'addr-p-' + p.provinceId"
-        :value="p.provinceId"
-      >
-        {{ p.provinceName }}
-      </option>
-    </select>
-  </div>
+    <v-select
+  :options="provinces"
+  label="provinceName"
+  :reduce="(p) => p.provinceId"
+  v-model="activeOrder.ghnProvinceId"
+  :clearable="true"
+  :searchable="true"
+  :disabled="provincesLoading"
+  placeholder="Chọn tỉnh/thành"
+  @update:modelValue="onProvinceChange"
+/>
 
-  <div class="col-12 col-md-6">
-    <label class="form-label mb-1">Phường/Xã</label>
-    <select
-      class="form-select"
-      v-model="addressDraft.wardCode"
-      :disabled="!addressDraft.provinceId"
-    >
-      <option value="" disabled>-- Chọn Phường/Xã --</option>
-      <option
-        v-for="w in addressDraftWards"
-        :key="'addr-w-' + w.wardCode"
-        :value="w.wardCode"
-      >
-        {{ w.wardName }}
-      </option>
-    </select>
+<v-select
+  :options="wards"
+  label="wardName"
+  :reduce="(w) => w.wardCode"
+  v-model="activeOrder.ghnWardCode"
+  :clearable="true"
+  :searchable="true"
+  :disabled="!activeOrder.ghnProvinceId || wardsLoading"
+  placeholder="Chọn phường/xã"
+  @update:modelValue="onWardChange"
+/>
+
   </div>
 
   <div class="col-12">
@@ -1453,6 +1444,8 @@ import { onTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 import { getAllDetails, decreaseStock, increaseStock } from "@/services/sanPhamChiTietApi";
 import { listKhachHang } from "@/services/khachHangApi";
 import { resolveMediaUrl } from "@/utils/media";
+import Multiselect from "@vueform/multiselect"
+import "@vueform/multiselect/themes/default.css"
 
 const MAX_ORDERS = 10;
 const STORAGE_KEY = "sales_store_only_v6_rewrite";
@@ -2530,6 +2523,19 @@ function wardNameByCodeByProvince(provinceId, wardCode) {
 
 const provinces = ref([]);
 const wards = ref([]);
+const provinceOptions = computed(() =>
+  (provinces.value || []).map((p) => ({
+    value: String(p.provinceId),
+    label: p.provinceName,
+  }))
+);
+
+const wardOptions = computed(() =>
+  (wards.value || []).map((w) => ({
+    value: String(w.wardCode),
+    label: w.wardName,
+  }))
+);
 
 const provincesLoading = ref(false);
 const wardsLoading = ref(false);
@@ -2626,13 +2632,15 @@ async function onProvinceChange(provinceId) {
   o.tinhThanhNhanHang = "";
   o.quanHuyenNhanHang = "";
   o.phuongXaNhanHang = "";
-
   wards.value = [];
 
   const province = findProvinceById(o.ghnProvinceId);
   o.tinhThanhNhanHang = province?.provinceName || "";
 
-  if (!o.ghnProvinceId) return;
+  if (!o.ghnProvinceId) {
+    o.phiVanChuyen = 0;
+    return;
+  }
 
   wardsLoading.value = true;
   try {
@@ -2640,16 +2648,12 @@ async function onProvinceChange(provinceId) {
       wardCode: w.wardCode,
       wardName: w.wardName,
     }));
-  } catch (e) {
-    console.error(e);
-    toastShow("Không tải được phường/xã", "warning");
   } finally {
     wardsLoading.value = false;
   }
 
   await refreshShipFee();
 }
-
 
 
 async function onWardChange(wardCode) {
@@ -3096,12 +3100,16 @@ function applyBestVoucherNowForOrder(o, vouchers, mode = 'best') {
   setVoucherSnapshot(o, best.v);
 }
 
-function removeVoucherNowForOrder(o) {
+function removeVoucherNowForOrder(o, { keepSnapshot = false } = {}) {
   if (!o) return;
   o.voucherMode = "none";
   o.pggId = null;
   o.voucherCode = "";
-  o.voucherSnapshot = null;
+
+  if (!keepSnapshot) {
+    o.voucherSnapshot = null;
+  }
+
   clearVoucherSuggestionDismissed(o);
 }
 
@@ -3294,78 +3302,105 @@ function buildVoucherNotifyRows({
 function evaluateVoucherState(order, orderVouchers) {
   if (!order) return { status: "no_order" };
 
-  if (!order.pggId && !order.voucherSnapshot) return { status: "no_voucher" };
-
   const subtotal = order.cart.reduce(
     (s, it) => s + Number(it.price || 0) * Number(it.qty || 0),
     0
   );
 
+  const snapshot = order.voucherSnapshot || null;
+
   const currentVoucher = order.pggId
-    ? orderVouchers.find((v) => v.id === order.pggId) || null
+    ? orderVouchers.find((v) => Number(v.id) === Number(order.pggId)) || null
+    : null;
+
+  const snapshotVoucher = snapshot?.id
+    ? orderVouchers.find((v) => Number(v.id) === Number(snapshot.id)) || null
     : null;
 
   const best = getBestVoucherForOrder(order, orderVouchers);
-if (!order.pggId && order.voucherMode === "best" && best?.voucher) {
-  return {
-    status: "best_voucher_ready",
-    order,
-    best,
-    currentVoucher: null,
-    snapshot: order.voucherSnapshot || null,
-    subtotal,
-  };
-}
+
+  // Không có voucher hiện tại và cũng không có snapshot để đối chiếu
+  if (!order.pggId && !snapshot) {
+    return { status: "no_voucher" };
+  }
+
+  // ƯU TIÊN: trước đó từng có voucher, giờ voucher đó biến mất
+  if (snapshot && !snapshotVoucher) {
+    return {
+      status: "voucher_missing",
+      order,
+      best,
+      currentVoucher: null,
+      snapshot,
+      subtotal,
+    };
+  }
+
+  // Nếu đang giữ pggId mà voucher hiện tại không còn
   if (order.pggId && !currentVoucher) {
     return {
       status: "voucher_missing",
       order,
       best,
       currentVoucher: null,
-      snapshot: order.voucherSnapshot || null,
+      snapshot,
       subtotal,
     };
   }
 
-  if (currentVoucher) {
-    const invalidReason = getVoucherInvalidReason(currentVoucher, subtotal);
+  // Nếu đang ở mode best và chưa có pggId nhưng đã có voucher phù hợp
+  if (!order.pggId && order.voucherMode === "best" && best?.voucher) {
+    return {
+      status: "best_voucher_ready",
+      order,
+      best,
+      currentVoucher: null,
+      snapshot,
+      subtotal,
+    };
+  }
+
+  const checkingVoucher = currentVoucher || snapshotVoucher;
+
+  if (checkingVoucher) {
+    const invalidReason = getVoucherInvalidReason(checkingVoucher, subtotal);
     if (invalidReason) {
       return {
         status: "voucher_invalid",
         order,
         best,
-        currentVoucher,
-        snapshot: order.voucherSnapshot || null,
+        currentVoucher: checkingVoucher,
+        snapshot,
         subtotal,
         invalidReason,
       };
     }
   }
 
-  if (order.voucherSnapshot && currentVoucher) {
-    const changes = getVoucherChangedFields(order.voucherSnapshot, currentVoucher);
+  if (snapshot && checkingVoucher) {
+    const changes = getVoucherChangedFields(snapshot, checkingVoucher);
     if (changes.length > 0) {
       return {
         status: "voucher_changed",
         order,
         best,
-        currentVoucher,
-        snapshot: order.voucherSnapshot,
+        currentVoucher: checkingVoucher,
+        snapshot,
         subtotal,
         changes,
       };
     }
   }
 
-  if (currentVoucher && best && best.id !== currentVoucher.id) {
-    const currentDiscount = calcVoucherDiscount(subtotal, currentVoucher);
+  if (checkingVoucher && best && Number(best.id) !== Number(checkingVoucher.id)) {
+    const currentDiscount = calcVoucherDiscount(subtotal, checkingVoucher);
     if (best.discount > currentDiscount) {
       return {
         status: "better_voucher_available",
         order,
         best,
-        currentVoucher,
-        snapshot: order.voucherSnapshot || null,
+        currentVoucher: checkingVoucher,
+        snapshot,
         subtotal,
         currentDiscount,
       };
@@ -3376,8 +3411,8 @@ if (!order.pggId && order.voucherMode === "best" && best?.voucher) {
     status: "valid",
     order,
     best,
-    currentVoucher,
-    snapshot: order.voucherSnapshot || null,
+    currentVoucher: checkingVoucher,
+    snapshot,
     subtotal,
   };
 }
@@ -3399,51 +3434,43 @@ if (result.status === "best_voucher_ready") {
   applyBestVoucherNowForOrder(order, orderVouchers, "best");
   return;
 }
-    if (result.status === "voucher_missing") {
-      const oldCode = order.voucherCode || result.snapshot?.code || "—";
-      const oldDiscount = 0;
-      const newCode = result.best?.code || "Không có phiếu thay thế";
-      const newDiscount = result.best?.discount || 0;
+   if (result.status === "voucher_missing") {
+  const oldCode = result.snapshot?.code || order.voucherCode || "—";
+  const oldDiscount = 0;
+  const newCode = result.best?.code || "Không có phiếu thay thế";
+  const newDiscount = result.best?.discount || 0;
 
-      if (result.best?.voucher) {
-        applyBestVoucherNowForOrder(order, orderVouchers, "best");
-      } else {
-        removeVoucherNowForOrder(order);
-      }
+  await openConfirm({
+    type: "danger",
+    title: "Phiếu giảm giá đã ngừng hoạt động",
+    subtitle: "Hệ thống vừa kiểm tra lại trạng thái phiếu giảm giá.",
+    message: `Phiếu giảm giá "${oldCode}" không còn khả dụng.`,
+    detail: result.best
+      ? "Phiếu cũ đã hết hiệu lực hoặc không còn dùng được."
+      : "Phiếu cũ đã hết hiệu lực và hiện không còn phiếu phù hợp để áp dụng.",
+    rows: buildVoucherNotifyRows({
+      oldCode,
+      oldDiscount,
+      newCode,
+      newDiscount,
+    }),
+  });
 
-      await openConfirm({
-        type: "danger",
-        title: "Phiếu giảm giá đã ngừng hoạt động",
-        subtitle: "Hệ thống vừa kiểm tra lại trạng thái phiếu giảm giá.",
-        message: `Phiếu giảm giá "${oldCode}" không còn khả dụng. Hệ thống đã tự động cập nhật lại phiếu phù hợp hơn cho đơn hàng.`,
-        detail: result.best
-          ? "Phiếu cũ đã hết hiệu lực hoặc không còn dùng được, hệ thống đã tự chuyển sang phiếu phù hợp nhất hiện tại."
-          : "Phiếu cũ đã hết hiệu lực và hiện không còn phiếu phù hợp để áp dụng.",
-        rows: buildVoucherNotifyRows({
-          oldCode,
-          oldDiscount,
-          newCode,
-          newDiscount,
-        }),
-      });
+  if (result.best?.voucher) {
+    applyBestVoucherNowForOrder(order, orderVouchers, "best");
+  } else {
+    removeVoucherNowForOrder(order, { keepSnapshot: true });
+  }
 
-      return;
-    }
+  return;
+}
 
-    if (result.status === "voucher_invalid") {
+   if (result.status === "voucher_invalid") {
   const oldCode = result.currentVoucher?.ma_giam_gia || order.voucherCode || "—";
   const invalid = result.invalidReason || {};
   const oldDiscount = calcVoucherDiscount(result.subtotal, result.currentVoucher);
   const newCode = result.best?.code || "Không có phiếu thay thế";
   const newDiscount = result.best?.discount || 0;
-
-  if (invalid.code === "MIN_ORDER_NOT_MET") {
-    keepVoucherWaitingForBest(order);
-  } else if (result.best?.voucher && result.best.id !== result.currentVoucher?.id) {
-    applyBestVoucherNowForOrder(order, orderVouchers, "best");
-  } else {
-    removeVoucherNowForOrder(order);
-  }
 
   await openConfirm({
     type: "danger",
@@ -3454,10 +3481,24 @@ if (result.status === "best_voucher_ready") {
     rows: buildVoucherNotifyRows({
       oldCode,
       oldDiscount,
-      newCode: invalid.code === "MIN_ORDER_NOT_MET" ? "Chờ đủ điều kiện để áp dụng lại mã tốt nhất" : newCode,
-      newDiscount: invalid.code === "MIN_ORDER_NOT_MET" ? 0 : newDiscount,
+      newCode:
+        invalid.code === "MIN_ORDER_NOT_MET"
+          ? "Chờ đủ điều kiện để áp dụng lại mã tốt nhất"
+          : newCode,
+      newDiscount:
+        invalid.code === "MIN_ORDER_NOT_MET"
+          ? 0
+          : newDiscount,
     }),
   });
+
+  if (invalid.code === "MIN_ORDER_NOT_MET") {
+    keepVoucherWaitingForBest(order);
+  } else if (result.best?.voucher && result.best.id !== result.currentVoucher?.id) {
+    applyBestVoucherNowForOrder(order, orderVouchers, "best");
+  } else {
+    removeVoucherNowForOrder(order);
+  }
 
   return;
 }
@@ -3480,6 +3521,7 @@ if (result.status === "best_voucher_ready") {
 }
 
 async function revalidateActiveOrderVoucher({ showModal = true } = {}) {
+  if (voucherSyncModalLock.value) return;
   const order = activeOrder.value;
   if (!order) return;
 
@@ -3532,50 +3574,40 @@ async function runVoucherPrecheckFlow() {
 
   // 1. Voucher bị mất / ngừng hoạt động
   if (o.pggId && !currentVoucher) {
-    const oldCode = o.voucherCode || o.voucherSnapshot?.code || "—";
+  const oldCode = o.voucherCode || o.voucherSnapshot?.code || "—";
 
-    if (best?.voucher) {
-      if (isBestMode) applyBestVoucherNowForOrder(o, orderVouchers, "best");
-      else applyVoucherManual(best.voucher);
-    } else {
-      removeVoucherNowForOrder(o);
-    }
+  await openConfirm({
+    type: "danger",
+    title: "Phiếu giảm giá đã ngừng hoạt động",
+    subtitle: "Hệ thống vừa kiểm tra lại trạng thái phiếu giảm giá.",
+    message: `Phiếu giảm giá "${oldCode}" không còn khả dụng.`,
+    detail: best
+      ? `Sau khi đóng thông báo, hệ thống sẽ cập nhật sang phiếu "${best.code}" với mức giảm ${money(best.discount)}.`
+      : "Hiện không còn phiếu phù hợp để áp dụng.",
+    rows: buildVoucherNotifyRows({
+      oldCode,
+      oldDiscount: 0,
+      newCode: best?.code || "Không có phiếu thay thế",
+      newDiscount: best?.discount || 0,
+    }),
+  });
 
-    await openConfirm({
-      type: "danger",
-      title: "Phiếu giảm giá đã ngừng hoạt động",
-      subtitle: "Hệ thống vừa kiểm tra lại trạng thái phiếu giảm giá.",
-      message: `Phiếu giảm giá "${oldCode}" không còn khả dụng.`,
-      detail: best
-        ? `Hệ thống đã cập nhật sang phiếu "${best.code}" với mức giảm ${money(best.discount)}.`
-        : "Hiện không còn phiếu phù hợp để áp dụng.",
-      rows: buildVoucherNotifyRows({
-        oldCode,
-        oldDiscount: 0,
-        newCode: best?.code || "Không có phiếu thay thế",
-        newDiscount: best?.discount || 0,
-      }),
-    });
+  if (best?.voucher) {
+  if (isBestMode) applyBestVoucherNowForOrder(o, orderVouchers, "best");
+  else applyVoucherManual(best.voucher);
+} else {
+  removeVoucherNowForOrder(o, { keepSnapshot: true });
+}
 
-    return true;
-  }
+  return true;
+}
 
   // 2. Voucher không hợp lệ
   if (currentVoucher) {
     const invalidReason = getVoucherInvalidReason(currentVoucher, subtotal);
-
 if (invalidReason) {
   const oldCode = currentVoucher.ma_giam_gia || o.voucherCode || "—";
   const oldDiscount = calcVoucherDiscount(subtotal, currentVoucher);
-
-  if (invalidReason.code === "MIN_ORDER_NOT_MET") {
-    keepVoucherWaitingForBest(o);
-  } else if (best?.voucher && best.id !== currentVoucher.id) {
-    if (isBestMode) applyBestVoucherNowForOrder(o, orderVouchers, "best");
-    else applyVoucherManual(best.voucher);
-  } else {
-    removeVoucherNowForOrder(o);
-  }
 
   await openConfirm({
     type: "danger",
@@ -3597,8 +3629,18 @@ if (invalidReason) {
     }),
   });
 
+  if (invalidReason.code === "MIN_ORDER_NOT_MET") {
+    keepVoucherWaitingForBest(o);
+  } else if (best?.voucher && best.id !== currentVoucher.id) {
+    if (isBestMode) applyBestVoucherNowForOrder(o, orderVouchers, "best");
+    else applyVoucherManual(best.voucher);
+  } else {
+    removeVoucherNowForOrder(o);
+  }
+
   return true;
 }
+
   }
 
   // 3. Điều kiện thay đổi -> chỉ cập nhật snapshot, không show như lỗi đột xuất
@@ -4425,5 +4467,47 @@ onBeforeUnmount(() => {
   min-width: 120px;
   border-radius: 12px;
   padding: 10px 18px;
+}
+:deep(.multiselect) {
+  --ms-ring-color: rgba(13, 110, 253, 0.2);
+  --ms-border-color: #ced4da;
+  --ms-placeholder-color: #6c757d;
+  --ms-bg: #fff;
+  --ms-tag-bg: #0d6efd;
+  --ms-tag-color: #fff;
+  --ms-option-bg-pointed: #e7f1ff;
+  --ms-option-color-pointed: #0a58ca;
+  --ms-option-bg-selected: #0d6efd;
+  --ms-option-color-selected: #fff;
+  --ms-spinner-color: #0d6efd;
+}
+
+:deep(.multiselect.is-active) {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+:deep(.multiselect-option.is-pointed) {
+  background: #e7f1ff !important;
+  color: #0a58ca !important;
+}
+
+:deep(.multiselect-option.is-selected) {
+  background: #0d6efd !important;
+  color: #fff !important;
+}
+
+:deep(.multiselect-tag) {
+  background: #0d6efd !important;
+  color: #fff !important;
+}
+
+:deep(.multiselect-caret),
+:deep(.multiselect-clear) {
+  color: #6c757d;
+}
+
+:deep(.multiselect-placeholder) {
+  color: #6c757d;
 }
 </style>
