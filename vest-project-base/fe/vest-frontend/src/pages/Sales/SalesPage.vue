@@ -199,7 +199,7 @@
                       Chọn khách hàng
                     </button>
 
-                    <!-- <button
+                    <button
                       v-if="activeOrder.loaiDon"
                       class="btn btn-outline-primary btn-sm"
                       type="button"
@@ -207,7 +207,7 @@
                       @click="openAddressModal"
                     >
                       Chọn địa chỉ
-                    </button> -->
+                    </button>
                   </div>
                 </div>
 
@@ -1448,7 +1448,7 @@ import Multiselect from "@vueform/multiselect"
 import "@vueform/multiselect/themes/default.css"
 
 const MAX_ORDERS = 10;
-const STORAGE_KEY = "sales_store_only_v6_rewrite";
+const STORAGE_KEY = "sales_store_only_v7_merged";
 const router = useRouter();
 
 function getDateKeyLocal(d = new Date()) {
@@ -1618,6 +1618,9 @@ async function createOrder() {
 
     activeId.value = localId;
     orderSeq.value++;
+
+    const createdOrder = orders.value.find((x) => x.id === localId);
+    if (createdOrder) scheduleSyncDraft(createdOrder);
   } catch (e) {
     console.error(e);
     toastShow("Không tạo được hóa đơn", "danger");
@@ -3833,6 +3836,48 @@ diaChiNhanHangChiTiet: isShip ? (o.diaChiNhanHangChiTiet || "").trim() : null,
   };
 }
 
+function buildSyncPayload(o) {
+  return {
+    loaiDon: !!o.loaiDon,
+    phiVanChuyen: Number(o.phiVanChuyen || 0),
+
+    idKhachHang: o.customer?.id ?? null,
+    tenKhachHang: o.customer?.name || "Khách lẻ",
+    soDienThoai: (o.customerDraft?.phone || "").trim(),
+    emailKhachHang: (o.customerDraft?.email || "").trim(),
+    diaChiKhachHang: (o.diaChi || "").trim(),
+
+    idPhieuGiamGia: o.pggId ?? null,
+    giamThuCongPercent: Number(o.discountPercent || 0),
+    ghiChu: (o.ghiChu || "POS draft sync").trim(),
+
+    tenNguoiNhanHang: (o.tenNguoiNhanHang || "").trim(),
+    soDienThoaiNhanHang: (o.soDienThoaiNhanHang || "").trim(),
+    tinhThanhNhanHang: o.ghnProvinceId ? provinceNameById(o.ghnProvinceId) : "",
+    quanHuyenNhanHang: "",
+    phuongXaNhanHang: o.ghnWardCode ? wardNameByCode(o.ghnWardCode) : "",
+    diaChiNhanHangChiTiet: (o.diaChiNhanHangChiTiet || "").trim(),
+
+    items: (o.cart || []).map((it) => ({
+      idSanPhamChiTiet: Number(it.idSpct),
+      soLuong: Number(it.qty || 0),
+    })),
+  };
+}
+
+let _syncDraftT = null;
+function scheduleSyncDraft(order = activeOrder.value) {
+  clearTimeout(_syncDraftT);
+  _syncDraftT = setTimeout(async () => {
+    if (!order?.dbId) return;
+    try {
+      await http.post(`/api/hoa-don/draft/${order.dbId}/sync-pos`, buildSyncPayload(order));
+    } catch (e) {
+      console.error("sync draft error", e);
+    }
+  }, 300);
+}
+
 async function resetOrderAfterPaid(o) {
   const idx = orders.value.findIndex((x) => x.id === o.id);
   if (idx !== -1) orders.value.splice(idx, 1);
@@ -4069,6 +4114,15 @@ watch(
       revalidateActiveOrderVoucher({ showModal: true });
     }, 250);
   }
+);
+
+watch(
+  activeOrder,
+  (order) => {
+    if (!order?.dbId) return;
+    scheduleSyncDraft(order);
+  },
+  { deep: true }
 );
 
 onMounted(async () => {
