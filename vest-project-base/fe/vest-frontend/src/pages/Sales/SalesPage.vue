@@ -3915,7 +3915,11 @@ async function refreshProductsInCart() {
       }
 
       item.lineStatus = "ok";
-      item.stockBase = Number((latest?.stock ?? repriced?.stock) || 0);
+     const latestStock = Number((latest?.stock ?? repriced?.stock) || 0);
+
+// stockBase là "tồn trước khi giữ chỗ của dòng hiện tại"
+// nên phải cộng lại số lượng item hiện có trong giỏ
+item.stockBase = latestStock + Number(item.qty || 0);
 
       const sameVariantPriceChanged = !!latest && !sameMoney(latest.price, item.price);
       const repricedToOtherLine = !!repriced && (!latest || Number(repriced.idSpct) !== Number(item.idSpct));
