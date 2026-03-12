@@ -15,9 +15,7 @@
 
     <div class="card shadow-sm">
       <div class="px-3 pt-3">
-        <div
-          class="d-flex align-items-center justify-content-between gap-2 flex-wrap"
-        >
+        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
           <div class="d-flex flex-wrap gap-2">
             <button
               v-for="o in orders"
@@ -33,15 +31,11 @@
                 {{ getOrderItemCount(o) }}
               </span>
 
-              <span class="tab-x" title="Đóng" @click.stop="closeOrder(o.id)"
-                >×</span
-              >
+              <span class="tab-x" title="Đóng" @click.stop="closeOrder(o.id)">×</span>
             </button>
           </div>
 
-          <div class="text-muted small">
-            {{ orders.length }}/{{ MAX_ORDERS }} đơn
-          </div>
+          <div class="text-muted small">{{ orders.length }}/{{ MAX_ORDERS }} đơn</div>
         </div>
       </div>
 
@@ -52,18 +46,14 @@
         </div>
 
         <div v-else>
-          <div
-            class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2"
-          >
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <div class="fw-bold">Sản phẩm</div>
+
             <div class="d-flex gap-2">
-              <button
-                class="btn btn-outline-primary btn-sm"
-                type="button"
-                @click="openProductModal"
-              >
+              <button class="btn btn-outline-primary btn-sm" type="button" @click="openProductModal">
                 <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
               </button>
+
               <button
                 class="btn btn-outline-primary btn-sm"
                 type="button"
@@ -75,10 +65,7 @@
           </div>
 
           <div class="border rounded-3 p-2 mb-3">
-            <div
-              v-if="activeOrder.cart.length === 0"
-              class="text-center py-4 text-muted"
-            >
+            <div v-if="activeOrder.cart.length === 0" class="text-center py-4 text-muted">
               <div class="fs-1">👜</div>
               <div class="fw-semibold">Chưa có sản phẩm nào</div>
             </div>
@@ -114,24 +101,15 @@
                         Tồn: <span class="fw-semibold">{{ it.stock }}</span>
                       </div>
 
-                      <div
-                        v-if="it.priceChangedLocked"
-                        class="small text-danger fw-semibold mt-1"
-                      >
+                      <div v-if="it.priceChangedLocked" class="small text-danger fw-semibold mt-1">
                         Giá sản phẩm đã thay đổi:
-                        <span class="text-decoration-line-through">{{
-                          money(it.price)
-                        }}</span>
+                        <span class="text-decoration-line-through">{{ money(it.price) }}</span>
                         →
                         <span>{{ money(it.newPrice) }}</span>
                       </div>
 
-                      <div
-                        v-if="it.lineStatus === 'missing'"
-                        class="small text-danger fw-semibold mt-1"
-                      >
-                        Biến thể này không còn tồn tại hoặc chưa tải được dữ
-                        liệu mới.
+                      <div v-if="it.lineStatus === 'missing'" class="small text-danger fw-semibold mt-1">
+                        Biến thể không còn hợp lệ, vui lòng xóa khỏi giỏ.
                       </div>
                     </td>
 
@@ -142,9 +120,7 @@
                         <button
                           class="btn btn-outline-secondary btn-sm"
                           @click="decQty(idx)"
-                          :disabled="
-                            it.priceChangedLocked || it.lineStatus === 'missing'
-                          "
+                          :disabled="it.priceChangedLocked || it.lineStatus === 'missing'"
                         >
                           -
                         </button>
@@ -156,17 +132,13 @@
                           inputmode="numeric"
                           @input="onQtyInput(idx, $event)"
                           @blur="onQtyBlur(idx, $event)"
-                          :disabled="
-                            it.priceChangedLocked || it.lineStatus === 'missing'
-                          "
+                          :disabled="it.priceChangedLocked || it.lineStatus === 'missing'"
                         />
 
                         <button
                           class="btn btn-outline-secondary btn-sm"
                           @click="incQty(idx)"
-                          :disabled="
-                            it.priceChangedLocked || it.lineStatus === 'missing'
-                          "
+                          :disabled="it.priceChangedLocked || it.lineStatus === 'missing'"
                         >
                           +
                         </button>
@@ -178,10 +150,7 @@
                     </td>
 
                     <td class="text-center">
-                      <button
-                        class="btn btn-outline-danger btn-sm"
-                        @click="removeItem(idx)"
-                      >
+                      <button class="btn btn-outline-danger btn-sm" @click="removeItem(idx)">
                         🗑
                       </button>
                     </td>
@@ -199,81 +168,98 @@
           <div class="row g-3">
             <div class="col-12 col-lg-6">
               <div class="card h-100">
-                <div
-                  class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2"
-                >
+                <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
                   <div>
                     <div class="fw-bold">
-                      {{
-                        activeOrder.loaiDon
-                          ? "Thông tin giao hàng"
-                          : "Thông tin khách hàng"
-                      }}
+                      {{ activeOrder.loaiDon ? "Thông tin giao hàng" : "Thông tin khách hàng" }}
                     </div>
                     <div class="text-muted small">
                       Mã HĐ:
-                      <span class="fw-semibold font-monospace">{{
-                        activeOrder.maHoaDon
-                      }}</span>
+                      <span class="fw-semibold font-monospace">
+                        {{ activeOrder.maHoaDon }}
+                      </span>
                     </div>
                   </div>
 
-                  <div class="d-flex align-items-center gap-2">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
                     <button
-                      class="btn btn-outline-secondary btn-sm customer-action-btn"
+                      class="btn btn-outline-secondary btn-sm"
                       type="button"
-                      @click="resetToWalkInCustomer"
+                      @click="chooseWalkInCustomer"
                     >
-                      Đặt lại
+                      Khách vãng lai
                     </button>
 
                     <button
-                      class="btn btn-outline-dark btn-sm customer-action-btn"
+                      class="btn btn-outline-dark btn-sm"
                       type="button"
                       @click="openCustomerModal"
                     >
                       Chọn khách hàng
+                    </button>
+
+                    <button
+                      v-if="activeOrder.loaiDon"
+                      class="btn btn-outline-primary btn-sm"
+                      type="button"
+                      :disabled="!activeOrder.customer?.id"
+                      @click="openAddressModal"
+                    >
+                      Chọn địa chỉ
                     </button>
                   </div>
                 </div>
 
                 <div class="card-body">
                   <template v-if="!activeOrder.loaiDon">
-                    <div class="mb-2">
-                      <span class="text-muted">Tên khách hàng: </span>
-                      <span class="fw-bold">{{
-                        activeOrder.customer?.name || "Khách lẻ"
-                      }}</span>
-                    </div>
-
-                    <div class="row g-2">
-                      <div class="col-12 col-md-6">
-                        <input
-                          class="form-control"
-                          placeholder="Số điện thoại"
-                          v-model="activeOrder.customerDraft.phone"
-                        />
-                      </div>
-                      <div class="col-12 col-md-6">
-                        <input
-                          class="form-control"
-                          placeholder="Email (nếu có)"
-                          v-model="activeOrder.customerDraft.email"
-                        />
+                    <div class="customer-summary-box">
+                      <div class="summary-line">
+                        <span class="summary-label">Tên khách hàng</span>
+                        <span class="summary-value fw-bold">
+                          {{ activeOrder.customer?.name || "Khách lẻ" }}
+                        </span>
                       </div>
 
-                      <div class="col-12">
-                        <textarea
-                          class="form-control"
-                          rows="2"
-                          placeholder="Địa chỉ (nếu có)"
-                          v-model="activeOrder.diaChi"
-                        ></textarea>
+                      <div v-if="activeOrder.customer?.id" class="summary-line">
+                        <span class="summary-label">Số điện thoại</span>
+                        <span class="summary-value">
+                          {{ activeOrder.customerDraft.phone || "—" }}
+                        </span>
+                      </div>
+
+                      <div v-if="activeOrder.customer?.id" class="summary-line">
+                        <span class="summary-label">Email</span>
+                        <span class="summary-value">
+                          {{ activeOrder.customerDraft.email || "—" }}
+                        </span>
+                      </div>
+
+                      <div v-if="activeOrder.customer?.id" class="summary-line">
+                        <span class="summary-label">Địa chỉ</span>
+                        <span class="summary-value">
+                          {{ activeOrder.diaChi || "Chưa có địa chỉ" }}
+                        </span>
                       </div>
                     </div>
                   </template>
 
                   <template v-else>
+                    <div class="customer-summary-box mb-3">
+                      <div class="summary-line">
+                        <span class="summary-label">Tên khách hàng</span>
+                        <span class="summary-value fw-bold">
+                          {{ activeOrder.customer?.name || "Khách lẻ" }}
+                        </span>
+                      </div>
+
+                      <div class="summary-line">
+                        <span class="summary-label">Địa chỉ khách hàng</span>
+                        <span class="summary-value">
+                          {{ selectedAddressDisplay || "Chưa chọn địa chỉ" }}
+                        </span>
+                      </div>
+                    </div>
+
                     <div class="border rounded-3 p-3">
                       <div class="fw-bold mb-2">Thông tin nhận hàng</div>
 
@@ -285,6 +271,7 @@
                             v-model.trim="activeOrder.tenNguoiNhanHang"
                           />
                         </div>
+
                         <div class="col-12 col-md-6">
                           <input
                             class="form-control"
@@ -294,67 +281,51 @@
                         </div>
 
                         <div class="col-12 col-md-6">
-                          <label class="form-label mb-1">Tỉnh/Thành</label>
-                          <select
-                            class="form-select"
-                            v-model="activeOrder.tinhThanhNhanHang"
-                            @change="onProvinceChange($event.target.value)"
-                            :disabled="provincesLoading"
-                          >
-                            <option value="" disabled>
-                              -- Chọn tỉnh/thành --
-                            </option>
-                            <option
-                              v-for="p in provinces"
-                              :key="p.code"
-                              :value="p.code"
-                            >
-                              {{ p.name }}
-                            </option>
-                          </select>
-                        </div>
+  <label class="form-label mb-1">Tỉnh/Thành</label>
+  <select
+    class="form-select"
+    v-model="activeOrder.ghnProvinceId"
+    @change="onProvinceChange($event.target.value)"
+    :disabled="provincesLoading"
+  >
+    <option :value="null" disabled>-- Chọn tỉnh/thành --</option>
+    <option
+      v-for="p in provinces"
+      :key="p.provinceId"
+      :value="p.provinceId"
+    >
+      {{ p.provinceName }}
+    </option>
+  </select>
+</div>
 
-                        <div class="col-12 col-md-6">
-                          <label class="form-label mb-1">Phường/Xã</label>
-                          <select
-                            class="form-select"
-                            v-model="activeOrder.phuongXaNhanHang"
-                            :disabled="
-                              !activeOrder.tinhThanhNhanHang || wardsLoading
-                            "
-                          >
-                            <option value="" disabled>
-                              -- Chọn phường/xã --
-                            </option>
-                            <option
-                              v-for="w in wards"
-                              :key="w.code"
-                              :value="w.code"
-                            >
-                              {{ w.name }}
-                            </option>
-                          </select>
-                        </div>
+<div class="col-12 col-md-6">
+  <label class="form-label mb-1">Phường/Xã</label>
+  <select
+    class="form-select"
+    v-model="activeOrder.ghnWardCode"
+    @change="onWardChange($event.target.value)"
+    :disabled="!activeOrder.ghnProvinceId || wardsLoading"
+  >
+    <option value="" disabled>-- Chọn phường/xã --</option>
+    <option
+      v-for="w in wards"
+      :key="w.wardCode"
+      :value="w.wardCode"
+    >
+      {{ w.wardName }}
+    </option>
+  </select>
+</div>
 
                         <div class="col-12">
-                          <label class="form-label mb-1"
-                            >Địa chỉ chi tiết</label
-                          >
+                          <label class="form-label mb-1">Địa chỉ chi tiết</label>
                           <input
                             class="form-control"
                             placeholder="Số nhà, tên đường..."
                             v-model.trim="activeOrder.diaChiNhanHangChiTiet"
+                            @blur="refreshShipFee"
                           />
-                        </div>
-
-                        <div class="col-12 mt-3">
-                          <div class="shipping-brand-box">
-                            <img
-                              :src="ghnLogo"
-                              alt="GHN Express"
-                              class="shipping-brand-logo"
-                            />
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -365,9 +336,7 @@
 
             <div class="col-12 col-lg-6">
               <div class="card h-100">
-                <div
-                  class="card-header bg-white d-flex align-items-center justify-content-between"
-                >
+                <div class="card-header bg-white d-flex align-items-center justify-content-between">
                   <div class="fw-bold">Thanh toán</div>
                   <div class="small text-muted">Chỉ tại cửa hàng</div>
                 </div>
@@ -385,19 +354,13 @@
                         id="switch-ship"
                       />
                       <label class="form-check-label" for="switch-ship">
-                        {{
-                          activeOrder.loaiDon
-                            ? "Bán tại quầy (có ship)"
-                            : "Bán tại quầy"
-                        }}
+                        {{ activeOrder.loaiDon ? "Giao hàng" : "Bán tại quầy" }}
                       </label>
                     </div>
                   </div>
 
                   <div class="mb-3">
-                    <div
-                      class="d-flex align-items-center justify-content-between flex-wrap gap-2"
-                    >
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                       <label class="form-label fw-bold m-0">
                         Mã giảm giá <span class="text-danger">*</span>
                       </label>
@@ -406,7 +369,7 @@
                         <button
                           class="btn btn-outline-secondary btn-sm"
                           type="button"
-                          @click="reloadActiveOrderVouchers"
+                          @click="reloadActiveOrderVouchers({ showModal: true })"
                         >
                           Tải lại
                         </button>
@@ -445,36 +408,22 @@
 
                     <div class="border border-top-0 rounded-bottom p-2">
                       <template v-if="activeOrder.voucherTab === 'best'">
-                        <div
-                          v-if="activeOrder.voucherMode === 'none'"
-                          class="text-muted small py-2"
-                        >
+                        <div v-if="activeOrder.voucherMode === 'none'" class="text-muted small py-2">
                           Bạn đang chọn: <b>Không dùng mã</b>
                         </div>
 
-                        <div
-                          v-else-if="bestVoucherEntryUI"
-                          class="voucher-card"
-                        >
-                          <div
-                            class="d-flex align-items-start justify-content-between gap-2"
-                          >
+                        <div v-else-if="bestVoucherEntryUI" class="voucher-card">
+                          <div class="d-flex align-items-start justify-content-between gap-2">
                             <div>
                               <div class="d-flex gap-2 flex-wrap">
                                 <span class="badge text-bg-primary">PGG</span>
-                                <span class="badge text-bg-secondary"
-                                  >Mã tốt nhất</span
-                                >
-                                <span class="badge text-bg-dark">{{
-                                  bestVoucherEntryUI.v.ma_giam_gia
-                                }}</span>
+                                <span class="badge text-bg-secondary">Mã tốt nhất</span>
+                                <span class="badge text-bg-dark">
+                                  {{ bestVoucherEntryUI.v.ma_giam_gia }}
+                                </span>
 
                                 <span
-                                  v-if="
-                                    activeOrder.pggId ===
-                                      bestVoucherEntryUI.v.id &&
-                                    bestVoucherEntryUI.discount <= 0
-                                  "
+                                  v-if="activeOrder.pggId === bestVoucherEntryUI.v.id && bestVoucherEntryUI.discount <= 0"
                                   class="badge text-bg-danger"
                                 >
                                   Không còn hiệu lực
@@ -487,47 +436,30 @@
 
                               <div class="mt-2">
                                 <span class="text-muted">Giảm:</span>
-                                <span class="ms-2 fw-bold text-danger"
-                                  >-
-                                  {{ money(bestVoucherEntryUI.discount) }}</span
-                                >
+                                <span class="ms-2 fw-bold text-danger">
+                                  - {{ money(bestVoucherEntryUI.discount) }}
+                                </span>
                               </div>
 
                               <div class="small text-muted mt-1">
-                                <span
-                                  v-if="
-                                    bestVoucherEntryUI.v.don_hang_toi_thieu > 0
-                                  "
-                                >
+                                <span v-if="bestVoucherEntryUI.v.don_hang_toi_thieu > 0">
                                   Đơn tối thiểu:
-                                  <b>{{
-                                    money(
-                                      bestVoucherEntryUI.v.don_hang_toi_thieu,
-                                    )
-                                  }}</b>
+                                  <b>{{ money(bestVoucherEntryUI.v.don_hang_toi_thieu) }}</b>
                                 </span>
+
                                 <span
-                                  v-if="
-                                    bestVoucherEntryUI.v.gia_tri_giam_toi_da > 0
-                                  "
+                                  v-if="bestVoucherEntryUI.v.gia_tri_giam_toi_da > 0"
                                   class="ms-2"
                                 >
                                   Tối đa:
-                                  <b>{{
-                                    money(
-                                      bestVoucherEntryUI.v.gia_tri_giam_toi_da,
-                                    )
-                                  }}</b>
+                                  <b>{{ money(bestVoucherEntryUI.v.gia_tri_giam_toi_da) }}</b>
                                 </span>
                               </div>
                             </div>
 
                             <div class="text-end">
                               <span
-                                v-if="
-                                  activeOrder.voucherMode !== 'none' &&
-                                  activeOrder.pggId === bestVoucherEntryUI.v.id
-                                "
+                                v-if="activeOrder.voucherMode !== 'none' && activeOrder.pggId === bestVoucherEntryUI.v.id"
                                 class="badge text-bg-success"
                               >
                                 Đang áp dụng
@@ -537,9 +469,7 @@
                                 v-else
                                 class="btn btn-success btn-sm"
                                 type="button"
-                                @click="
-                                  applyVoucherManual(bestVoucherEntryUI.v)
-                                "
+                                @click="applyVoucherManual(bestVoucherEntryUI.v)"
                               >
                                 Áp dụng
                               </button>
@@ -547,12 +477,8 @@
                           </div>
 
                           <div class="mt-3 small text-muted">
-                            <div>
-                              <span class="me-2">Hết hạn:</span>
-                              <b>{{
-                                formatDateVN(bestVoucherEntryUI.v.ngay_ket_thuc)
-                              }}</b>
-                            </div>
+                            <span class="me-2">Hết hạn:</span>
+                            <b>{{ formatDateVN(bestVoucherEntryUI.v.ngay_ket_thuc) }}</b>
                           </div>
                         </div>
 
@@ -562,10 +488,7 @@
                       </template>
 
                       <template v-else>
-                        <div
-                          v-if="altVoucherEntriesUI.length === 0"
-                          class="text-muted small py-2"
-                        >
+                        <div v-if="altVoucherEntriesUI.length === 0" class="text-muted small py-2">
                           Không có mã thay thế khả dụng.
                         </div>
 
@@ -575,66 +498,35 @@
                             :key="e.v.id"
                             class="voucher-card"
                           >
-                            <div
-                              class="d-flex align-items-start justify-content-between gap-2"
-                            >
+                            <div class="d-flex align-items-start justify-content-between gap-2">
                               <div>
                                 <div class="d-flex gap-2 flex-wrap">
                                   <span class="badge text-bg-primary">PGG</span>
-                                  <span class="badge text-bg-secondary"
-                                    >Mã thay thế</span
-                                  >
-                                  <span class="badge text-bg-dark">{{
-                                    e.v.ma_giam_gia
-                                  }}</span>
+                                  <span class="badge text-bg-secondary">Mã thay thế</span>
+                                  <span class="badge text-bg-dark">{{ e.v.ma_giam_gia }}</span>
 
                                   <span
-                                    v-if="
-                                      activeOrder.pggId === e.v.id &&
-                                      activeOrder.voucherMode !== 'none'
-                                    "
+                                    v-if="activeOrder.pggId === e.v.id && activeOrder.voucherMode !== 'none'"
                                     class="badge text-bg-success"
                                   >
                                     Đang chọn
                                   </span>
 
                                   <span
-                                    v-if="
-                                      activeOrder.pggId === e.v.id &&
-                                      e.discount <= 0
-                                    "
+                                    v-if="activeOrder.pggId === e.v.id && e.discount <= 0"
                                     class="badge text-bg-danger"
                                   >
                                     Không còn hiệu lực
                                   </span>
                                 </div>
 
-                                <div class="mt-2 fw-bold">
-                                  {{ e.v.ten_giam_gia }}
-                                </div>
+                                <div class="mt-2 fw-bold">{{ e.v.ten_giam_gia }}</div>
 
                                 <div class="mt-2">
                                   <span class="text-muted">Giảm:</span>
-                                  <span class="ms-2 fw-bold text-danger"
-                                    >- {{ money(e.discount) }}</span
-                                  >
-                                </div>
-
-                                <div class="small text-muted mt-1">
-                                  <span v-if="e.v.don_hang_toi_thieu > 0"
-                                    >Đơn tối thiểu:
-                                    <b>{{
-                                      money(e.v.don_hang_toi_thieu)
-                                    }}</b></span
-                                  >
-                                  <span
-                                    v-if="e.v.gia_tri_giam_toi_da > 0"
-                                    class="ms-2"
-                                    >Tối đa:
-                                    <b>{{
-                                      money(e.v.gia_tri_giam_toi_da)
-                                    }}</b></span
-                                  >
+                                  <span class="ms-2 fw-bold text-danger">
+                                    - {{ money(e.discount) }}
+                                  </span>
                                 </div>
                               </div>
 
@@ -658,10 +550,7 @@
                         Gợi ý mã giảm giá <span class="text-danger">*</span>
                       </div>
 
-                      <div
-                        v-if="voucherSuggestions.length === 0"
-                        class="text-muted small mt-1"
-                      >
+                      <div v-if="voucherSuggestions.length === 0" class="text-muted small mt-1">
                         Không có gợi ý mua thêm để đạt mã tốt hơn
                       </div>
 
@@ -671,27 +560,20 @@
                           :key="'suggest-' + e.v.id"
                           class="border rounded-3 p-2"
                         >
-                          <div
-                            class="d-flex align-items-center justify-content-between gap-2 flex-wrap"
-                          >
+                          <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
                             <div>
                               Thêm
                               <b class="text-danger">{{ money(e.missing) }}</b>
-                              để dùng <b>{{ e.v.ma_giam_gia }}</b> (giảm khoảng
-                              <b class="text-danger"
-                                >-{{ money(e.expectedDiscount) }}</b
-                              >
+                              để dùng <b>{{ e.v.ma_giam_gia }}</b>
+                              (giảm khoảng
+                              <b class="text-danger">-{{ money(e.expectedDiscount) }}</b>
                               khi đơn ≥ {{ money(e.minOrder) }})
                             </div>
 
                             <button
                               class="btn btn-outline-secondary btn-sm"
                               type="button"
-                              @click="
-                                toastInfo(
-                                  'Thêm sản phẩm để đủ điều kiện rồi áp dụng mã',
-                                )
-                              "
+                              @click="toastInfo('Thêm sản phẩm để đủ điều kiện rồi áp dụng mã')"
                             >
                               Xem
                             </button>
@@ -708,11 +590,7 @@
                       v-model.number="activeOrder.discountPercent"
                       inputmode="numeric"
                       :disabled="!!activeOrder.pggId"
-                      :placeholder="
-                        activeOrder.pggId
-                          ? 'Đang chọn PGG, % bị khóa'
-                          : 'Nhập % giảm (tùy chọn)'
-                      "
+                      :placeholder="activeOrder.pggId ? 'Đang chọn PGG, % bị khóa' : 'Nhập % giảm (tùy chọn)'"
                     />
                   </div>
 
@@ -724,29 +602,41 @@
 
                     <li
                       v-if="activeOrder.loaiDon"
-                      class="list-group-item d-flex justify-content-between"
+                      class="list-group-item d-flex justify-content-between align-items-center"
                     >
-                      <span class="text-muted">Phí ship</span>
-                      <span class="fw-semibold">{{ money(shipMoney) }}</span>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted">Phí vận chuyển</span>
+                        <img :src="ghnLogo" alt="GHN" class="ship-fee-logo" />
+                      </div>
+
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold">{{ money(shipMoney) }}</span>
+
+                        <button
+                          class="btn btn-outline-secondary btn-sm"
+                          type="button"
+                          @click="refreshShipFee"
+                          :disabled="shippingFeeLoading"
+                          title="Lấy lại phí vận chuyển"
+                        >
+                          <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                      </div>
                     </li>
 
                     <li class="list-group-item d-flex justify-content-between">
                       <span class="text-muted">Giảm giá</span>
-                      <span class="fw-semibold text-danger"
-                        >- {{ money(discountMoney) }}</span
-                      >
+                      <span class="fw-semibold text-danger">
+                        - {{ money(discountMoney) }}
+                      </span>
                     </li>
 
                     <li class="list-group-item d-flex justify-content-between">
                       <span class="fw-bold">Tổng phải trả</span>
-                      <span class="fw-bold text-danger">{{
-                        money(grandTotal)
-                      }}</span>
+                      <span class="fw-bold text-danger">{{ money(grandTotal) }}</span>
                     </li>
 
-                    <li
-                      class="list-group-item d-flex justify-content-between align-items-center"
-                    >
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
                       <span class="text-muted">Khách thanh toán</span>
                       <input
                         class="form-control form-control-sm text-end"
@@ -794,11 +684,7 @@
       </div>
     </div>
 
-    <div
-      v-if="toast.show"
-      class="position-fixed top-0 end-0 p-3"
-      style="z-index: 2000"
-    >
+    <div v-if="toast.show" class="position-fixed top-0 end-0 p-3" style="z-index: 2000">
       <div class="custom-toast shadow-sm" :class="toastClass">
         <div class="custom-toast-content">
           <div class="custom-toast-title">{{ toast.title }}</div>
@@ -836,11 +722,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-bold">Chọn biến thể để thêm vào đơn</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="closeProductModal"
-              ></button>
+              <button type="button" class="btn-close" @click="closeProductModal"></button>
             </div>
 
             <div class="modal-body">
@@ -858,16 +740,9 @@
 
                     <div class="col-12 col-md-6 col-lg-3">
                       <label class="form-label mb-1">Màu sắc</label>
-                      <select
-                        class="form-select"
-                        v-model="productFilters.color"
-                      >
+                      <select class="form-select" v-model="productFilters.color">
                         <option value="">-- Chọn màu sắc --</option>
-                        <option
-                          v-for="c in productColorOptions"
-                          :key="c"
-                          :value="c"
-                        >
+                        <option v-for="c in productColorOptions" :key="c" :value="c">
                           {{ c }}
                         </option>
                       </select>
@@ -877,11 +752,7 @@
                       <label class="form-label mb-1">Size</label>
                       <select class="form-select" v-model="productFilters.size">
                         <option value="">-- Chọn size --</option>
-                        <option
-                          v-for="s in productSizeOptions"
-                          :key="s"
-                          :value="s"
-                        >
+                        <option v-for="s in productSizeOptions" :key="s" :value="s">
                           {{ s }}
                         </option>
                       </select>
@@ -890,16 +761,14 @@
                     <div class="col-12 col-lg-7">
                       <label class="form-label mb-2">Khoảng giá</label>
 
-                      <div
-                        class="d-flex align-items-center gap-2 flex-wrap mb-2"
-                      >
-                        <span class="fw-semibold text-success">{{
-                          money(productPriceRange.min).replace(" đ", "")
-                        }}</span>
+                      <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                        <span class="fw-semibold text-success">
+                          {{ money(productPriceRange.min).replace(" đ", "") }}
+                        </span>
                         <span>-</span>
-                        <span class="fw-semibold text-success">{{
-                          money(productPriceRange.max).replace(" đ", "")
-                        }}</span>
+                        <span class="fw-semibold text-success">
+                          {{ money(productPriceRange.max).replace(" đ", "") }}
+                        </span>
                       </div>
 
                       <div class="price-range-wrap">
@@ -923,11 +792,6 @@
                           @input="onPriceRangeMaxInput"
                         />
                       </div>
-
-                      <div class="small text-muted mt-1">
-                        Giá tối đa hiện tại:
-                        <b>{{ money(productPriceRange.max) }}</b>
-                      </div>
                     </div>
 
                     <div class="col-12 col-lg-5">
@@ -941,9 +805,7 @@
                             v-model="productFilters.stockStatus"
                             id="stock-all"
                           />
-                          <label class="form-check-label" for="stock-all"
-                            >Tất cả</label
-                          >
+                          <label class="form-check-label" for="stock-all">Tất cả</label>
                         </div>
 
                         <div class="form-check">
@@ -954,9 +816,7 @@
                             v-model="productFilters.stockStatus"
                             id="stock-in"
                           />
-                          <label class="form-check-label" for="stock-in"
-                            >Còn hàng</label
-                          >
+                          <label class="form-check-label" for="stock-in">Còn hàng</label>
                         </div>
 
                         <div class="form-check">
@@ -967,34 +827,20 @@
                             v-model="productFilters.stockStatus"
                             id="stock-out"
                           />
-                          <label class="form-check-label" for="stock-out"
-                            >Hết hàng</label
-                          >
+                          <label class="form-check-label" for="stock-out">Hết hàng</label>
                         </div>
                       </div>
                     </div>
 
-                    <div
-                      class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2"
-                    >
-                      <div
-                        class="small text-muted d-flex align-items-center gap-3 flex-wrap"
-                      >
+                    <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div class="small text-muted d-flex align-items-center gap-3 flex-wrap">
                         <span v-if="productLoading">Đang tải...</span>
-                        <span
-                          >Hiển thị: <b>{{ filteredProducts.length }}</b></span
-                        >
-                        <span
-                          >Tổng: <b>{{ productTotal }}</b></span
-                        >
+                        <span>Hiển thị: <b>{{ pagedProducts.length }}</b></span>
+                        <span>Tổng sau lọc: <b>{{ productTotal }}</b></span>
                       </div>
 
                       <div class="d-flex gap-2">
-                        <button
-                          class="btn btn-outline-secondary"
-                          type="button"
-                          @click="resetProductFilters"
-                        >
+                        <button class="btn btn-outline-secondary" type="button" @click="resetProductFilters">
                           Đặt lại
                         </button>
 
@@ -1029,7 +875,7 @@
                   </thead>
 
                   <tbody>
-                    <tr v-for="(p, i) in filteredProducts" :key="p.idSpct">
+                    <tr v-for="(p, i) in pagedProducts" :key="p.idSpct">
                       <td>{{ i + 1 + productPage * productSize }}</td>
                       <td class="fw-semibold">{{ p.code }}</td>
                       <td>
@@ -1055,7 +901,7 @@
                       </td>
                     </tr>
 
-                    <tr v-if="filteredProducts.length === 0 && !productLoading">
+                    <tr v-if="pagedProducts.length === 0 && !productLoading">
                       <td colspan="9" class="text-center text-muted py-3">
                         Không có dữ liệu
                       </td>
@@ -1066,13 +912,10 @@
 
               <div class="d-flex align-items-center mt-2">
                 <div class="text-muted small" style="min-width: 220px">
-                  Hiển thị {{ filteredProducts.length }} / tổng
-                  {{ productTotal }} bản ghi
+                  Hiển thị {{ pagedProducts.length }} / tổng {{ productTotal }} bản ghi
                 </div>
 
-                <div
-                  class="flex-grow-1 d-flex justify-content-center align-items-center gap-2"
-                >
+                <div class="flex-grow-1 d-flex justify-content-center align-items-center gap-2">
                   <button
                     class="btn btn-outline-dark btn-sm"
                     @click="productPrev"
@@ -1083,9 +926,7 @@
 
                   <div class="small">
                     Trang <b>{{ productPage + 1 }}</b>
-                    <span v-if="productTotalPages"
-                      >/ {{ productTotalPages }}</span
-                    >
+                    <span v-if="productTotalPages">/ {{ productTotalPages }}</span>
                   </div>
 
                   <button
@@ -1097,10 +938,7 @@
                   </button>
                 </div>
 
-                <div
-                  class="d-flex justify-content-end"
-                  style="min-width: 190px"
-                >
+                <div class="d-flex justify-content-end" style="min-width: 190px">
                   <select
                     class="form-select form-select-sm"
                     style="width: 150px"
@@ -1127,17 +965,11 @@
         aria-modal="true"
         style="display: block; z-index: 1055"
       >
-        <div
-          class="modal-dialog modal-xl modal-dialog-scrollable customer-modal-dialog"
-        >
+        <div class="modal-dialog modal-xl modal-dialog-scrollable customer-modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-bold">Chọn khách hàng</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="closeCustomerModal"
-              ></button>
+              <button type="button" class="btn-close" @click="closeCustomerModal"></button>
             </div>
 
             <div class="modal-body">
@@ -1157,20 +989,18 @@
                   Tải lại
                 </button>
 
-                <div
-                  class="ms-auto small text-muted d-flex align-items-center gap-2"
-                >
+                <button class="btn btn-outline-dark" type="button" @click="chooseWalkInCustomer">
+                  Khách vãng lai
+                </button>
+
+                <div class="ms-auto small text-muted d-flex align-items-center gap-2">
                   <span v-if="customerLoading">Đang tải...</span>
-                  <span
-                    >Tổng: <b>{{ customerTotal }}</b></span
-                  >
+                  <span>Tổng: <b>{{ customerTotal }}</b></span>
                 </div>
               </div>
 
               <div class="table-responsive customer-table-wrap">
-                <table
-                  class="table table-bordered align-middle mb-0 customer-table"
-                >
+                <table class="table table-bordered align-middle mb-0 customer-table">
                   <colgroup>
                     <col style="width: 8%" />
                     <col style="width: 25%" />
@@ -1190,29 +1020,19 @@
                   </thead>
 
                   <tbody>
-                    <tr
-                      v-for="(c, i) in pagedCustomers"
-                      :key="c.id || c.phone || i"
-                    >
-                      <td class="text-center">
-                        {{ i + 1 + customerPage * customerSize }}
-                      </td>
+                    <tr v-for="(c, i) in pagedCustomers" :key="c.id || c.phone || i">
+                      <td class="text-center">{{ i + 1 + customerPage * customerSize }}</td>
                       <td class="fw-semibold">{{ c.name }}</td>
                       <td>{{ c.phone }}</td>
                       <td class="customer-address-cell">{{ c.address }}</td>
                       <td class="text-center">
-                        <button
-                          class="btn btn-dark btn-sm customer-pick-btn"
-                          @click="chooseCustomer(c)"
-                        >
+                        <button class="btn btn-dark btn-sm customer-pick-btn" @click="chooseCustomer(c)">
                           Chọn
                         </button>
                       </td>
                     </tr>
 
-                    <tr
-                      v-if="filteredCustomers.length === 0 && !customerLoading"
-                    >
+                    <tr v-if="filteredCustomers.length === 0 && !customerLoading">
                       <td colspan="5" class="text-center text-muted py-3">
                         Không có dữ liệu
                       </td>
@@ -1223,13 +1043,10 @@
 
               <div class="d-flex align-items-center mt-2">
                 <div class="text-muted small" style="min-width: 220px">
-                  Hiển thị {{ pagedCustomers.length }} / tổng
-                  {{ customerTotal }} bản ghi
+                  Hiển thị {{ pagedCustomers.length }} / tổng {{ customerTotal }} bản ghi
                 </div>
 
-                <div
-                  class="flex-grow-1 d-flex justify-content-center align-items-center gap-2"
-                >
+                <div class="flex-grow-1 d-flex justify-content-center align-items-center gap-2">
                   <button
                     class="btn btn-outline-dark btn-sm"
                     @click="customerPrev"
@@ -1240,9 +1057,7 @@
 
                   <div class="small">
                     Trang <b>{{ customerPage + 1 }}</b>
-                    <span v-if="customerTotalPages"
-                      >/ {{ customerTotalPages }}</span
-                    >
+                    <span v-if="customerTotalPages">/ {{ customerTotalPages }}</span>
                   </div>
 
                   <button
@@ -1254,10 +1069,7 @@
                   </button>
                 </div>
 
-                <div
-                  class="d-flex justify-content-end"
-                  style="min-width: 190px"
-                >
+                <div class="d-flex justify-content-end" style="min-width: 190px">
                   <select
                     class="form-select form-select-sm"
                     style="width: 150px"
@@ -1268,6 +1080,155 @@
                     <option :value="20">20 bản ghi / trang</option>
                     <option :value="50">50 bản ghi / trang</option>
                   </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="showAddressModal"
+        class="modal fade show"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        style="display: block; z-index: 1056"
+      >
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold">Chọn địa chỉ của khách</h5>
+              <button type="button" class="btn-close" @click="closeAddressModal"></button>
+            </div>
+
+            <div class="modal-body">
+              <div class="address-new-box mb-3">
+                <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+                  <div>
+                    <div class="fw-bold text-primary">Thêm địa chỉ mới</div>
+                    <div class="small text-muted">Thêm địa chỉ cho khách đang chọn</div>
+                  </div>
+                  <button class="btn btn-success btn-sm" type="button" @click="saveNewAddress">
+                    Thêm địa chỉ
+                  </button>
+                </div>
+
+               <div class="row g-2">
+  <div class="col-12 col-md-6">
+    <input
+      class="form-control"
+      placeholder="Tên người nhận"
+      v-model.trim="addressDraft.receiverName"
+    />
+  </div>
+
+  <div class="col-12 col-md-6">
+    <input
+      class="form-control"
+      placeholder="Số điện thoại"
+      v-model.trim="addressDraft.phone"
+    />
+  </div>
+
+  <div class="col-12 col-md-6">
+    <label class="form-label mb-1">Tỉnh/Thành phố</label>
+    <select
+      class="form-select"
+      v-model="addressDraft.provinceId"
+      @change="onAddressProvinceChange($event.target.value)"
+    >
+      <option :value="null" disabled>-- Chọn Tỉnh/Thành phố --</option>
+      <option
+        v-for="p in provinces"
+        :key="'addr-p-' + p.provinceId"
+        :value="p.provinceId"
+      >
+        {{ p.provinceName }}
+      </option>
+    </select>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <label class="form-label mb-1">Phường/Xã</label>
+    <select
+      class="form-select"
+      v-model="addressDraft.wardCode"
+      :disabled="!addressDraft.provinceId"
+    >
+      <option value="" disabled>-- Chọn Phường/Xã --</option>
+      <option
+        v-for="w in addressDraftWards"
+        :key="'addr-w-' + w.wardCode"
+        :value="w.wardCode"
+      >
+        {{ w.wardName }}
+      </option>
+    </select>
+  </div>
+
+  <div class="col-12">
+    <label class="form-label mb-1">Địa chỉ chi tiết</label>
+    <input
+      class="form-control"
+      placeholder="Số nhà, tên đường..."
+      v-model.trim="addressDraft.detail"
+    />
+  </div>
+
+  <div class="col-12">
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="addr-default"
+        v-model="addressDraft.makeDefault"
+      />
+      <label class="form-check-label" for="addr-default">
+        Đặt làm mặc định
+      </label>
+    </div>
+  </div>
+</div>
+              </div>
+
+              <div v-if="activeOrderAddressBook.length === 0" class="small text-muted">
+                Chưa có địa chỉ nào. Hãy thêm mới địa chỉ.
+              </div>
+
+              <div v-else class="d-flex flex-column gap-2">
+                <div
+                  v-for="addr in activeOrderAddressBook"
+                  :key="addr.id"
+                  class="address-card"
+                  :class="{ 'address-card-active': activeOrder.selectedAddressId === addr.id }"
+                >
+                  <div class="d-flex justify-content-between gap-2 flex-wrap">
+                    <div>
+                      <div class="fw-semibold">
+                        {{ addr.receiverName }}
+                        <span class="text-muted">· {{ addr.phone || "—" }}</span>
+                        <span v-if="addr.isDefault" class="badge text-bg-primary ms-2">
+                          Mặc định
+                        </span>
+                      </div>
+                      <div class="small mt-1">{{ addr.fullAddress }}</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
+                        type="button"
+                        @click="setDefaultAddress(addr.id)"
+                        :disabled="addr.isDefault"
+                      >
+                        Đặt mặc định
+                      </button>
+                      <button class="btn btn-dark btn-sm" type="button" @click="pickAddress(addr.id)">
+                        Chọn
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1287,11 +1248,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-bold">Thanh toán bằng QR</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="closeQrPay"
-              ></button>
+              <button type="button" class="btn-close" @click="closeQrPay"></button>
             </div>
 
             <div class="modal-body">
@@ -1335,11 +1292,7 @@
             </div>
 
             <div class="modal-footer">
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="closeQrPay"
-              >
+              <button class="btn btn-outline-secondary" type="button" @click="closeQrPay">
                 Đóng
               </button>
 
@@ -1368,11 +1321,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-bold">Xác nhận thanh toán</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="resolvePaymentConfirm(false)"
-              ></button>
+              <button type="button" class="btn-close" @click="resolvePaymentConfirm(false)"></button>
             </div>
 
             <div class="modal-body">
@@ -1400,92 +1349,113 @@
       </div>
 
       <div
-        v-if="showPreCheckoutModal"
-        class="modal fade show"
-        tabindex="-1"
-        role="dialog"
-        aria-modal="true"
-        style="display: block; z-index: 1060"
-      >
-        <div class="modal-dialog modal-md">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title fw-bold">Xác nhận phiếu giảm giá</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="resolvePreCheckout(false)"
-              ></button>
-            </div>
+  v-if="showPreCheckoutModal"
+  class="modal fade show"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  style="display: block; z-index: 1060"
+>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content voucher-notify-modal">
+      <div class="modal-header voucher-notify-header">
+        <div>
+          <h5 class="modal-title fw-bold mb-1">{{ preCheckoutUi.title }}</h5>
+          <div class="small text-muted" v-if="preCheckoutUi.subtitle">
+            {{ preCheckoutUi.subtitle }}
+          </div>
+        </div>
 
-            <div class="modal-body">
-              <div
-                class="fw-semibold mb-2"
-                :class="preCheckoutUi.type === 'danger' ? 'text-danger' : ''"
-              >
-                {{ preCheckoutUi.message }}
-              </div>
+        <button
+  type="button"
+  class="btn-close"
+  @click="resolvePreCheckout(preCheckoutUi.mode === 'ack')"
+></button>
+      </div>
 
-              <div v-if="preCheckoutUi.detail" class="small text-muted">
-                {{ preCheckoutUi.detail }}
-              </div>
+      <div class="modal-body">
+        <div
+          class="voucher-notify-banner mb-3"
+          :class="{
+            'voucher-notify-banner-danger': preCheckoutUi.type === 'danger',
+            'voucher-notify-banner-info': preCheckoutUi.type === 'info',
+            'voucher-notify-banner-success': preCheckoutUi.type === 'success'
+          }"
+        >
+          {{ preCheckoutUi.message }}
+        </div>
 
-              <div v-if="preCheckoutUi.suggest" class="mt-2 small">
-                Gợi ý:
-                <b>{{ preCheckoutUi.suggest.code }}</b>
-                • giảm
-                <b class="text-danger"
-                  >-{{ money(preCheckoutUi.suggest.discount) }}</b
-                >
-              </div>
-            </div>
+        <div v-if="preCheckoutUi.detail" class="small text-muted mb-3">
+          {{ preCheckoutUi.detail }}
+        </div>
 
-            <div class="modal-footer">
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="resolvePreCheckout(false)"
-              >
-                Không
-              </button>
-              <button
-                class="btn btn-success"
-                type="button"
-                @click="resolvePreCheckout(true)"
-              >
-                Có
-              </button>
+        <div v-if="preCheckoutUi.rows?.length" class="voucher-notify-table">
+          <div
+            v-for="row in preCheckoutUi.rows"
+            :key="row.label"
+            class="voucher-notify-row"
+          >
+            <div class="voucher-notify-label">{{ row.label }}</div>
+            <div
+              class="voucher-notify-value"
+              :class="row.valueClass || ''"
+            >
+              {{ row.value }}
             </div>
           </div>
         </div>
       </div>
+
+      <div class="modal-footer voucher-notify-footer">
+  <template v-if="preCheckoutUi.mode === 'confirm'">
+    <button
+      class="btn btn-outline-secondary voucher-notify-cancel-btn"
+      type="button"
+      @click="resolvePreCheckout(false)"
+    >
+      {{ preCheckoutUi.cancelText || "Không" }}
+    </button>
+
+    <button
+      class="btn btn-danger voucher-notify-ok-btn"
+      type="button"
+      @click="resolvePreCheckout(true)"
+    >
+      {{ preCheckoutUi.confirmText || "Xác nhận" }}
+    </button>
+  </template>
+
+  <template v-else>
+    <button
+      class="btn btn-danger voucher-notify-ok-btn"
+      type="button"
+      @click="resolvePreCheckout(true)"
+    >
+      {{ preCheckoutUi.confirmText || "Đã hiểu" }}
+    </button>
+  </template>
+</div>
+    </div>
+  </div>
+</div>
     </teleport>
   </div>
 </template>
 
 <script setup>
-import {
-  computed,
-  ref,
-  reactive,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-} from "vue";
+import { computed, ref, reactive, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
 import http from "@/services/http";
 import ghnLogo from "@/assets/ghn-logo.png.webp";
+import vnUnits from "@/assets/vn_units.json";
 import { onTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
-import {
-  getAllDetails,
-  decreaseStock,
-  increaseStock,
-} from "@/services/sanPhamChiTietApi";
+import { getAllDetails, decreaseStock, increaseStock } from "@/services/sanPhamChiTietApi";
 import { listKhachHang } from "@/services/khachHangApi";
-import VN_UNITS from "@/assets/vn_units.json";
 import { resolveMediaUrl } from "@/utils/media";
 
 const MAX_ORDERS = 10;
-const STORAGE_KEY = "sales_store_only_v2_fixed";
+const STORAGE_KEY = "sales_store_only_v6_rewrite";
+const router = useRouter();
 
 function getDateKeyLocal(d = new Date()) {
   const yyyy = d.getFullYear();
@@ -1499,13 +1469,20 @@ function buildImgUrl(path) {
   return resolveMediaUrl(path) || placeholderImg;
 }
 
-const toast = reactive({ show: false, title: "", msg: "", type: "danger" });
+const toast = reactive({
+  show: false,
+  title: "",
+  msg: "",
+  type: "danger",
+});
+
 const toastClass = computed(() => {
   if (toast.type === "success") return "custom-toast-success";
   if (toast.type === "info") return "custom-toast-info";
   if (toast.type === "warning") return "custom-toast-warning";
   return "custom-toast-danger";
 });
+
 function toastShow(msg, type = "danger", title = "") {
   toast.show = true;
   toast.msg = msg;
@@ -1515,10 +1492,11 @@ function toastShow(msg, type = "danger", title = "") {
     (type === "success"
       ? "Thành công"
       : type === "warning"
-        ? "Cảnh báo"
-        : type === "info"
-          ? "Thông báo"
-          : "Thất bại");
+      ? "Cảnh báo"
+      : type === "info"
+      ? "Thông báo"
+      : "Thất bại");
+
   clearTimeout(toastShow._t);
   toastShow._t = setTimeout(() => (toast.show = false), 2600);
 }
@@ -1530,9 +1508,7 @@ const orderSeq = ref(1);
 const submitting = ref(false);
 const activeOrderVouchers = ref([]);
 
-const activeOrder = computed(
-  () => orders.value.find((o) => o.id === activeId.value) || null,
-);
+const activeOrder = computed(() => orders.value.find((o) => o.id === activeId.value) || null);
 
 function randInt(max) {
   try {
@@ -1543,6 +1519,7 @@ function randInt(max) {
     return Math.floor(Math.random() * max);
   }
 }
+
 function genMaHoaDon(d = new Date()) {
   const yy = String(d.getFullYear()).slice(-2);
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -1550,12 +1527,14 @@ function genMaHoaDon(d = new Date()) {
   const r5 = String(randInt(100000)).padStart(5, "0");
   return `HD${yy}${mm}${dd}${r5}`;
 }
+
 function genUniqueMaHoaDon() {
   const existed = new Set(orders.value.map((o) => o.maHoaDon));
   let code = genMaHoaDon();
   while (existed.has(code)) code = genMaHoaDon();
   return code;
 }
+
 function getOrderItemCount(order) {
   if (!order || !Array.isArray(order.cart)) return 0;
   return order.cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
@@ -1582,26 +1561,40 @@ function normalizeOrder(o) {
     maHoaDon: ma,
     label: o?.label || `Hóa Đơn - ${ma}`,
     cart: Array.isArray(o?.cart) ? o.cart.map(normalizeCartItem) : [],
+
     customer: o?.customer ?? null,
     customerDraft: o?.customerDraft ?? { phone: "", email: "" },
     diaChi: o?.diaChi || "",
+
+    addressBook: Array.isArray(o?.addressBook) ? o.addressBook : [],
+    selectedAddressId: o?.selectedAddressId ?? null,
+
     ghiChu: o?.ghiChu || "POS checkout",
+
     loaiDon: !!o?.loaiDon,
     phiVanChuyen: Number(o?.phiVanChuyen || 0),
+
     tenNguoiNhanHang: o?.tenNguoiNhanHang || "",
     soDienThoaiNhanHang: o?.soDienThoaiNhanHang || "",
     tinhThanhNhanHang: o?.tinhThanhNhanHang || "",
     quanHuyenNhanHang: o?.quanHuyenNhanHang || "",
     phuongXaNhanHang: o?.phuongXaNhanHang || "",
     diaChiNhanHangChiTiet: o?.diaChiNhanHangChiTiet || "",
+
+    ghnProvinceId: o?.ghnProvinceId ?? null,
+    ghnDistrictId: o?.ghnDistrictId ?? null,
+    ghnWardCode: o?.ghnWardCode ?? "",
+
     voucherCode: String(o?.voucherCode || ""),
     pggId: o?.pggId ?? null,
     voucherMode: o?.voucherMode ?? "best",
     voucherTab: o?.voucherTab ?? "best",
     voucherSnapshot: o?.voucherSnapshot ?? null,
     voucherSuggestionDismissedKey: o?.voucherSuggestionDismissedKey ?? "",
+
     discountPercent: Number(o?.discountPercent || 0),
     paid: Number(o?.paid || 0),
+
     paymentMethod: o?.paymentMethod || null,
     maGiaoDich: o?.maGiaoDich || null,
     ghiChuThanhToan: o?.ghiChuThanhToan || null,
@@ -1609,21 +1602,26 @@ function normalizeOrder(o) {
 }
 
 async function createOrder() {
-  if (orders.value.length >= MAX_ORDERS)
+  if (orders.value.length >= MAX_ORDERS) {
     return toastShow(`Chỉ tối đa ${MAX_ORDERS} đơn`, "warning");
+  }
+
   const localId = Date.now() + Math.random();
   const maHoaDon = genUniqueMaHoaDon();
+
   try {
     const res = await http.post("/api/hoa-don/taohoadon", { maHoaDon });
     const data = res?.data || {};
+
     orders.value.push(
       normalizeOrder({
         id: localId,
         dbId: data.id,
         maHoaDon: data.maHoaDon || maHoaDon,
         label: `Hóa Đơn - ${data.maHoaDon || maHoaDon}`,
-      }),
+      })
     );
+
     activeId.value = localId;
     orderSeq.value++;
   } catch (e) {
@@ -1635,7 +1633,9 @@ async function createOrder() {
 async function closeOrder(id) {
   const idx = orders.value.findIndex((o) => o.id === id);
   if (idx === -1) return;
+
   const o = orders.value[idx];
+
   if (o?.dbId) {
     try {
       const items = (o.cart || [])
@@ -1644,6 +1644,7 @@ async function closeOrder(id) {
           soLuong: Number(it.qty || 0),
         }))
         .filter((x) => x.idSanPhamChiTiet && x.soLuong > 0);
+
       await http.post(`/api/hoa-don/draft/${o.dbId}/cancel`, {
         reason: "Đóng tab bán hàng",
         items,
@@ -1652,6 +1653,7 @@ async function closeOrder(id) {
       console.error(e);
     }
   }
+
   orders.value.splice(idx, 1);
   if (activeId.value === id) activeId.value = orders.value[0]?.id ?? null;
   saveDraftsNow();
@@ -1667,10 +1669,11 @@ function saveDraftsNow() {
         activeId: activeId.value,
         orderSeq: orderSeq.value,
         savedAt: new Date().toISOString(),
-      }),
+      })
     );
   } catch {}
 }
+
 function clearDraftsFE() {
   try {
     localStorage.removeItem(STORAGE_KEY);
@@ -1679,22 +1682,26 @@ function clearDraftsFE() {
   activeId.value = null;
   orderSeq.value = 1;
 }
+
 function loadDrafts() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
     if (!data?.orders) return;
+
     const todayKey = getDateKeyLocal();
     if (data?.dateKey && data.dateKey !== todayKey) {
       clearDraftsFE();
       return;
     }
+
     orders.value = data.orders.map((o) => normalizeOrder(o));
     activeId.value = data.activeId ?? orders.value[0]?.id ?? null;
     orderSeq.value = Number(data.orderSeq) || orders.value.length + 1;
   } catch {}
 }
+
 let _saveT = null;
 function scheduleSave() {
   clearTimeout(_saveT);
@@ -1728,14 +1735,17 @@ function formatDateVN(d) {
   const yy = dt.getFullYear();
   return `${dd}/${mm}/${yy}`;
 }
+
 function money(n) {
   const v = Number(n) || 0;
   return v.toLocaleString("vi-VN") + " đ";
 }
+
 function formatMoneyInput(n) {
   const v = Number(n) || 0;
   return v.toLocaleString("vi-VN");
 }
+
 function onPaidInput(e) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1744,6 +1754,7 @@ function onPaidInput(e) {
   o.paid = num;
   e.target.value = formatMoneyInput(num);
 }
+
 function onPaidBlur(e) {
   const o = activeOrder.value;
   if (!o) return;
@@ -1752,44 +1763,57 @@ function onPaidBlur(e) {
 
 const showProductModal = ref(false);
 const showCustomerModal = ref(false);
+const showAddressModal = ref(false);
 const showQrPayModal = ref(false);
 const showPreCheckoutModal = ref(false);
 const showPaymentConfirmModal = ref(false);
+
+const backdropOpen = computed(
+  () =>
+    showProductModal.value ||
+    showCustomerModal.value ||
+    showAddressModal.value ||
+    showQrPayModal.value
+);
+
 const anyModalOpen = computed(
   () =>
     showProductModal.value ||
     showCustomerModal.value ||
+    showAddressModal.value ||
     showQrPayModal.value ||
     showPreCheckoutModal.value ||
-    showPaymentConfirmModal.value,
+    showPaymentConfirmModal.value
 );
-const backdropOpen = computed(
-  () =>
-    showProductModal.value || showCustomerModal.value || showQrPayModal.value,
-);
-watch(anyModalOpen, (open) =>
-  document.body.classList.toggle("modal-open", open),
-);
+
+watch(anyModalOpen, (open) => {
+  document.body.classList.toggle("modal-open", open);
+});
+
 function closeBackdropModal() {
   showProductModal.value = false;
   showCustomerModal.value = false;
+  showAddressModal.value = false;
   showQrPayModal.value = false;
 }
 
-const products = ref([]);
+const allProducts = ref([]);
 const productLoading = ref(false);
+
 const productFilters = reactive({
   keyword: "",
   color: "",
   size: "",
   stockStatus: "",
 });
-const productPriceRange = reactive({ min: 0, max: 100000000 });
+
+const productPriceRange = reactive({
+  min: 0,
+  max: 100000000,
+});
+
 const productPage = ref(0);
 const productSize = ref(10);
-const productTotal = ref(0);
-const productTotalPages = ref(0);
-const productLast = ref(false);
 
 function mapSpct(x) {
   const stock = Number(x.soLuongTon || 0);
@@ -1802,63 +1826,55 @@ function mapSpct(x) {
     stock,
     _baseStock: stock,
     price: Number(x.donGia || 0),
-    image: buildImgUrl(
-      x.anh || x.anhDaiDien || x.primaryImageUrl || x.mediaAsset,
-    ),
+    image: buildImgUrl(x.anh || x.anhDaiDien || x.primaryImageUrl || x.mediaAsset),
   };
 }
+
 function getVariantFingerprint(obj) {
   return [
-    String(obj?.name || "")
-      .trim()
-      .toLowerCase(),
-    String(obj?.color || "")
-      .trim()
-      .toLowerCase(),
-    String(obj?.size || "")
-      .trim()
-      .toLowerCase(),
+    String(obj?.name || "").trim().toLowerCase(),
+    String(obj?.color || "").trim().toLowerCase(),
+    String(obj?.size || "").trim().toLowerCase(),
   ].join("|");
 }
+
 function findModalProductById(idSpct) {
   const id = Number(idSpct);
-  return products.value.find((x) => Number(x.idSpct) === id) || null;
-}
-function findRepricedProductInList(cartItem, list) {
-  const sameId = list.find(
-    (p) =>
-      Number(p.idSpct) === Number(cartItem.idSpct) &&
-      !sameMoney(p.price, cartItem.price),
-  );
-  if (sameId) return sameId;
-  const fp = getVariantFingerprint(cartItem);
-  return (
-    list.find(
-      (p) =>
-        getVariantFingerprint(p) === fp && !sameMoney(p.price, cartItem.price),
-    ) || null
-  );
+  return allProducts.value.find((x) => Number(x.idSpct) === id) || null;
 }
 
-async function fetchProducts(page = 0) {
+function findRepricedProductInList(cartItem, list) {
+  const sameId = list.find(
+    (p) => Number(p.idSpct) === Number(cartItem.idSpct) && !sameMoney(p.price, cartItem.price)
+  );
+  if (sameId) return sameId;
+
+  const fp = getVariantFingerprint(cartItem);
+  return list.find((p) => getVariantFingerprint(p) === fp && !sameMoney(p.price, cartItem.price)) || null;
+}
+
+async function fetchAllProducts() {
   if (productLoading.value) return;
   productLoading.value = true;
   try {
-    const res = await getAllDetails(page, productSize.value);
-    const data = res?.data ?? res;
-    const content = Array.isArray(data) ? data : data?.content || [];
-    products.value = content.map(mapSpct);
-    if (!Array.isArray(data)) {
-      productTotal.value = Number(data?.totalElements || 0);
-      productTotalPages.value = Number(data?.totalPages || 0);
-      productPage.value = Number(data?.number ?? page);
-      productLast.value = !!data?.last;
-    } else {
-      productTotal.value = products.value.length;
-      productTotalPages.value = 1;
-      productPage.value = 0;
-      productLast.value = true;
+    const firstRes = await getAllDetails(0, 100);
+    const firstData = firstRes?.data ?? firstRes;
+
+    if (Array.isArray(firstData)) {
+      allProducts.value = firstData.map(mapSpct);
+      return;
     }
+
+    const totalPages = Number(firstData?.totalPages || 1);
+    let all = [...(firstData?.content || []).map(mapSpct)];
+
+    for (let page = 1; page < totalPages; page++) {
+      const res = await getAllDetails(page, 100);
+      const data = res?.data ?? res;
+      all = all.concat((data?.content || []).map(mapSpct));
+    }
+
+    allProducts.value = all;
   } catch (e) {
     console.error(e);
     toastShow("Không tải được danh sách biến thể", "danger");
@@ -1866,119 +1882,138 @@ async function fetchProducts(page = 0) {
     productLoading.value = false;
   }
 }
-async function fetchAllProductsForRefresh() {
-  const firstRes = await getAllDetails(0, 100);
-  const firstData = firstRes?.data ?? firstRes;
-  if (Array.isArray(firstData)) return firstData.map(mapSpct);
-  const totalPages = Number(firstData?.totalPages || 1);
-  let all = [...(firstData?.content || []).map(mapSpct)];
-  for (let page = 1; page < totalPages; page++) {
-    const res = await getAllDetails(page, 100);
-    const data = res?.data ?? res;
-    all = all.concat((data?.content || []).map(mapSpct));
-  }
-  return all;
-}
+
 async function reloadProducts() {
-  await fetchProducts(0);
+  await fetchAllProducts();
+  productPage.value = 0;
 }
+
 function productPrev() {
   if (productPage.value <= 0) return;
-  fetchProducts(productPage.value - 1);
+  productPage.value--;
 }
+
 function productNext() {
   if (productLast.value) return;
-  fetchProducts(productPage.value + 1);
+  productPage.value++;
 }
+
 function onProductSizeChange() {
-  fetchProducts(0);
+  productPage.value = 0;
 }
 
 const productPriceBounds = computed(() => {
-  if (!products.value.length) return { min: 0, max: 100000000 };
-  const prices = products.value.map((p) => Number(p.price || 0));
-  return { min: Math.min(...prices), max: Math.max(...prices) };
+  if (!allProducts.value.length) return { min: 0, max: 100000000 };
+  const prices = allProducts.value.map((p) => Number(p.price || 0));
+  return {
+    min: Math.min(...prices),
+    max: Math.max(...prices),
+  };
 });
+
 const productPriceStep = computed(() => {
   const max = Number(productPriceBounds.value.max || 0);
   if (max <= 100000) return 1000;
   if (max <= 1000000) return 10000;
   return 50000;
 });
+
 watch(
   productPriceBounds,
   (bounds) => {
-    if (
-      productPriceRange.min < bounds.min ||
-      productPriceRange.min > bounds.max
-    )
+    if (productPriceRange.min < bounds.min || productPriceRange.min > bounds.max) {
       productPriceRange.min = bounds.min;
-    if (
-      productPriceRange.max > bounds.max ||
-      productPriceRange.max < bounds.min
-    )
+    }
+    if (productPriceRange.max > bounds.max || productPriceRange.max < bounds.min) {
       productPriceRange.max = bounds.max;
+    }
     if (productPriceRange.min > productPriceRange.max) {
       productPriceRange.min = bounds.min;
       productPriceRange.max = bounds.max;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
+
 function onPriceRangeMinInput() {
-  if (productPriceRange.min > productPriceRange.max)
+  if (productPriceRange.min > productPriceRange.max) {
     productPriceRange.min = productPriceRange.max;
+  }
 }
 function onPriceRangeMaxInput() {
-  if (productPriceRange.max < productPriceRange.min)
+  if (productPriceRange.max < productPriceRange.min) {
     productPriceRange.max = productPriceRange.min;
+  }
 }
 
-const productColorOptions = computed(() =>
-  [...new Set(products.value.map((p) => p.color).filter(Boolean))].sort(
-    (a, b) => String(a).localeCompare(String(b), "vi"),
-  ),
-);
-const productSizeOptions = computed(() =>
-  [...new Set(products.value.map((p) => p.size).filter(Boolean))].sort((a, b) =>
-    String(a).localeCompare(String(b), "vi"),
-  ),
-);
-const filteredProducts = computed(() => {
-  const kw = String(productFilters.keyword || "")
-    .trim()
-    .toLowerCase();
-  const color = String(productFilters.color || "")
-    .trim()
-    .toLowerCase();
-  const size = String(productFilters.size || "")
-    .trim()
-    .toLowerCase();
+const productColorOptions = computed(() => {
+  return [...new Set(allProducts.value.map((p) => p.color).filter(Boolean))].sort((a, b) =>
+    String(a).localeCompare(String(b), "vi")
+  );
+});
+
+const productSizeOptions = computed(() => {
+  return [...new Set(allProducts.value.map((p) => p.size).filter(Boolean))].sort((a, b) =>
+    String(a).localeCompare(String(b), "vi")
+  );
+});
+
+const filteredProductsAll = computed(() => {
+  const kw = String(productFilters.keyword || "").trim().toLowerCase();
+  const color = String(productFilters.color || "").trim().toLowerCase();
+  const size = String(productFilters.size || "").trim().toLowerCase();
   const stockStatus = String(productFilters.stockStatus || "").trim();
   const minPrice = Number(productPriceRange.min || 0);
   const maxPrice = Number(productPriceRange.max || 0);
-  return products.value.filter((p) => {
+
+  return allProducts.value.filter((p) => {
     const textMatched =
       !kw ||
-      [p.code, p.name, p.color, p.size].some((x) =>
-        String(x || "")
-          .toLowerCase()
-          .includes(kw),
-      );
-    const colorMatched =
-      !color || String(p.color || "").toLowerCase() === color;
+      [p.code, p.name, p.color, p.size].some((x) => String(x || "").toLowerCase().includes(kw));
+
+    const colorMatched = !color || String(p.color || "").toLowerCase() === color;
     const sizeMatched = !size || String(p.size || "").toLowerCase() === size;
+
     const stockMatched =
       !stockStatus ||
       (stockStatus === "in" && Number(p.stock || 0) > 0) ||
       (stockStatus === "out" && Number(p.stock || 0) <= 0);
+
     const price = Number(p.price || 0);
     const priceMatched = price >= minPrice && price <= maxPrice;
-    return (
-      textMatched && colorMatched && sizeMatched && stockMatched && priceMatched
-    );
+
+    return textMatched && colorMatched && sizeMatched && stockMatched && priceMatched;
   });
 });
+
+const pagedProducts = computed(() => {
+  const start = productPage.value * productSize.value;
+  const end = start + productSize.value;
+  return filteredProductsAll.value.slice(start, end);
+});
+
+const productTotal = computed(() => filteredProductsAll.value.length);
+
+const productTotalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredProductsAll.value.length / productSize.value))
+);
+
+const productLast = computed(() => productPage.value >= productTotalPages.value - 1);
+
+watch(
+  () => [
+    productFilters.keyword,
+    productFilters.color,
+    productFilters.size,
+    productFilters.stockStatus,
+    productPriceRange.min,
+    productPriceRange.max,
+  ],
+  () => {
+    productPage.value = 0;
+  }
+);
+
 function resetProductFilters() {
   productFilters.keyword = "";
   productFilters.color = "";
@@ -1986,13 +2021,17 @@ function resetProductFilters() {
   productFilters.stockStatus = "";
   productPriceRange.min = productPriceBounds.value.min;
   productPriceRange.max = productPriceBounds.value.max;
+  productPage.value = 0;
 }
+
 async function openProductModal() {
   showCustomerModal.value = false;
+  showAddressModal.value = false;
   showProductModal.value = true;
-  await fetchProducts(0);
+  if (!allProducts.value.length) await fetchAllProducts();
   resetProductFilters();
 }
+
 function closeProductModal() {
   showProductModal.value = false;
 }
@@ -2001,16 +2040,20 @@ function clampInt(n, min, max) {
   n = Number.isFinite(Number(n)) ? Math.floor(Number(n)) : min;
   return Math.max(min, Math.min(max, n));
 }
+
 function sameMoney(a, b) {
   return Math.round(Number(a || 0)) === Math.round(Number(b || 0));
 }
+
 function syncAllCartStocks(order = activeOrder.value) {
   if (!order) return;
+
   const totalMap = new Map();
   for (const it of order.cart) {
     const id = Number(it.idSpct);
     totalMap.set(id, (totalMap.get(id) || 0) + Number(it.qty || 0));
   }
+
   for (const it of order.cart) {
     const base = Number(it.stockBase || 0);
     const totalQty = totalMap.get(Number(it.idSpct)) || 0;
@@ -2023,37 +2066,49 @@ async function setQtyByInput(cartIndex, nextQtyRaw) {
   if (!o) return;
   const it = o.cart[cartIndex];
   if (!it) return;
+
   if (it.priceChangedLocked || it.lineStatus === "missing") {
     return toastShow(
       `Sản phẩm ${it.code} đã đổi giá hoặc không còn hợp lệ, vui lòng xóa dòng cũ và chọn lại`,
-      "warning",
+      "warning"
     );
   }
+
   const nextQty = clampInt(nextQtyRaw, 1, 999999);
   const curQty = Number(it.qty || 0);
   if (nextQty === curQty) return;
+
   const delta = nextQty - curQty;
+
   try {
-    if (delta > 0) await decreaseStock(Number(it.idSpct), delta);
-    else if (delta < 0) await increaseStock(Number(it.idSpct), Math.abs(delta));
+    if (delta > 0) {
+      await decreaseStock(Number(it.idSpct), delta);
+    } else if (delta < 0) {
+      await increaseStock(Number(it.idSpct), Math.abs(delta));
+    }
   } catch (err) {
     const rawMsg = err?.response?.data?.message || err?.response?.data || "";
     const remain = Math.max(0, Number(it.stock || 0));
     const fallbackMsg =
       remain <= 0
-        ? `Sản phẩm ${it.code} hiện đã hết tồn kho, còn lại tồn ${remain}`
+        ? `Sản phẩm ${it.code} hiện đã hết tồn kho, không thể tăng thêm số lượng`
         : `Số lượng mua không được vượt quá số lượng tồn kho còn lại tồn ${remain}`;
+
     const msg =
-      String(rawMsg).trim() === "Không đủ tồn kho"
-        ? fallbackMsg
-        : rawMsg || fallbackMsg;
+      String(rawMsg).trim() === "Không đủ tồn kho" ? fallbackMsg : rawMsg || fallbackMsg;
+
     return toastShow(String(msg), "warning");
   }
+
   const p = findModalProductById(it.idSpct);
-  if (p) p.stock = Math.max(0, Number(p.stock || 0) - delta);
+  if (p) {
+    p.stock = Math.max(0, Number(p.stock || 0) - delta);
+  }
+
   it.qty = nextQty;
   syncAllCartStocks(o);
 }
+
 async function incQty(i) {
   const o = activeOrder.value;
   if (!o) return;
@@ -2061,6 +2116,7 @@ async function incQty(i) {
   if (!it || it.priceChangedLocked || it.lineStatus === "missing") return;
   await setQtyByInput(i, Number(it.qty || 0) + 1);
 }
+
 async function decQty(i) {
   const o = activeOrder.value;
   if (!o) return;
@@ -2068,55 +2124,61 @@ async function decQty(i) {
   if (!it || it.priceChangedLocked || it.lineStatus === "missing") return;
   await setQtyByInput(i, Math.max(1, Number(it.qty || 0) - 1));
 }
+
 async function removeItem(i) {
   const o = activeOrder.value;
   if (!o) return;
   const it = o.cart[i];
   if (!it) return;
+
   try {
-    if (it.lineStatus !== "missing")
+    if (it.lineStatus !== "missing") {
       await increaseStock(Number(it.idSpct), Number(it.qty || 0));
+    }
   } catch (err) {
-    const msg =
-      err?.response?.data?.message ||
-      err?.response?.data ||
-      "Không thể hoàn tồn kho";
+    const msg = err?.response?.data?.message || err?.response?.data || "Không thể hoàn tồn kho";
     return toastShow(String(msg), "warning");
   }
+
   const p = findModalProductById(it.idSpct);
   if (p) p.stock = Number(p.stock || 0) + Number(it.qty || 0);
+
   o.cart.splice(i, 1);
   syncAllCartStocks(o);
 }
+
 function onQtyInput(idx, e) {
   const raw = String(e?.target?.value ?? "");
   e.target.value = raw.replace(/[^\d]/g, "");
 }
+
 async function onQtyBlur(idx, e) {
   const o = activeOrder.value;
   if (!o) return;
   const it = o.cart[idx];
   if (!it) return;
+
   if (it.priceChangedLocked || it.lineStatus === "missing") {
     e.target.value = it.qty;
     return;
   }
+
   const raw = String(e?.target?.value ?? "");
   const num = Number(raw.replace(/[^\d]/g, "")) || 1;
   await setQtyByInput(idx, num);
   e.target.value = it.qty;
 }
+
 async function chooseProduct(p) {
   const o = activeOrder.value;
   if (!o) return;
+
   const id = Number(p.idSpct);
-  if (!Number.isFinite(id))
-    return toastShow("Sản phẩm không hợp lệ", "warning");
-  if ((Number(p.stock) || 0) <= 0)
-    return toastShow(`Sản phẩm ${p.code} hiện đã hết tồn kho`, "warning");
-  let idx = o.cart.findIndex(
-    (x) => Number(x.idSpct) === id && sameMoney(x.price, p.price),
-  );
+  if (!Number.isFinite(id)) return toastShow("Sản phẩm không hợp lệ", "warning");
+  if ((Number(p.stock) || 0) <= 0) return toastShow(`Sản phẩm ${p.code} hiện đã hết tồn kho`, "warning");
+
+  let idx = o.cart.findIndex((x) => Number(x.idSpct) === id && sameMoney(x.price, p.price));
+
   if (idx === -1) {
     const baseBefore = Number(p.stock || 0);
     o.cart.push({
@@ -2138,16 +2200,15 @@ async function chooseProduct(p) {
     });
     idx = o.cart.length - 1;
   }
+
   await setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
   toastShow(`Đã thêm ${p.code}`, "success");
 }
+
 const subTotal = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
-  return o.cart.reduce(
-    (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
-    0,
-  );
+  return o.cart.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0), 0);
 });
 
 const customers = ref([]);
@@ -2155,13 +2216,13 @@ const customerKw = ref("");
 const customerLoading = ref(false);
 const customerPage = ref(0);
 const customerSize = ref(10);
+
 function mapCustomer(x) {
   const addr =
     x.diaChi ||
-    [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh]
-      .filter(Boolean)
-      .join(", ") ||
+    [x.diaChiChiTiet, x.phuongXa, x.quanHuyen, x.tinhThanh].filter(Boolean).join(", ") ||
     "";
+
   return {
     id: x.id,
     name: x.tenKhachHang || "",
@@ -2171,24 +2232,29 @@ function mapCustomer(x) {
     raw: x,
   };
 }
+
 async function fetchCustomersAll() {
   if (customerLoading.value) return;
   customerLoading.value = true;
   try {
     const firstRes = await listKhachHang(0, 100);
     const firstData = firstRes?.data ?? firstRes;
+
     if (Array.isArray(firstData)) {
       customers.value = firstData.map(mapCustomer);
       customerPage.value = 0;
       return;
     }
+
     const totalPages = Number(firstData?.totalPages || 1);
     let all = [...(firstData?.content || []).map(mapCustomer)];
+
     for (let page = 1; page < totalPages; page++) {
       const res = await listKhachHang(page, 100);
       const data = res?.data ?? res;
       all = all.concat((data?.content || []).map(mapCustomer));
     }
+
     customers.value = all;
     customerPage.value = 0;
   } catch (e) {
@@ -2198,54 +2264,67 @@ async function fetchCustomersAll() {
     customerLoading.value = false;
   }
 }
+
 async function reloadCustomers() {
   await fetchCustomersAll();
 }
+
 function customerPrev() {
   if (customerPage.value <= 0) return;
   customerPage.value--;
 }
+
 function customerNext() {
   if (customerLast.value) return;
   customerPage.value++;
 }
+
 function onCustomerSizeChange() {
   customerPage.value = 0;
 }
+
 const filteredCustomers = computed(() => {
   const kw = customerKw.value.trim().toLowerCase();
   if (!kw) return customers.value;
+
   return customers.value.filter((c) =>
     [c.name, c.phone, c.email, c.address].some((x) =>
-      String(x || "")
-        .toLowerCase()
-        .includes(kw),
-    ),
+      String(x || "").toLowerCase().includes(kw)
+    )
   );
 });
+
 const pagedCustomers = computed(() => {
   const start = customerPage.value * customerSize.value;
-  return filteredCustomers.value.slice(start, start + customerSize.value);
+  const end = start + customerSize.value;
+  return filteredCustomers.value.slice(start, end);
 });
+
 const customerTotalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredCustomers.value.length / customerSize.value)),
+  Math.max(1, Math.ceil(filteredCustomers.value.length / customerSize.value))
 );
-const customerLast = computed(
-  () => customerPage.value >= customerTotalPages.value - 1,
-);
+const customerLast = computed(() => customerPage.value >= customerTotalPages.value - 1);
 const customerTotal = computed(() => filteredCustomers.value.length);
-watch(customerKw, () => (customerPage.value = 0));
+
+watch(customerKw, () => {
+  customerPage.value = 0;
+});
+
 function openCustomerModal() {
   showProductModal.value = false;
+  showAddressModal.value = false;
   showCustomerModal.value = true;
   fetchCustomersAll();
 }
+
 function closeCustomerModal() {
   showCustomerModal.value = false;
 }
+
 async function chooseCustomer(c) {
   const o = activeOrder.value;
   if (!o) return;
+
   o.customer = {
     id: c.id,
     name: c.name,
@@ -2256,89 +2335,399 @@ async function chooseCustomer(c) {
   o.customerDraft.phone = c.phone || "";
   o.customerDraft.email = c.email || "";
   if (!String(o.diaChi || "").trim()) o.diaChi = c.address || "";
+
+  if (!Array.isArray(o.addressBook) || o.addressBook.length === 0) {
+    o.addressBook = c.address
+      ? [
+          {
+           id: Date.now(),
+  receiverName: c.name || "",
+  phone: c.phone || "",
+  provinceId: null,
+  wardCode: "",
+  detail: c.address || "",
+  fullAddress: c.address || "",
+  isDefault: true,
+          },
+        ]
+      : [];
+  }
+
+  if (!o.selectedAddressId && o.addressBook.length > 0) {
+    o.selectedAddressId = o.addressBook.find((x) => x.isDefault)?.id ?? o.addressBook[0].id;
+  }
+
   closeCustomerModal();
-  await reloadActiveOrderVouchers();
+ await reloadActiveOrderVouchers({ showModal: true });
 }
-async function resetToWalkInCustomer() {
+
+async function chooseWalkInCustomer() {
   const o = activeOrder.value;
   if (!o) return;
+
   o.customer = null;
   o.customerDraft = { phone: "", email: "" };
   o.diaChi = "";
+  o.addressBook = [];
+  o.selectedAddressId = null;
+
   customerKw.value = "";
   customerPage.value = 0;
+
   closeCustomerModal();
-  await reloadActiveOrderVouchers();
-  toastShow("Đã đặt lại về Khách lẻ", "info");
+  closeAddressModal();
+
+  await reloadActiveOrderVouchers({ showModal: true });
+  toastShow("Đã chuyển về Khách vãng lai", "info");
+}
+
+const addressDraft = reactive({
+  receiverName: "",
+  phone: "",
+  provinceId: null,
+  wardCode: "",
+  detail: "",
+  makeDefault: false,
+});
+
+const activeOrderAddressBook = computed(() => activeOrder.value?.addressBook || []);
+
+const selectedAddress = computed(() => {
+  const o = activeOrder.value;
+  if (!o) return null;
+  return (o.addressBook || []).find((x) => x.id === o.selectedAddressId) || null;
+});
+
+const selectedAddressDisplay = computed(() => {
+  const a = selectedAddress.value;
+  return a?.fullAddress || "";
+});
+
+function resetAddressDraft() {
+  addressDraft.receiverName = "";
+  addressDraft.phone = "";
+  addressDraft.provinceId = null;
+  addressDraft.wardCode = "";
+  addressDraft.detail = "";
+  addressDraft.makeDefault = false;
+}
+
+
+function openAddressModal() {
+  const o = activeOrder.value;
+  if (!o?.customer?.id) return toastShow("Vui lòng chọn khách hàng trước", "warning");
+  showCustomerModal.value = false;
+  showAddressModal.value = true;
+}
+
+function closeAddressModal() {
+  showAddressModal.value = false;
+}
+
+function pickAddress(addressId) {
+  const o = activeOrder.value;
+  if (!o) return;
+
+  const addr = (o.addressBook || []).find((x) => x.id === addressId);
+  if (!addr) return;
+
+  o.selectedAddressId = addr.id;
+  o.tenNguoiNhanHang = addr.receiverName || o.customer?.name || "";
+  o.soDienThoaiNhanHang = addr.phone || o.customerDraft.phone || "";
+  o.diaChi = addr.fullAddress || "";
+
+  o.ghnProvinceId = addr.provinceId ? String(addr.provinceId) : null;
+  o.ghnWardCode = addr.wardCode ? String(addr.wardCode) : "";
+  o.diaChiNhanHangChiTiet = addr.detail || "";
+  o.quanHuyenNhanHang = "";
+
+  const province = findProvinceById(o.ghnProvinceId);
+  o.tinhThanhNhanHang = province?.provinceName || "";
+
+  wards.value = (province?.wards || []).map((w) => ({
+    wardCode: w.wardCode,
+    wardName: w.wardName,
+  }));
+
+  const ward = findWardByCode(o.ghnProvinceId, o.ghnWardCode);
+  o.phuongXaNhanHang = ward?.wardName || "";
+
+  closeAddressModal();
+  refreshShipFee();
+  toastShow("Đã chọn địa chỉ", "success");
+}
+
+function setDefaultAddress(addressId) {
+  const o = activeOrder.value;
+  if (!o) return;
+  o.addressBook = (o.addressBook || []).map((x) => ({
+    ...x,
+    isDefault: x.id === addressId,
+  }));
+  toastShow("Đã cập nhật địa chỉ mặc định", "success");
+}
+
+function saveNewAddress() {
+  const o = activeOrder.value;
+  if (!o?.customer?.id) {
+    return toastShow("Vui lòng chọn khách hàng trước", "warning");
+  }
+
+  if (!addressDraft.receiverName.trim()) {
+    return toastShow("Vui lòng nhập tên người nhận", "warning");
+  }
+  if (!addressDraft.phone.trim()) {
+    return toastShow("Vui lòng nhập số điện thoại", "warning");
+  }
+  if (!addressDraft.provinceId) {
+    return toastShow("Vui lòng chọn Tỉnh/Thành phố", "warning");
+  }
+  if (!String(addressDraft.wardCode || "").trim()) {
+    return toastShow("Vui lòng chọn Phường/Xã", "warning");
+  }
+  if (!addressDraft.detail.trim()) {
+    return toastShow("Vui lòng nhập địa chỉ chi tiết", "warning");
+  }
+
+  const provinceName = provinceNameById(addressDraft.provinceId);
+  const wardName = wardNameByCodeByProvince(addressDraft.provinceId, addressDraft.wardCode);
+
+  const fullAddress = [addressDraft.detail.trim(), wardName, provinceName]
+    .filter(Boolean)
+    .join(", ");
+
+  const newAddr = {
+    id: Date.now() + Math.random(),
+    receiverName: addressDraft.receiverName.trim(),
+    phone: addressDraft.phone.trim(),
+    provinceId: String(addressDraft.provinceId),
+    wardCode: String(addressDraft.wardCode),
+    detail: addressDraft.detail.trim(),
+    fullAddress,
+    isDefault: !!addressDraft.makeDefault,
+  };
+
+  if (newAddr.isDefault) {
+    o.addressBook = (o.addressBook || []).map((x) => ({ ...x, isDefault: false }));
+  }
+
+  o.addressBook = [...(o.addressBook || []), newAddr];
+
+  if (newAddr.isDefault || !o.selectedAddressId) {
+    o.selectedAddressId = newAddr.id;
+  }
+
+  pickAddress(newAddr.id);
+  resetAddressDraft();
+  toastShow("Đã thêm địa chỉ mới", "success");
+}
+
+function wardNameByCodeByProvince(provinceId, wardCode) {
+  const province = findProvinceById(provinceId);
+  return province?.wards?.find((w) => String(w.wardCode) === String(wardCode))?.wardName || "";
 }
 
 const provinces = ref([]);
 const wards = ref([]);
+
 const provincesLoading = ref(false);
 const wardsLoading = ref(false);
-const provinceNodeByCode = new Map();
-function cleanCode(v) {
-  const s = String(v ?? "").trim();
-  if (!s || s === "undefined" || s === "null") return "";
-  return s;
+const shippingFeeLoading = ref(false);
+
+const provinceLookup = ref([]);
+
+function safeArray(v) {
+  return Array.isArray(v) ? v : [];
 }
-function cleanName(v) {
-  return String(v ?? "").trim();
+
+function pickUnitName(obj) {
+  return (
+    obj?.FullName ||
+    obj?.fullName ||
+    obj?.Name ||
+    obj?.name ||
+    obj?.ProvinceName ||
+    obj?.provinceName ||
+    obj?.DistrictName ||
+    obj?.districtName ||
+    obj?.WardName ||
+    obj?.wardName ||
+    ""
+  );
 }
-function normProvince(p) {
-  const code = cleanCode(p?.Code);
-  const name = cleanName(p?.FullName ?? p?.Name);
-  if (!code || !name) return null;
-  return { code, name, wardsRaw: Array.isArray(p?.Wards) ? p.Wards : [] };
+
+function pickProvinceCode(obj) {
+  return String(
+    obj?.ProvinceCode ?? obj?.provinceCode ?? obj?.Code ?? obj?.code ?? obj?.Id ?? obj?.id ?? ""
+  ).trim();
 }
-function normWard(w) {
-  const code = cleanCode(w?.Code);
-  const name = cleanName(w?.FullName ?? w?.Name);
-  if (!code || !name) return null;
-  return { code, name };
+
+function pickDistrictCode(obj) {
+  return String(
+    obj?.DistrictCode ?? obj?.districtCode ?? obj?.Code ?? obj?.code ?? obj?.Id ?? obj?.id ?? ""
+  ).trim();
 }
-function initAddressDataOffline() {
+
+function pickWardCode(obj) {
+  return String(
+    obj?.WardCode ?? obj?.wardCode ?? obj?.Code ?? obj?.code ?? obj?.Id ?? obj?.id ?? ""
+  ).trim();
+}
+
+function normalizeVnUnits(raw) {
+  return safeArray(raw).map((p) => ({
+    provinceId: pickProvinceCode(p),
+    provinceName: pickUnitName(p),
+    wards: safeArray(p?.Wards || p?.wards).map((w) => ({
+      wardCode: pickWardCode(w),
+      wardName: pickUnitName(w),
+      provinceId: pickProvinceCode(p),
+    })),
+  }));
+}
+
+async function loadGhnProvinces() {
   provincesLoading.value = true;
   try {
-    const root = VN_UNITS?.data ?? VN_UNITS;
-    if (!Array.isArray(root)) {
-      provinces.value = [];
-      wards.value = [];
-      return;
-    }
-    const pNorm = root.map(normProvince).filter(Boolean);
-    provinceNodeByCode.clear();
-    for (const p of pNorm) provinceNodeByCode.set(p.code, p);
-    provinces.value = pNorm.sort((a, b) => a.name.localeCompare(b.name, "vi"));
-    wards.value = [];
+    provinceLookup.value = normalizeVnUnits(vnUnits);
+    provinces.value = provinceLookup.value.map((p) => ({
+      provinceId: p.provinceId,
+      provinceName: p.provinceName,
+    }));
+  } catch (e) {
+    console.error(e);
+    provinces.value = [];
+    provinceLookup.value = [];
+    toastShow("Không tải được dữ liệu tỉnh/thành", "warning");
   } finally {
     provincesLoading.value = false;
   }
 }
-function onProvinceChange(provinceCode) {
+
+function findProvinceById(id) {
+  return provinceLookup.value.find((x) => String(x.provinceId) === String(id)) || null;
+}
+
+
+function findWardByCode(provinceId, wardCode) {
+  const province = findProvinceById(provinceId);
+  if (!province) return null;
+  return province.wards.find((x) => String(x.wardCode) === String(wardCode)) || null;
+}
+
+async function onProvinceChange(provinceId) {
   const o = activeOrder.value;
   if (!o) return;
-  o.tinhThanhNhanHang = cleanCode(provinceCode);
+
+  o.ghnProvinceId = provinceId ? String(provinceId) : null;
+  o.ghnDistrictId = null;
+  o.ghnWardCode = "";
+  o.tinhThanhNhanHang = "";
+  o.quanHuyenNhanHang = "";
+  o.phuongXaNhanHang = "";
+
+  wards.value = [];
+
+  const province = findProvinceById(o.ghnProvinceId);
+  o.tinhThanhNhanHang = province?.provinceName || "";
+
+  if (!o.ghnProvinceId) return;
+
   wardsLoading.value = true;
   try {
-    o.phuongXaNhanHang = "";
-    o.quanHuyenNhanHang = "";
-    const p = provinceNodeByCode.get(o.tinhThanhNhanHang);
-    wards.value = (p?.wardsRaw || [])
-      .map(normWard)
-      .filter(Boolean)
-      .sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    wards.value = (province?.wards || []).map((w) => ({
+      wardCode: w.wardCode,
+      wardName: w.wardName,
+    }));
+  } catch (e) {
+    console.error(e);
+    toastShow("Không tải được phường/xã", "warning");
   } finally {
     wardsLoading.value = false;
   }
+
+  await refreshShipFee();
 }
-function toggleShip(e) {
+
+
+
+async function onWardChange(wardCode) {
   const o = activeOrder.value;
   if (!o) return;
+
+  o.ghnWardCode = String(wardCode || "");
+  const ward = findWardByCode(o.ghnProvinceId, o.ghnWardCode);
+  o.phuongXaNhanHang = ward?.wardName || "";
+  o.quanHuyenNhanHang = "";
+
+  await refreshShipFee();
+}
+async function refreshShipFee() {
+  const o = activeOrder.value;
+  if (!o || !o.loaiDon) return;
+
+  if (!o.ghnProvinceId || !o.ghnWardCode) {
+    o.phiVanChuyen = 0;
+    return;
+  }
+
+  shippingFeeLoading.value = true;
+  try {
+    const province = findProvinceById(o.ghnProvinceId);
+    const ward = findWardByCode(o.ghnProvinceId, o.ghnWardCode);
+
+    if (!province || !ward) {
+      o.phiVanChuyen = 0;
+      return;
+    }
+
+    // mock phí ship để test trước
+    let fee = 30000;
+
+    const provinceName = String(province.provinceName || "").toLowerCase();
+    const wardName = String(ward.wardName || "").toLowerCase();
+
+    if (provinceName.includes("hà nội") || provinceName.includes("hồ chí minh")) {
+      fee = 20000;
+    }
+
+    if (wardName.includes("xã")) {
+      fee += 5000;
+    }
+
+    o.phiVanChuyen = fee;
+  } catch (e) {
+    console.error(e);
+    o.phiVanChuyen = 0;
+    toastShow("Không tính được phí vận chuyển", "warning");
+  } finally {
+    shippingFeeLoading.value = false;
+  }
+}
+const addressDraftWards = computed(() => {
+  const province = findProvinceById(addressDraft.provinceId);
+  return (province?.wards || []).map((w) => ({
+    wardCode: w.wardCode,
+    wardName: w.wardName,
+  }));
+});
+
+function onAddressProvinceChange(provinceId) {
+  addressDraft.provinceId = provinceId ? String(provinceId) : null;
+  addressDraft.wardCode = "";
+}
+
+async function toggleShip(e) {
+  const o = activeOrder.value;
+  if (!o) return;
+
   o.loaiDon = !!e.target.checked;
+
   if (o.loaiDon) {
-    o.phiVanChuyen = 30000;
-    if (provinces.value.length === 0) initAddressDataOffline();
+    o.phiVanChuyen = Number(o.phiVanChuyen || 0);
+    if (!provinces.value.length) {
+      await loadGhnProvinces();
+    }
   } else {
     o.phiVanChuyen = 0;
     o.tenNguoiNhanHang = "";
@@ -2347,11 +2736,28 @@ function toggleShip(e) {
     o.quanHuyenNhanHang = "";
     o.phuongXaNhanHang = "";
     o.diaChiNhanHangChiTiet = "";
+    o.ghnProvinceId = null;
+    o.ghnDistrictId = null;
+    o.ghnWardCode = "";
     wards.value = [];
   }
 }
 
-const confirmHint = ref("");
+watch(
+  () =>
+    JSON.stringify(
+      (activeOrder.value?.cart || []).map((it) => ({
+        id: it.idSpct,
+        qty: it.qty,
+      }))
+    ),
+  async () => {
+    if (activeOrder.value?.loaiDon) {
+      await refreshShipFee();
+    }
+  }
+);
+
 function pickId(obj) {
   if (!obj || typeof obj !== "object") return null;
   return (
@@ -2365,8 +2771,10 @@ function pickId(obj) {
     null
   );
 }
+
 function normalizeKhIds(raw) {
   if (!raw) return null;
+
   if (Array.isArray(raw)) {
     const ids = raw
       .map((x) => {
@@ -2378,6 +2786,7 @@ function normalizeKhIds(raw) {
       .filter((n) => Number.isFinite(n));
     return ids.length ? ids : null;
   }
+
   if (typeof raw === "string") {
     if (raw.includes(",")) {
       const ids = raw
@@ -2389,11 +2798,14 @@ function normalizeKhIds(raw) {
     const one = Number(raw);
     return Number.isFinite(one) ? [one] : null;
   }
+
   return null;
 }
+
 function normalizeVoucher(x) {
   const khIdsRaw = x.khachHangIds ?? x.khach_hang_ids ?? x.khachHangs ?? null;
   const khSingle = x.khachHangId ?? x.khach_hang_id ?? x.idKhachHang ?? null;
+
   return {
     id: x.id,
     ma_giam_gia: x.maGiamGia ?? x.ma_giam_gia ?? "",
@@ -2404,9 +2816,7 @@ function normalizeVoucher(x) {
     gia_tri_phan_tram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
     gia_tri_tien_mat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
     don_hang_toi_thieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
-    gia_tri_giam_toi_da: Number(
-      x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0,
-    ),
+    gia_tri_giam_toi_da: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
     loai_phieu: x.loaiPhieu ?? x.loai_phieu ?? null,
     khach_hang_ids: normalizeKhIds(khIdsRaw),
     khach_hang_id: khSingle != null ? Number(khSingle) : null,
@@ -2414,6 +2824,7 @@ function normalizeVoucher(x) {
     ngay_ket_thuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
   };
 }
+
 async function loadVouchersByCustomer(customerId) {
   try {
     const res = await http.get("/api/pgg/pos", {
@@ -2425,10 +2836,26 @@ async function loadVouchersByCustomer(customerId) {
     return [];
   }
 }
-async function reloadActiveOrderVouchers() {
-  activeOrderVouchers.value = await loadVouchersByCustomer(
-    activeOrder.value?.customer?.id ?? null,
-  );
+
+async function reloadActiveOrderVouchers({ showModal = false } = {}) {
+  const order = activeOrder.value;
+  if (!order) {
+    activeOrderVouchers.value = [];
+    return;
+  }
+
+  const orderVouchers = await loadVouchersByCustomer(order.customer?.id ?? null);
+  activeOrderVouchers.value = orderVouchers;
+
+  const result = evaluateVoucherState(order, orderVouchers);
+
+if (showModal) {
+  await handleVoucherStateWithModal(result, orderVouchers);
+} else if (result.status === "best_voucher_ready" && result.best?.voucher) {
+  applyBestVoucherNowForOrder(order, orderVouchers, "best");
+} else if (result.status === "valid" && result.currentVoucher) {
+  setVoucherSnapshot(order, result.currentVoucher);
+}
 }
 function isPersonalVoucher(v) {
   const lp = v?.loai_phieu;
@@ -2437,15 +2864,19 @@ function isPersonalVoucher(v) {
   const s = String(lp || "").toUpperCase();
   return s === "CA_NHAN" || s === "PERSONAL";
 }
+
 function voucherBelongsToCustomer(v, customerId) {
   if (!isPersonalVoucher(v)) return true;
   if (!customerId) return false;
-  if (Array.isArray(v.khach_hang_ids) && v.khach_hang_ids.length)
+  if (Array.isArray(v.khach_hang_ids) && v.khach_hang_ids.length) {
     return v.khach_hang_ids.includes(Number(customerId));
-  if (v.khach_hang_id != null)
+  }
+  if (v.khach_hang_id != null) {
     return Number(v.khach_hang_id) === Number(customerId);
+  }
   return true;
 }
+
 function setVoucherSnapshot(o, v) {
   if (!o || !v) return;
   o.voucherSnapshot = {
@@ -2464,14 +2895,17 @@ function setVoucherSnapshot(o, v) {
     savedAt: Date.now(),
   };
 }
+
 function clearVoucherSuggestionDismissed(o) {
   if (o) o.voucherSuggestionDismissedKey = "";
 }
+
 function toTime(d) {
   if (!d) return null;
   const t = new Date(d).getTime();
   return Number.isNaN(t) ? null : t;
 }
+
 function isVoucherInDateRange(v) {
   const now = Date.now();
   const start = toTime(v?.ngay_bat_dau);
@@ -2480,6 +2914,7 @@ function isVoucherInDateRange(v) {
   if (end !== null && now > end) return false;
   return true;
 }
+
 function calcVoucherDiscount(subtotal, v) {
   const st = Number(subtotal) || 0;
   if (st <= 0) return 0;
@@ -2487,43 +2922,56 @@ function calcVoucherDiscount(subtotal, v) {
   if ((Number(v.so_luong) || 0) <= 0) return 0;
   if (!isVoucherInDateRange(v)) return 0;
   if (st < (Number(v.don_hang_toi_thieu) || 0)) return 0;
+
   let disc = 0;
-  if (v.loai_giam) disc = (st * (Number(v.gia_tri_phan_tram) || 0)) / 100;
-  else disc = Number(v.gia_tri_tien_mat) || 0;
+  if (v.loai_giam) {
+    disc = (st * (Number(v.gia_tri_phan_tram) || 0)) / 100;
+  } else {
+    disc = Number(v.gia_tri_tien_mat) || 0;
+  }
+
   const cap = Number(v.gia_tri_giam_toi_da) || 0;
   if (cap > 0) disc = Math.min(disc, cap);
+
   disc = Math.max(0, Math.min(disc, st));
   return Math.floor(disc);
 }
+function keepVoucherWaitingForBest(o) {
+  if (!o) return;
+  o.voucherMode = "best";
+  o.pggId = null;
+  o.voucherCode = "";
+  o.discountPercent = 0;
+  clearVoucherSuggestionDismissed(o);
+  // giữ snapshot để biết trước đó user từng có mã
+}
+
 function getVoucherEntriesForOrder(order, vouchers) {
   const st = order
-    ? order.cart.reduce(
-        (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
-        0,
-      )
+    ? order.cart.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0), 0)
     : 0;
+
   return vouchers
     .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
     .sort((a, b) => b.discount - a.discount);
 }
 
 const eligibleVoucherEntries = computed(() =>
-  getVoucherEntriesForOrder(
-    activeOrder.value,
-    activeOrderVouchers.value,
-  ).filter((x) => x.discount > 0),
+  getVoucherEntriesForOrder(activeOrder.value, activeOrderVouchers.value).filter((x) => x.discount > 0)
 );
-const bestEligibleVoucherEntry = computed(
-  () => eligibleVoucherEntries.value[0] || null,
-);
-const altEligibleVoucherEntries = computed(() =>
-  [...eligibleVoucherEntries.value].sort((a, b) => a.discount - b.discount),
-);
+
+const bestEligibleVoucherEntry = computed(() => eligibleVoucherEntries.value[0] || null);
+
+const altEligibleVoucherEntries = computed(() => {
+  return [...eligibleVoucherEntries.value].sort((a, b) => a.discount - b.discount);
+});
+
 const appliedVoucher = computed(() => {
   const o = activeOrder.value;
   if (!o?.pggId) return null;
   return activeOrderVouchers.value.find((x) => x.id === o.pggId) || null;
 });
+
 const appliedVoucherEntry = computed(() => {
   const o = activeOrder.value;
   if (!o?.pggId) return null;
@@ -2531,107 +2979,96 @@ const appliedVoucherEntry = computed(() => {
   if (!v) return null;
   return { v, discount: calcVoucherDiscount(subTotal.value, v) };
 });
+
 const bestVoucherEntryUI = computed(() => {
   const o = activeOrder.value;
   const applied = appliedVoucherEntry.value;
   if (o?.pggId && applied && applied.discount <= 0) return applied;
   return bestEligibleVoucherEntry.value;
 });
+
 const altVoucherEntriesUI = computed(() => {
   const o = activeOrder.value;
   const applied = appliedVoucherEntry.value;
-  if (o?.pggId && applied && applied.discount <= 0)
-    return [...eligibleVoucherEntries.value].sort(
-      (a, b) => a.discount - b.discount,
-    );
+
+  if (o?.pggId && applied && applied.discount <= 0) {
+    return [...eligibleVoucherEntries.value].sort((a, b) => a.discount - b.discount);
+  }
   return altEligibleVoucherEntries.value;
 });
+
 watch(
-  [
-    subTotal,
-    activeOrderVouchers,
-    activeId,
-    () => activeOrder.value?.customer?.id,
-  ],
+  [subTotal, activeOrderVouchers, activeId, () => activeOrder.value?.customer?.id],
   () => {
     const o = activeOrder.value;
     if (!o) return;
+
     if (o.voucherMode === "none") {
       o.pggId = null;
       o.voucherCode = "";
       o.voucherSnapshot = null;
       return;
     }
-    if (o.voucherMode === "best") {
-      const best = bestEligibleVoucherEntry.value?.v || null;
-      o.pggId = best?.id ?? null;
-      o.voucherCode = best?.ma_giam_gia || "";
-      clearVoucherSuggestionDismissed(o);
-      if (best) setVoucherSnapshot(o, best);
-      else o.voucherSnapshot = null;
-    }
+
+    // KHÔNG sync best ở đây nữa
+    // để giữ state cũ cho evaluateVoucherState kiểm tra
   },
-  { immediate: true },
+  { immediate: true }
 );
+
 watch(
   [activeId, () => activeOrder.value?.customer?.id],
-  () => {
-    reloadActiveOrderVouchers();
+  async () => {
+    await reloadActiveOrderVouchers({ showModal: true });
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 const voucherSuggestions = computed(() => {
   const st = subTotal.value;
   if (st <= 0) return [];
+
   const bestNow = bestEligibleVoucherEntry.value?.discount || 0;
+
   return activeOrderVouchers.value
-    .filter(
-      (v) =>
-        v?.trang_thai &&
-        (Number(v.so_luong) || 0) > 0 &&
-        isVoucherInDateRange(v),
-    )
+    .filter((v) => v?.trang_thai && (Number(v.so_luong) || 0) > 0 && isVoucherInDateRange(v))
     .map((v) => {
       const min = Number(v.don_hang_toi_thieu || 0);
       const missing = min - st;
       if (missing <= 0) return null;
+
       const expectedDiscount = calcVoucherDiscount(min, v);
       if (expectedDiscount <= bestNow) return null;
+
       return { v, missing, minOrder: min, expectedDiscount };
     })
     .filter(Boolean)
-    .sort(
-      (a, b) =>
-        a.missing - b.missing || b.expectedDiscount - a.expectedDiscount,
-    )
+    .sort((a, b) => a.missing - b.missing || b.expectedDiscount - a.expectedDiscount)
     .slice(0, 6);
 });
 
 function applyVoucherManual(v) {
   const o = activeOrder.value;
   if (!o) return;
+
   const cid = o?.customer?.id;
   if (isPersonalVoucher(v)) {
-    if (!cid)
-      return toastShow(
-        "Voucher cá nhân: vui lòng chọn khách hàng trước",
-        "warning",
-      );
-    if (!voucherBelongsToCustomer(v, cid))
-      return toastShow(
-        "Voucher này không thuộc khách hàng hiện tại",
-        "warning",
-      );
+    if (!cid) return toastShow("Voucher cá nhân: vui lòng chọn khách hàng trước", "warning");
+    if (!voucherBelongsToCustomer(v, cid)) {
+      return toastShow("Voucher này không thuộc khách hàng hiện tại", "warning");
+    }
   }
+
   o.voucherMode = "manual";
   o.pggId = v.id;
   o.voucherCode = v.ma_giam_gia || "";
   o.discountPercent = 0;
   clearVoucherSuggestionDismissed(o);
   setVoucherSnapshot(o, v);
+
   toastShow(`Đã chọn ${v.ma_giam_gia}`, "info");
 }
+
 function disableVoucher() {
   const o = activeOrder.value;
   if (!o) return;
@@ -2643,19 +3080,21 @@ function disableVoucher() {
   clearVoucherSuggestionDismissed(o);
   toastShow("Đã tắt mã giảm giá", "info");
 }
-function applyBestVoucherNowForOrder(o, vouchers) {
+
+function applyBestVoucherNowForOrder(o, vouchers, mode = 'best') {
   if (!o) return;
-  const best = getVoucherEntriesForOrder(o, vouchers).filter(
-    (x) => x.discount > 0,
-  )[0];
+
+  const best = getVoucherEntriesForOrder(o, vouchers).filter((x) => x.discount > 0)[0];
   if (!best?.v) return;
-  o.voucherMode = "manual";
+
+  o.voucherMode = mode;
   o.pggId = best.v.id;
-  o.voucherCode = best.v.ma_giam_gia || "";
+  o.voucherCode = best.v.ma_giam_gia || '';
   o.discountPercent = 0;
   clearVoucherSuggestionDismissed(o);
   setVoucherSnapshot(o, best.v);
 }
+
 function removeVoucherNowForOrder(o) {
   if (!o) return;
   o.voucherMode = "none";
@@ -2669,22 +3108,27 @@ const discountMoney = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
   const st = subTotal.value;
+
   if (o.pggId) {
     const v = appliedVoucher.value;
     if (!v) return 0;
     return calcVoucherDiscount(st, v);
   }
+
   const percent = Math.max(0, Math.min(100, Number(o.discountPercent || 0)));
   return Math.floor((st * percent) / 100);
 });
+
 const shipMoney = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
   return o.loaiDon ? Math.max(0, Number(o.phiVanChuyen || 0)) : 0;
 });
+
 const grandTotal = computed(() =>
-  Math.max(0, subTotal.value - discountMoney.value + shipMoney.value),
+  Math.max(0, subTotal.value - discountMoney.value + shipMoney.value)
 );
+
 const changeMoney = computed(() => {
   const o = activeOrder.value;
   if (!o) return 0;
@@ -2694,196 +3138,568 @@ const changeMoney = computed(() => {
 const paymentConfirmText = ref("");
 let _resolvePaymentConfirm = null;
 let _resolveConfirm = null;
+const confirmHint = ref("");
+const voucherSyncModalLock = ref(false);
+
 const preCheckoutUi = reactive({
   type: "info",
+  title: "Thông báo phiếu giảm giá",
+  subtitle: "",
   message: "",
   detail: "",
-  suggest: null,
+  rows: [],
+  mode: "ack", // ack | confirm
+  confirmText: "Xác nhận",
+  cancelText: "Hủy",
 });
-function openConfirm({ type = "info", message, detail = "", suggest = null }) {
+
+function openConfirm({
+  type = "info",
+  title = "Thông báo phiếu giảm giá",
+  subtitle = "",
+  message = "",
+  detail = "",
+  rows = [],
+  mode = "ack",
+  confirmText = "Đã hiểu",
+  cancelText = "Không",
+}) {
   preCheckoutUi.type = type;
+  preCheckoutUi.title = title;
+  preCheckoutUi.subtitle = subtitle;
   preCheckoutUi.message = message;
   preCheckoutUi.detail = detail;
-  preCheckoutUi.suggest = suggest;
+  preCheckoutUi.rows = Array.isArray(rows) ? rows : [];
+  preCheckoutUi.mode = mode;
+  preCheckoutUi.confirmText = confirmText;
+  preCheckoutUi.cancelText = cancelText;
+
   showPreCheckoutModal.value = true;
+
   return new Promise((resolve) => {
     _resolveConfirm = resolve;
   });
 }
-function resolvePreCheckout(ok) {
+
+function resolvePreCheckout(ok = true) {
   showPreCheckoutModal.value = false;
   const r = _resolveConfirm;
   _resolveConfirm = null;
   if (r) r(!!ok);
 }
 function openPaymentConfirm(text) {
-  paymentConfirmText.value =
-    text || "Bạn có chắc muốn thanh toán hóa đơn này không?";
+  paymentConfirmText.value = text || "Bạn có chắc muốn thanh toán hóa đơn này không?";
   showPaymentConfirmModal.value = true;
+
   return new Promise((resolve) => {
     _resolvePaymentConfirm = resolve;
   });
 }
+
 function resolvePaymentConfirm(ok) {
   showPaymentConfirmModal.value = false;
   const r = _resolvePaymentConfirm;
   _resolvePaymentConfirm = null;
   if (r) r(!!ok);
 }
+
+
 function getVoucherInvalidReason(v, subtotal) {
-  if (!v) return "Voucher không tồn tại";
-  if (!v.trang_thai) return "Voucher đã bị tắt";
-  if ((Number(v.so_luong) || 0) <= 0) return "Voucher đã hết lượt";
-  if (!isVoucherInDateRange(v)) return "Voucher đã hết hạn / chưa bắt đầu";
-  if ((Number(subtotal) || 0) < (Number(v.don_hang_toi_thieu) || 0))
-    return "Đơn hàng chưa đạt đơn tối thiểu";
+  if (!v) return { code: "NOT_FOUND", message: "Voucher không tồn tại" };
+  if (!v.trang_thai) return { code: "DISABLED", message: "Voucher đã bị tắt" };
+  if ((Number(v.so_luong) || 0) <= 0) return { code: "OUT_OF_STOCK", message: "Voucher đã hết lượt" };
+  if (!isVoucherInDateRange(v)) return { code: "EXPIRED", message: "Voucher đã hết hạn / chưa bắt đầu" };
+  if ((Number(subtotal) || 0) < (Number(v.don_hang_toi_thieu) || 0)) {
+    return { code: "MIN_ORDER_NOT_MET", message: "Đơn hàng chưa đạt đơn tối thiểu" };
+  }
   return null;
 }
 function getVoucherChangedFields(snap, vNow) {
   if (!snap || !vNow) return [];
   const changes = [];
+
   const minOld = Number(snap.minOrder || 0);
   const minNew = Number(vNow.don_hang_toi_thieu || 0);
-  if (minOld !== minNew)
+  if (minOld !== minNew) {
     changes.push(`Đơn tối thiểu: ${money(minOld)} → ${money(minNew)}`);
+  }
+
   const endOld = String(snap.end || "");
   const endNew = String(vNow.ngay_ket_thuc || "");
-  if (endOld !== endNew)
+  if (endOld !== endNew) {
     changes.push(`Hạn dùng: ${formatDateVN(endOld)} → ${formatDateVN(endNew)}`);
+  }
+
   const qtyOld = Number(snap.soLuong || 0);
   const qtyNew = Number(vNow.so_luong || 0);
-  if (qtyOld !== qtyNew) changes.push(`Số lượng còn: ${qtyOld} → ${qtyNew}`);
+  if (qtyOld !== qtyNew) {
+    changes.push(`Số lượng còn: ${qtyOld} → ${qtyNew}`);
+  }
+
   const stOld = !!snap.trangThai;
   const stNew = !!vNow.trang_thai;
-  if (stOld !== stNew)
-    changes.push(
-      `Trạng thái: ${stOld ? "Bật" : "Tắt"} → ${stNew ? "Bật" : "Tắt"}`,
-    );
-  const lpOld = String(snap.loaiPhieu ?? "");
-  const lpNew = String(vNow.loai_phieu ?? "");
-  if (lpOld !== lpNew)
-    changes.push(`Loại phiếu: ${lpOld || "-"} → ${lpNew || "-"}`);
+  if (stOld !== stNew) {
+    changes.push(`Trạng thái: ${stOld ? "Bật" : "Tắt"} → ${stNew ? "Bật" : "Tắt"}`);
+  }
+
   return changes;
+}
+
+
+
+function getBestVoucherForOrder(order, vouchers) {
+  const bestEntry =
+    getVoucherEntriesForOrder(order, vouchers).filter((x) => x.discount > 0)[0] || null;
+
+  return bestEntry
+    ? {
+        id: bestEntry.v.id,
+        code: bestEntry.v.ma_giam_gia,
+        discount: bestEntry.discount,
+        voucher: bestEntry.v,
+      }
+    : null;
+}
+function syncBestVoucherForActiveOrder() {
+  const o = activeOrder.value;
+  if (!o || o.voucherMode !== "best") return;
+
+  const best = bestEligibleVoucherEntry.value?.v || null;
+
+  o.pggId = best?.id ?? null;
+  o.voucherCode = best?.ma_giam_gia || "";
+  clearVoucherSuggestionDismissed(o);
+
+  if (best) setVoucherSnapshot(o, best);
+  else o.voucherSnapshot = null;
+}
+
+function buildVoucherNotifyRows({
+  oldCode = "—",
+  oldDiscount = 0,
+  newCode = "—",
+  newDiscount = 0,
+  extraRows = [],
+}) {
+  return [
+    { label: "Phiếu trước đó", value: oldCode || "—" },
+    { label: "Giảm trước đó", value: `- ${money(oldDiscount)}`, valueClass: "text-danger fw-semibold" },
+    { label: "Phiếu cập nhật", value: newCode || "Không có phiếu thay thế" },
+    { label: "Giảm sau cập nhật", value: `- ${money(newDiscount)}`, valueClass: "text-danger fw-semibold" },
+    ...extraRows,
+  ];
+}
+
+function evaluateVoucherState(order, orderVouchers) {
+  if (!order) return { status: "no_order" };
+
+  if (!order.pggId && !order.voucherSnapshot) return { status: "no_voucher" };
+
+  const subtotal = order.cart.reduce(
+    (s, it) => s + Number(it.price || 0) * Number(it.qty || 0),
+    0
+  );
+
+  const currentVoucher = order.pggId
+    ? orderVouchers.find((v) => v.id === order.pggId) || null
+    : null;
+
+  const best = getBestVoucherForOrder(order, orderVouchers);
+if (!order.pggId && order.voucherMode === "best" && best?.voucher) {
+  return {
+    status: "best_voucher_ready",
+    order,
+    best,
+    currentVoucher: null,
+    snapshot: order.voucherSnapshot || null,
+    subtotal,
+  };
+}
+  if (order.pggId && !currentVoucher) {
+    return {
+      status: "voucher_missing",
+      order,
+      best,
+      currentVoucher: null,
+      snapshot: order.voucherSnapshot || null,
+      subtotal,
+    };
+  }
+
+  if (currentVoucher) {
+    const invalidReason = getVoucherInvalidReason(currentVoucher, subtotal);
+    if (invalidReason) {
+      return {
+        status: "voucher_invalid",
+        order,
+        best,
+        currentVoucher,
+        snapshot: order.voucherSnapshot || null,
+        subtotal,
+        invalidReason,
+      };
+    }
+  }
+
+  if (order.voucherSnapshot && currentVoucher) {
+    const changes = getVoucherChangedFields(order.voucherSnapshot, currentVoucher);
+    if (changes.length > 0) {
+      return {
+        status: "voucher_changed",
+        order,
+        best,
+        currentVoucher,
+        snapshot: order.voucherSnapshot,
+        subtotal,
+        changes,
+      };
+    }
+  }
+
+  if (currentVoucher && best && best.id !== currentVoucher.id) {
+    const currentDiscount = calcVoucherDiscount(subtotal, currentVoucher);
+    if (best.discount > currentDiscount) {
+      return {
+        status: "better_voucher_available",
+        order,
+        best,
+        currentVoucher,
+        snapshot: order.voucherSnapshot || null,
+        subtotal,
+        currentDiscount,
+      };
+    }
+  }
+
+  return {
+    status: "valid",
+    order,
+    best,
+    currentVoucher,
+    snapshot: order.voucherSnapshot || null,
+    subtotal,
+  };
+}
+
+async function handleVoucherStateWithModal(result, orderVouchers) {
+  if (!result || result.status === "no_order" || result.status === "no_voucher") return;
+
+  if (result.status === "valid") {
+    if (result.currentVoucher) setVoucherSnapshot(result.order, result.currentVoucher);
+    return;
+  }
+
+  if (voucherSyncModalLock.value) return;
+  voucherSyncModalLock.value = true;
+
+  try {
+    const order = result.order;
+if (result.status === "best_voucher_ready") {
+  applyBestVoucherNowForOrder(order, orderVouchers, "best");
+  return;
+}
+    if (result.status === "voucher_missing") {
+      const oldCode = order.voucherCode || result.snapshot?.code || "—";
+      const oldDiscount = 0;
+      const newCode = result.best?.code || "Không có phiếu thay thế";
+      const newDiscount = result.best?.discount || 0;
+
+      if (result.best?.voucher) {
+        applyBestVoucherNowForOrder(order, orderVouchers, "best");
+      } else {
+        removeVoucherNowForOrder(order);
+      }
+
+      await openConfirm({
+        type: "danger",
+        title: "Phiếu giảm giá đã ngừng hoạt động",
+        subtitle: "Hệ thống vừa kiểm tra lại trạng thái phiếu giảm giá.",
+        message: `Phiếu giảm giá "${oldCode}" không còn khả dụng. Hệ thống đã tự động cập nhật lại phiếu phù hợp hơn cho đơn hàng.`,
+        detail: result.best
+          ? "Phiếu cũ đã hết hiệu lực hoặc không còn dùng được, hệ thống đã tự chuyển sang phiếu phù hợp nhất hiện tại."
+          : "Phiếu cũ đã hết hiệu lực và hiện không còn phiếu phù hợp để áp dụng.",
+        rows: buildVoucherNotifyRows({
+          oldCode,
+          oldDiscount,
+          newCode,
+          newDiscount,
+        }),
+      });
+
+      return;
+    }
+
+    if (result.status === "voucher_invalid") {
+  const oldCode = result.currentVoucher?.ma_giam_gia || order.voucherCode || "—";
+  const invalid = result.invalidReason || {};
+  const oldDiscount = calcVoucherDiscount(result.subtotal, result.currentVoucher);
+  const newCode = result.best?.code || "Không có phiếu thay thế";
+  const newDiscount = result.best?.discount || 0;
+
+  if (invalid.code === "MIN_ORDER_NOT_MET") {
+    keepVoucherWaitingForBest(order);
+  } else if (result.best?.voucher && result.best.id !== result.currentVoucher?.id) {
+    applyBestVoucherNowForOrder(order, orderVouchers, "best");
+  } else {
+    removeVoucherNowForOrder(order);
+  }
+
+  await openConfirm({
+    type: "danger",
+    title: "Phiếu giảm giá không còn hợp lệ",
+    subtitle: "Hệ thống vừa đồng bộ lại dữ liệu phiếu giảm giá.",
+    message: `Phiếu giảm giá "${oldCode}" không còn hợp lệ.`,
+    detail: invalid.message || "Phiếu giảm giá này không còn thỏa điều kiện áp dụng.",
+    rows: buildVoucherNotifyRows({
+      oldCode,
+      oldDiscount,
+      newCode: invalid.code === "MIN_ORDER_NOT_MET" ? "Chờ đủ điều kiện để áp dụng lại mã tốt nhất" : newCode,
+      newDiscount: invalid.code === "MIN_ORDER_NOT_MET" ? 0 : newDiscount,
+    }),
+  });
+
+  return;
+}
+
+    // voucher_changed: chỉ cập nhật snapshot, không bật modal
+    if (result.status === "voucher_changed") {
+      if (result.currentVoucher) {
+        setVoucherSnapshot(order, result.currentVoucher);
+      }
+      return;
+    }
+
+    // better_voucher_available: KHÔNG bật modal ở realtime
+    if (result.status === "better_voucher_available") {
+      return;
+    }
+  } finally {
+    voucherSyncModalLock.value = false;
+  }
+}
+
+async function revalidateActiveOrderVoucher({ showModal = true } = {}) {
+  const order = activeOrder.value;
+  if (!order) return;
+
+  const orderVouchers = await loadVouchersByCustomer(order?.customer?.id ?? null);
+  activeOrderVouchers.value = orderVouchers;
+
+  const result = evaluateVoucherState(order, orderVouchers);
+
+ if (showModal) {
+  await handleVoucherStateWithModal(result, orderVouchers);
+} else if (result.status === "best_voucher_ready" && result.best?.voucher) {
+  applyBestVoucherNowForOrder(order, orderVouchers, "best");
+} else if (result.status === "valid" && result.currentVoucher) {
+  setVoucherSnapshot(order, result.currentVoucher);
+}
 }
 
 async function runVoucherPrecheckFlow() {
   const o = activeOrder.value;
-  if (!o || !o.pggId) return true;
+  if (!o) return false;
+
+  if (!o.pggId && !o.voucherSnapshot && o.voucherMode !== "best") return true;
+
   const orderVouchers = await loadVouchersByCustomer(o?.customer?.id ?? null);
   activeOrderVouchers.value = orderVouchers;
-  const snap = o.voucherSnapshot;
-  const vNow = orderVouchers.find((x) => x.id === o.pggId) || null;
+
+  const currentVoucher = o.pggId
+    ? orderVouchers.find((v) => v.id === o.pggId) || null
+    : null;
+
   const bestEntry =
-    getVoucherEntriesForOrder(o, orderVouchers).filter(
-      (x) => x.discount > 0,
-    )[0] || null;
+    getVoucherEntriesForOrder(o, orderVouchers).filter((x) => x.discount > 0)[0] || null;
+
   const best = bestEntry
     ? {
         id: bestEntry.v.id,
         code: bestEntry.v.ma_giam_gia,
         discount: bestEntry.discount,
+        voucher: bestEntry.v,
       }
     : null;
-  if (!vNow) {
-    const ok = await openConfirm({
-      type: "danger",
-      message: `Voucher "${o.voucherCode || snap?.code || ""}" hiện không còn khả dụng.`,
-      detail: best
-        ? `Bạn có muốn đổi sang mã tốt nhất hiện tại (${best.code}) không?`
-        : "Không có mã khác áp dụng được. Bạn có muốn bỏ voucher để tiếp tục thanh toán không?",
-      suggest: best,
-    });
-    if (!ok) return false;
-    if (best) applyBestVoucherNowForOrder(o, orderVouchers);
-    else removeVoucherNowForOrder(o);
-    return true;
-  }
-  const reason = getVoucherInvalidReason(vNow, subTotal.value);
-  if (reason) {
-    const ok = await openConfirm({
-      type: "danger",
-      message: `Voucher "${o.voucherCode || snap?.code || ""}" không hợp lệ: ${reason}.`,
-      detail: best
-        ? `Bạn có muốn đổi sang mã tốt nhất hiện tại (${best.code}) không?`
-        : "Không có mã khác áp dụng được. Bạn có muốn bỏ voucher để tiếp tục thanh toán không?",
-      suggest: best,
-    });
-    if (!ok) return false;
-    if (best) applyBestVoucherNowForOrder(o, orderVouchers);
-    else removeVoucherNowForOrder(o);
-    return true;
-  }
-  if (snap) {
-    const changes = getVoucherChangedFields(snap, vNow);
-    if (changes.length > 0) {
-      const ok = await openConfirm({
-        type: "danger",
-        message: `Điều kiện voucher "${snap.code || o.voucherCode}" đã thay đổi.`,
-        detail: changes.join(" • "),
-        suggest: best,
-      });
-      if (!ok) return false;
-      if (best && best.id !== vNow.id)
-        applyBestVoucherNowForOrder(o, orderVouchers);
-      else setVoucherSnapshot(o, vNow);
-      return true;
+    if (!o.pggId && o.voucherMode === "best" && best?.voucher) {
+  applyBestVoucherNowForOrder(o, orderVouchers, "best");
+  return true;
+}
+
+  const subtotal = subTotal.value;
+  const isBestMode = o.voucherMode === "best";
+  const isManualMode = o.voucherMode === "manual";
+
+  // 1. Voucher bị mất / ngừng hoạt động
+  if (o.pggId && !currentVoucher) {
+    const oldCode = o.voucherCode || o.voucherSnapshot?.code || "—";
+
+    if (best?.voucher) {
+      if (isBestMode) applyBestVoucherNowForOrder(o, orderVouchers, "best");
+      else applyVoucherManual(best.voucher);
+    } else {
+      removeVoucherNowForOrder(o);
     }
-  } else {
-    setVoucherSnapshot(o, vNow);
-  }
-  const currentDiscount = calcVoucherDiscount(subTotal.value, vNow);
-  if (best && best.id !== vNow.id && best.discount > currentDiscount) {
-    const ok = await openConfirm({
-      type: "info",
-      message: `Hiện có mã tốt hơn (${best.code}) giảm thêm -${money(best.discount - currentDiscount)}.`,
-      detail: `Bạn đang dùng "${vNow.ma_giam_gia}" giảm -${money(currentDiscount)}. Đổi sang "${best.code}" sẽ giảm -${money(best.discount)}.`,
-      suggest: best,
+
+    await openConfirm({
+      type: "danger",
+      title: "Phiếu giảm giá đã ngừng hoạt động",
+      subtitle: "Hệ thống vừa kiểm tra lại trạng thái phiếu giảm giá.",
+      message: `Phiếu giảm giá "${oldCode}" không còn khả dụng.`,
+      detail: best
+        ? `Hệ thống đã cập nhật sang phiếu "${best.code}" với mức giảm ${money(best.discount)}.`
+        : "Hiện không còn phiếu phù hợp để áp dụng.",
+      rows: buildVoucherNotifyRows({
+        oldCode,
+        oldDiscount: 0,
+        newCode: best?.code || "Không có phiếu thay thế",
+        newDiscount: best?.discount || 0,
+      }),
     });
-    if (ok) applyBestVoucherNowForOrder(o, orderVouchers);
+
+    return true;
   }
+
+  // 2. Voucher không hợp lệ
+  if (currentVoucher) {
+    const invalidReason = getVoucherInvalidReason(currentVoucher, subtotal);
+
+if (invalidReason) {
+  const oldCode = currentVoucher.ma_giam_gia || o.voucherCode || "—";
+  const oldDiscount = calcVoucherDiscount(subtotal, currentVoucher);
+
+  if (invalidReason.code === "MIN_ORDER_NOT_MET") {
+    keepVoucherWaitingForBest(o);
+  } else if (best?.voucher && best.id !== currentVoucher.id) {
+    if (isBestMode) applyBestVoucherNowForOrder(o, orderVouchers, "best");
+    else applyVoucherManual(best.voucher);
+  } else {
+    removeVoucherNowForOrder(o);
+  }
+
+  await openConfirm({
+    type: "danger",
+    title: "Phiếu giảm giá không còn hợp lệ",
+    subtitle: "Hệ thống vừa đồng bộ lại dữ liệu phiếu giảm giá.",
+    message: `Phiếu giảm giá "${oldCode}" không còn hợp lệ.`,
+    detail: invalidReason.message,
+    rows: buildVoucherNotifyRows({
+      oldCode,
+      oldDiscount,
+      newCode:
+        invalidReason.code === "MIN_ORDER_NOT_MET"
+          ? "Chờ đủ điều kiện để áp dụng lại mã tốt nhất"
+          : best?.code || "Không có phiếu thay thế",
+      newDiscount:
+        invalidReason.code === "MIN_ORDER_NOT_MET"
+          ? 0
+          : best?.discount || 0,
+    }),
+  });
+
+  return true;
+}
+  }
+
+  // 3. Điều kiện thay đổi -> chỉ cập nhật snapshot, không show như lỗi đột xuất
+  if (o.voucherSnapshot && currentVoucher) {
+    const changes = getVoucherChangedFields(o.voucherSnapshot, currentVoucher);
+    if (changes.length > 0) {
+      setVoucherSnapshot(o, currentVoucher);
+    }
+  }
+
+  // 4. Có mã tốt hơn -> CHỈ hỏi lúc thanh toán
+  if (currentVoucher && best && best.id !== currentVoucher.id) {
+    const currentDiscount = calcVoucherDiscount(subtotal, currentVoucher);
+
+    if (best.discount > currentDiscount) {
+      // mode best thì tự đồng bộ, không hỏi
+      if (isBestMode) {
+        applyBestVoucherNowForOrder(o, orderVouchers, "best");
+        return true;
+      }
+
+      // mode manual thì chỉ lúc thanh toán mới hỏi
+      if (isManualMode) {
+        const ok = await openConfirm({
+  type: "info",
+  title: "Đã tìm thấy phiếu giảm giá tốt hơn",
+  subtitle: "Hệ thống kiểm tra thấy có mã tối ưu hơn trước khi thanh toán.",
+  message: `Hiện có phiếu giảm giá tốt hơn cho đơn hàng này. Bạn có muốn áp dụng không?`,
+  detail: `Bạn đang dùng "${currentVoucher.ma_giam_gia}" giảm ${money(currentDiscount)}. Nếu đổi sang "${best.code}" thì sẽ giảm ${money(best.discount)}.`,
+  rows: buildVoucherNotifyRows({
+    oldCode: currentVoucher.ma_giam_gia || "—",
+    oldDiscount: currentDiscount,
+    newCode: best.code || "—",
+    newDiscount: best.discount || 0,
+  }),
+  mode: "confirm",
+  confirmText: "Áp dụng",
+  cancelText: "Giữ mã hiện tại",
+});
+
+if (ok) {
+  applyVoucherManual(best.voucher);
+}
+        return true;
+      }
+    }
+  }
+
+  if (currentVoucher) {
+    setVoucherSnapshot(o, currentVoucher);
+  }
+
   return true;
 }
 
 const qrImg = ref("");
 const qrContent = ref("");
 const qrNoteDraft = ref("");
+
 function buildQrContent(o) {
   const amount = grandTotal.value;
   const ma = o?.maHoaDon || "";
   const note = (qrNoteDraft.value || "").trim();
   return `PAY|MA=${ma}|AMOUNT=${amount}|NOTE=${note || ma}`;
 }
+
 function makeQrImageUrl(content) {
   const data = encodeURIComponent(content);
   return `https://quickchart.io/qr?text=${data}&size=260`;
 }
+
 function openQrPay() {
   const o = activeOrder.value;
   if (!o) return;
+
   o.paymentMethod = "QR";
   o.maGiaoDich = `QR-${o.maHoaDon}-${Date.now()}`;
   o.ghiChuThanhToan = `QR thanh toán - ${o.maHoaDon}`;
+
   qrNoteDraft.value = `HD:${o.maHoaDon}`;
   const content = buildQrContent(o);
   qrContent.value = content;
   qrImg.value = makeQrImageUrl(content);
+
   showQrPayModal.value = true;
 }
+
 function closeQrPay() {
   showQrPayModal.value = false;
 }
+
 async function markPaidAndCheckout() {
   const o = activeOrder.value;
   if (!o) return;
-  const ok = await openPaymentConfirm(
-    `Bạn xác nhận đã nhận tiền QR cho hóa đơn ${o.maHoaDon} không?`,
-  );
+
+  const ok = await openPaymentConfirm(`Bạn xác nhận đã nhận tiền QR cho hóa đơn ${o.maHoaDon} không?`);
   if (!ok) return;
+
   o.paid = grandTotal.value;
   o.maGiaoDich = `QR-${o.maHoaDon}-${Date.now()}`;
-  o.ghiChuThanhToan = (
-    qrNoteDraft.value || `QR thanh toán - ${o.maHoaDon}`
-  ).trim();
+  o.ghiChuThanhToan = (qrNoteDraft.value || `QR thanh toán - ${o.maHoaDon}`).trim();
+
   showQrPayModal.value = false;
   await confirmOrder();
 }
@@ -2891,111 +3707,153 @@ async function markPaidAndCheckout() {
 function validateCheckout(o) {
   if (!o) return "Không có đơn hàng đang chọn";
   if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";
+
   for (const it of o.cart) {
-    if (it.priceChangedLocked)
+    if (it.priceChangedLocked) {
       return `Sản phẩm ${it.code} đã thay đổi giá, vui lòng xóa dòng cũ và chọn lại dòng giá mới`;
-    if (it.lineStatus === "missing")
+    }
+    if (it.lineStatus === "missing") {
       return `Sản phẩm ${it.code} không còn hợp lệ, vui lòng xóa khỏi giỏ`;
+    }
     const qty = Number(it.qty || 0);
     if (qty <= 0) return `Số lượng không hợp lệ: ${it.code}`;
-    if (Number.isFinite(it.stockBase) && qty > Number(it.stockBase))
+    if (Number.isFinite(it.stockBase) && qty > Number(it.stockBase)) {
       return `Sản phẩm ${it.code} vượt tồn kho`;
+    }
   }
-  const needShip = !!o.loaiDon;
-  if (needShip) {
+
+  if (o.loaiDon) {
     const ten = String(o.tenNguoiNhanHang || "").trim();
     const sdt = String(o.soDienThoaiNhanHang || "").trim();
+
     if (!ten) return "Vui lòng nhập Tên người nhận";
     if (!sdt) return "Vui lòng nhập SĐT người nhận";
+
     const digits = sdt.replace(/[^\d]/g, "");
-    if (digits.length < 9 || digits.length > 15)
-      return "SĐT người nhận không hợp lệ";
-    if (!String(o.tinhThanhNhanHang || "").trim())
-      return "Vui lòng chọn Tỉnh/Thành";
-    if (!String(o.phuongXaNhanHang || "").trim())
-      return "Vui lòng chọn Phường/Xã";
-    if (!String(o.diaChiNhanHangChiTiet || "").trim())
-      return "Vui lòng nhập Địa chỉ chi tiết";
-    const ship = Number(o.phiVanChuyen || 0);
-    if (ship !== 30000) return "Phí ship toàn quốc phải là 30.000đ";
+    if (digits.length < 9 || digits.length > 15) return "SĐT người nhận không hợp lệ";
+
+   if (!o.ghnProvinceId) return "Vui lòng chọn Tỉnh/Thành";
+if (!String(o.ghnWardCode || "").trim()) return "Vui lòng chọn Phường/Xã";
+    if (!String(o.diaChiNhanHangChiTiet || "").trim()) return "Vui lòng nhập Địa chỉ chi tiết";
   }
+
   const paid = Number(o.paid || 0);
   if (paid < grandTotal.value) return "Khách thanh toán chưa đủ";
+
   return null;
 }
-function provinceNameByCode(code) {
-  const c = String(code || "");
-  return provinces.value.find((p) => String(p.code) === c)?.name || "";
+
+function provinceNameById(id) {
+  return provinces.value.find((p) => String(p.provinceId) === String(id))?.provinceName || "";
 }
+
 function wardNameByCode(code) {
-  const c = String(code || "");
-  return wards.value.find((w) => String(w.code) === c)?.name || "";
+  const o = activeOrder.value;
+  if (!o?.ghnProvinceId) return "";
+  return wardNameByCodeByProvince(o.ghnProvinceId, code);
 }
+
 function buildPosPayload(o) {
   const isShip = !!o.loaiDon;
+
   return {
     maHoaDon: o.maHoaDon,
     loaiDon: isShip,
-    phiVanChuyen: isShip ? 30000 : 0,
+    phiVanChuyen: isShip ? Number(o.phiVanChuyen || 0) : 0,
+
     idKhachHang: o.customer?.id ?? null,
     tenKhachHang: o.customer?.name || "Khách lẻ",
     soDienThoai: (o.customerDraft?.phone || "").trim(),
     emailKhachHang: (o.customerDraft?.email || "").trim(),
     diaChiKhachHang: (o.diaChi || "").trim(),
+
     idPhieuGiamGia: o.pggId ?? null,
     giamThuCongPercent: Number(o.discountPercent || 0),
+
     paid: Number(o.paid || 0),
     ghiChu: (o.ghiChu || "POS checkout").trim(),
+
     maGiaoDich: o.paymentMethod === "QR" ? o.maGiaoDich || null : null,
-    ghiChuThanhToan:
-      o.paymentMethod === "QR" ? o.ghiChuThanhToan || null : null,
+    ghiChuThanhToan: o.paymentMethod === "QR" ? o.ghiChuThanhToan || null : null,
+
     tenNguoiNhanHang: isShip ? (o.tenNguoiNhanHang || "").trim() : null,
-    soDienThoaiNhanHang: isShip ? (o.soDienThoaiNhanHang || "").trim() : null,
-    tinhThanhNhanHang: isShip ? provinceNameByCode(o.tinhThanhNhanHang) : null,
-    phuongXaNhanHang: isShip ? wardNameByCode(o.phuongXaNhanHang) : null,
-    quanHuyenNhanHang: null,
-    diaChiNhanHangChiTiet: isShip
-      ? (o.diaChiNhanHangChiTiet || "").trim()
-      : null,
+soDienThoaiNhanHang: isShip ? (o.soDienThoaiNhanHang || "").trim() : null,
+tinhThanhNhanHang: isShip ? provinceNameById(o.ghnProvinceId) : null,
+quanHuyenNhanHang: null,
+phuongXaNhanHang: isShip ? wardNameByCode(o.ghnWardCode) : null,
+diaChiNhanHangChiTiet: isShip ? (o.diaChiNhanHangChiTiet || "").trim() : null,
+
     items: o.cart.map((it) => ({
       idSanPhamChiTiet: Number(it.idSpct),
       soLuong: clampInt(it.qty, 1, 999999),
     })),
   };
 }
+
 async function resetOrderAfterPaid(o) {
   const idx = orders.value.findIndex((x) => x.id === o.id);
   if (idx !== -1) orders.value.splice(idx, 1);
-  if (activeId.value === o.id) activeId.value = orders.value[0]?.id ?? null;
+
+  if (activeId.value === o.id) {
+    activeId.value = orders.value[0]?.id ?? null;
+  }
+
   saveDraftsNow();
 }
+
 async function confirmOrderCash() {
   const o = activeOrder.value;
   if (!o) return;
-  const ok = await openPaymentConfirm(
-    `Bạn có chắc muốn thanh toán hóa đơn ${o.maHoaDon} bằng tiền mặt không?`,
-  );
+
+  const ok = await openPaymentConfirm(`Bạn có chắc muốn thanh toán hóa đơn ${o.maHoaDon} bằng tiền mặt không?`);
   if (!ok) return;
+
   o.paymentMethod = "CASH";
   o.maGiaoDich = null;
   o.ghiChuThanhToan = null;
+
   await confirmOrder();
 }
+
 async function confirmOrder() {
   const o = activeOrder.value;
   confirmHint.value = "";
+
   const err = validateCheckout(o);
-  if (err)
+  if (err) {
     return toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
+  }
+
   const ok = await runVoucherPrecheckFlow();
   if (!ok) return;
+
   if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo", "danger");
+
   const payload = buildPosPayload(o);
   submitting.value = true;
+
   try {
-    await http.post(`/api/hoa-don/draft/${o.dbId}/checkout`, payload);
+    const res = await http.post(`/api/hoa-don/draft/${o.dbId}/checkout`, payload);
+    const paidInvoice = res?.data || {};
+
     toastShow(`Thanh toán thành công: ${o.maHoaDon}`, "success");
+
     await resetOrderAfterPaid(o);
+
+    const invoiceId =
+      paidInvoice.id ??
+      paidInvoice.hoaDonId ??
+      paidInvoice.idHoaDon ??
+      o.dbId;
+
+   if (invoiceId) {
+  await router.push({
+    name: "order-detail",
+    params: { id: String(invoiceId) },
+  });
+} else {
+  await router.push({ name: "orders" });
+}
   } catch (e) {
     console.error(e);
     const msg =
@@ -3017,33 +3875,36 @@ function onKeydown(e) {
 
 let removeTabSyncListener = null;
 let _refreshVisibleT = null;
+let voucherRevalidateT = null;
+
 function queueRefreshWhenVisible() {
   clearTimeout(_refreshVisibleT);
   _refreshVisibleT = setTimeout(() => refreshWhenVisible(), 150);
 }
+
 function handleDocumentVisibility() {
   if (document.visibilityState === "hidden") {
     saveDraftsNow();
     return;
   }
-  if (document.visibilityState === "visible") queueRefreshWhenVisible();
-}
-async function refreshProductsInCartAndModal() {
-  let latestAll = [];
-  try {
-    latestAll = await fetchAllProductsForRefresh();
-  } catch (e) {
-    console.error(e);
-    toastShow("Không đồng bộ được dữ liệu sản phẩm mới nhất", "warning");
-    return;
+  if (document.visibilityState === "visible") {
+    queueRefreshWhenVisible();
   }
-  if (showProductModal.value) await fetchProducts(productPage.value || 0);
+}
+
+async function refreshProductsInCart() {
+  await fetchAllProducts();
+
   for (const order of orders.value) {
     if (!order || !Array.isArray(order.cart)) continue;
+
     for (const item of order.cart) {
-      const latest =
-        latestAll.find((p) => Number(p.idSpct) === Number(item.idSpct)) || null;
-      const repriced = findRepricedProductInList(item, latestAll);
+      const latest = allProducts.value.find(
+        (p) => Number(p.idSpct) === Number(item.idSpct)
+      ) || null;
+
+      const repriced = findRepricedProductInList(item, allProducts.value);
+
       if (!latest && !repriced) {
         item.stockBase = 0;
         item.stock = 0;
@@ -3052,13 +3913,13 @@ async function refreshProductsInCartAndModal() {
         item.lineStatus = "missing";
         continue;
       }
+
       item.lineStatus = "ok";
       item.stockBase = Number((latest?.stock ?? repriced?.stock) || 0);
-      const sameVariantPriceChanged =
-        !!latest && !sameMoney(latest.price, item.price);
-      const repricedToOtherLine =
-        !!repriced &&
-        (!latest || Number(repriced.idSpct) !== Number(item.idSpct));
+
+      const sameVariantPriceChanged = !!latest && !sameMoney(latest.price, item.price);
+      const repricedToOtherLine = !!repriced && (!latest || Number(repriced.idSpct) !== Number(item.idSpct));
+
       if (sameVariantPriceChanged || repricedToOtherLine) {
         item.priceChangedLocked = true;
         item.stock = 0;
@@ -3068,73 +3929,126 @@ async function refreshProductsInCartAndModal() {
         item.newPrice = null;
       }
     }
+
     syncAllCartStocks(order);
   }
 }
+
 async function processVoucherChangesForAllOrders() {
   for (const order of orders.value) {
+    if (!order || order.id === activeId.value) continue;
     if (!order?.pggId && !order?.voucherSnapshot) continue;
-    const orderVouchers = await loadVouchersByCustomer(
-      order?.customer?.id ?? null,
-    );
-    const currentVoucher = order.pggId
-      ? orderVouchers.find((v) => v.id === order.pggId) || null
-      : null;
-    const subtotal = order.cart.reduce(
-      (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
-      0,
-    );
-    const bestEntry =
-      getVoucherEntriesForOrder(order, orderVouchers).filter(
-        (x) => x.discount > 0,
-      )[0] || null;
-    if (!currentVoucher || getVoucherInvalidReason(currentVoucher, subtotal)) {
-      if (bestEntry?.v) applyBestVoucherNowForOrder(order, orderVouchers);
-      else removeVoucherNowForOrder(order);
+
+    const orderVouchers = await loadVouchersByCustomer(order?.customer?.id ?? null);
+    const result = evaluateVoucherState(order, orderVouchers);
+
+    if (result.status === "best_voucher_ready") {
+  if (result.best?.voucher) {
+    applyBestVoucherNowForOrder(order, orderVouchers, "best");
+  }
+  continue;
+}
+
+    if (result.status === "voucher_missing") {
+  if (result.best?.voucher) {
+    order.voucherMode = "best";
+    order.pggId = result.best.voucher.id;
+    order.voucherCode = result.best.voucher.ma_giam_gia || "";
+    order.discountPercent = 0;
+    setVoucherSnapshot(order, result.best.voucher);
+  } else {
+    removeVoucherNowForOrder(order);
+  }
+  continue;
+}
+
+if (result.status === "voucher_invalid") {
+  const invalid = result.invalidReason || {};
+  if (invalid.code === "MIN_ORDER_NOT_MET") {
+    keepVoucherWaitingForBest(order);
+  } else if (result.best?.voucher) {
+    order.voucherMode = "best";
+    order.pggId = result.best.voucher.id;
+    order.voucherCode = result.best.voucher.ma_giam_gia || "";
+    order.discountPercent = 0;
+    setVoucherSnapshot(order, result.best.voucher);
+  } else {
+    removeVoucherNowForOrder(order);
+  }
+  continue;
+}
+
+    if (result.status === "voucher_changed") {
+      if (result.currentVoucher) setVoucherSnapshot(order, result.currentVoucher);
+      continue;
     }
-    if (order.id === activeId.value) activeOrderVouchers.value = orderVouchers;
+
+    if (result.status === "valid" && result.currentVoucher) {
+      setVoucherSnapshot(order, result.currentVoucher);
+    }
   }
 }
+
 async function refreshWhenVisible() {
   await processVoucherChangesForAllOrders();
-  await refreshProductsInCartAndModal();
-  await reloadActiveOrderVouchers();
+  await refreshProductsInCart();
+  await revalidateActiveOrderVoucher({ showModal: true });
 }
+
 async function handleTabSync(event) {
   const msg = event?.data;
   if (!msg?.type) return;
+
   if (msg.type === TAB_SYNC_EVENTS.VOUCHER_CHANGED) {
     await processVoucherChangesForAllOrders();
-    await reloadActiveOrderVouchers();
+    await revalidateActiveOrderVoucher({ showModal: true });
     return;
   }
+
   if (
     msg.type === TAB_SYNC_EVENTS.PRODUCT_CHANGED ||
     msg.type === TAB_SYNC_EVENTS.PRODUCT_STOCK_CHANGED
   ) {
-    await refreshProductsInCartAndModal();
+    await refreshProductsInCart();
+    await revalidateActiveOrderVoucher({ showModal: true });
   }
 }
+
+watch(
+  () => [activeId.value, subTotal.value],
+  () => {
+    clearTimeout(voucherRevalidateT);
+    voucherRevalidateT = setTimeout(() => {
+      revalidateActiveOrderVoucher({ showModal: true });
+    }, 250);
+  }
+);
 
 onMounted(async () => {
   loadDrafts();
   scheduleMidnightReset();
-  initAddressDataOffline();
-  reloadCustomers();
-  await reloadActiveOrderVouchers();
+  await loadGhnProvinces();
+  await reloadCustomers();
+  await fetchAllProducts();
+  await reloadActiveOrderVouchers({ showModal: true });
+
   window.addEventListener("beforeunload", saveDraftsNow);
   window.addEventListener("keydown", onKeydown);
   window.addEventListener("focus", queueRefreshWhenVisible);
   document.addEventListener("visibilitychange", handleDocumentVisibility);
+
   removeTabSyncListener = onTabSync(handleTabSync);
 });
+
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", saveDraftsNow);
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener("focus", queueRefreshWhenVisible);
   document.removeEventListener("visibilitychange", handleDocumentVisibility);
+
   if (midnightTimer) clearTimeout(midnightTimer);
   if (removeTabSyncListener) removeTabSyncListener();
+
   saveDraftsNow();
 });
 </script>
@@ -3147,12 +4061,49 @@ onBeforeUnmount(() => {
 .tab-x:hover {
   opacity: 1;
 }
+
 .voucher-card {
   border: 1px solid #bfead8;
   background: #e9fbf3;
   border-radius: 10px;
   padding: 12px;
 }
+
+.customer-summary-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.summary-line + .summary-line {
+  margin-top: 10px;
+}
+
+.summary-label {
+  display: block;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  color: #111827;
+  line-height: 1.45;
+}
+
+.address-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.address-card-active {
+  border-color: #198754;
+  box-shadow: 0 0 0 1px rgba(25, 135, 84, 0.15);
+}
+
 :global(.modal-backdrop) {
   z-index: 1050;
 }
@@ -3165,6 +4116,7 @@ onBeforeUnmount(() => {
 :global(.modal .modal-dialog) {
   pointer-events: auto;
 }
+
 .product-status-group {
   display: flex;
   align-items: center;
@@ -3172,29 +4124,34 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   min-height: 38px;
 }
+
 .product-status-group .form-check {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 0;
 }
+
 .price-range-wrap {
   position: relative;
   height: 24px;
   display: flex;
   align-items: center;
 }
+
 .range-input {
   width: 100%;
   appearance: none;
   background: transparent;
   pointer-events: auto;
 }
+
 .range-input::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 999px;
   background: #198754;
 }
+
 .range-input::-webkit-slider-thumb {
   appearance: none;
   width: 16px;
@@ -3205,11 +4162,13 @@ onBeforeUnmount(() => {
   margin-top: -6px;
   cursor: pointer;
 }
+
 .range-input::-moz-range-track {
   height: 4px;
   border-radius: 999px;
   background: #198754;
 }
+
 .range-input::-moz-range-thumb {
   width: 16px;
   height: 16px;
@@ -3218,19 +4177,23 @@ onBeforeUnmount(() => {
   border: 2px solid #198754;
   cursor: pointer;
 }
+
 .customer-modal-dialog {
   max-width: 1150px;
 }
+
 .customer-table-wrap {
   border: 1px solid #dee2e6;
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
 }
+
 .customer-table {
   width: 100%;
   table-layout: fixed;
 }
+
 .customer-table thead th {
   font-size: 14px;
   font-weight: 700;
@@ -3238,31 +4201,38 @@ onBeforeUnmount(() => {
   vertical-align: middle;
   white-space: nowrap;
 }
+
 .customer-table tbody td {
   font-size: 14px;
   padding: 12px 10px;
   vertical-align: middle;
 }
+
 .customer-table tbody tr:hover {
   background: #f8fafc;
 }
+
 .customer-address-cell {
   line-height: 1.45;
   white-space: normal;
   word-break: break-word;
 }
+
 .customer-pick-btn {
   min-width: 64px;
 }
+
 .order-tab-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
 }
+
 .order-tab-label {
   white-space: nowrap;
 }
+
 .order-count-badge {
   min-width: 18px;
   height: 18px;
@@ -3278,15 +4248,7 @@ onBeforeUnmount(() => {
   line-height: 1;
   flex-shrink: 0;
 }
-.tab-x {
-  opacity: 0.85;
-  cursor: pointer;
-  margin-left: 2px;
-  flex-shrink: 0;
-}
-.tab-x:hover {
-  opacity: 1;
-}
+
 .custom-toast {
   min-width: 320px;
   max-width: 420px;
@@ -3300,22 +4262,26 @@ onBeforeUnmount(() => {
   padding: 14px 14px 14px 16px;
   color: #1f2937;
 }
+
 .custom-toast-content {
   flex: 1;
   min-width: 0;
 }
+
 .custom-toast-title {
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 4px;
   color: #111827;
 }
+
 .custom-toast-message {
   font-size: 14px;
   line-height: 1.45;
   color: #4b5563;
   word-break: break-word;
 }
+
 .custom-toast-close {
   border: 0;
   background: transparent;
@@ -3326,9 +4292,11 @@ onBeforeUnmount(() => {
   padding: 0;
   margin-top: -2px;
 }
+
 .custom-toast-close:hover {
   color: #374151;
 }
+
 .custom-toast-success {
   border-left-color: #22c55e;
 }
@@ -3341,18 +4309,116 @@ onBeforeUnmount(() => {
 .custom-toast-danger {
   border-left-color: #ef4444;
 }
-.shipping-brand-box {
-  border: 1px dashed #d1d5db;
+
+.address-new-box {
+  border: 1px dashed #cbd5e1;
   border-radius: 12px;
   padding: 14px;
-  background: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background: #f8fafc;
 }
-.shipping-brand-logo {
-  max-height: 52px;
+
+.ship-fee-logo {
+  height: 18px;
   width: auto;
   object-fit: contain;
+}
+.voucher-notify-modal {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.voucher-notify-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+}
+
+.voucher-notify-banner {
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.voucher-notify-banner-danger {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+}
+
+.voucher-notify-banner-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+.voucher-notify-banner-success {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+.voucher-notify-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.voucher-notify-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.voucher-notify-row:last-child {
+  border-bottom: 0;
+}
+
+.voucher-notify-label {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.voucher-notify-value {
+  color: #111827;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: right;
+}
+
+.voucher-notify-footer {
+  border-top: 0;
+  padding: 8px 20px 20px;
+}
+
+.voucher-notify-ok-btn {
+  min-width: 110px;
+  border-radius: 12px;
+  padding: 10px 18px;
+}
+
+@media (max-width: 576px) {
+  .voucher-notify-row {
+    grid-template-columns: 1fr;
+  }
+
+  .voucher-notify-value {
+    text-align: left;
+  }
+}
+.voucher-notify-cancel-btn {
+  min-width: 120px;
+  border-radius: 12px;
+  padding: 10px 18px;
+}
+
+.voucher-notify-ok-btn {
+  min-width: 120px;
+  border-radius: 12px;
+  padding: 10px 18px;
 }
 </style>
