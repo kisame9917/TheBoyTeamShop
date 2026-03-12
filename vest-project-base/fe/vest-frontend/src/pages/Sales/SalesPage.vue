@@ -183,15 +183,16 @@
 
                   <div class="d-flex align-items-center gap-2 flex-wrap">
                     <button
-                      class="btn btn-outline-secondary btn-sm"
-                      type="button"
-                      @click="chooseWalkInCustomer"
-                    >
-                      Khách vãng lai
-                    </button>
+  class="btn btn-outline-primary btn-sm"
+  type="button"
+  @click="chooseWalkInCustomer"
+  :disabled="!activeOrder?.customer?.id"
+>
+  Khách vãng lai
+</button>
 
                     <button
-                      class="btn btn-outline-dark btn-sm"
+                      class="btn btn-outline-primary btn-sm"
                       type="button"
                       @click="openCustomerModal"
                     >
