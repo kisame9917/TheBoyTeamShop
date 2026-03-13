@@ -131,14 +131,10 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
                 throw new BadRequestException("Số lượng sản phẩm không hợp lệ");
             }
 
+            // Chỉ kiểm tra tồn tại thời điểm đặt, KHÔNG trừ kho ở đây
             if (tonKho < soLuongDat) {
                 throw new BadRequestException("Sản phẩm không đủ tồn kho: " + spct.getMaSanPhamChiTiet());
             }
-
-            // Trừ tồn kho ngay khi tạo đơn
-            spct.setSoLuongTon(tonKho - soLuongDat);
-            spct.setNgayCapNhat(LocalDateTime.now());
-            sanPhamChiTietRepository.save(spct);
 
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(savedHoaDon);
