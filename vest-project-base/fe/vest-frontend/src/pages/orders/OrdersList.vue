@@ -10,12 +10,12 @@
     <div class="card shadow-sm mb-3 filter-card">
       <!-- Header (click để thu gọn/mở rộng) -->
       <div
-          class="filter-header d-flex align-items-center justify-content-between"
-          data-bs-toggle="collapse"
-          data-bs-target="#filterBody"
-          role="button"
-          aria-expanded="true"
-          aria-controls="filterBody"
+        class="filter-header d-flex align-items-center justify-content-between"
+        data-bs-toggle="collapse"
+        data-bs-target="#filterBody"
+        role="button"
+        aria-expanded="true"
+        aria-controls="filterBody"
       >
         <div class="d-flex align-items-center gap-2">
           <span class="filter-icon">▼</span>
@@ -32,21 +32,21 @@
             <div class="col-12 col-md-6 col-lg-3">
               <label class="form-label">Tìm kiếm</label>
               <input
-                  v-model.trim="filters.keyword"
-                  type="text"
-                  class="form-control"
-                  placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
-                  @input="autoApplyFilters()"
-                  @keyup.enter="applyFilters"
+                v-model.trim="filters.keyword"
+                type="text"
+                class="form-control"
+                placeholder="Nhập mã hóa đơn / tên khách / SĐT..."
+                @input="autoApplyFilters()"
+                @keyup.enter="applyFilters"
               />
             </div>
 
             <div class="col-12 col-md-6 col-lg-3">
               <label class="form-label">Loại hóa đơn</label>
               <select
-                  v-model="filters.loaiDonMode"
-                  class="form-select"
-                  @change="applyFilters"
+                v-model="filters.loaiDonMode"
+                class="form-select"
+                @change="applyFilters"
               >
                 <option value="">Tất cả</option>
                 <option value="taiquay">Tại quầy</option>
@@ -58,24 +58,24 @@
               <label class="form-label">Từ ngày</label>
               <div class="input-group">
                 <input
-                    ref="fromPickerRef"
-                    type="text"
-                    class="form-control"
-                    placeholder="dd/mm/yyyy"
+                  ref="fromPickerRef"
+                  type="text"
+                  class="form-control"
+                  placeholder="dd/mm/yyyy"
                 />
                 <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    @click="openFromPicker"
-                    title="Chọn ngày"
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="openFromPicker"
+                  title="Chọn ngày"
                 >
                   <i class="bi bi-calendar3"></i>
                 </button>
                 <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    @click="clearFromDate"
-                    title="Xóa"
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="clearFromDate"
+                  title="Xóa"
                 >
                   <i class="bi bi-x-lg"></i>
                 </button>
@@ -86,24 +86,24 @@
               <label class="form-label">Đến ngày</label>
               <div class="input-group">
                 <input
-                    ref="toPickerRef"
-                    type="text"
-                    class="form-control"
-                    placeholder="dd/mm/yyyy"
+                  ref="toPickerRef"
+                  type="text"
+                  class="form-control"
+                  placeholder="dd/mm/yyyy"
                 />
                 <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    @click="openToPicker"
-                    title="Chọn ngày"
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="openToPicker"
+                  title="Chọn ngày"
                 >
                   <i class="bi bi-calendar3"></i>
                 </button>
                 <button
-                    class="btn btn-outline-secondary"
-                    type="button"
-                    @click="clearToDate"
-                    title="Xóa"
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  @click="clearToDate"
+                  title="Xóa"
                 >
                   <i class="bi bi-x-lg"></i>
                 </button>
@@ -119,7 +119,6 @@
                 <i class="bi bi-file-earmark-excel me-1"></i>
                 Xuất Excel trang HĐ
               </button>
-
             </div>
           </div>
         </div>
@@ -142,21 +141,21 @@
 
           <div class="status-filter-tabs mt-3">
             <button
-                type="button"
-                class="status-filter-tab"
-                :class="{ active: filters.trangThaiDon === null }"
-                @click="setStatusFilter(null)"
+              type="button"
+              class="status-filter-tab"
+              :class="{ active: filters.trangThaiDon === null }"
+              @click="setStatusFilter(null)"
             >
               Tất cả
             </button>
 
             <button
-                v-for="s in statusOptions"
-                :key="s.code"
-                type="button"
-                class="status-filter-tab"
-                :class="{ active: filters.trangThaiDon === s.code }"
-                @click="setStatusFilter(s.code)"
+              v-for="s in statusOptions"
+              :key="s.code"
+              type="button"
+              class="status-filter-tab"
+              :class="{ active: filters.trangThaiDon === s.code }"
+              @click="setStatusFilter(s.code)"
             >
               {{ s.label }}
             </button>
@@ -169,116 +168,126 @@
 
         <div v-else class="table-responsive table-wrap">
           <table
-              class="table align-middle mb-0 table-hover table-fixed table-normal"
+            class="table align-middle mb-0 table-hover table-fixed table-normal"
           >
             <colgroup>
-              <col style="width: 4%" />   <!-- STT -->
-              <col style="width: 12%" />  <!-- Mã hóa đơn -->
-              <col style="width: 15%" />  <!-- Tên nhân viên -->
-              <col style="width: 11%" />  <!-- Khách hàng -->
-              <col style="width: 10%" />  <!-- Số điện thoại -->
-              <col style="width: 11%" />  <!-- Loại hóa đơn -->
-              <col style="width: 10%" />  <!-- Tổng tiền -->
-              <col style="width: 9%" />   <!-- Ngày tạo -->
-              <col style="width: 9%" />   <!-- Trạng thái -->
-              <col style="width: 9%" />   <!-- Hành động -->
+              <col style="width: 4%" />
+              <!-- STT -->
+              <col style="width: 12%" />
+              <!-- Mã hóa đơn -->
+              <col style="width: 15%" />
+              <!-- Tên nhân viên -->
+              <col style="width: 11%" />
+              <!-- Khách hàng -->
+              <col style="width: 10%" />
+              <!-- Số điện thoại -->
+              <col style="width: 11%" />
+              <!-- Loại hóa đơn -->
+              <col style="width: 10%" />
+              <!-- Tổng tiền -->
+              <col style="width: 9%" />
+              <!-- Ngày tạo -->
+              <col style="width: 9%" />
+              <!-- Trạng thái -->
+              <col style="width: 9%" />
+              <!-- Hành động -->
             </colgroup>
             <thead class="thead-dark-custom">
-            <tr>
-              <th class="text-center">STT</th>
-              <th>Mã hóa đơn</th>
-              <th>Tên nhân viên</th>
-              <th>Khách hàng</th>
-              <th>Số điện thoại</th>
-              <th class="text-center">Loại hóa đơn</th>
-              <th class="text-end">Tổng tiền</th>
-              <th class="text-center">Ngày tạo</th>
-              <th class="text-center">Trạng thái</th>
-              <th class="text-center action-col">Hành động</th>
-            </tr>
+              <tr>
+                <th class="text-center">STT</th>
+                <th>Mã hóa đơn</th>
+                <th>Tên nhân viên</th>
+                <th>Khách hàng</th>
+                <th>Số điện thoại</th>
+                <th class="text-center">Loại hóa đơn</th>
+                <th class="text-end">Tổng tiền</th>
+                <th class="text-center">Ngày tạo</th>
+                <th class="text-center">Trạng thái</th>
+                <th class="text-center action-col">Hành động</th>
+              </tr>
             </thead>
             <tbody>
-            <tr v-if="rows.length === 0">
-              <td colspan="10" class="text-center text-muted py-4">
-                Không có dữ liệu
-              </td>
-            </tr>
+              <tr v-if="rows.length === 0">
+                <td colspan="10" class="text-center text-muted py-4">
+                  Không có dữ liệu
+                </td>
+              </tr>
 
-            <tr v-for="(r, idx) in rows" :key="r.id">
-              <td class="text-center">
-                {{ page.page * page.size + idx + 1 }}
-              </td>
+              <tr v-for="(r, idx) in rows" :key="r.id">
+                <td class="text-center">
+                  {{ page.page * page.size + idx + 1 }}
+                </td>
 
-              <td class="fw-semibold">
+                <td class="fw-semibold">
                   <span class="cell-ellipsis" :title="r.maHoaDon">
                     {{ r.maHoaDon }}
                   </span>
-              </td>
+                </td>
 
-              <td>
-                <div
+                <td>
+                  <div
                     class="staff-cell"
                     :title="`${getStaffName(r)} - ${getStaffRole(r)}`"
-                >
-                  <div class="staff-name">{{ getStaffName(r) }}</div>
-                  <div class="staff-role">{{ getStaffRole(r) }}</div>
-                </div>
-              </td>
-              <td>
+                  >
+                    <div class="staff-name">{{ getStaffName(r) }}</div>
+                    <div class="staff-role">{{ getStaffRole(r) }}</div>
+                  </div>
+                </td>
+                <td>
                   <span
-                      class="cell-ellipsis"
-                      :title="r.tenKhachHang || 'Khách lẻ'"
+                    class="cell-ellipsis"
+                    :title="r.tenKhachHang || 'Khách lẻ'"
                   >
                     {{ r.tenKhachHang || "Khách lẻ" }}
                   </span>
-              </td>
+                </td>
 
-              <td>
+                <td>
                   <span class="cell-ellipsis" :title="r.soDienThoai || '-'">
                     {{ r.soDienThoai || "-" }}
                   </span>
-              </td>
+                </td>
 
-              <td class="text-center">
+                <td class="text-center">
                   <span class="badge text-bg-light border">
                     {{ r.loaiDon ? "Online" : "Tại quầy" }}
                   </span>
-              </td>
+                </td>
 
-              <td class="fw-semibold text-end text-danger">
-                {{ formatCurrency(r.tongTienSauGiam) }}
-              </td>
+                <td class="fw-semibold text-end text-danger">
+                  {{ formatCurrency(r.tongTienSauGiam) }}
+                </td>
 
-              <td class="text-center">
-                {{ formatDateVN(r.ngayTao) }}
-              </td>
+                <td class="text-center">
+                  {{ formatDateVN(r.ngayTao) }}
+                </td>
 
-              <td class="text-center">
+                <td class="text-center">
                   <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
-                    {{ r.tenTrangThaiDon }}
+                    {{ r.tenTrangThaiDon || labelTrangThai(r.trangThaiDon) }}
                   </span>
-              </td>
+                </td>
 
-              <td class="text-center action-col">
-                <div class="action-group">
-                  <button
+                <td class="text-center action-col">
+                  <div class="action-group">
+                    <button
                       class="btn btn-outline-secondary btn-sm"
                       @click="goDetail(r.id)"
                       title="Xem chi tiết"
-                  >
-                    <i class="bi bi-eye text-secondary eye-icon"></i>
-                  </button>
+                    >
+                      <i class="bi bi-eye text-secondary eye-icon"></i>
+                    </button>
 
-                  <button
+                    <button
                       class="btn btn-outline-success btn-sm"
                       @click="goPrint(r.id)"
                       title="Xuất hóa đơn"
-                  >
-                    <i class="bi bi-printer"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
+                    >
+                      <i class="bi bi-printer"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -286,7 +295,7 @@
         <!-- Pagination -->
         <!-- Pagination -->
         <div
-            class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2"
+          class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2"
         >
           <!-- Left -->
           <div class="text-muted flex-grow-1">
@@ -295,12 +304,12 @@
 
           <!-- Center -->
           <div
-              class="d-flex align-items-center gap-2 justify-content-center flex-grow-1"
+            class="d-flex align-items-center gap-2 justify-content-center flex-grow-1"
           >
             <button
-                class="btn btn-outline-secondary btn-sm"
-                :disabled="page.page === 0"
-                @click="setPage(page.page - 1)"
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="page.page === 0"
+              @click="setPage(page.page - 1)"
             >
               <i class="bi bi-chevron-left"></i>
             </button>
@@ -308,19 +317,19 @@
             <div class="input-group input-group-sm" style="width: 100px">
               <span class="input-group-text">Trang</span>
               <input
-                  type="number"
-                  min="1"
-                  :max="page.totalPages || 1"
-                  class="form-control"
-                  v-model.number="pageInput"
-                  @keyup.enter="jumpPage"
+                type="number"
+                min="1"
+                :max="page.totalPages || 1"
+                class="form-control"
+                v-model.number="pageInput"
+                @keyup.enter="jumpPage"
               />
             </div>
 
             <button
-                class="btn btn-outline-secondary btn-sm"
-                :disabled="page.page >= page.totalPages - 1"
-                @click="setPage(page.page + 1)"
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="page.page >= page.totalPages - 1"
+              @click="setPage(page.page + 1)"
             >
               <i class="bi bi-chevron-right"></i>
             </button>
@@ -329,10 +338,10 @@
           <!-- Right -->
           <div class="d-flex justify-content-md-end flex-grow-1">
             <select
-                class="form-select form-select-sm"
-                style="width: 160px"
-                v-model.number="page.size"
-                @change="applyFilters"
+              class="form-select form-select-sm"
+              style="width: 160px"
+              v-model.number="page.size"
+              @change="applyFilters"
             >
               <option :value="10">10 bản ghi / trang</option>
               <option :value="20">20 bản ghi / trang</option>
@@ -345,11 +354,11 @@
 
     <!-- QR Modal -->
     <div
-        class="modal fade"
-        id="qrModal"
-        tabindex="-1"
-        aria-hidden="true"
-        ref="qrModalRef"
+      class="modal fade"
+      id="qrModal"
+      tabindex="-1"
+      aria-hidden="true"
+      ref="qrModalRef"
     >
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -358,10 +367,10 @@
               <i class="bi bi-qr-code-scan me-2"></i>Quét QR hóa đơn
             </h6>
             <button
-                type="button"
-                class="btn-close"
-                aria-label="Close"
-                @click="closeQrModal"
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="closeQrModal"
             ></button>
           </div>
           <div class="modal-body">
@@ -383,22 +392,22 @@
 
     <!-- Toast -->
     <div
-        class="toast-container position-fixed top-0 end-0 p-3"
-        style="z-index: 9999"
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index: 9999"
     >
       <div
-          class="toast align-items-center text-bg-success border-0"
-          ref="toastRef"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
+        class="toast align-items-center text-bg-success border-0"
+        ref="toastRef"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
       >
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
           <button
-              type="button"
-              class="btn-close btn-close-white me-2 m-auto"
-              @click="hideToast"
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            @click="hideToast"
           ></button>
         </div>
       </div>
@@ -434,15 +443,29 @@ const router = useRouter();
 const loading = ref(false);
 const rows = ref([]);
 
+const STATUS = {
+  CHO_XAC_NHAN: 0,
+  DA_XAC_NHAN: 8,
+  DANG_XU_LY: 1,
+  DANG_GIAO: 2,
+  DA_GIAO: 3,
+  HOAN_THANH: 4,
+  DA_HUY: 5,
+  DA_HOAN: 7,
+
+  // fallback dữ liệu cũ
+  YEU_CAU_HOAN: 6,
+};
+
 const statusOptions = [
-  { code: 0, label: "Chờ xác nhận" },
-  { code: 1, label: "Đang xử lý" },
-  { code: 2, label: "Đang giao" },
-  { code: 3, label: "Đã giao" },
-  { code: 4, label: "Hoàn thành" },
-  { code: 5, label: "Đã huỷ" },
-  { code: 6, label: "Yêu cầu hoàn" },
-  { code: 7, label: "Đã hoàn" },
+  { code: STATUS.CHO_XAC_NHAN, label: "Chờ xác nhận" },
+  { code: STATUS.DA_XAC_NHAN, label: "Đã xác nhận" },
+  { code: STATUS.DANG_XU_LY, label: "Đang xử lý" },
+  { code: STATUS.DANG_GIAO, label: "Đang giao" },
+  { code: STATUS.DA_GIAO, label: "Đã giao" },
+  { code: STATUS.HOAN_THANH, label: "Hoàn thành" },
+  { code: STATUS.DA_HUY, label: "Đã huỷ" },
+  { code: STATUS.DA_HOAN, label: "Đã hoàn" },
 ];
 // ===== Range tổng tiền (theo mẫu) =====
 const TOTAL_MIN = 0;
@@ -487,8 +510,21 @@ function safeFileName(s) {
 }
 
 function labelTrangThai(code) {
-  const f = statusOptions.find((x) => Number(x.code) === Number(code));
-  return f?.label || "-";
+  const m = {
+    [STATUS.CHO_XAC_NHAN]: "Chờ xác nhận",
+    [STATUS.DA_XAC_NHAN]: "Đã xác nhận",
+    [STATUS.DANG_XU_LY]: "Đang xử lý",
+    [STATUS.DANG_GIAO]: "Đang giao",
+    [STATUS.DA_GIAO]: "Đã giao",
+    [STATUS.HOAN_THANH]: "Hoàn thành",
+    [STATUS.DA_HUY]: "Đã huỷ",
+    [STATUS.DA_HOAN]: "Đã hoàn",
+
+    // fallback dữ liệu cũ
+    [STATUS.YEU_CAU_HOAN]: "Yêu cầu hoàn",
+  };
+
+  return m[Number(code)] ?? "-";
 }
 
 function labelLoaiDon(v) {
@@ -550,14 +586,24 @@ function autoApplyFilters(delay = 450) {
 function statusBadgeClass(code) {
   const c = Number(code);
 
-  // Xanh lá: hoàn thành
-  if (c === 4) return "text-bg-success";
+  if (c === STATUS.HOAN_THANH) return "text-bg-success";
+  if (c === STATUS.DA_GIAO) return "text-bg-primary";
+  if (c === STATUS.DA_XAC_NHAN) return "text-bg-primary";
+  if (c === STATUS.DANG_GIAO) return "text-bg-info";
 
-  // Xám: huỷ hoặc đã hoàn
-  if (c === 5 || c === 7) return "text-bg-secondary";
+  if (c === STATUS.DA_HUY || c === STATUS.DA_HOAN) {
+    return "text-bg-secondary";
+  }
 
-  // Vàng: đang xử lý/đang giao/chờ/yêu cầu hoàn
-  return "text-bg-warning text-dark";
+  if (
+    c === STATUS.CHO_XAC_NHAN ||
+    c === STATUS.DANG_XU_LY ||
+    c === STATUS.YEU_CAU_HOAN
+  ) {
+    return "text-bg-warning text-dark";
+  }
+
+  return "text-bg-secondary";
 }
 
 function formatCurrency(v) {
@@ -646,16 +692,16 @@ function clearToDate() {
 
 // (optional) khóa range: from <= to
 watch(
-    () => filters.fromDate,
-    (v) => {
-      if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
-    },
+  () => filters.fromDate,
+  (v) => {
+    if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
+  },
 );
 watch(
-    () => filters.toDate,
-    (v) => {
-      if (fpFrom) fpFrom.set("maxDate", v ? parseYMD(v) : null);
-    },
+  () => filters.toDate,
+  (v) => {
+    if (fpFrom) fpFrom.set("maxDate", v ? parseYMD(v) : null);
+  },
 );
 
 /** =======================
@@ -667,11 +713,11 @@ async function fetchData() {
   loading.value = true;
   try {
     const loaiDon =
-        filters.loaiDonMode === "online"
-            ? true
-            : filters.loaiDonMode === "taiquay"
-                ? false
-                : undefined;
+      filters.loaiDonMode === "online"
+        ? true
+        : filters.loaiDonMode === "taiquay"
+          ? false
+          : undefined;
 
     const params = {
       page: page.page,
@@ -680,9 +726,9 @@ async function fetchData() {
       sortDir: page.sortDir,
       keyword: filters.keyword || undefined,
       trangThaiDon:
-          filters.trangThaiDon === null || filters.trangThaiDon === undefined
-              ? undefined
-              : filters.trangThaiDon,
+        filters.trangThaiDon === null || filters.trangThaiDon === undefined
+          ? undefined
+          : filters.trangThaiDon,
       loaiDon,
 
       // ✅ giữ nguyên BE: yyyy-MM-dd
@@ -766,17 +812,17 @@ function goDetail(id) {
     [
       "Trạng thái",
       filters.trangThaiDon == null
-          ? "Tất cả"
-          : labelTrangThai(filters.trangThaiDon),
+        ? "Tất cả"
+        : labelTrangThai(filters.trangThaiDon),
     ],
     [
       "Loại hóa đơn",
       labelLoaiDon(
-          filters.loaiDonMode === "online"
-              ? true
-              : filters.loaiDonMode === "taiquay"
-                  ? false
-                  : undefined,
+        filters.loaiDonMode === "online"
+          ? true
+          : filters.loaiDonMode === "taiquay"
+            ? false
+            : undefined,
       ),
     ],
     ["Từ ngày", filters.fromDate || "-"],
@@ -1023,11 +1069,11 @@ async function startQr() {
     }
 
     await qr.start(
-        { deviceId: { exact: cameras[0].id } },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        async (decodedText) => {
-          await onQrDecoded(decodedText);
-        },
+      { deviceId: { exact: cameras[0].id } },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        await onQrDecoded(decodedText);
+      },
     );
   } catch (e) {
     console.error(e);
