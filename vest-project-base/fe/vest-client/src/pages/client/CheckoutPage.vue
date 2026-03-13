@@ -243,16 +243,21 @@
         Chọn
       </button>
     </div>
+<div v-if="appliedVoucherEntry" class="small mt-2"
+     :class="appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id ? 'text-primary' : 'text-primary'">
+  <template v-if="appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id">
+     Áp dụng mã tốt nhất:
+  </template>
+  <template v-else>
+    Đang áp dụng:
+  </template>
+  <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
+  - giảm {{ money(appliedVoucherEntry.discount) }} đ
+</div>
 
-    <div v-if="bestEligibleVoucherEntry" class="small text-success mt-2">
-      Tự động áp dụng tốt nhất:
-      <b>{{ bestEligibleVoucherEntry.v.ma_giam_gia }}</b>
-      - giảm {{ money(bestEligibleVoucherEntry.discount) }} đ
-    </div>
-
-    <div v-else class="small text-muted mt-2">
-      Không có phiếu giảm giá phù hợp với đơn hàng này.
-    </div>
+<div v-else class="small text-muted mt-2">
+  Không có phiếu giảm giá phù hợp với đơn hàng này.
+</div>
   </div>
 </section>
         </div>
