@@ -4,7 +4,7 @@ import com.vestshop.Entity.HoaDon;
 import org.springframework.data.jpa.repository.*;
 import java.util.Optional;
 
-import com.vestshop.dto.response.TopKhachHangResponse; // Import DTO vừa tạo
+import com.vestshop.dto.response.TopKhachHangResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -96,6 +96,32 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     List<Object[]> countDonHangByTrangThaiInRange(@Param("from") LocalDateTime from,
                                                   @Param("to") LocalDateTime to);
 
+    // ==============================
+    // TỔNG QUAN ĐẦU TRANG
+    // ==============================
+
+    @Query("SELECT COUNT(h) " +
+            "FROM HoaDon h " +
+            "WHERE h.ngayTao BETWEEN :startDate AND :endDate")
+    Long countAllDonHangInRange(@Param("startDate") LocalDateTime startDate,
+                                @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COUNT(h) " +
+            "FROM HoaDon h " +
+            "WHERE h.ngayTao BETWEEN :startDate AND :endDate " +
+            "AND h.trangThaiDon = :status")
+    Long countDonHangByStatusInRange(@Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate,
+                                     @Param("status") Integer status);
+
+    @Query("SELECT COUNT(h) " +
+            "FROM HoaDon h " +
+            "WHERE h.ngayTao BETWEEN :startDate AND :endDate " +
+            "AND h.trangThaiDon NOT IN :excludedStatuses")
+    Long countDonHangNotInStatusesInRange(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate,
+                                          @Param("excludedStatuses") List<Integer> excludedStatuses);
+
     @Query("""
       select sum(
         case when :includeShip = true
@@ -141,7 +167,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
                             @Param("to") LocalDateTime to,
                             @Param("includeShip") boolean includeShip);
 
-
     @Modifying
     @Query("""
         delete from HoaDon hd
@@ -151,15 +176,12 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     int hardDeletePendingOlderThan(@Param("status") Integer status,
                                    @Param("cutoff") LocalDateTime cutoff);
 
-
     @Query("""
     select h.id
     from HoaDon h
     where h.trangThaiDon = :status
       and h.ngayTao < :cutoff
-""")
+    """)
     List<Long> findIdsPendingOlderThan(@Param("status") Integer status,
                                        @Param("cutoff") LocalDateTime cutoff);
 }
-
-

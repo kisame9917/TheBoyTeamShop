@@ -1473,7 +1473,7 @@ function getColorCode(name) {
   if (n.includes('hồng') || n.includes('pink')) return '#ec4899'
   if (n.includes('nâu') || n.includes('brown')) return '#78350f'
   if (n.includes('be') || n.includes('beige')) return '#f5f5dc'
-  if (n.includes('xanh than') || n.includes('navy')) return '#1e3a8a'
+  if (n.includes('xanh than 1') || n.includes('navy')) return '#1e3a8a'
   if (n.includes('xám') || n.includes('ghi') || n.includes('gray') || n.includes('grey')) return '#6b7280'
   const m = n.match(/\(([^)]+)\)/)
   if (m) return m[1]

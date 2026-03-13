@@ -8,6 +8,11 @@ function unwrap(res) {
 }
 
 export default {
+    async getTongQuan() {
+        const res = await http.get("/api/thong-ke/tong-quan");
+        return unwrap(res) || null;
+    },
+
     // Doanh thu: THANG | QUY | NAM
     async getDoanhThu(params) {
         // params:

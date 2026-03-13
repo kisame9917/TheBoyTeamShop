@@ -1,195 +1,172 @@
 <template>
   <div class="container-fluid py-3">
-    <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-person-vcard fs-4"></i>
-        <h5 class="mb-0">Quản lý nhân viên / Chi tiết</h5>
+        <h5 class="mb-0">Chi tiết nhân viên</h5>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goBack">
-          <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+          <i class="bi bi-arrow-left me-1"></i> Quay lại
         </button>
-
-        <button class="btn btn-outline-secondary btn-sm" type="button" :disabled="!isAdmin" @click="goEdit">
-          <i class="bi bi-pencil-square me-1"></i> Sửa
-        </button>
-
-        <button class="btn btn-primary btn-sm text-white" type="button" :disabled="!isAdmin" @click="askToggle">
-          <i class="bi bi-toggle2-on me-1"></i> Đổi trạng thái
+        <button type="button" class="btn btn-primary btn-sm text-white" @click="goEdit">
+          <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
         </button>
       </div>
     </div>
 
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div v-if="loading" class="text-center py-5">
-          <div class="spinner-border" role="status"></div>
-          <div class="mt-2 text-muted">Đang tải...</div>
-        </div>
-
-        <div v-else-if="errorMsg" class="alert alert-warning mb-0">
-          {{ errorMsg }}
-        </div>
-
-        <template v-else>
-          <!-- Top: avatar + name + badges -->
-          <div class="text-center mb-4">
-            <div class="avatar-wrap mx-auto mb-2" role="button" title="Ảnh đại diện">
+    <div class="card shadow-sm border-0 detail-card" v-if="!loading && staff">
+      <div class="card-body p-0">
+        <div class="detail-header">
+          <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3">
+            <div class="avatar-wrap">
               <img
-                  v-if="resolveAvatar(staff)"
-                  :src="resolveAvatar(staff)"
+                  v-if="avatarUrl"
+                  :src="avatarUrl"
                   class="avatar-img"
                   alt="avatar"
-                  @error="onAvatarError($event, staff)"
+                  @error="avatarError = true"
               />
               <div v-else class="avatar-fallback">
-                {{ getInitials(staff?.tenNhanVien) }}
+                {{ getInitials(staff.tenNhanVien) }}
               </div>
             </div>
 
-            <div class="fs-5 fw-semibold">
-              {{ staff?.tenNhanVien || "-" }}
-            </div>
-
-            <div class="d-flex align-items-center justify-content-center gap-2 mt-2 flex-wrap">
-              <span class="badge text-bg-light border">{{ staff?.maNhanVien || "-" }}</span>
-              <span class="badge text-bg-light border">{{ getRoleText(staff) }}</span>
-              <span class="badge" :class="staff?.trangThai ? 'text-bg-success' : 'text-bg-secondary'">
-                {{ staff?.trangThai ? "Đang làm" : "Đã nghỉ" }}
-              </span>
+            <div class="flex-grow-1">
+              <div class="staff-name">{{ staff.tenNhanVien || '-' }}</div>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <span class="pill soft-blue">Mã NV: {{ staff.maNhanVien || '-' }}</span>
+                <span class="pill soft-gray">Tài khoản: {{ staff.taiKhoan || '-' }}</span>
+                <span
+                    class="pill"
+                    :class="staff.trangThai ? 'soft-green' : 'soft-red'"
+                >
+                  {{ staff.trangThai ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Detail grid -->
+        <div class="p-3 p-lg-4">
           <div class="row g-3">
             <div class="col-12 col-lg-6">
               <div class="info-box">
-                <div class="label">Email</div>
-                <div class="value">{{ staff?.email || "-" }}</div>
+                <div class="label">Mã nhân viên</div>
+                <div class="value">{{ staff.maNhanVien || "-" }}</div>
               </div>
             </div>
 
             <div class="col-12 col-lg-6">
               <div class="info-box">
-                <div class="label">SĐT</div>
-                <div class="value">{{ staff?.soDienThoai || "-" }}</div>
-              </div>
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <div class="info-box">
-                <div class="label">CCCD</div>
-                <div class="value">{{ staff?.cccd || "-" }}</div>
-              </div>
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <div class="info-box">
-                <div class="label">Ngày sinh</div>
-                <div class="value">{{ formatDate(staff?.ngaySinh) }}</div>
-              </div>
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <div class="info-box">
-                <div class="label">Giới tính</div>
-                <div class="value">{{ mapGender(staff?.gioiTinh) }}</div>
+                <div class="label">Tên nhân viên</div>
+                <div class="value">{{ staff.tenNhanVien || "-" }}</div>
               </div>
             </div>
 
             <div class="col-12 col-lg-6">
               <div class="info-box">
                 <div class="label">Tài khoản</div>
-                <div class="value">{{ staff?.taiKhoan || "-" }}</div>
+                <div class="value">{{ staff.taiKhoan || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="label">Chức vụ</div>
+                <div class="value">{{ staff.tenQuyenHan || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="label">Số điện thoại</div>
+                <div class="value">{{ staff.soDienThoai || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="label">Email</div>
+                <div class="value break-all">{{ staff.email || "-" }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="label">Giới tính</div>
+                <div class="value">{{ genderText }}</div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="info-box">
+                <div class="label">Ngày sinh</div>
+                <div class="value">{{ formatDate(staff.ngaySinh) }}</div>
               </div>
             </div>
 
             <div class="col-12">
               <div class="info-box">
                 <div class="label">Địa chỉ</div>
-                <div class="value addr">{{ staff?.diaChi || "-" }}</div>
+                <div class="value">{{ staff.diaChi || "-" }}</div>
               </div>
             </div>
 
-            <div class="col-12 col-lg-6" v-if="staff?.ngayTao">
+            <div class="col-12 col-lg-6">
               <div class="info-box">
                 <div class="label">Ngày tạo</div>
-                <div class="value">{{ formatDateTime(staff?.ngayTao) }}</div>
+                <div class="value">{{ formatDateTime(staff.ngayTao) }}</div>
               </div>
             </div>
 
-            <div class="col-12 col-lg-6" v-if="staff?.ngayCapNhat">
+            <div class="col-12 col-lg-6">
               <div class="info-box">
-                <div class="label">Ngày cập nhật</div>
-                <div class="value">{{ formatDateTime(staff?.ngayCapNhat) }}</div>
+                <div class="label">Cập nhật lần cuối</div>
+                <div class="value">{{ formatDateTime(staff.ngayCapNhat) }}</div>
               </div>
             </div>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- Confirm modal (Bootstrap) -->
-    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" ref="confirmModalRef">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content confirm-modal">
-          <div class="modal-header">
-            <h6 class="modal-title">
-              <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận đổi trạng thái
-            </h6>
-            <button type="button" class="btn-close" aria-label="Close" @click="closeConfirm"></button>
-          </div>
-
-          <div class="modal-body">
-            <div class="mb-2">
-              Bạn muốn đổi trạng thái nhân viên <b>{{ staff?.maNhanVien || "-" }}</b> từ
-              <span class="badge ms-1" :class="staff?.trangThai ? 'text-bg-success' : 'text-bg-secondary'">
-                {{ staff?.trangThai ? "Đang làm" : "Đã nghỉ" }}
-              </span>
-              sang
-              <span class="badge ms-1" :class="pendingNext ? 'text-bg-success' : 'text-bg-secondary'">
-                {{ pendingNext ? "Đang làm" : "Đã nghỉ" }}
-              </span>
-              ?
-            </div>
-
-            <div class="text-muted small">Hành động này sẽ cập nhật trạng thái nhân viên.</div>
-
-            <div v-if="confirmError" class="alert alert-warning mt-3 mb-0">
-              {{ confirmError }}
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn btn-light" type="button" @click="closeConfirm" :disabled="confirmLoading">Hủy</button>
-            <button class="btn btn-primary text-white" type="button" @click="confirmToggle" :disabled="confirmLoading">
-              <span v-if="confirmLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-              Xác nhận
-            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Toast -->
+    <div v-else-if="loading" class="card shadow-sm border-0">
+      <div class="card-body py-5 text-center text-muted">
+        Đang tải dữ liệu...
+      </div>
+    </div>
+
+    <div v-else class="card shadow-sm border-0">
+      <div class="card-body py-5 text-center">
+        <div class="mb-2 fw-semibold">Không tìm thấy nhân viên</div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+          Quay lại danh sách
+        </button>
+      </div>
+    </div>
+
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
       <div
           v-for="t in toast.state.items"
           :key="t.id"
           class="toast show align-items-center border-0 mb-2"
+          :class="toastClass(t.type)"
           role="alert"
           aria-live="assertive"
           aria-atomic="true"
-          :class="toastClass(t.type)"
       >
         <div class="d-flex">
           <div class="toast-body">
             <div v-if="t.title" class="fw-semibold mb-1">{{ t.title }}</div>
             <div>{{ t.message }}</div>
           </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
+          <button
+              type="button"
+              class="btn-close btn-close-white me-2 m-auto"
+              @click="toast.remove(t.id)"
+          ></button>
         </div>
       </div>
     </div>
@@ -197,28 +174,23 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import http from "@/services/http";
-import { useAuthStore } from "@/stores/auth";
+import http from "../../services/http";
 import { useToast } from "@/composables/useToast";
 import { resolveMediaUrl } from "@/utils/media";
 
 const route = useRoute();
 const router = useRouter();
-const auth = useAuthStore();
 const toast = useToast();
 
-const isAdmin = computed(() => !!auth.isAdmin);
-
-const loading = ref(false);
-const errorMsg = ref("");
+const loading = ref(true);
 const staff = ref(null);
+const avatarError = ref(false);
 
-/** ===== Helpers: normalize + role ===== */
-function unwrapOne(data) {
+function unwrapObj(data) {
   if (!data) return null;
-  if (data.result) return data.result;
+  if (data.result && typeof data.result === "object") return data.result;
   return data;
 }
 
@@ -230,7 +202,6 @@ function normalizeStaff(x) {
     maNhanVien: x.maNhanVien ?? "",
     tenNhanVien: x.tenNhanVien ?? "",
     soDienThoai: x.soDienThoai ?? "",
-    cccd: x.cccd ?? "",
     email: x.email ?? "",
     taiKhoan: x.taiKhoan ?? "",
     ngaySinh: x.ngaySinh ?? null,
@@ -245,198 +216,102 @@ function normalizeStaff(x) {
   };
 }
 
-function getRoleCode(s) {
-  if (Number(s?.quyenHanId) === 1) return "ADMIN";
-  if (Number(s?.quyenHanId) === 2) return "NHAN_VIEN";
-  const name = String(s?.tenQuyenHan || "").toUpperCase();
-  if (name.includes("ADMIN")) return "ADMIN";
-  return "NHAN_VIEN";
+async function loadDetail() {
+  loading.value = true;
+  try {
+    const res = await http.get("/api/nhan-vien/" + route.params.id);
+    staff.value = normalizeStaff(unwrapObj(res?.data));
+  } catch (e) {
+    staff.value = null;
+    const m = e?.response?.data?.message || e?.message || "Không tải được chi tiết nhân viên";
+    toast.error(m);
+  } finally {
+    loading.value = false;
+  }
 }
 
-function getRoleText(s) {
-  return getRoleCode(s) === "ADMIN" ? "Admin" : "Nhân viên";
+const avatarUrl = computed(() => {
+  if (avatarError.value) return "";
+  const url = String(staff.value?.anhDaiDien || "").trim();
+  return url ? resolveMediaUrl(url) : "";
+});
+
+const genderText = computed(() => {
+  if (staff.value?.gioiTinh === true) return "Nam";
+  if (staff.value?.gioiTinh === false) return "Nữ";
+  return "-";
+});
+
+function formatDate(v) {
+  if (!v) return "-";
+  const s = String(v).slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return s;
+  return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
-/** ===== Gender + date ===== */
-function mapGender(v) {
-  if (v === true) return "Nam";
-  if (v === false) return "Nữ";
-  return "Khác";
-}
-function formatDate(d) {
-  if (!d) return "-";
-  return String(d).slice(0, 10);
-}
-function formatDateTime(d) {
-  if (!d) return "-";
-  const s = String(d);
-  return s.replace("T", " ").slice(0, 19);
-}
-
-/** ===== Avatar ===== */
-function resolveAvatar(s) {
-  return resolveMediaUrl(s?.anhDaiDien || s?.avatarUrl || s?.mediaAsset || "");
-}
-
-function onAvatarError(e, s) {
-  if (s) s.anhDaiDien = "";
-  if (e?.target) e.target.src = "";
+function formatDateTime(v) {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
 }
 
 function getInitials(name) {
   const s = String(name || "").trim();
   if (!s) return "NV";
   const parts = s.split(/\s+/).filter(Boolean);
-  const a = parts[0]?.[0] || "N";
-  const b = parts[parts.length - 1]?.[0] || "V";
-  return (a + b).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** ===== Fetch detail ===== */
-async function fetchDetail() {
-  loading.value = true;
-  errorMsg.value = "";
-  try {
-    const id = route.params.id;
-    const res = await http.get(`/api/nhan-vien/${id}`);
-    staff.value = normalizeStaff(unwrapOne(res.data));
-  } catch (e) {
-    try {
-      const id = Number(route.params.id);
-      const res2 = await http.get(`/api/nhan-vien`);
-      const arr = Array.isArray(res2.data) ? res2.data : (res2.data?.content || res2.data?.result || []);
-      const found = (arr || []).find((x) => Number(x.id) === id);
-      staff.value = found ? normalizeStaff(found) : null;
-      if (!staff.value) errorMsg.value = "Không tìm thấy nhân viên.";
-    } catch (e2) {
-      console.error(e2);
-      errorMsg.value = "Không tải được thông tin nhân viên.";
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** ===== Buttons ===== */
 function goBack() {
-  try {
-    router.push({ name: "staff-list" });
-  } catch {
-    router.back();
-  }
+  router.push({ name: "staff" });
 }
+
 function goEdit() {
-  if (!isAdmin.value) {
-    toast.warning("Chỉ Admin mới được sửa.");
-    return;
-  }
   router.push({ name: "staff-edit", params: { id: route.params.id } });
 }
 
-/** ===== Toggle status + confirm modal ===== */
-const confirmModalRef = ref(null);
-let bsConfirmModal = null;
-
-const pendingNext = ref(false);
-const confirmLoading = ref(false);
-const confirmError = ref("");
-
-function openConfirm() {
-  const el = confirmModalRef.value;
-  if (!el) return;
-  document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
-  document.body.classList.remove("modal-open");
-  const Modal = window.bootstrap?.Modal;
-  if (Modal) {
-    bsConfirmModal = Modal.getOrCreateInstance(el);
-    bsConfirmModal.show();
-  } else {
-    el.classList.add("show");
-    el.style.display = "block";
-  }
-}
-function closeConfirm() {
-  confirmError.value = "";
-  confirmLoading.value = false;
-
-  const el = confirmModalRef.value;
-  if (!el) return;
-
-  if (bsConfirmModal) {
-    bsConfirmModal.hide();
-    return;
-  }
-  el.classList.remove("show");
-  el.style.display = "none";
-  el.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("modal-open");
-  const backdrop = document.querySelector(".modal-backdrop");
-  if (backdrop) backdrop.remove();
-}
-
-function askToggle() {
-  if (!isAdmin.value) {
-    toast.warning("Chỉ Admin mới được đổi trạng thái.");
-    return;
-  }
-  if (!staff.value) return;
-  pendingNext.value = !staff.value.trangThai;
-  confirmError.value = "";
-  openConfirm();
-}
-
-async function confirmToggle() {
-  if (!staff.value) return;
-
-  confirmLoading.value = true;
-  confirmError.value = "";
-  try {
-    await http.patch(`/api/nhan-vien/${staff.value.id}/trang-thai`, { trangThai: pendingNext.value });
-    staff.value.trangThai = pendingNext.value;
-    toast.success("Cập nhật trạng thái thành công!");
-    closeConfirm();
-  } catch (e) {
-    console.error(e);
-    confirmError.value = "Cập nhật thất bại. Vui lòng thử lại.";
-    toast.error("Cập nhật trạng thái thất bại.");
-  } finally {
-    confirmLoading.value = false;
-  }
-}
-
-/** ===== Toast style ===== */
 function toastClass(type) {
-  switch (String(type || "").toLowerCase()) {
-    case "success":
-      return "text-bg-success";
-    case "error":
-      return "text-bg-danger";
-    case "warning":
-      return "text-bg-warning";
-    case "info":
-    default:
-      return "text-bg-primary";
-  }
+  const t = String(type || "info").toLowerCase();
+  if (t === "success") return "text-bg-success";
+  if (t === "error") return "text-bg-danger";
+  if (t === "warning") return "text-bg-warning";
+  return "text-bg-info";
 }
 
-onMounted(fetchDetail);
+onMounted(loadDetail);
 </script>
 
 <style scoped>
-.card {
-  border-radius: 14px;
+.detail-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.detail-header {
+  padding: 20px;
+  background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .avatar-wrap {
-  width: 92px;
-  height: 92px;
+  width: 84px;
+  height: 84px;
+  min-width: 84px;
   border-radius: 999px;
-  border: 1px solid #e5e7eb;
   overflow: hidden;
+  border: 1px solid #dbeafe;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef2ff;
 }
 
 .avatar-img {
@@ -446,37 +321,71 @@ onMounted(fetchDetail);
 }
 
 .avatar-fallback {
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 700;
   color: #1d4ed8;
-  font-size: 18px;
+}
+
+.staff-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.soft-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.soft-gray {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.soft-green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.soft-red {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .info-box {
+  height: 100%;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #ffffff;
 }
 
 .label {
-  font-weight: 600;
+  font-size: 12px;
   color: #6b7280;
   margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .value {
-  font-weight: 400;
+  font-size: 15px;
   color: #111827;
-}
-
-.value.addr {
-  white-space: normal;
+  font-weight: 600;
+  line-height: 1.5;
   word-break: break-word;
 }
 
-/* ✅ CHỈ SỬA PHẦN BẠN YÊU CẦU: bỏ 2 đường kẻ trong popup confirm */
-.confirm-modal .modal-header,
-.confirm-modal .modal-footer {
-  border: 0 !important;
+.break-all {
+  word-break: break-all;
 }
 </style>

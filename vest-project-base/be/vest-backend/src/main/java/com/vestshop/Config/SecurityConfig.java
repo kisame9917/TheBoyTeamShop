@@ -54,7 +54,8 @@ public class SecurityConfig {
                                 "/api/san-pham/**",
                                 "/api/loai-san-pham",
                                 "/api/loai-san-pham/**",
-                                "/api/san-pham-chi-tiet/by-product/**"
+                                "/api/san-pham-chi-tiet/by-product/**",
+                                "/api/pgg/pos"
                         ).permitAll()
 
                         // backoffice / bán hàng tại quầy

@@ -7,6 +7,56 @@
         <h5 class="mb-0">Thống kê</h5>
       </div>
     </div>
+    <!-- ================= TỔNG QUAN ĐẦU TRANG ================= -->
+    <div class="row g-3 mb-3">
+      <div
+          v-for="card in tongQuanCards"
+          :key="card.key"
+          class="col-12 col-sm-6 col-xxl-3"
+      >
+        <div class="card shadow-sm h-100 summary-card border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+              <div>
+                <div class="summary-label">{{ card.nhan }}</div>
+                <div class="summary-revenue">{{ formatCurrency(card.doanhThu) }}</div>
+              </div>
+
+              <div class="summary-icon" :class="card.iconClass">
+                <i :class="card.icon"></i>
+              </div>
+            </div>
+
+            <div class="summary-inline mb-2">
+              <span>Sản phẩm đã bán <strong>{{ card.sanPhamDaBan ?? 0 }}</strong></span>
+              <span class="dot"></span>
+              <span>Đơn hàng <strong>{{ card.donHang ?? 0 }}</strong></span>
+            </div>
+
+            <div class="summary-stats">
+              <div class="summary-chip summary-chip-success">
+                <span>Hoàn thành</span>
+                <strong>{{ card.hoanThanh ?? 0 }}</strong>
+              </div>
+
+              <div class="summary-chip summary-chip-danger">
+                <span>Hủy</span>
+                <strong>{{ card.huy ?? 0 }}</strong>
+              </div>
+
+              <div class="summary-chip summary-chip-primary">
+                <span>Xử lý</span>
+                <strong>{{ card.xuLy ?? 0 }}</strong>
+              </div>
+            </div>
+
+            <div v-if="loadingSummary" class="summary-overlay">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ================= DOANH THU ================= -->
     <div class="card shadow-sm mb-3">
@@ -542,8 +592,11 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 /** =================== STATE =================== */
 const loadingChart = ref(false);
 const loadingTable = ref(false);
+const loadingSummary = ref(false);
 
 const totalRevenue = ref(0);
+
+const tongQuan = ref(null);
 
 const topSelling = ref([]);
 const slowMoving = ref([]);
@@ -772,6 +825,26 @@ const completionRate = computed(() => {
   return (completedCount.value / total) * 100;
 });
 
+const tongQuanCards = computed(() => {
+  const raw = tongQuan.value || {};
+  const cards = [
+    { key: "homNay", nhan: "Hôm nay", icon: "bi bi-calendar-day", iconClass: "summary-icon-today", ...(raw.homNay || {}) },
+    { key: "tuanNay", nhan: "Tuần này", icon: "bi bi-calendar-week", iconClass: "summary-icon-week", ...(raw.tuanNay || {}) },
+    { key: "thangNay", nhan: "Tháng này", icon: "bi bi-calendar3", iconClass: "summary-icon-month", ...(raw.thangNay || {}) },
+    { key: "namNay", nhan: "Năm nay", icon: "bi bi-calendar-range", iconClass: "summary-icon-year", ...(raw.namNay || {}) },
+  ];
+
+  return cards.map((item) => ({
+    ...item,
+    doanhThu: Number(item.doanhThu || 0),
+    sanPhamDaBan: Number(item.sanPhamDaBan || 0),
+    donHang: Number(item.donHang || 0),
+    hoanThanh: Number(item.hoanThanh || 0),
+    huy: Number(item.huy || 0),
+    xuLy: Number(item.xuLy || 0),
+  }));
+});
+
 /** =================== HELPERS =================== */
 function formatCurrency(val) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(val || 0));
@@ -838,6 +911,17 @@ function iconBgClass(style) {
 }
 
 /** =================== API LOADERS =================== */
+async function loadTongQuan() {
+  loadingSummary.value = true;
+  try {
+    tongQuan.value = await thongKeApi.getTongQuan();
+  } catch (err) {
+    console.error("loadTongQuan error", err);
+    tongQuan.value = null;
+  } finally {
+    loadingSummary.value = false;
+  }
+}
 async function loadRevenue(keepCompare = false) {
   loadingChart.value = true;
   try {
@@ -1094,6 +1178,7 @@ async function applyCompare() {
 
 /** =================== INIT =================== */
 onMounted(async () => {
+  loadTongQuan();
   loadRevenue(false);
   resetFilter();
 
@@ -1107,6 +1192,137 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.summary-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1f2a3a 0%, #0d6efd 100%);
+}
+
+.summary-label {
+  color: #6c757d;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.summary-revenue {
+  color: #1f2a3a;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.summary-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #5f6b7a;
+  font-size: 0.92rem;
+}
+
+.summary-inline strong {
+  color: #1f2a3a;
+}
+
+.summary-inline .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #c7d2e0;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary-chip {
+  border-radius: 14px;
+  padding: 10px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid transparent;
+}
+
+.summary-chip span {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.summary-chip strong {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.summary-chip-success {
+  background: rgba(25, 135, 84, 0.08);
+  border-color: rgba(25, 135, 84, 0.14);
+  color: #157347;
+}
+
+.summary-chip-danger {
+  background: rgba(220, 53, 69, 0.08);
+  border-color: rgba(220, 53, 69, 0.14);
+  color: #b02a37;
+}
+
+.summary-chip-primary {
+  background: rgba(13, 110, 253, 0.08);
+  border-color: rgba(13, 110, 253, 0.14);
+  color: #0a58ca;
+}
+
+.summary-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex: 0 0 auto;
+}
+
+.summary-icon-today {
+  background: rgba(13, 110, 253, 0.12);
+  color: #0d6efd;
+}
+
+.summary-icon-week {
+  background: rgba(111, 66, 193, 0.12);
+  color: #6f42c1;
+}
+
+.summary-icon-month {
+  background: rgba(25, 135, 84, 0.12);
+  color: #198754;
+}
+
+.summary-icon-year {
+  background: rgba(255, 193, 7, 0.18);
+  color: #946200;
+}
+
+.summary-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .chart-wrap {
   height: 340px;
   position: relative;

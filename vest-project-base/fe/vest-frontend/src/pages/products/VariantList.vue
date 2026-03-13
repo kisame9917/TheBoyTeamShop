@@ -333,9 +333,17 @@
           </div>
 
           <div class="col-6">
-            <label class="form-label small fw-semibold">Giá bán</label>
-            <input type="number" min="0" class="form-control" v-model.number="editingVariant.donGia" />
-          </div>
+  <label class="form-label small fw-semibold">Giá bán</label>
+  <input
+    type="text"
+    class="form-control"
+    :value="formatNumberInput(editingVariant.donGia)"
+    inputmode="numeric"
+    @input="onPriceInput"
+    @blur="onPriceBlur"
+    placeholder="Nhập giá bán"
+  />
+</div>
 
           <div class="col-12">
             <label class="form-label small fw-semibold">Trạng thái</label>
@@ -797,6 +805,24 @@ function getColorCode(colorName) {
 function formatPrice(val) {
   const num = Number(val ?? 0)
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num)
+}
+function formatNumberInput(val) {
+  const num = Number(val || 0)
+  return num.toLocaleString('vi-VN')
+}
+
+function parseMoneyInput(val) {
+  return Number(String(val || '').replace(/[^\d]/g, '')) || 0
+}
+
+function onPriceInput(e) {
+  const num = parseMoneyInput(e.target.value)
+  editingVariant.donGia = num
+  e.target.value = formatNumberInput(num)
+}
+
+function onPriceBlur(e) {
+  e.target.value = formatNumberInput(editingVariant.donGia)
 }
 
 </script>

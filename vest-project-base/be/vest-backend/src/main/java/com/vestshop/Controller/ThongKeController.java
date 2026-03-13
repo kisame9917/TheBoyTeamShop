@@ -4,6 +4,7 @@ import com.vestshop.Service.ThongKeService;
 import com.vestshop.common.ApiResponse;
 import com.vestshop.dto.response.DoanhThuResponse;
 import com.vestshop.dto.response.ThongKeDonHangResponse;
+import com.vestshop.dto.response.ThongKeTongQuanResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,11 @@ public class ThongKeController {
 
     @Autowired
     private ThongKeService thongKeService;
+
+    @GetMapping("/tong-quan")
+    public ApiResponse<ThongKeTongQuanResponse> getTongQuanDauTrang() {
+        return ApiResponse.ok(thongKeService.getTongQuanDauTrang());
+    }
 
     /**
      * Doanh thu theo:

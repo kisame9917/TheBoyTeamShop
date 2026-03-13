@@ -29,6 +29,19 @@ public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, Lo
     List<SanPhamThongKeResponse> findTopSellingProducts(@Param("startDate") LocalDateTime startDate,
                                                         @Param("endDate") LocalDateTime endDate,
                                                         @Param("status") Integer status);
+
+    // ==============================
+    // TỔNG QUAN ĐẦU TRANG
+    // ==============================
+    @Query("SELECT COALESCE(SUM(hdct.soLuong), 0) " +
+            "FROM HoaDonChiTiet hdct " +
+            "JOIN hdct.hoaDon hd " +
+            "WHERE hd.ngayTao BETWEEN :startDate AND :endDate " +
+            "AND hd.trangThaiDon = :status")
+    Long sumSoldQuantityInRange(@Param("startDate") LocalDateTime startDate,
+                                @Param("endDate") LocalDateTime endDate,
+                                @Param("status") Integer status);
+
     @Modifying
     @Query("delete from HoaDonChiTiet c where c.hoaDon.id = :hoaDonId")
     void deleteByHoaDonId(@Param("hoaDonId") Long hoaDonId);
