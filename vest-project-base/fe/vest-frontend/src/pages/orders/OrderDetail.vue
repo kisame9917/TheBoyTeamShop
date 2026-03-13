@@ -743,42 +743,68 @@ const route = useRoute();
 
 const hd = ref(null);
 
-/** ====== STATUS LABELS ====== */
+/** ====== STATUS ====== */
+const STATUS = {
+  CHO_XAC_NHAN: 0,
+  DA_XAC_NHAN: 8, // mới cho online COD
+  DANG_XU_LY: 1,
+  DANG_GIAO: 2,
+  DA_GIAO: 3,
+  HOAN_THANH: 4,
+  DA_HUY: 5,
+  DA_HOAN: 7,
+
+  // fallback dữ liệu cũ
+  YEU_CAU_HOAN: 6,
+};
+
 function statusLabel(code) {
   if (code === null || code === undefined || code === "") return "-";
+
   const m = {
-    0: "Chờ xác nhận",
-    1: "Đang xử lý",
-    2: "Đang giao",
-    3: "Đã giao",
-    4: "Hoàn thành",
-    5: "Đã huỷ",
-    6: "Yêu cầu hoàn",
-    7: "Đã hoàn",
+    [STATUS.CHO_XAC_NHAN]: "Chờ xác nhận",
+    [STATUS.DA_XAC_NHAN]: "Đã xác nhận",
+    [STATUS.DANG_XU_LY]: "Đang xử lý",
+    [STATUS.DANG_GIAO]: "Đang giao",
+    [STATUS.DA_GIAO]: "Đã giao",
+    [STATUS.HOAN_THANH]: "Hoàn thành",
+    [STATUS.DA_HUY]: "Đã huỷ",
+    [STATUS.DA_HOAN]: "Đã hoàn",
+
+    // fallback dữ liệu cũ
+    [STATUS.YEU_CAU_HOAN]: "Yêu cầu hoàn",
   };
+
   return m[Number(code)] ?? "-";
 }
 
 function statusBadgeClass(code) {
-  if (code === null || code === undefined || code === "")
+  if (code === null || code === undefined || code === "") {
     return "text-bg-secondary";
+  }
+
   switch (Number(code)) {
-    case 4:
+    case STATUS.HOAN_THANH:
       return "text-bg-success";
-    case 3:
+    case STATUS.DA_GIAO:
       return "text-bg-primary";
-    case 2:
+    case STATUS.DA_XAC_NHAN:
+      return "text-bg-primary";
+    case STATUS.DANG_GIAO:
       return "text-bg-info";
-    case 1:
-      return "text-bg-warning";
-    case 0:
+    case STATUS.DANG_XU_LY:
+      return "text-bg-warning text-dark";
+    case STATUS.CHO_XAC_NHAN:
       return "text-bg-secondary";
-    case 5:
+    case STATUS.DA_HUY:
       return "text-bg-dark";
-    case 6:
-      return "text-bg-warning";
-    case 7:
+    case STATUS.DA_HOAN:
       return "text-bg-secondary";
+
+    // fallback dữ liệu cũ
+    case STATUS.YEU_CAU_HOAN:
+      return "text-bg-warning text-dark";
+
     default:
       return "text-bg-secondary";
   }
@@ -850,7 +876,35 @@ const receiverName = computed(() => {
     "Khách lẻ"
   );
 });
+function normalizePayMethod(v) {
+  return String(v || "").trim().toUpperCase();
+}
 
+function isCODMethod(v) {
+  return ["COD", "CASH_ON_DELIVERY", "THANH_TOAN_KHI_NHAN_HANG"].includes(
+    normalizePayMethod(v),
+  );
+}
+
+const isOnlineCodOrder = computed(() => {
+  const v = hd.value || {};
+  if (!v.loaiDon) return false; // chỉ xét đơn online
+
+  const candidates = [
+    v.hinhThucThanhToan,
+    v.tenPhuongThucThanhToan,
+    v.phuongThucThanhToan?.ma,
+    v.phuongThucThanhToan?.ten,
+    ...(v.lichSuThanhToan || []).flatMap((p) => [
+      p?.hinhThucThanhToan,
+      p?.tenPhuongThucThanhToan,
+      p?.phuongThucThanhToan?.ma,
+      p?.phuongThucThanhToan?.ten,
+    ]),
+  ];
+
+  return candidates.some(isCODMethod);
+});
 const receiverPhone = computed(() => {
   const v = hd.value || {};
   return v.soDienThoaiNhanHang || v.soDienThoai || "-";
@@ -956,14 +1010,33 @@ const staffRole = computed(() => {
   );
 });
 
-/**
- * Advance logic:
- * 0 -> 1 -> 2 -> 3 -> 4
- * 6 -> 7 (refund flow)
- */
+const FLOW_SHIP_NORMAL = [
+  STATUS.CHO_XAC_NHAN,
+  STATUS.DANG_XU_LY,
+  STATUS.DANG_GIAO,
+  STATUS.DA_GIAO,
+  STATUS.HOAN_THANH,
+];
+
+const FLOW_SHIP_COD = [
+  STATUS.CHO_XAC_NHAN,
+  STATUS.DA_XAC_NHAN,
+  STATUS.DANG_XU_LY,
+  STATUS.DANG_GIAO,
+  STATUS.DA_GIAO,
+  STATUS.HOAN_THANH,
+];
+
+const activeFlow = computed(() => {
+  if (!isShipOrder.value) return [STATUS.HOAN_THANH];
+  return isOnlineCodOrder.value ? FLOW_SHIP_COD : FLOW_SHIP_NORMAL;
+});
+
 const nextStatus = computed(() => {
-  const map = { 0: 1, 1: 2, 2: 3, 3: 4, 6: 7 };
-  return map[currentStatus.value] ?? null;
+  const flow = activeFlow.value;
+  const idx = flow.indexOf(currentStatus.value);
+  if (idx < 0 || idx >= flow.length - 1) return null;
+  return flow[idx + 1];
 });
 
 const canAdvanceStatus = computed(() => nextStatus.value !== null);
@@ -974,60 +1047,71 @@ const advanceBtnText = computed(() => {
   return `Đổi trạng thái: ${statusLabel(ns)}`;
 });
 
-const canCancel = computed(() => currentStatus.value === 0);
+const canCancel = computed(() => currentStatus.value === STATUS.CHO_XAC_NHAN);
+
 const canRequestRefund = computed(() =>
-  [2, 3, 4].includes(currentStatus.value),
+  [STATUS.DANG_GIAO, STATUS.DA_GIAO, STATUS.HOAN_THANH].includes(
+    currentStatus.value,
+  ),
 );
 
-/** ===== STEPPER (chỉ hiện tới bước hiện tại) ===== */
+/** ===== STEPPER ===== */
 const fullStepper = computed(() => {
-  const isShip = !!hd.value?.loaiDon;
-
-  if (!isShip) {
-    return [{ code: 4, label: "Hoàn thành" }];
+  if (!isShipOrder.value) {
+    return [{ code: STATUS.HOAN_THANH, label: "Hoàn thành" }];
   }
 
-  return [
-    { code: 0, label: "Chờ xác nhận đơn" },
-    { code: 1, label: "Đang xử lý đơn hàng" },
-    { code: 2, label: "Đang giao" },
-    { code: 3, label: "Đã giao" },
-    { code: 4, label: "Hoàn thành" },
-  ];
+  return activeFlow.value.map((code) => ({
+    code,
+    label:
+      code === STATUS.CHO_XAC_NHAN
+        ? "Chờ xác nhận đơn"
+        : code === STATUS.DA_XAC_NHAN
+          ? "Đã xác nhận"
+          : code === STATUS.DANG_XU_LY
+            ? "Đang xử lý đơn hàng"
+            : code === STATUS.DANG_GIAO
+              ? "Đang giao"
+              : code === STATUS.DA_GIAO
+                ? "Đã giao"
+                : code === STATUS.HOAN_THANH
+                  ? "Hoàn thành"
+                  : statusLabel(code),
+  }));
 });
 
 const actionToStepCode = (hanhDong) => {
   const m = {
-    CHO_XAC_NHAN: 0,
-    DANG_XU_LY: 1,
-    DANG_GIAO: 2,
-    DA_GIAO: 3,
-    HOAN_THANH: 4,
+    CHO_XAC_NHAN: STATUS.CHO_XAC_NHAN,
+    DA_XAC_NHAN: STATUS.DA_XAC_NHAN,
+    XAC_NHAN_DON: STATUS.DA_XAC_NHAN,
+    DANG_XU_LY: STATUS.DANG_XU_LY,
+    DANG_GIAO: STATUS.DANG_GIAO,
+    DA_GIAO: STATUS.DA_GIAO,
+    HOAN_THANH: STATUS.HOAN_THANH,
   };
   return m[hanhDong];
 };
 
 const currentStepCode = computed(() => {
   const st = Number(hd.value?.trangThaiDon ?? -1);
+  const validCodes = fullStepper.value.map((s) => s.code);
 
-  if ([0, 1, 2, 3, 4].includes(st)) return st;
+  if (validCodes.includes(st)) return st;
 
-  if ([5, 6, 7].includes(st)) {
-    const history = hd.value?.lichSuHoaDon || [];
-    const codes = history
-      .map((h) => actionToStepCode(h.hanhDong))
-      .filter((x) => x !== undefined);
+  const history = [...(hd.value?.lichSuHoaDon || [])]
+    .sort((a, b) => new Date(a.thoiGian) - new Date(b.thoiGian))
+    .map((h) => actionToStepCode(h.hanhDong))
+    .filter((code) => validCodes.includes(code));
 
-    if (codes.length) return Math.max(...codes);
-  }
-
-  return -1;
+  return history.at(-1) ?? -1;
 });
 
 const visibleStepper = computed(() => {
-  const current = currentStepCode.value;
-  if (current < 0) return [];
-  return fullStepper.value.filter((s) => s.code <= current);
+  const steps = fullStepper.value;
+  const idx = steps.findIndex((s) => s.code === currentStepCode.value);
+  if (idx < 0) return [];
+  return steps.slice(0, idx + 1);
 });
 
 const stepperSteps = computed(() => {
@@ -1175,20 +1259,18 @@ function openConfirmCancelModal() {
   openConfirmActionModal({
     title: "Xác nhận huỷ đơn",
     desc: "Đơn sẽ chuyển sang trạng thái 'Đã huỷ'. Hãy chắc chắn trước khi thực hiện.",
-    targetStatus: 5,
+    targetStatus: STATUS.DA_HUY,
     note: "Huỷ đơn",
   });
 }
-
 function openConfirmRefundModal() {
   openConfirmActionModal({
     title: "Xác nhận hoàn đơn",
-    desc: "Đơn sẽ chuyển sang trạng thái 'Yêu cầu hoàn'. Sau đó bấm 'Đổi trạng thái đơn' để xác nhận 'Đã hoàn'.",
-    targetStatus: 6,
-    note: "Yêu cầu hoàn đơn",
+    desc: "Đơn sẽ chuyển thẳng sang trạng thái 'Đã hoàn'.",
+    targetStatus: STATUS.DA_HOAN,
+    note: "Hoàn đơn",
   });
 }
-
 /** ===== History Modal ===== */
 const historyModalRef = ref(null);
 let bsHistoryModal = null;
@@ -1229,16 +1311,22 @@ function closeHistoryModal() {
 
 function mapHistoryToStatusLabel(hanhDong) {
   if (!hanhDong) return "-";
+
   const m = {
     CHO_XAC_NHAN: "Chờ xác nhận",
+    DA_XAC_NHAN: "Đã xác nhận",
+    XAC_NHAN_DON: "Đã xác nhận",
     DANG_XU_LY: "Đang xử lý",
     DANG_GIAO: "Đang giao",
     DA_GIAO: "Đã giao",
     HOAN_THANH: "Hoàn thành",
     DA_HUY: "Đã huỷ",
-    YEU_CAU_HOAN: "Yêu cầu hoàn",
     DA_HOAN: "Đã hoàn",
+
+    // fallback dữ liệu cũ
+    YEU_CAU_HOAN: "Yêu cầu hoàn",
   };
+
   return m[hanhDong] || hanhDong;
 }
 
