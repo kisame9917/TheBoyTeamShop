@@ -104,9 +104,9 @@
           <router-link :to="{ name: 'Search', query: { cat: 'giam-gia' } }" class="nav-link">
             Giảm giá
           </router-link>
-          <router-link :to="{ name: 'Search', query: { cat: 'lien-he' } }" class="nav-link">
-            Liên hệ
-          </router-link>
+         <router-link :to="{ name: 'Contact' }" class="nav-link">
+  Liên hệ
+</router-link>
           <router-link :to="{ name: 'Search', query: { cat: 'tra-cuu-don-hang' } }" class="nav-link">
             TRA CỨU ĐƠN HÀNG
           </router-link>

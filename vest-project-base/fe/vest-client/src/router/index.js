@@ -8,6 +8,7 @@ import HomePage from "../pages/client/HomePage.vue";
 import SearchPage from "../pages/client/SearchPage.vue";
 import ProductDetail from "../pages/client/ProductDetail.vue";
 const CartPage = () => import("../pages/client/CartPage.vue");
+const ContactPage = () => import("../pages/client/ContactPage.vue");
 
 // Pages (auth)
 import Login from "../pages/auth/Login.vue";
@@ -32,6 +33,7 @@ const routes = [
       { path: "cart", name: "Cart", component: CartPage },
       { path: "product/:id", name: "ProductDetail", component: ProductDetail, props: true },
       { path: "checkout", name: "Checkout", component: CheckoutPage },
+      { path: "contact", name: "Contact", component: ContactPage },
     ],
   },
 
