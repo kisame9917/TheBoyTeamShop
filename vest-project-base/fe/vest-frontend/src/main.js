@@ -1,3 +1,7 @@
+if (typeof globalThis.global === 'undefined') {
+  globalThis.global = globalThis
+}
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -18,7 +22,6 @@ app.use(pinia)
 app.use(router)
 
 // hydrate sau khi pinia đã active
-const auth = useAuthStore()
 useAuthStore().hydrate()
 
 app.mount('#app')

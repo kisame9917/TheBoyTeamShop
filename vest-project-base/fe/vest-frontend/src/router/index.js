@@ -6,7 +6,6 @@ import BlankLayout from "../layouts/BlankLayout.vue";
 import Dashboard from "../pages/Dashboard.vue";
 import Login from "../pages/auth/Login.vue";
 
-// ✅ thêm 2 page auth mới
 import ForgotPassword from "../pages/auth/ForgotPassword.vue";
 import ResetPasswordOtp from "../pages/auth/ResetPasswordOtp.vue";
 import OtpVerify from "../pages/auth/OtpVerify.vue";
