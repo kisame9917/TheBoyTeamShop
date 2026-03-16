@@ -22,6 +22,7 @@ const OtpVerify = () => import("../pages/auth/OtpVerify.vue");
 const ResetPasswordOtp = () => import("../pages/auth/ResetPasswordOtp.vue");
 
 const CheckoutPage = () => import("../pages/client/CheckoutPage.vue");
+const OrderLookupPage = () => import("../pages/client/OrderLookupPage.vue");
 const routes = [
   {
     path: "/",
@@ -34,6 +35,7 @@ const routes = [
       { path: "product/:id", name: "ProductDetail", component: ProductDetail, props: true },
       { path: "checkout", name: "Checkout", component: CheckoutPage },
       { path: "contact", name: "Contact", component: ContactPage },
+      { path: "tra-cuu-don-hang", name: "OrderLookup", component: OrderLookupPage },
     ],
   },
 

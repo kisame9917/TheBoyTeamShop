@@ -107,9 +107,9 @@
          <router-link :to="{ name: 'Contact' }" class="nav-link">
   Liên hệ
 </router-link>
-          <router-link :to="{ name: 'Search', query: { cat: 'tra-cuu-don-hang' } }" class="nav-link">
-            TRA CỨU ĐƠN HÀNG
-          </router-link>
+          <router-link :to="{ name: 'OrderLookup' }" class="nav-link">
+  TRA CỨU ĐƠN HÀNG
+</router-link>
         </div>
       </nav>
     </div>
