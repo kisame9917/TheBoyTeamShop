@@ -26,7 +26,9 @@ import com.vestshop.dto.response.ApiMessageResponse;
 import com.vestshop.dto.response.OnlineCheckoutResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.vestshop.common.TrangThaiDonHang;
+import com.vestshop.dto.response.OnlineOrderLookupResponse;
+import java.util.List;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -170,6 +172,126 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         }
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineOrderLookupResponse lookupOrder(String maHoaDon, String soDienThoai) {
+        String ma = trim(maHoaDon);
+        String phone = normalizePhone(soDienThoai);
+
+        if (isBlank(ma)) {
+            throw new BadRequestException("Mã đơn hàng không được để trống");
+        }
+
+        if (isBlank(phone)) {
+            throw new BadRequestException("Số điện thoại không được để trống");
+        }
+
+        HoaDon hoaDon = hoaDonRepository.findFirstByMaHoaDonIgnoreCase(ma)
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy đơn hàng"));
+
+        if (!Boolean.TRUE.equals(hoaDon.getLoaiDon())) {
+            throw new BadRequestException("Không tìm thấy đơn hàng");
+        }
+
+        String phoneOrder = normalizePhone(hoaDon.getSoDienThoai());
+        String phoneReceiver = normalizePhone(hoaDon.getSoDienThoaiNhanHang());
+
+        boolean matched = phone.equals(phoneOrder) || phone.equals(phoneReceiver);
+        if (!matched) {
+            throw new BadRequestException("Mã đơn hàng hoặc số điện thoại không đúng");
+        }
+
+        List<OnlineOrderLookupResponse.Item> items = hoaDonChiTietRepository
+                .findAllByHoaDon_Id(hoaDon.getId())
+                .stream()
+                .map(ct -> {
+                    SanPhamChiTiet spct = ct.getSanPhamChiTiet();
+
+                    BigDecimal donGia = (spct != null && spct.getDonGia() != null)
+                            ? spct.getDonGia()
+                            : BigDecimal.ZERO;
+
+                    Integer soLuong = ct.getSoLuong() == null ? 0 : ct.getSoLuong();
+                    BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
+
+                    String tenSanPham = (spct != null && spct.getSanPham() != null)
+                            ? spct.getSanPham().getTenSanPham()
+                            : null;
+
+                    String mauSac = (spct != null && spct.getMauSac() != null)
+                            ? spct.getMauSac().getTen()
+                            : null;
+
+                    String kichCo = (spct != null && spct.getKichCo() != null)
+                            ? spct.getKichCo().getSoSize()
+                            : null;
+
+                    String anh = null;
+                    if (spct != null) {
+                        anh = spct.getMediaPrimary() != null && spct.getMediaPrimary().getSecureUrl() != null
+                                ? spct.getMediaPrimary().getSecureUrl()
+                                : spct.getAnh();
+                    }
+
+                    return OnlineOrderLookupResponse.Item.builder()
+                            .idSanPhamChiTiet(spct == null ? null : spct.getId())
+                            .maSanPhamChiTiet(spct == null ? null : spct.getMaSanPhamChiTiet())
+                            .tenSanPham(tenSanPham)
+                            .mauSac(mauSac)
+                            .kichCo(kichCo)
+                            .soLuong(soLuong)
+                            .donGia(donGia)
+                            .thanhTien(thanhTien)
+                            .anhDaiDien(anh)
+                            .build();
+                })
+                .toList();
+
+        GiaoDichThanhToan gdtt = giaoDichThanhToanRepository
+                .findFirstByHoaDon_IdOrderByIdDesc(hoaDon.getId())
+                .orElse(null);
+
+        String paymentMethod = "COD";
+        String paymentStatus = "UNPAID";
+
+        if (gdtt != null) {
+            if (gdtt.getPhuongThucThanhToan() != null
+                    && gdtt.getPhuongThucThanhToan().getTenPhuongThucThanhToan() != null) {
+                paymentMethod = gdtt.getPhuongThucThanhToan().getTenPhuongThucThanhToan();
+            } else {
+                paymentMethod = "QR";
+            }
+
+            paymentStatus = Boolean.TRUE.equals(gdtt.getTrangThai()) ? "PAID" : "PENDING";
+        }
+
+        TrangThaiDonHang trangThai = TrangThaiDonHang.fromCode(hoaDon.getTrangThaiDon());
+
+        return OnlineOrderLookupResponse.builder()
+                .id(hoaDon.getId())
+                .maHoaDon(hoaDon.getMaHoaDon())
+                .trangThaiDon(hoaDon.getTrangThaiDon())
+                .tenTrangThaiDon(trangThai.getTen())
+                .paymentMethod(paymentMethod)
+                .paymentStatus(paymentStatus)
+                .tenKhachHang(hoaDon.getTenKhachHang())
+                .soDienThoai(hoaDon.getSoDienThoai())
+                .tenNguoiNhanHang(hoaDon.getTenNguoiNhanHang())
+                .soDienThoaiNhanHang(hoaDon.getSoDienThoaiNhanHang())
+                .tinhThanhNhanHang(hoaDon.getTinhThanhNhanHang())
+                .quanHuyenNhanHang(hoaDon.getQuanHuyenNhanHang())
+                .phuongXaNhanHang(hoaDon.getPhuongXaNhanHang())
+                .diaChiNhanHangChiTiet(hoaDon.getDiaChiNhanHangChiTiet())
+                .phiVanChuyen(defaultBigDecimal(hoaDon.getPhiVanChuyen()))
+                .tongTien(defaultBigDecimal(hoaDon.getTongTien()))
+                .tongTienGiam(defaultBigDecimal(hoaDon.getTongTienGiam()))
+                .tongTienSauGiam(defaultBigDecimal(hoaDon.getTongTienSauGiam()))
+                .ghiChu(hoaDon.getGhiChu())
+                .ngayTao(hoaDon.getNgayTao())
+                .items(items)
+                .build();
     }
 
     @Override
@@ -320,6 +442,10 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         }
 
         return value;
+    }
+    private String normalizePhone(String value) {
+        if (value == null) return null;
+        return value.replaceAll("[^0-9]", "");
     }
 
     private BigDecimal defaultBigDecimal(BigDecimal value) {

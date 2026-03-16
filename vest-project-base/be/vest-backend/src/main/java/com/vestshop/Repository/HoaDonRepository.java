@@ -18,6 +18,8 @@ import java.util.List;
 public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecificationExecutor<HoaDon> {
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
+    Optional<HoaDon> findFirstByMaHoaDonIgnoreCase(String maHoaDon);
+
     // ✅ Doanh thu trong range theo status int (trangThaiDon)
     @Query("SELECT COALESCE(SUM(h.tongTien), 0) " +
             "FROM HoaDon h " +
