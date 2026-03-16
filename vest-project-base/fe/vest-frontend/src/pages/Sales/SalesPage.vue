@@ -271,71 +271,79 @@
                     <div class="border rounded-3 p-3">
                       <div class="fw-bold mb-2">Thông tin nhận hàng</div>
 
-                      <div class="row g-2">
-                        <div class="col-12 col-md-6">
-                          <input
-                            class="form-control"
-                            placeholder="Tên người nhận"
-                            v-model.trim="activeOrder.tenNguoiNhanHang"
-                          />
-                        </div>
+                     <div class="row g-2">
+  <div class="col-12 col-md-6">
+    <input
+      class="form-control"
+      placeholder="Tên người nhận"
+      v-model.trim="activeOrder.tenNguoiNhanHang"
+    />
+  </div>
 
-                        <div class="col-12 col-md-6">
-                          <input
-                            class="form-control"
-                            placeholder="SĐT người nhận"
-                            v-model.trim="activeOrder.soDienThoaiNhanHang"
-                          />
-                        </div>
+  <div class="col-12 col-md-6">
+    <input
+      class="form-control"
+      placeholder="SĐT người nhận"
+      v-model.trim="activeOrder.soDienThoaiNhanHang"
+    />
+  </div>
 
-                       <div class="col-12 col-md-6">
-  <label class="form-label mb-1">Tỉnh/Thành</label>
-  <Multiselect
-    :model-value="activeOrder.ghnProvinceId ? String(activeOrder.ghnProvinceId) : null"
-    @update:model-value="onProvinceChange"
-    :options="provinceOptions"
-    value-prop="value"
-    label="label"
-    track-by="label"
-    placeholder="-- Chọn tỉnh/thành --"
-    :searchable="true"
-    :can-clear="true"
-    :can-deselect="true"
-    :disabled="provincesLoading"
-    no-options-text="Không có dữ liệu"
-    no-results-text="Không tìm thấy"
-  />
+  <div class="col-12">
+    <input
+      class="form-control"
+      placeholder="Email người nhận"
+      v-model.trim="activeOrder.emailNguoiNhanHang"
+    />
+  </div>
+
+  <div class="col-12 col-md-6">
+    <label class="form-label mb-1">Tỉnh/Thành</label>
+    <Multiselect
+      :model-value="activeOrder.ghnProvinceId ? String(activeOrder.ghnProvinceId) : null"
+      @update:model-value="onProvinceChange"
+      :options="provinceOptions"
+      value-prop="value"
+      label="label"
+      track-by="label"
+      placeholder="-- Chọn tỉnh/thành --"
+      :searchable="true"
+      :can-clear="true"
+      :can-deselect="true"
+      :disabled="provincesLoading"
+      no-options-text="Không có dữ liệu"
+      no-results-text="Không tìm thấy"
+    />
+  </div>
+
+  <div class="col-12 col-md-6">
+    <label class="form-label mb-1">Phường/Xã</label>
+    <Multiselect
+      :model-value="activeOrder.ghnWardCode ? String(activeOrder.ghnWardCode) : null"
+      @update:model-value="onWardChange"
+      :options="wardOptions"
+      value-prop="value"
+      label="label"
+      track-by="label"
+      placeholder="-- Chọn phường/xã --"
+      :searchable="true"
+      :can-clear="true"
+      :can-deselect="true"
+      :disabled="!activeOrder.ghnProvinceId || wardsLoading"
+      no-options-text="Không có dữ liệu"
+      no-results-text="Không tìm thấy"
+    />
+  </div>
+
+  <div class="col-12">
+    <label class="form-label mb-1">Địa chỉ chi tiết</label>
+    <input
+      class="form-control"
+      placeholder="Số nhà, tên đường..."
+      v-model.trim="activeOrder.diaChiNhanHangChiTiet"
+      @blur="refreshShipFee"
+    />
+  </div>
 </div>
-
-<div class="col-12 col-md-6">
-  <label class="form-label mb-1">Phường/Xã</label>
-  <Multiselect
-    :model-value="activeOrder.ghnWardCode ? String(activeOrder.ghnWardCode) : null"
-    @update:model-value="onWardChange"
-    :options="wardOptions"
-    value-prop="value"
-    label="label"
-    track-by="label"
-    placeholder="-- Chọn phường/xã --"
-    :searchable="true"
-    :can-clear="true"
-    :can-deselect="true"
-    :disabled="!activeOrder.ghnProvinceId || wardsLoading"
-    no-options-text="Không có dữ liệu"
-    no-results-text="Không tìm thấy"
-  />
-</div>
-
-                        <div class="col-12">
-                          <label class="form-label mb-1">Địa chỉ chi tiết</label>
-                          <input
-                            class="form-control"
-                            placeholder="Số nhà, tên đường..."
-                            v-model.trim="activeOrder.diaChiNhanHangChiTiet"
-                            @blur="refreshShipFee"
-                          />
-                        </div>
-                      </div>
                     </div>
                   </template>
                 </div>
@@ -1570,6 +1578,7 @@ function normalizeOrder(o) {
 
     tenNguoiNhanHang: o?.tenNguoiNhanHang || "",
     soDienThoaiNhanHang: o?.soDienThoaiNhanHang || "",
+    emailNguoiNhanHang: o?.emailNguoiNhanHang || o?.customerDraft?.email || "",
     tinhThanhNhanHang: o?.tinhThanhNhanHang || "",
     quanHuyenNhanHang: o?.quanHuyenNhanHang || "",
     phuongXaNhanHang: o?.phuongXaNhanHang || "",
@@ -2431,6 +2440,7 @@ function pickAddress(addressId) {
   o.selectedAddressId = addr.id;
   o.tenNguoiNhanHang = addr.receiverName || o.customer?.name || "";
   o.soDienThoaiNhanHang = addr.phone || o.customerDraft.phone || "";
+  o.emailNguoiNhanHang = o.customerDraft.email || "";
   o.diaChi = addr.fullAddress || "";
 
   o.ghnProvinceId = addr.provinceId ? String(addr.provinceId) : null;
@@ -2740,6 +2750,7 @@ async function toggleShip(e) {
     o.phiVanChuyen = 0;
     o.tenNguoiNhanHang = "";
     o.soDienThoaiNhanHang = "";
+    o.emailNguoiNhanHang = "";
     o.tinhThanhNhanHang = "";
     o.quanHuyenNhanHang = "";
     o.phuongXaNhanHang = "";
@@ -3768,20 +3779,26 @@ function validateCheckout(o) {
     }
   }
 
-  if (o.loaiDon) {
-    const ten = String(o.tenNguoiNhanHang || "").trim();
-    const sdt = String(o.soDienThoaiNhanHang || "").trim();
+ if (o.loaiDon) {
+  const ten = String(o.tenNguoiNhanHang || "").trim();
+  const sdt = String(o.soDienThoaiNhanHang || "").trim();
 
-    if (!ten) return "Vui lòng nhập Tên người nhận";
-    if (!sdt) return "Vui lòng nhập SĐT người nhận";
+  if (!ten) return "Vui lòng nhập Tên người nhận";
+  if (!sdt) return "Vui lòng nhập SĐT người nhận";
 
-    const digits = sdt.replace(/[^\d]/g, "");
-    if (digits.length < 9 || digits.length > 15) return "SĐT người nhận không hợp lệ";
+  const digits = sdt.replace(/[^\d]/g, "");
+  if (digits.length < 9 || digits.length > 15) return "SĐT người nhận không hợp lệ";
 
-   if (!o.ghnProvinceId) return "Vui lòng chọn Tỉnh/Thành";
-if (!String(o.ghnWardCode || "").trim()) return "Vui lòng chọn Phường/Xã";
-    if (!String(o.diaChiNhanHangChiTiet || "").trim()) return "Vui lòng nhập Địa chỉ chi tiết";
+  const emailNguoiNhan = String(o.emailNguoiNhanHang || "").trim();
+  if (!emailNguoiNhan) return "Vui lòng nhập Email người nhận";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNguoiNhan)) {
+    return "Email người nhận không hợp lệ";
   }
+
+  if (!o.ghnProvinceId) return "Vui lòng chọn Tỉnh/Thành";
+  if (!String(o.ghnWardCode || "").trim()) return "Vui lòng chọn Phường/Xã";
+  if (!String(o.diaChiNhanHangChiTiet || "").trim()) return "Vui lòng nhập Địa chỉ chi tiết";
+}
 
   const paid = Number(o.paid || 0);
   if (paid < grandTotal.value) return "Khách thanh toán chưa đủ";
@@ -3824,6 +3841,7 @@ function buildPosPayload(o) {
 
     tenNguoiNhanHang: isShip ? (o.tenNguoiNhanHang || "").trim() : null,
 soDienThoaiNhanHang: isShip ? (o.soDienThoaiNhanHang || "").trim() : null,
+emailNguoiNhanHang: isShip ? (o.emailNguoiNhanHang || "").trim() : null,
 tinhThanhNhanHang: isShip ? provinceNameById(o.ghnProvinceId) : null,
 quanHuyenNhanHang: null,
 phuongXaNhanHang: isShip ? wardNameByCode(o.ghnWardCode) : null,
@@ -3853,6 +3871,7 @@ function buildSyncPayload(o) {
 
     tenNguoiNhanHang: (o.tenNguoiNhanHang || "").trim(),
     soDienThoaiNhanHang: (o.soDienThoaiNhanHang || "").trim(),
+    emailNguoiNhanHang: (o.emailNguoiNhanHang || "").trim(),
     tinhThanhNhanHang: o.ghnProvinceId ? provinceNameById(o.ghnProvinceId) : "",
     quanHuyenNhanHang: "",
     phuongXaNhanHang: o.ghnWardCode ? wardNameByCode(o.ghnWardCode) : "",
