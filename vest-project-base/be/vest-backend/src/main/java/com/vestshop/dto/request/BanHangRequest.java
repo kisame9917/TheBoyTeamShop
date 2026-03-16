@@ -55,6 +55,7 @@ public class BanHangRequest {
     // =========================
     private String tenNguoiNhanHang;
     private String soDienThoaiNhanHang;
+    private String emailNguoiNhanHang;
 
     // FE hiện chọn 2 cấp: tỉnh + phường + chi tiết
     private String tinhThanhNhanHang;

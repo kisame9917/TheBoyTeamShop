@@ -2,6 +2,7 @@ package com.vestshop.Service.impl;
 
 import com.vestshop.Exception.ApiException;
 import com.vestshop.Service.EmailService;
+import com.vestshop.dto.response.HoaDonDetailResponse;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,11 +12,19 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Locale;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
+    private static final Locale LOCALE_VI = new Locale("vi", "VN");
+    private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private final JavaMailSender mailSender;
 
     @Value("${app.mail.enabled:true}")
@@ -27,6 +36,231 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username:}")
     private String smtpUsername;
 
+
+    @Override
+    public void sendShippingOrderConfirmation(String toEmail, String tenNguoiNhan, HoaDonDetailResponse order) {
+        if (toEmail == null || toEmail.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email người nhận không được để trống");
+        }
+        if (order == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Thông tin đơn hàng không hợp lệ");
+        }
+
+        String recipientName = safeText(tenNguoiNhan, "Quý khách");
+        String maHoaDon = safeText(order.getMaHoaDon(), "-");
+        String subject = "[VestShop] Xác nhận đơn giao hàng #" + maHoaDon;
+
+        String shippingAddress = joinNonBlank(
+                order.getDiaChiNhanHangChiTiet(),
+                order.getPhuongXaNhanHang(),
+                order.getQuanHuyenNhanHang(),
+                order.getTinhThanhNhanHang()
+        );
+
+        String buyerPhone = safeText(order.getSoDienThoai(), "-");
+        String receiverPhone = safeText(order.getSoDienThoaiNhanHang(), "-");
+        String status = safeText(order.getTenTrangThaiDon(), "Đang xử lý");
+        String createdAt = formatDate(order.getNgayTao());
+        String note = safeText(order.getGhiChu(), "Không có");
+        String buyerName = safeText(order.getTenKhachHang(), recipientName);
+
+        List<HoaDonDetailResponse.Item> items = order.getItems() == null ? List.of() : order.getItems();
+        StringBuilder itemsHtml = new StringBuilder();
+        StringBuilder itemsPlain = new StringBuilder();
+
+        if (items.isEmpty()) {
+            itemsHtml.append("""
+            <tr>
+              <td colspan="4" style="padding:14px 16px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:14px;text-align:center;">
+                Không có chi tiết sản phẩm
+              </td>
+            </tr>
+            """);
+            itemsPlain.append("- Không có chi tiết sản phẩm\n");
+        } else {
+            for (HoaDonDetailResponse.Item item : items) {
+                String tenSp = safeText(item.getTenSanPham(), "Sản phẩm");
+                String phanLoai = joinNonBlank(item.getMauSac(), item.getKichCo());
+                String tenHienThi = phanLoai.isBlank() ? tenSp : tenSp + " (" + phanLoai + ")";
+                String soLuong = String.valueOf(item.getSoLuong() == null ? 0 : item.getSoLuong());
+                String donGia = formatMoney(item.getDonGia());
+                String thanhTien = formatMoney(item.getThanhTien());
+
+                itemsHtml.append("""
+                <tr>
+                  <td style="padding:12px 16px;border-top:1px solid #e5e7eb;font-size:14px;color:#111827;">%s</td>
+                  <td style="padding:12px 16px;border-top:1px solid #e5e7eb;font-size:14px;color:#111827;text-align:center;">%s</td>
+                  <td style="padding:12px 16px;border-top:1px solid #e5e7eb;font-size:14px;color:#111827;text-align:right;">%s</td>
+                  <td style="padding:12px 16px;border-top:1px solid #e5e7eb;font-size:14px;color:#111827;text-align:right;">%s</td>
+                </tr>
+                """.formatted(
+                        escapeHtml(tenHienThi),
+                        escapeHtml(soLuong),
+                        escapeHtml(donGia),
+                        escapeHtml(thanhTien)
+                ));
+
+                itemsPlain.append("- ")
+                        .append(tenHienThi)
+                        .append(" | SL: ")
+                        .append(soLuong)
+                        .append(" | Đơn giá: ")
+                        .append(donGia)
+                        .append(" | Thành tiền: ")
+                        .append(thanhTien)
+                        .append("\n");
+            }
+        }
+
+        String html = """
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Xác nhận đơn giao hàng</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+          <div style="width:100%%;background:#f4f6fb;padding:32px 16px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%" style="max-width:720px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,0.08);">
+              <tr>
+                <td style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:28px 32px;color:#ffffff;">
+                  <div style="font-size:13px;letter-spacing:1px;opacity:0.85;text-transform:uppercase;">VestShop</div>
+                  <div style="font-size:26px;font-weight:700;margin-top:8px;">Xác nhận đơn giao hàng</div>
+                  <div style="font-size:14px;opacity:0.9;margin-top:8px;">Cảm ơn bạn đã đặt hàng. Chúng tôi đã ghi nhận đơn và đang xử lý giao hàng.</div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:32px;">
+                  <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">Xin chào <strong>%s</strong>,</p>
+                  <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#374151;">
+                    Đơn hàng <strong>#%s</strong> của bạn đã được tạo thành công. Bên dưới là toàn bộ thông tin đặt hàng để bạn tiện theo dõi.
+                  </p>
+
+                  <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin:24px 0;">
+                    <div style="font-size:14px;color:#6b7280;margin-bottom:10px;">Thông tin đơn hàng</div>
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">
+                      <tr><td style="padding:8px 0;color:#6b7280;width:180px;">Mã đơn hàng</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;">Thời gian đặt</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;">Trạng thái</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;">Khách hàng</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;">SĐT khách hàng</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;">Người nhận</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;">SĐT người nhận</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;vertical-align:top;">Địa chỉ giao hàng</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                      <tr><td style="padding:8px 0;color:#6b7280;vertical-align:top;">Ghi chú</td><td style="padding:8px 0;font-weight:600;color:#111827;">%s</td></tr>
+                    </table>
+                  </div>
+
+                  <div style="margin:24px 0;">
+                    <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:12px;">Chi tiết sản phẩm</div>
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+                      <tr style="background:#f9fafb;">
+                        <th align="left" style="padding:12px 16px;font-size:12px;color:#6b7280;">Sản phẩm</th>
+                        <th align="center" style="padding:12px 16px;font-size:12px;color:#6b7280;">SL</th>
+                        <th align="right" style="padding:12px 16px;font-size:12px;color:#6b7280;">Đơn giá</th>
+                        <th align="right" style="padding:12px 16px;font-size:12px;color:#6b7280;">Thành tiền</th>
+                      </tr>
+                      %s
+                    </table>
+                  </div>
+
+                  <div style="background:#111827;color:#ffffff;border-radius:14px;padding:20px;margin-top:24px;">
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">
+                      <tr><td style="padding:6px 0;opacity:0.82;">Tiền hàng</td><td align="right" style="padding:6px 0;font-weight:600;">%s</td></tr>
+                      <tr><td style="padding:6px 0;opacity:0.82;">Giảm giá</td><td align="right" style="padding:6px 0;font-weight:600;">- %s</td></tr>
+                      <tr><td style="padding:6px 0;opacity:0.82;">Phí vận chuyển</td><td align="right" style="padding:6px 0;font-weight:600;">%s</td></tr>
+                      <tr><td style="padding-top:14px;font-size:18px;font-weight:700;">Tổng thanh toán</td><td align="right" style="padding-top:14px;font-size:18px;font-weight:700;">%s</td></tr>
+                    </table>
+                  </div>
+
+                  <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:#4b5563;">
+                    Chúng tôi sẽ liên hệ với bạn nếu cần xác nhận thêm thông tin giao hàng.
+                  </p>
+
+                  <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#374151;">
+                    Trân trọng,<br/>
+                    <strong>VestShop Team</strong>
+                  </p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:18px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;">
+                  Đây là email được gửi tự động từ hệ thống VestShop. Vui lòng không trả lời email này.
+                </td>
+              </tr>
+            </table>
+          </div>
+        </body>
+        </html>
+        """.formatted(
+                escapeHtml(recipientName),
+                escapeHtml(maHoaDon),
+                escapeHtml(maHoaDon),
+                escapeHtml(createdAt),
+                escapeHtml(status),
+                escapeHtml(buyerName),
+                escapeHtml(buyerPhone),
+                escapeHtml(recipientName),
+                escapeHtml(receiverPhone),
+                escapeHtml(safeText(shippingAddress, "-")),
+                escapeHtml(note),
+                itemsHtml.toString(),
+                escapeHtml(formatMoney(order.getTongTien())),
+                escapeHtml(formatMoney(order.getTongTienGiam())),
+                escapeHtml(formatMoney(order.getPhiVanChuyen())),
+                escapeHtml(formatMoney(order.getTongTienSauGiam()))
+        );
+
+        String plain = "Xin chào " + recipientName + "\n\n"
+                + "Đơn giao hàng #" + maHoaDon + " đã được tạo thành công.\n"
+                + "Thời gian đặt: " + createdAt + "\n"
+                + "Trạng thái: " + status + "\n"
+                + "Khách hàng: " + buyerName + "\n"
+                + "SĐT khách hàng: " + buyerPhone + "\n"
+                + "Người nhận: " + recipientName + "\n"
+                + "SĐT người nhận: " + receiverPhone + "\n"
+                + "Địa chỉ giao hàng: " + safeText(shippingAddress, "-") + "\n"
+                + "Ghi chú: " + note + "\n\n"
+                + "Chi tiết sản phẩm:\n"
+                + itemsPlain
+                + "\nTổng kết thanh toán:\n"
+                + "- Tiền hàng: " + formatMoney(order.getTongTien()) + "\n"
+                + "- Giảm giá: - " + formatMoney(order.getTongTienGiam()) + "\n"
+                + "- Phí vận chuyển: " + formatMoney(order.getPhiVanChuyen()) + "\n"
+                + "- Tổng thanh toán: " + formatMoney(order.getTongTienSauGiam()) + "\n\n"
+                + "Trân trọng,\nVestShop Team";
+
+        sendRichEmail(toEmail.trim(), subject, plain, html);
+    }
+
+    private String safeText(String value, String fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        return value.trim();
+    }
+
+    private String joinNonBlank(String... parts) {
+        if (parts == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) continue;
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(part.trim());
+        }
+        return sb.toString();
+    }
+
+    private String formatMoney(Number value) {
+        if (value == null) return "0 ₫";
+        return NumberFormat.getInstance(LOCALE_VI).format(value) + " ₫";
+    }
+
+    private String formatDate(LocalDateTime value) {
+        return value == null ? "-" : value.format(DATE_TIME_FMT);
+    }
+
     private String resolveFromEmail() {
         if (smtpUsername == null || smtpUsername.isBlank()) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -34,6 +268,7 @@ public class EmailServiceImpl implements EmailService {
         }
         return (from == null || from.isBlank()) ? smtpUsername : from;
     }
+
 
     // ✅ HÀM DÙNG CHUNG (HTML + plain fallback)
     private void sendRichEmail(String to, String subject, String plainText, String html) {
@@ -63,6 +298,8 @@ public class EmailServiceImpl implements EmailService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Gửi email thất bại: " + ex.getMessage());
         }
     }
+
+
 
     @Override
     public void sendNewNhanVienCredentials(String toEmail, String tenNhanVien, String taiKhoan, String matKhau) {
@@ -172,6 +409,8 @@ public class EmailServiceImpl implements EmailService {
 
         sendRichEmail(toEmail.trim(), subject, plain, html);
     }
+
+
 
     @Override
     public void sendResetPasswordOtp(String to, String tenNhanVien, String otp) {

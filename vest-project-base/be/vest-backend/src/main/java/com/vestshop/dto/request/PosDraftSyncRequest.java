@@ -26,6 +26,7 @@ public class PosDraftSyncRequest {
 
     private String tenNguoiNhanHang;
     private String soDienThoaiNhanHang;
+    private String emailNguoiNhanHang;
     private String tinhThanhNhanHang;
     private String quanHuyenNhanHang;
     private String phuongXaNhanHang;

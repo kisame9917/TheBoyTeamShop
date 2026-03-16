@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import com.vestshop.Service.EmailService;
+import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class HoaDonServiceImpl implements HoaDonService {
     private final NhanVienRepository nhanVienRepository;
     private final HoaDonRepository hoaDonRepository;
@@ -36,6 +38,7 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
     private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
     private final PosRealtimeService posRealtimeService;
+    private final EmailService emailService;
 //    @Override
 //    @Transactional
 //    public HoaDonDetailResponse createPos(BanHangRequest req) {
@@ -483,7 +486,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         String note = (req.getGhiChuThanhToan() != null && !req.getGhiChuThanhToan().isBlank())
                 ? req.getGhiChuThanhToan()
-                : (req.getGhiChu() != null ? req.getGhiChu() : "POS checkout");
+                : (req.getGhiChu() != null ? req.getGhiChu() : " ");
 
         payHis.setGhiChu(note);
         payHis.setTrangThai(true);
@@ -491,6 +494,28 @@ public class HoaDonServiceImpl implements HoaDonService {
         lichSuThanhToanRepository.saveAndFlush(payHis);
 
         HoaDonDetailResponse detail = buildDetail(hd);
+
+        String shippingEmail = hasText(req.getEmailNguoiNhanHang())
+                ? req.getEmailNguoiNhanHang().trim()
+                : (hasText(req.getEmailKhachHang()) ? req.getEmailKhachHang().trim() : null);
+
+        if (isShip && hasText(shippingEmail)) {
+            try {
+                String shippingRecipientName = hasText(req.getTenNguoiNhanHang())
+                        ? req.getTenNguoiNhanHang().trim()
+                        : (hasText(detail.getTenKhachHang()) ? detail.getTenKhachHang().trim() : "Quý khách");
+
+                emailService.sendShippingOrderConfirmation(
+                        shippingEmail,
+                        shippingRecipientName,
+                        detail
+                );
+            } catch (Exception ex) {
+                log.warn("[MAIL] Không gửi được email xác nhận đơn giao hàng {} tới {}: {}",
+                        hd.getMaHoaDon(), shippingEmail, ex.getMessage(), ex);
+            }
+        }
+
         posRealtimeService.pushRemove(hd.getId());
         return detail;
     }
@@ -641,6 +666,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
         return buildDetail(hd);
     }
+
+
 
     @Override
     @Transactional(readOnly = true)
