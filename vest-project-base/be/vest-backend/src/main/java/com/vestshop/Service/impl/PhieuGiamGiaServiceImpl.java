@@ -17,7 +17,10 @@ import com.vestshop.dto.response.PhieuGiamGiaResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.vestshop.Service.NotificationRealtimeService;
+import com.vestshop.dto.response.NotificationEventResponse;
 
+import java.time.OffsetDateTime;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +42,9 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
     @Autowired
     EmailPGGService emailPGGService;
+
+    @Autowired
+    NotificationRealtimeService notificationRealtimeService;
 
     @Override
     public List<PhieuGiamGiaResponse> getForPos(Long khachHangId) {
@@ -279,6 +285,10 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
 
         pgg.setNgayBatDau(now);
         if (end != null && end.isBefore(now)) pgg.setNgayKetThuc(now.plusMinutes(1));
+        pushVoucherNotification(
+                "Phiếu " + pgg.getMaGiamGia() + " đã được kích hoạt",
+                "VOUCHER_STARTED"
+        );
         repo.save(pgg);
 
         // ✅ gửi mail chỉ khi là phiếu cá nhân
@@ -305,6 +315,10 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         if (end != null && !now.isBefore(end)) throw new Exception("Phiếu đã kết thúc");
 
         pgg.setNgayKetThuc(now);
+        pushVoucherNotification(
+                "Phiếu " + pgg.getMaGiamGia() + " đã kết thúc",
+                "VOUCHER_ENDED"
+        );
         repo.save(pgg);
 
         if (Boolean.TRUE.equals(pgg.getLoaiPhieu())) {
@@ -423,5 +437,18 @@ public class PhieuGiamGiaServiceImpl implements PhieuGiamGiaService {
         java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
         for (int i = 0; i < len; i++) sb.append(chars.charAt(r.nextInt(chars.length())));
         return sb.toString();
+    }
+    private void pushVoucherNotification(String title, String type) {
+        notificationRealtimeService.pushToRole(
+                "ADMIN",
+                NotificationEventResponse.builder()
+                        .id(String.valueOf(System.currentTimeMillis()))
+                        .title(title)
+                        .time("Vừa xong")
+                        .link("/vouchers")
+                        .type(type)
+                        .createdAt(OffsetDateTime.now().toString())
+                        .build()
+        );
     }
 }

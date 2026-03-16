@@ -17,7 +17,10 @@ import com.vestshop.dto.response.ChatMessageResponse;
 import com.vestshop.dto.response.ChatSaveResult;
 import com.vestshop.dto.response.ConversationSummaryResponse;
 import org.springframework.stereotype.Service;
+import com.vestshop.Service.NotificationRealtimeService;
+import com.vestshop.dto.response.NotificationEventResponse;
 
+import java.time.OffsetDateTime;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,19 +33,20 @@ public class ChatServiceImpl implements ChatService {
     private final AISuggestService aiSuggestService;
     private final MessageProductSuggestionRepo messageProductSuggestionRepo;
     private final SanPhamChiTietRepository sanPhamChiTietRepo;
-
+    private final NotificationRealtimeService notificationRealtimeService;
     public ChatServiceImpl(
             ConversationRepo conversationRepo,
             MessageRepo messageRepo,
             AISuggestService aiSuggestService,
             MessageProductSuggestionRepo messageProductSuggestionRepo,
-            SanPhamChiTietRepository sanPhamChiTietRepo
+            SanPhamChiTietRepository sanPhamChiTietRepo, NotificationRealtimeService notificationRealtimeService
     ) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
         this.aiSuggestService = aiSuggestService;
         this.messageProductSuggestionRepo = messageProductSuggestionRepo;
         this.sanPhamChiTietRepo = sanPhamChiTietRepo;
+        this.notificationRealtimeService = notificationRealtimeService;
     }
 
     @Override
@@ -91,6 +95,8 @@ public class ChatServiceImpl implements ChatService {
         if ("CLIENT".equalsIgnoreCase(senderType)) {
             try {
                 if (isHumanHandoffRequest(content)) {
+                    pushHumanHandoffNotification(conversation, saved);
+
                     Message botMsg = new Message();
                     botMsg.setConversationId(conversationId);
                     botMsg.setSenderType("BOT");
@@ -110,7 +116,6 @@ public class ChatServiceImpl implements ChatService {
 
                     return result;
                 }
-
                 AISuggestResponse aiResponse = aiSuggestService.suggestProducts(content);
 
                 String reply = (aiResponse != null && aiResponse.getReply() != null && !aiResponse.getReply().isBlank())
@@ -343,5 +348,20 @@ public class ChatServiceImpl implements ChatService {
                 .toLowerCase(Locale.ROOT)
                 .trim();
         return s.replaceAll("\\s+", " ");
+    }
+    private void pushHumanHandoffNotification(Conversation conversation, Message clientMessage) {
+        String customerName = resolveCustomerName(conversation);
+
+        notificationRealtimeService.pushToRole(
+                "ADMIN",
+                NotificationEventResponse.builder()
+                        .id("CHAT-HUMAN-" + conversation.getId() + "-" + System.currentTimeMillis())
+                        .title("Khách hàng " + customerName + " đang yêu cầu tiếp nhận")
+                        .time("Vừa xong")
+                        .link("/chat-support")
+                        .type("CHAT_NEEDS_HUMAN")
+                        .createdAt(OffsetDateTime.now().toString())
+                        .build()
+        );
     }
 }
