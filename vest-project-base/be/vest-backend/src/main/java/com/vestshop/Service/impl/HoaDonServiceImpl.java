@@ -3,6 +3,7 @@ package com.vestshop.Service.impl;
 import com.vestshop.Entity.*;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.HoaDonService;
+import com.vestshop.Service.NotificationRealtimeService;
 import com.vestshop.Service.PosRealtimeService;
 import com.vestshop.common.TrangThaiDonHang;
 import com.vestshop.dto.request.*;
@@ -38,6 +39,7 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
     private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
     private final PosRealtimeService posRealtimeService;
+    private final NotificationRealtimeService notificationRealtimeService;
     private final EmailService emailService;
 //    @Override
 //    @Transactional
@@ -486,7 +488,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         String note = (req.getGhiChuThanhToan() != null && !req.getGhiChuThanhToan().isBlank())
                 ? req.getGhiChuThanhToan()
-                : (req.getGhiChu() != null ? req.getGhiChu() : " ");
+                : (req.getGhiChu() != null ? req.getGhiChu() : "POS checkout");
 
         payHis.setGhiChu(note);
         payHis.setTrangThai(true);
@@ -517,6 +519,17 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         posRealtimeService.pushRemove(hd.getId());
+        notificationRealtimeService.pushToRole(
+                "ADMIN",
+                NotificationEventResponse.builder()
+                        .id(String.valueOf(System.currentTimeMillis()))
+                        .title("Hóa đơn " + hd.getMaHoaDon() + " đã thanh toán")
+                        .time("Vừa xong")
+                        .link("/orders/" + hd.getId())
+                        .type("ORDER_CHECKOUT")
+                        .createdAt(java.time.OffsetDateTime.now().toString())
+                        .build()
+        );
         return detail;
     }
 
@@ -666,8 +679,6 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
         return buildDetail(hd);
     }
-
-
 
     @Override
     @Transactional(readOnly = true)

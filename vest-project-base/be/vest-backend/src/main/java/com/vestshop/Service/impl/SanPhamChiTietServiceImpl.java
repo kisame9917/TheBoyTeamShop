@@ -18,7 +18,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.vestshop.Service.NotificationRealtimeService;
+import com.vestshop.dto.response.NotificationEventResponse;
+import java.time.LocalDateTime;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
     private final MauSacRepository mauSacRepository;
     private final AnhChiTietSanPhamRepository anhChiTietSanPhamRepository;
     private final CloudinaryMediaStorageService mediaStorageService;
-
+    private final NotificationRealtimeService notificationRealtimeService;
     @Override
     @Transactional(readOnly = true)
     public Page<SanPhamChiTietResponse> getAll(Pageable pageable) {
@@ -85,6 +87,10 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
     public SanPhamChiTietResponse decreaseStock(Long id, Integer qty) {
         int q = (qty == null || qty <= 0) ? 1 : qty;
 
+        SanPhamChiTiet beforeEntity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ko tìm thấy chi tiết sản phẩm"));
+        Integer beforeQty = beforeEntity.getSoLuongTon();
+
         int updated = repository.decreaseStock(id, q);
         if (updated == 0) {
             throw new IllegalArgumentException("Không đủ tồn kho");
@@ -92,6 +98,8 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
 
         SanPhamChiTiet entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ko tìm thấy chi tiết sản phẩm"));
+
+        pushOutOfStockNotificationIfNeeded(beforeQty, entity);
 
         return mapToResponse(entity);
     }
@@ -116,6 +124,8 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         SanPhamChiTiet entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Detail not found"));
 
+        Integer beforeQty = entity.getSoLuongTon();
+
         entity.setKichCo(kichCoRepository.findById(request.getIdKichCo()).orElseThrow(() -> new RuntimeException("Size not found")));
         entity.setMauSac(mauSacRepository.findById(request.getIdMauSac()).orElseThrow(() -> new RuntimeException("Color not found")));
         entity.setSoLuongTon(request.getSoLuongTon());
@@ -135,6 +145,9 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
         if (request.getGalleryMediaIds() != null) {
             replaceGallery(saved, request.getGalleryMediaIds());
         }
+
+        pushOutOfStockNotificationIfNeeded(beforeQty, saved);
+
         return mapToResponse(saved);
     }
 
@@ -202,5 +215,33 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
                 .mediaPrimaryId(entity.getMediaPrimary() != null ? entity.getMediaPrimary().getId() : null)
                 .gallery(gallery)
                 .build();
+    }
+    private void pushOutOfStockNotificationIfNeeded(Integer beforeQty, SanPhamChiTiet entity) {
+        int before = beforeQty == null ? 0 : beforeQty;
+        int after = entity.getSoLuongTon() == null ? 0 : entity.getSoLuongTon();
+
+        // chỉ bắn khi từ còn hàng -> hết hàng
+        if (before > 0 && after == 0) {
+            String tenSanPham = entity.getSanPham() != null ? entity.getSanPham().getTenSanPham() : "Sản phẩm";
+            String mau = entity.getMauSac() != null ? entity.getMauSac().getTen() : "";
+            String size = entity.getKichCo() != null ? entity.getKichCo().getSoSize() : "";
+
+            String suffix = "";
+            if (!mau.isBlank() || !size.isBlank()) {
+                suffix = " (" + mau + (mau.isBlank() || size.isBlank() ? "" : " / ") + size + ")";
+            }
+
+            notificationRealtimeService.pushToRole(
+                    "ADMIN",
+                    NotificationEventResponse.builder()
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .title("Sản phẩm " + entity.getMaSanPhamChiTiet() + " đã hết hàng")
+                            .time("Vừa xong")
+                            .link("/products")
+                            .type("PRODUCT_OUT_OF_STOCK")
+                            .createdAt(LocalDateTime.now().toString())
+                            .build()
+            );
+        }
     }
 }
