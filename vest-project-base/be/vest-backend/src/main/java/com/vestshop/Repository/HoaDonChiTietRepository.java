@@ -38,9 +38,9 @@ public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, Lo
             "JOIN hdct.hoaDon hd " +
             "WHERE hd.ngayTao BETWEEN :startDate AND :endDate " +
             "AND hd.trangThaiDon = :status")
-    Long sumSoldQuantityInRange(@Param("startDate") LocalDateTime startDate,
-                                @Param("endDate") LocalDateTime endDate,
-                                @Param("status") Integer status);
+    Long sumSoldQuantityInRangeV2(@Param("startDate") LocalDateTime startDate,
+                                  @Param("endDate") LocalDateTime endDate,
+                                  @Param("status") Integer status);
 
     @Modifying
     @Query("delete from HoaDonChiTiet c where c.hoaDon.id = :hoaDonId")

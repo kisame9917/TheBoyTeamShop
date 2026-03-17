@@ -69,15 +69,6 @@
         >
           <i class="bi bi-x-circle me-1"></i> Huỷ đơn
         </button>
-
-        <button
-          v-if="canRequestRefund"
-          type="button"
-          class="btn btn-outline-warning btn-sm text-dark"
-          @click="openConfirmRefundModal"
-        >
-          <i class="bi bi-arrow-counterclockwise me-1"></i> Hoàn đơn
-        </button>
       </div>
 
       <div class="d-flex gap-2">
@@ -506,7 +497,7 @@
       </div>
     </div>
 
-    <!-- Confirm Action Modal (advance/cancel/refund) -->
+<!-- Confirm Action Modal (advance/cancel/refund) -->
     <div
       class="modal fade"
       id="confirmActionModal"
@@ -532,7 +523,16 @@
             <div class="mb-2">
               Hóa đơn: <b>{{ hd?.maHoaDon }}</b>
             </div>
+<div class="mt-3">
+  <label class="form-label fw-semibold">Ghi chú</label>
 
+<textarea
+  v-model.trim="confirmNote"
+  class="form-control"
+  rows="3"
+  placeholder="Nhập ghi chú (không bắt buộc)"
+></textarea>
+</div>
             <div class="mb-2">
               Trạng thái hiện tại:
               <span class="badge bg-secondary">{{
@@ -708,13 +708,14 @@
       class="toast-container position-fixed top-0 end-0 p-3"
       style="z-index: 9999"
     >
-      <div
-        class="toast align-items-center text-bg-success border-0"
-        ref="toastRef"
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
-      >
+     <div
+  class="toast align-items-center border-0"
+  :class="toastClass"
+  ref="toastRef"
+  role="alert"
+  aria-live="assertive"
+  aria-atomic="true"
+>
         <div class="d-flex">
           <div class="toast-body">{{ toastMsg }}</div>
           <button
@@ -734,7 +735,6 @@ import { useRouter, useRoute } from "vue-router";
 import QRCode from "qrcode";
 import hoaDonApi from "@/services/hoaDonApi";
 import { resolveMediaUrl } from "@/utils/media";
-
 const props = defineProps({
   id: { type: [String, Number], required: true },
 });
@@ -743,21 +743,15 @@ const route = useRoute();
 
 const hd = ref(null);
 
-/** ====== STATUS ====== */
 const STATUS = {
   CHO_XAC_NHAN: 0,
-  DA_XAC_NHAN: 8, // mới cho online COD
+  DA_XAC_NHAN: 8,
   DANG_XU_LY: 1,
   DANG_GIAO: 2,
   DA_GIAO: 3,
   HOAN_THANH: 4,
   DA_HUY: 5,
-  DA_HOAN: 7,
-
-  // fallback dữ liệu cũ
-  YEU_CAU_HOAN: 6,
 };
-
 function statusLabel(code) {
   if (code === null || code === undefined || code === "") return "-";
 
@@ -769,15 +763,10 @@ function statusLabel(code) {
     [STATUS.DA_GIAO]: "Đã giao",
     [STATUS.HOAN_THANH]: "Hoàn thành",
     [STATUS.DA_HUY]: "Đã huỷ",
-    [STATUS.DA_HOAN]: "Đã hoàn",
-
-    // fallback dữ liệu cũ
-    [STATUS.YEU_CAU_HOAN]: "Yêu cầu hoàn",
   };
 
   return m[Number(code)] ?? "-";
 }
-
 function statusBadgeClass(code) {
   if (code === null || code === undefined || code === "") {
     return "text-bg-secondary";
@@ -798,13 +787,6 @@ function statusBadgeClass(code) {
       return "text-bg-secondary";
     case STATUS.DA_HUY:
       return "text-bg-dark";
-    case STATUS.DA_HOAN:
-      return "text-bg-secondary";
-
-    // fallback dữ liệu cũ
-    case STATUS.YEU_CAU_HOAN:
-      return "text-bg-warning text-dark";
-
     default:
       return "text-bg-secondary";
   }
@@ -970,34 +952,29 @@ function nextPage() {
 const staffName = computed(() => {
   const v = hd.value;
 
-  if (v?.loaiDon === true) return "System";
-
   return (
     v?.tenNhanVien ??
     v?.tenNhanVienXuLy ??
     v?.nhanVienXuLy?.tenNhanVien ??
     v?.nhanVien?.tenNhanVien ??
-    "-"
+    (v?.loaiDon ? "System" : "-")
   );
 });
+
 const staffCode = computed(() => {
   const v = hd.value;
-
-  if (v?.loaiDon === true) return "SYSTEM";
 
   return (
     v?.maNhanVien ??
     v?.maNhanVienXuLy ??
     v?.nhanVienXuLy?.maNhanVien ??
     v?.nhanVien?.maNhanVien ??
-    "-"
+    (v?.loaiDon ? "SYSTEM" : "-")
   );
 });
 
 const staffRole = computed(() => {
   const v = hd.value;
-
-  if (v?.loaiDon === true) return "Hệ thống";
 
   return (
     v?.tenChucVu ??
@@ -1006,22 +983,12 @@ const staffRole = computed(() => {
     v?.nhanVien?.tenChucVu ??
     v?.nhanVienXuLy?.quyenHan?.tenQuyenHan ??
     v?.nhanVien?.quyenHan?.tenQuyenHan ??
-    "-"
+    (v?.loaiDon ? "Hệ thống" : "-")
   );
 });
-
-const FLOW_SHIP_NORMAL = [
-  STATUS.CHO_XAC_NHAN,
-  STATUS.DANG_XU_LY,
-  STATUS.DANG_GIAO,
-  STATUS.DA_GIAO,
-  STATUS.HOAN_THANH,
-];
-
-const FLOW_SHIP_COD = [
+const FLOW_SHIP_ONLINE = [
   STATUS.CHO_XAC_NHAN,
   STATUS.DA_XAC_NHAN,
-  STATUS.DANG_XU_LY,
   STATUS.DANG_GIAO,
   STATUS.DA_GIAO,
   STATUS.HOAN_THANH,
@@ -1029,7 +996,7 @@ const FLOW_SHIP_COD = [
 
 const activeFlow = computed(() => {
   if (!isShipOrder.value) return [STATUS.HOAN_THANH];
-  return isOnlineCodOrder.value ? FLOW_SHIP_COD : FLOW_SHIP_NORMAL;
+  return FLOW_SHIP_ONLINE;
 });
 
 const nextStatus = computed(() => {
@@ -1049,12 +1016,6 @@ const advanceBtnText = computed(() => {
 
 const canCancel = computed(() => currentStatus.value === STATUS.CHO_XAC_NHAN);
 
-const canRequestRefund = computed(() =>
-  [STATUS.DANG_GIAO, STATUS.DA_GIAO, STATUS.HOAN_THANH].includes(
-    currentStatus.value,
-  ),
-);
-
 /** ===== STEPPER ===== */
 const fullStepper = computed(() => {
   if (!isShipOrder.value) {
@@ -1063,20 +1024,18 @@ const fullStepper = computed(() => {
 
   return activeFlow.value.map((code) => ({
     code,
-    label:
-      code === STATUS.CHO_XAC_NHAN
-        ? "Chờ xác nhận đơn"
-        : code === STATUS.DA_XAC_NHAN
-          ? "Đã xác nhận"
-          : code === STATUS.DANG_XU_LY
-            ? "Đang xử lý đơn hàng"
-            : code === STATUS.DANG_GIAO
-              ? "Đang giao"
-              : code === STATUS.DA_GIAO
-                ? "Đã giao"
-                : code === STATUS.HOAN_THANH
-                  ? "Hoàn thành"
-                  : statusLabel(code),
+   label:
+  code === STATUS.CHO_XAC_NHAN
+    ? "Chờ xác nhận"
+    : code === STATUS.DA_XAC_NHAN
+      ? "Đã xác nhận"
+      : code === STATUS.DANG_GIAO
+        ? "Đang giao"
+        : code === STATUS.DA_GIAO
+          ? "Đã giao"
+          : code === STATUS.HOAN_THANH
+            ? "Hoàn thành"
+            : statusLabel(code),
   }));
 });
 
@@ -1180,14 +1139,13 @@ const confirmTitle = ref("Xác nhận");
 const confirmDesc = ref("");
 const confirmTargetStatus = ref(null);
 const confirmNote = ref("");
-
 function openConfirmActionModal({ title, desc, targetStatus, note }) {
   if (!hd.value) return;
 
   confirmTitle.value = title;
   confirmDesc.value = desc;
   confirmTargetStatus.value = targetStatus;
-  confirmNote.value = note;
+  confirmNote.value = note || "";
 
   const el = confirmActionModalRef.value;
   if (!el) return;
@@ -1231,17 +1189,20 @@ async function confirmDoAction() {
 
     await hoaDonApi.changeStatus(props.id, {
       trangThaiDon: confirmTargetStatus.value,
-      ghiChu: confirmNote.value || "Cập nhật trạng thái",
+      ghiChu: confirmNote.value?.trim() || "Cập nhật trạng thái",
     });
 
     await fetchDetail();
     showToast("Cập nhật trạng thái thành công!");
   } catch (e) {
     console.error(e);
-    showToast("Cập nhật trạng thái thất bại!");
+    const msg =
+      e?.response?.data?.message ||
+      e?.response?.data?.data?.message ||
+      "Cập nhật trạng thái thất bại!";
+    showToast(msg, "danger");
   }
 }
-
 /** Buttons handlers */
 function openConfirmAdvanceModal() {
   const ns = nextStatus.value;
@@ -1263,14 +1224,7 @@ function openConfirmCancelModal() {
     note: "Huỷ đơn",
   });
 }
-function openConfirmRefundModal() {
-  openConfirmActionModal({
-    title: "Xác nhận hoàn đơn",
-    desc: "Đơn sẽ chuyển thẳng sang trạng thái 'Đã hoàn'.",
-    targetStatus: STATUS.DA_HOAN,
-    note: "Hoàn đơn",
-  });
-}
+
 /** ===== History Modal ===== */
 const historyModalRef = ref(null);
 let bsHistoryModal = null;
@@ -1321,10 +1275,6 @@ function mapHistoryToStatusLabel(hanhDong) {
     DA_GIAO: "Đã giao",
     HOAN_THANH: "Hoàn thành",
     DA_HUY: "Đã huỷ",
-    DA_HOAN: "Đã hoàn",
-
-    // fallback dữ liệu cũ
-    YEU_CAU_HOAN: "Yêu cầu hoàn",
   };
 
   return m[hanhDong] || hanhDong;
@@ -1452,22 +1402,34 @@ function printInvoice() {
 
   showToast("Đã mở cửa sổ in / lưu PDF!");
 }
-
 /** Toast */
 const toastRef = ref(null);
 const toastMsg = ref("");
+const toastType = ref("success");
 let bsToast = null;
 
-function showToast(msg) {
+const toastClass = computed(() => {
+  return toastType.value === "danger"
+    ? "text-bg-danger"
+    : toastType.value === "warning"
+      ? "text-bg-warning text-dark"
+      : "text-bg-success";
+});
+
+function showToast(msg, type = "success") {
   toastMsg.value = msg;
+  toastType.value = type;
+
   const el = toastRef.value;
   if (!el) return;
+
   const Toast = window.bootstrap?.Toast;
   if (Toast) {
-    bsToast = Toast.getOrCreateInstance(el, { delay: 2000 });
+    bsToast = Toast.getOrCreateInstance(el, { delay: 2500 });
     bsToast.show();
   }
 }
+
 function hideToast() {
   try {
     bsToast?.hide?.();

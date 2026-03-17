@@ -189,37 +189,52 @@
             </div>
           </section>
 
-          <section class="checkout-card mb-4">
-            <div class="checkout-card__header">
-              <span>3. Phương thức thanh toán</span>
-            </div>
+         <section class="checkout-card mb-4">
+  <div class="checkout-card__header">
+    <span>3. Phương thức thanh toán</span>
+  </div>
 
-            <div class="checkout-card__body">
-              <label class="option-row">
-                <div class="option-row__left">
-                  <input
-                      class="form-check-input me-2"
-                      type="radio"
-                      value="cod"
-                      v-model="form.paymentMethod"
-                  />
-                  <span class="option-row__title">Thanh toán khi nhận hàng (COD)</span>
-                </div>
-              </label>
+  <div class="checkout-card__body">
+    <label
+      v-for="opt in paymentOptions"
+      :key="opt.value"
+      class="payment-option"
+      :class="{ active: form.paymentMethod === opt.value }"
+    >
+      <div class="payment-option__left">
+        <input
+          class="form-check-input"
+          type="radio"
+          :value="opt.value"
+          v-model="form.paymentMethod"
+        />
+        <div class="payment-option__content">
+          <div class="payment-option__title-row">
+            <span class="payment-option__title">{{ opt.title }}</span>
+            <span v-if="opt.badge" class="payment-option__badge">
+              {{ opt.badge }}
+            </span>
+          </div>
+          <div class="payment-option__desc">{{ opt.desc }}</div>
+        </div>
+      </div>
 
-              <label class="option-row">
-                <div class="option-row__left">
-                  <input
-                      class="form-check-input me-2"
-                      type="radio"
-                      value="qr"
-                      v-model="form.paymentMethod"
-                  />
-                  <span class="option-row__title">Chuyển khoản QR</span>
-                </div>
-              </label>
-            </div>
-          </section>
+      <i
+        class="bi"
+        :class="form.paymentMethod === opt.value ? 'bi-check-circle-fill' : 'bi-circle'"
+      ></i>
+    </label>
+
+    <div class="payment-helper mt-3">
+      <i class="bi bi-info-circle"></i>
+      <span>{{ selectedPaymentOption?.helper || "Vui lòng chọn phương thức thanh toán" }}</span>
+    </div>
+
+    <div v-if="errors.paymentMethod" class="text-danger small mt-2">
+      {{ errors.paymentMethod }}
+    </div>
+  </div>
+</section>
 
           <section class="checkout-card mb-4">
   <div class="checkout-card__header">
@@ -339,15 +354,30 @@
                   <strong>{{ money(safeGrandTotal) }} đ</strong>
                 </div>
 
-                <label class="invoice-row mt-3">
-                  <input
-                      v-model="form.invoice"
-                      type="checkbox"
-                      class="form-check-input me-2"
-                  />
-                  <span>Xuất hóa đơn công ty</span>
-                </label>
+                <div class="summary-actions mt-3">
+  <label class="invoice-row">
+    <input
+      v-model="form.invoice"
+      type="checkbox"
+      class="form-check-input me-2"
+    />
+    <span>Xuất file PDF sau khi đặt hàng</span>
+  </label>
 
+  <button
+    class="btn-preview-pdf"
+    type="button"
+    :disabled="cartItems.length === 0"
+    @click="printInvoice"
+  >
+    <i class="bi bi-printer me-2"></i>
+    Xuất PDF / In tạm tính
+  </button>
+</div>
+<div v-if="appliedVoucherEntry" class="voucher-saving-note mt-3">
+  Bạn đang tiết kiệm <b>{{ money(discount) }} đ</b> với mã
+  <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>.
+</div>
                 <div v-if="errors.items" class="alert alert-danger py-2 mt-3 mb-2">
                   {{ errors.items }}
                 </div>
@@ -392,66 +422,129 @@
             <button class="btn-close" type="button" @click="closeQrModal"></button>
           </div>
 
-          <div class="qr-modal-body">
-            <div class="text-center mb-3">
-              <img
-                  v-if="qrData.qrImageUrl"
-                  :src="normalizeQrUrl(qrData.qrImageUrl)"
-                  alt="QR thanh toán"
-                  class="qr-image"
-              />
-              <div v-else class="qr-placeholder">
-                Chưa có ảnh QR
-              </div>
-            </div>
+        <div class="qr-modal-body">
+  <div class="payment-channel-badge mb-3">
+    {{ selectedPaymentOption?.title || "Thanh toán online" }}
+  </div>
 
-            <div class="qr-info">
-              <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
-              <div><b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}</div>
-              <div><b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}</div>
-              <div><b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}</div>
-              <div><b>Số tiền:</b> {{ money(qrData.amount) }} đ</div>
-              <div><b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}</div>
-            </div>
+  <template v-if="form.paymentMethod === 'bank_qr'">
+    <div class="text-center mb-3">
+      <img
+        v-if="qrData.qrImageUrl"
+        :src="normalizeQrUrl(qrData.qrImageUrl)"
+        alt="QR thanh toán"
+        class="qr-image"
+      />
+      <div v-else class="qr-placeholder">
+        Chưa có ảnh QR
+      </div>
+    </div>
 
-            <div class="mt-3">
-              <label class="form-label">Mã giao dịch (nếu có)</label>
-              <input
-                  v-model="qrForm.maGiaoDich"
-                  type="text"
-                  class="form-control input-ui"
-                  placeholder="Ví dụ: TCB123456789"
-              />
-            </div>
+    <div class="qr-info">
+      <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
+      <div><b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}</div>
+      <div><b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}</div>
+      <div><b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}</div>
+      <div><b>Số tiền:</b> {{ money(qrData.amount || safeGrandTotal) }} đ</div>
+      <div><b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}</div>
+    </div>
 
-            <div class="mt-3">
-              <label class="form-label">Ghi chú xác nhận</label>
-              <textarea
-                  v-model="qrForm.ghiChu"
-                  class="form-control input-ui textarea-ui"
-                  rows="3"
-                  placeholder="Khách đã chuyển khoản"
-              ></textarea>
-            </div>
+    <div class="mt-3">
+      <label class="form-label">Mã giao dịch (nếu có)</label>
+      <input
+        v-model="qrForm.maGiaoDich"
+        type="text"
+        class="form-control input-ui"
+        placeholder="Ví dụ: TCB123456789"
+      />
+    </div>
 
-            <div v-if="qrError" class="alert alert-danger mt-3 mb-0">
-              {{ qrError }}
-            </div>
-          </div>
+    <div class="mt-3">
+      <label class="form-label">Ghi chú xác nhận</label>
+      <textarea
+        v-model="qrForm.ghiChu"
+        class="form-control input-ui textarea-ui"
+        rows="3"
+        placeholder="Khách đã chuyển khoản"
+      ></textarea>
+    </div>
+  </template>
 
-          <div class="qr-modal-footer">
-         <button class="btn-qr-close" type="button" @click="closeQrModal">
-  Đóng
-</button>
-<button
+  <template v-else>
+    <div class="gateway-box">
+      <div class="gateway-box__title">
+        Thanh toán qua {{ selectedPaymentOption?.title }}
+      </div>
+
+      <div class="gateway-box__desc">
+        {{ gatewayInstruction }}
+      </div>
+
+      <div class="gateway-box__meta">
+        <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
+        <div><b>Số tiền:</b> {{ money(qrData.amount || safeGrandTotal) }} đ</div>
+      </div>
+
+      <button
+        class="btn-open-gateway mt-3"
+        type="button"
+        @click="openPaymentGateway"
+      >
+        Mở trang thanh toán
+      </button>
+
+
+      <div class="mt-3">
+        <label class="form-label">Mã giao dịch / mã tham chiếu</label>
+        <input
+          v-model="qrForm.maGiaoDich"
+          type="text"
+          class="form-control input-ui"
+          placeholder="Ví dụ: VNPAY123456 / MOMO123456"
+        />
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label">Ghi chú xác nhận</label>
+        <textarea
+          v-model="qrForm.ghiChu"
+          class="form-control input-ui textarea-ui"
+          rows="3"
+          placeholder="Đã thanh toán online thành công"
+        ></textarea>
+      </div>
+    </div>
+  </template>
+
+  <div v-if="qrSuccessMessage" class="alert alert-success mt-3 mb-0">
+    {{ qrSuccessMessage }}
+  </div>
+
+  <div v-if="qrError" class="alert alert-danger mt-3 mb-0">
+    {{ qrError }}
+  </div>
+</div>
+
+      <div class="qr-modal-footer">
+  <button class="btn-qr-close" type="button" @click="closeQrModal">
+    Đóng
+  </button>
+
+  <button
     class="btn-qr-confirm"
     type="button"
     :disabled="confirmingQr"
     @click="confirmQrPayment"
->
-  {{ confirmingQr ? "ĐANG XÁC NHẬN..." : "Tôi đã chuyển khoản" }}
-</button>
-          </div>
+  >
+    {{
+      confirmingQr
+        ? "ĐANG XÁC NHẬN..."
+        : form.paymentMethod === "bank_qr"
+          ? "Tôi đã chuyển khoản"
+          : "Tôi đã thanh toán thành công"
+    }}
+  </button>
+</div>   
         </div>
       </div>
     </div>
@@ -540,46 +633,92 @@
     </div>
 
     <div class="voucher-modal__body">
-      <div v-if="eligibleVoucherEntries.length === 0" class="text-muted">
-        Không có phiếu giảm giá phù hợp với đơn hàng này.
+     <div v-if="eligibleVoucherEntries.length === 0" class="text-muted">
+  Không có phiếu giảm giá phù hợp với đơn hàng này.
+</div>
+
+<template v-if="publicEligibleVoucherEntries.length">
+  <div class="voucher-group-title">Mã công khai có thể dùng</div>
+
+  <label
+    v-for="e in publicEligibleVoucherEntries"
+    :key="`public-${e.v.id}`"
+    class="voucher-item"
+    :class="{ active: selectedVoucherId === e.v.id }"
+  >
+    <input
+      type="radio"
+      :value="e.v.id"
+      v-model="selectedVoucherId"
+      hidden
+    />
+
+    <div class="voucher-item__left">
+      <div class="voucher-item__code">
+        {{ e.v.ma_giam_gia }}
+        <span class="badge-public">Công khai</span>
+        <span v-if="bestEligibleVoucherEntry?.v?.id === e.v.id" class="badge-best">
+          Tốt nhất
+        </span>
       </div>
 
-      <label
-        v-for="e in eligibleVoucherEntries"
-        :key="e.v.id"
-        class="voucher-item"
-        :class="{ active: selectedVoucherId === e.v.id }"
-      >
-        <input
-          type="radio"
-          :value="e.v.id"
-          v-model="selectedVoucherId"
-          hidden
-        />
+      <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
 
-        <div class="voucher-item__left">
-          <div class="voucher-item__code">
-            {{ e.v.ma_giam_gia }}
-            <span v-if="bestEligibleVoucherEntry?.v?.id === e.v.id" class="badge-best">
-              Tốt nhất
-            </span>
-          </div>
+      <div class="voucher-item__discount text-danger">
+        Giảm {{ money(e.discount) }} đ
+      </div>
 
-          <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+      <div class="voucher-item__meta">
+        Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+      </div>
+    </div>
 
-          <div class="voucher-item__discount text-danger">
-            Giảm {{ money(e.discount) }} đ
-          </div>
+    <div class="voucher-item__right">
+      <span v-if="selectedVoucherId === e.v.id">✔</span>
+    </div>
+  </label>
+</template>
 
-          <div class="voucher-item__meta">
-            Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
-          </div>
-        </div>
+<template v-if="personalEligibleVoucherEntries.length">
+  <div class="voucher-group-title mt-2">Mã cá nhân của bạn</div>
 
-        <div class="voucher-item__right">
-          <span v-if="selectedVoucherId === e.v.id">✔</span>
-        </div>
-      </label>
+  <label
+    v-for="e in personalEligibleVoucherEntries"
+    :key="`personal-${e.v.id}`"
+    class="voucher-item"
+    :class="{ active: selectedVoucherId === e.v.id }"
+  >
+    <input
+      type="radio"
+      :value="e.v.id"
+      v-model="selectedVoucherId"
+      hidden
+    />
+
+    <div class="voucher-item__left">
+      <div class="voucher-item__code">
+        {{ e.v.ma_giam_gia }}
+        <span v-if="bestEligibleVoucherEntry?.v?.id === e.v.id" class="badge-best">
+          Tốt nhất
+        </span>
+      </div>
+
+      <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+
+      <div class="voucher-item__discount text-danger">
+        Giảm {{ money(e.discount) }} đ
+      </div>
+
+      <div class="voucher-item__meta">
+        Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+      </div>
+    </div>
+
+    <div class="voucher-item__right">
+      <span v-if="selectedVoucherId === e.v.id">✔</span>
+    </div>
+  </label>
+</template>
     </div>
 
     <div class="voucher-modal__footer">
@@ -592,10 +731,90 @@
     </div>
   </div>
 </div>
+<div class="app-toast-wrap">
+  <transition name="fade">
+    <div
+      v-if="toast.show"
+      class="app-toast"
+      :class="`app-toast--${toast.type}`"
+    >
+      <i
+        class="bi"
+        :class="
+          toast.type === 'success'
+            ? 'bi-check-circle-fill'
+            : toast.type === 'warning'
+              ? 'bi-exclamation-triangle-fill'
+              : 'bi-info-circle-fill'
+        "
+      ></i>
+      <span>{{ toast.message }}</span>
+    </div>
+  </transition>
+</div>
+
+<div ref="printAreaRef" class="invoice-print-area">
+  <div class="receipt">
+    <div class="center bold big">HÓA ĐƠN TẠM TÍNH</div>
+    <div class="center small muted">Mã đơn: {{ invoiceData.maHoaDon }}</div>
+    <div class="center small muted">{{ invoiceData.createdAt }}</div>
+
+    <div class="hr"></div>
+
+    <div class="mt2"><b>Khách hàng:</b> {{ invoiceData.customerName }}</div>
+    <div class="mt2"><b>SĐT:</b> {{ invoiceData.phone }}</div>
+    <div class="mt2"><b>Địa chỉ:</b> {{ invoiceData.address }}</div>
+    <div class="mt2"><b>Thanh toán:</b> {{ invoiceData.paymentLabel }}</div>
+    <div class="mt2"><b>Ghi chú:</b> {{ invoiceData.note }}</div>
+
+    <div class="hr"></div>
+
+    <div class="items-head bold">
+      <div class="w-name">Sản phẩm</div>
+      <div class="w-qty right">SL</div>
+      <div class="w-price right">Tiền</div>
+    </div>
+
+    <div
+      class="item mt6"
+      v-for="it in invoiceData.items"
+      :key="it.key"
+    >
+      <div class="w-name">
+        <div>{{ it.name }}</div>
+        <div class="small muted">{{ it.variantText }}</div>
+      </div>
+      <div class="w-qty right">{{ it.qty }}</div>
+      <div class="w-price right">{{ money(it.total) }}</div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row2">
+      <span>Tạm tính</span>
+      <span>{{ money(invoiceData.subtotal) }}</span>
+    </div>
+    <div class="row2">
+      <span>Vận chuyển</span>
+      <span>{{ money(invoiceData.shippingFee) }}</span>
+    </div>
+    <div class="row2">
+      <span>Giảm giá</span>
+      <span>-{{ money(invoiceData.discount) }}</span>
+    </div>
+    <div class="row2 bold mt6">
+      <span>Thành tiền</span>
+      <span>{{ money(invoiceData.total) }}</span>
+    </div>
+
+    <div class="hr"></div>
+    <div class="center small mt8">Cảm ơn quý khách đã mua hàng!</div>
+  </div>
+</div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, onMounted } from "vue";
+import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 
@@ -624,7 +843,78 @@ const form = reactive({
   paymentMethod: "cod",
   invoice: false,
 });
+const paymentOptions = [
+  {
+    value: "cod",
+    title: "Thanh toán khi nhận hàng (COD)",
+    desc: "Kiểm tra hàng rồi thanh toán cho shipper.",
+    badge: "An toàn",
+    helper: "Bạn chỉ cần xác nhận đơn, thanh toán sau khi nhận hàng.",
+  },
+  {
+    value: "bank_qr",
+    title: "Chuyển khoản QR ngân hàng",
+    desc: "Quét QR và chuyển khoản trực tiếp từ app ngân hàng.",
+    badge: "Phổ biến",
+    helper: "Sau khi tạo đơn, hệ thống sẽ hiển thị QR và thông tin nhận tiền.",
+  },
+  {
+    value: "vnpay",
+    title: "VNPAY",
+    desc: "ATM nội địa / QR / Internet Banking.",
+    badge: "Nhanh",
+    helper: "FE đã sẵn flow mở cổng VNPAY. Backend chỉ cần trả paymentUrl là chạy thật.",
+  },
+  {
+    value: "momo",
+    title: "Ví MoMo",
+    desc: "Thanh toán nhanh qua ví điện tử MoMo.",
+    badge: "Ví điện tử",
+    helper: "FE đã sẵn flow mở MoMo. Backend chỉ cần trả paymentUrl là chạy thật.",
+  },
+  {
+    value: "card",
+    title: "Thẻ tín dụng / ghi nợ",
+    desc: "Visa / MasterCard / JCB.",
+    badge: "Quốc tế",
+    helper: "FE đã sẵn flow thanh toán thẻ. Backend chỉ cần trả paymentUrl là chạy thật.",
+  },
+];
 
+const selectedPaymentOption = computed(() => {
+  return paymentOptions.find((x) => x.value === form.paymentMethod) || paymentOptions[0];
+});
+
+const gatewayInstruction = computed(() => {
+  if (form.paymentMethod === "vnpay") {
+    return "Bạn sẽ được chuyển sang cổng thanh toán VNPAY để hoàn tất giao dịch.";
+  }
+  if (form.paymentMethod === "momo") {
+    return "Bạn sẽ được chuyển sang ví MoMo để xác nhận thanh toán.";
+  }
+  if (form.paymentMethod === "card") {
+    return "Bạn sẽ được chuyển sang cổng thanh toán thẻ an toàn để nhập thông tin thẻ.";
+  }
+  return "Quét mã QR và nhập mã giao dịch để xác nhận.";
+});
+const paymentUiHint = computed(() => {
+  if (form.paymentMethod === "cod") {
+    return "Thanh toán khi nhận hàng.";
+  }
+  if (form.paymentMethod === "bank_qr") {
+    return "Quét mã QR để chuyển khoản nhanh.";
+  }
+  if (form.paymentMethod === "vnpay") {
+    return "Thanh toán an toàn qua cổng VNPAY.";
+  }
+  if (form.paymentMethod === "momo") {
+    return "Thanh toán nhanh bằng ví MoMo.";
+  }
+  if (form.paymentMethod === "card") {
+    return "Thanh toán bằng thẻ tín dụng hoặc ghi nợ.";
+  }
+  return "Vui lòng chọn phương thức thanh toán.";
+});
 const vouchers = ref([]);
 const showVoucherModal = ref(false);
 
@@ -632,6 +922,19 @@ const selectedVoucherId = ref(null);   // đang tick trong modal
 const appliedVoucherId = ref(null);    // đang áp dụng thật
 const discount = ref(0);
 const loading = ref(false);
+
+const placedOrder = ref(null);
+const placedOrderItems = ref([]);
+const printAreaRef = ref(null);
+const qrSuccessMessage = ref("");
+
+const toast = reactive({
+  show: false,
+  message: "",
+  type: "success",
+});
+
+let toastTimer = null;
 
 const showQrModal = ref(false);
 const confirmingQr = ref(false);
@@ -650,6 +953,8 @@ const qrData = reactive({
   bankAccountNo: "",
   transferContent: "",
   amount: 0,
+  paymentUrl: "",
+  provider: "",
 });
 
 const qrForm = reactive({
@@ -824,10 +1129,82 @@ function calcVoucherDiscount(subtotal, v) {
 const safeGrandTotal = computed(() => {
   return safeSubtotal.value + (Number(shippingFee.value) || 0) - (Number(discount.value) || 0);
 });
+const fullDeliveryAddress = computed(() => {
+  return [
+    form.address?.trim(),
+    selectedWard.value?.name || "",
+    selectedDistrict.value?.name || "",
+    selectedProvince.value?.name || "",
+  ]
+    .filter((x) => !!x)
+    .join(", ");
+});
 
+const invoiceData = computed(() => {
+  const currentOrder = placedOrder.value || {};
+  const sourceItems = placedOrderItems.value.length
+    ? placedOrderItems.value
+    : cartItems.value;
+
+  return {
+    maHoaDon:
+      currentOrder.maHoaDon ||
+      currentOrder.orderCode ||
+      currentOrder.orderId ||
+      "TAM_TINH",
+    createdAt: currentOrder.createdAt || new Date().toLocaleString("vi-VN"),
+    customerName: currentOrder.customerName || form.fullName?.trim() || "Khách lẻ",
+    phone: currentOrder.phone || form.phone?.trim() || "-",
+    address: currentOrder.address || fullDeliveryAddress.value || "-",
+    paymentLabel:
+      currentOrder.paymentLabel ||
+      selectedPaymentOption.value?.title ||
+      "Thanh toán khi nhận hàng",
+    note: currentOrder.note || form.note?.trim() || "-",
+    subtotal: Number(currentOrder.subtotal ?? safeSubtotal.value) || 0,
+    shippingFee: Number(currentOrder.shippingFee ?? shippingFee.value) || 0,
+    discount: Number(currentOrder.discount ?? discount.value) || 0,
+    total: Number(currentOrder.total ?? safeGrandTotal.value) || 0,
+    items: sourceItems.map((it, index) => {
+      const qty = Number(it.qty) || 0;
+      const price = Number(it.price) || 0;
+      return {
+        key: resolveProductDetailId(it) || it.id || index,
+        name: it.name || "Sản phẩm",
+        variantText: [
+          it.color ? `Màu: ${it.color}` : "",
+          it.size ? `Size: ${it.size}` : "",
+        ]
+          .filter(Boolean)
+          .join(" | "),
+        qty,
+        price,
+        total: qty * price,
+      };
+    }),
+  };
+});
+
+function showToast(message, type = "success") {
+  if (!message) return;
+  if (toastTimer) clearTimeout(toastTimer);
+
+  toast.message = message;
+  toast.type = type;
+  toast.show = true;
+
+  toastTimer = setTimeout(() => {
+    toast.show = false;
+  }, 2800);
+}
 async function loadVouchers() {
   try {
-    const res = await fetch("http://localhost:8080/api/pgg/pos");
+    const customerId = null; // nếu có user login thì thay bằng id thật
+    const url = customerId
+      ? `http://localhost:8080/api/pgg/pos?khachHangId=${customerId}`
+      : "http://localhost:8080/api/pgg/pos";
+
+    const res = await fetch(url);
     const data = await res.json();
     vouchers.value = Array.isArray(data) ? data.map(normalizeVoucher) : [];
   } catch (error) {
@@ -842,7 +1219,17 @@ const eligibleVoucherEntries = computed(() => {
     .filter((x) => x.discount > 0)
     .sort((a, b) => b.discount - a.discount);
 });
+const publicEligibleVoucherEntries = computed(() => {
+  return eligibleVoucherEntries.value.filter(
+    (x) => x.v.loai_phieu === "CONG_KHAI"
+  );
+});
 
+const personalEligibleVoucherEntries = computed(() => {
+  return eligibleVoucherEntries.value.filter(
+    (x) => x.v.loai_phieu === "CA_NHAN"
+  );
+});
 const bestEligibleVoucherEntry = computed(() => {
   return eligibleVoucherEntries.value[0] || null;
 });
@@ -1048,7 +1435,7 @@ function validateShippingMethod(value) {
 }
 
 function validatePaymentMethod(value) {
-  const allowed = ["cod", "qr"];
+  const allowed = ["cod", "bank_qr", "vnpay", "momo", "card"];
   if (!allowed.includes(value)) return "Phương thức thanh toán không hợp lệ";
   return "";
 }
@@ -1194,7 +1581,12 @@ giamThuCongPercent: 0,
     paid: 0,
     ghiChu: form.note?.trim() || "Khách đặt hàng online",
 
-    paymentMethod: form.paymentMethod === "cod" ? "COD" : "QR",
+paymentMethod:
+  form.paymentMethod === "cod"
+    ? "COD"
+    : form.paymentMethod === "bank_qr"
+      ? "QR"
+      : form.paymentMethod.toUpperCase(),
     maGiaoDich: null,
     ghiChuThanhToan: null,
 
@@ -1262,27 +1654,86 @@ function normalizeQrUrl(url) {
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `http://localhost:8080${url}`;
 }
+function normalizePaymentUrl(url) {
+  if (!url) return "";
+
+  const rawUrl = String(url).trim();
+  const frontendOrigin = window.location.origin;
+  const backendOrigin = "http://localhost:8080";
+
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+    try {
+      const parsed = new URL(rawUrl);
+
+      // mock-payment là route của FE -> luôn ép về origin hiện tại của FE
+      if (parsed.pathname.startsWith("/mock-payment")) {
+        return `${frontendOrigin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
+
+      return parsed.toString();
+    } catch (error) {
+      return rawUrl;
+    }
+  }
+
+  // backend trả path tương đối cho mock-payment
+  if (rawUrl.startsWith("/mock-payment")) {
+    return `${frontendOrigin}${rawUrl}`;
+  }
+
+  // các URL tương đối khác thì giữ backend origin
+  return `${backendOrigin}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
+}
+
+function openPaymentGateway() {
+  const paymentUrl = normalizePaymentUrl(qrData.paymentUrl);
+
+  if (!paymentUrl) {
+    showToast("Không tìm thấy đường dẫn thanh toán", "warning");
+    return;
+  }
+
+  window.location.href = paymentUrl;
+}
+
 
 function openQrModal(data) {
-  qrData.orderId = data?.orderId || null;
-  qrData.maHoaDon = data?.maHoaDon || "";
+  qrData.orderId = data?.orderId || data?.id || null;
+  qrData.maHoaDon = data?.maHoaDon || data?.orderCode || "";
   qrData.qrImageUrl = data?.qrImageUrl || "";
-  qrData.bankName = data?.bankName || "";
+  qrData.bankName = data?.bankName || "Techcombank";
   qrData.bankAccountName = data?.bankAccountName || "";
   qrData.bankAccountNo = data?.bankAccountNo || "";
   qrData.transferContent = data?.transferContent || "";
-  qrData.amount = Number(data?.amount) || 0;
+  qrData.amount = Number(data?.amount) || Number(safeGrandTotal.value) || 0;
+  qrData.paymentUrl = data?.paymentUrl || data?.payUrl || data?.redirectUrl || "";
+  qrData.provider = form.paymentMethod;
 
   qrForm.maGiaoDich = "";
-  qrForm.ghiChu = "Khách đã chuyển khoản";
+  qrForm.ghiChu =
+    form.paymentMethod === "bank_qr"
+      ? "Khách đã chuyển khoản"
+      : "Khách đã thanh toán online";
+
   qrError.value = "";
+  qrSuccessMessage.value = "";
   showQrModal.value = true;
+
+  if (form.paymentMethod === "bank_qr") {
+    showToast("Đơn hàng đã được tạo. Vui lòng quét QR để chuyển khoản.", "success");
+  } else {
+    showToast(
+      `Đơn hàng đã được tạo. Tiếp tục thanh toán qua ${selectedPaymentOption.value.title}.`,
+      "success"
+    );
+  }
 }
 
 function closeQrModal() {
   if (confirmingQr.value) return;
   showQrModal.value = false;
   qrError.value = "";
+  qrSuccessMessage.value = "";
 }
 
 async function confirmQrPayment() {
@@ -1294,11 +1745,17 @@ async function confirmQrPayment() {
   try {
     confirmingQr.value = true;
     qrError.value = "";
+    qrSuccessMessage.value = "";
 
     const payload = {
       maGiaoDich: qrForm.maGiaoDich?.trim() || "",
       soTien: qrData.amount,
-      ghiChu: qrForm.ghiChu?.trim() || "Khách đã chuyển khoản",
+      ghiChu:
+        qrForm.ghiChu?.trim() ||
+        (form.paymentMethod === "bank_qr"
+          ? "Khách đã chuyển khoản"
+          : "Khách đã thanh toán online"),
+      paymentGateway: form.paymentMethod === "cod" ? null : form.paymentMethod.toUpperCase(),
     };
 
     const data = await confirmQrPaymentApi(qrData.orderId, payload);
@@ -1307,10 +1764,16 @@ async function confirmQrPayment() {
       clearCart();
     }
 
-    alert(data?.message || "Xác nhận thanh toán QR thành công");
+    qrSuccessMessage.value =
+      data?.message ||
+      (form.paymentMethod === "bank_qr"
+        ? "Chuyển khoản thành công"
+        : "Thanh toán online thành công");
+
+    showToast(qrSuccessMessage.value, "success");
     closeQrModal();
 
-    successMessage.value = data?.message || "Xác nhận thanh toán QR thành công";
+    successMessage.value = qrSuccessMessage.value;
     showSuccessModal.value = true;
 
     setTimeout(() => {
@@ -1350,7 +1813,7 @@ async function submitOrder() {
     console.log("ORDER PAYLOAD:", payload);
 
     const hasInvalidItem = payload.items.some(
-        (it) => !it.idSanPhamChiTiet || !it.soLuong
+      (it) => !it.idSanPhamChiTiet || !it.soLuong
     );
 
     if (hasInvalidItem) {
@@ -1361,9 +1824,25 @@ async function submitOrder() {
 
     const data = await checkoutApi(payload);
 
+    placedOrderItems.value = JSON.parse(JSON.stringify(cartItems.value));
+    placedOrder.value = {
+      ...data,
+      maHoaDon: data?.maHoaDon || data?.orderCode || data?.orderId || "TAM_TINH",
+      createdAt: new Date().toLocaleString("vi-VN"),
+      customerName: form.fullName?.trim() || "Khách lẻ",
+      phone: form.phone?.trim() || "-",
+      address: fullDeliveryAddress.value || "-",
+      paymentLabel: selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
+      note: form.note?.trim() || "-",
+      subtotal: Number(safeSubtotal.value) || 0,
+      shippingFee: Number(shippingFee.value) || 0,
+      discount: Number(discount.value) || 0,
+      total: Number(safeGrandTotal.value) || 0,
+    };
+
     showConfirmModal.value = false;
 
-    if (form.paymentMethod === "qr") {
+    if (form.paymentMethod !== "cod") {
       openQrModal(data);
       return;
     }
@@ -1374,6 +1853,7 @@ async function submitOrder() {
 
     successMessage.value = data?.message || "Đặt hàng thành công";
     showSuccessModal.value = true;
+    showToast(successMessage.value, "success");
 
     setTimeout(() => {
       router.push({
@@ -1413,6 +1893,63 @@ onMounted(async () => {
   await Promise.all([fetchProvinces(), loadVouchers()]);
   syncAppliedVoucher();
 });
+async function printInvoice() {
+  if (!invoiceData.value.items.length) {
+    showToast("Chưa có sản phẩm để in hóa đơn", "warning");
+    return;
+  }
+
+  await nextTick();
+
+  const area = printAreaRef.value;
+  if (!area) return;
+
+  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH").replace(/\s+/g, "_");
+  const w = window.open("", "_blank", "width=420,height=760");
+
+  if (!w) {
+    showToast("Trình duyệt đang chặn popup in hóa đơn", "warning");
+    return;
+  }
+
+  w.document.write(`
+    <html>
+      <head>
+        <title>HoaDon_${code}</title>
+        <style>
+          body{ margin:0; padding:0; font-family: Arial, sans-serif; }
+          .receipt{ width:80mm; padding:8mm 6mm; }
+          .center{ text-align:center; }
+          .right{ text-align:right; }
+          .bold{ font-weight:700; }
+          .big{ font-size:16px; }
+          .small{ font-size:11px; }
+          .muted{ color:#555; }
+          .hr{ border-top:1px dashed #000; margin:6px 0; }
+          .row2{ display:flex; justify-content:space-between; gap:10px; font-size:12px; }
+          .mt2{ margin-top:2px; font-size:12px; }
+          .mt6{ margin-top:6px; font-size:12px; }
+          .mt8{ margin-top:8px; }
+          .items-head, .item{ display:flex; gap:6px; font-size:12px; }
+          .w-name{ flex: 1; }
+          .w-qty{ width: 10mm; }
+          .w-price{ width: 22mm; }
+          @media print { @page { margin: 0; } }
+        </style>
+      </head>
+      <body>${area.outerHTML}</body>
+    </html>
+  `);
+
+  w.document.close();
+  w.focus();
+  w.onload = () => {
+    w.print();
+  };
+  w.onafterprint = () => w.close();
+
+  showToast("Đã mở cửa sổ in / lưu PDF!", "success");
+}
 </script>
 
 <style scoped>
@@ -2114,6 +2651,268 @@ onMounted(async () => {
   border-radius: 999px;
   background: #dcfce7;
   color: #166534;
+  font-size: 11px;
+  font-weight: 800;
+}
+.payment-option {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payment-option + .payment-option {
+  margin-top: 12px;
+}
+
+.payment-option:hover {
+  border-color: #9db4ff;
+  background: #fff;
+}
+
+.payment-option.active {
+  border-color: #001a72;
+  background: #eef2ff;
+  box-shadow: inset 0 0 0 1px rgba(0, 15, 81, 0.12);
+}
+
+.payment-option__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.payment-option__content {
+  min-width: 0;
+}
+
+.payment-option__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.payment-option__title {
+  font-weight: 750;
+  color: var(--text);
+}
+
+.payment-option__desc {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.payment-option__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.payment-helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 14px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.summary-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.btn-preview-pdf {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid #d8dfec;
+  background: #fff;
+  color: var(--text);
+  font-weight: 750;
+  transition: all 0.2s ease;
+}
+
+.btn-preview-pdf:hover:not(:disabled) {
+  border-color: #001a72;
+  color: #001a72;
+  background: #f8fbff;
+}
+
+.btn-preview-pdf:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.voucher-saving-note {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.payment-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-weight: 750;
+  font-size: 13px;
+}
+
+.gateway-box {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.gateway-box__title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 750;
+  margin-bottom: 6px;
+}
+
+.gateway-box__desc {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.gateway-box__meta {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.btn-open-gateway {
+  width: 100%;
+  min-height: 46px;
+  border: none;
+  border-radius: 14px;
+  background: #000f51;
+  color: #fff;
+  font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-open-gateway:hover {
+  background: #001a72;
+}
+
+.app-toast-wrap {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 2000;
+}
+
+.app-toast {
+  min-width: 320px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  box-shadow: 0 16px 36px rgba(2, 6, 23, 0.18);
+  font-weight: 650;
+}
+
+.app-toast--success {
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.app-toast--warning {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+}
+
+.app-toast--info {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.invoice-print-area {
+  position: fixed;
+  left: -99999px;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 767.98px) {
+  .payment-option {
+    padding: 14px;
+  }
+
+  .app-toast-wrap {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+  }
+
+  .app-toast {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+}
+.voucher-group-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.badge-public {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
   font-size: 11px;
   font-weight: 800;
 }

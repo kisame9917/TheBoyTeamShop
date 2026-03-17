@@ -21,6 +21,7 @@ public class OnlineCheckoutRequest {
     private String ghiChu;
 
     private String paymentMethod;
+    private String paymentGateway;
     private String maGiaoDich;
     private String ghiChuThanhToan;
 
@@ -136,7 +137,13 @@ public class OnlineCheckoutRequest {
     public String getPaymentMethod() {
         return paymentMethod;
     }
+    public String getPaymentGateway() {
+        return paymentGateway;
+    }
 
+    public void setPaymentGateway(String paymentGateway) {
+        this.paymentGateway = paymentGateway;
+    }
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
     }

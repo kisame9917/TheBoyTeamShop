@@ -187,9 +187,9 @@
               <!-- Tổng tiền -->
               <col style="width: 9%" />
               <!-- Ngày tạo -->
-              <col style="width: 9%" />
+              <col style="width: 12%" />
               <!-- Trạng thái -->
-              <col style="width: 9%" />
+              <col style="width: 8%" />
               <!-- Hành động -->
             </colgroup>
             <thead class="thead-dark-custom">
@@ -262,8 +262,11 @@
                   {{ formatDateVN(r.ngayTao) }}
                 </td>
 
-                <td class="text-center">
-                  <span class="badge" :class="statusBadgeClass(r.trangThaiDon)">
+                <td class="text-center status-cell">
+                  <span
+                    class="badge status-badge"
+                    :class="statusBadgeClass(r.trangThaiDon)"
+                  >
                     {{ r.tenTrangThaiDon || labelTrangThai(r.trangThaiDon) }}
                   </span>
                 </td>
@@ -451,21 +454,15 @@ const STATUS = {
   DA_GIAO: 3,
   HOAN_THANH: 4,
   DA_HUY: 5,
-  DA_HOAN: 7,
-
-  // fallback dữ liệu cũ
-  YEU_CAU_HOAN: 6,
 };
 
 const statusOptions = [
   { code: STATUS.CHO_XAC_NHAN, label: "Chờ xác nhận" },
   { code: STATUS.DA_XAC_NHAN, label: "Đã xác nhận" },
-  { code: STATUS.DANG_XU_LY, label: "Đang xử lý" },
   { code: STATUS.DANG_GIAO, label: "Đang giao" },
   { code: STATUS.DA_GIAO, label: "Đã giao" },
   { code: STATUS.HOAN_THANH, label: "Hoàn thành" },
   { code: STATUS.DA_HUY, label: "Đã huỷ" },
-  { code: STATUS.DA_HOAN, label: "Đã hoàn" },
 ];
 // ===== Range tổng tiền (theo mẫu) =====
 const TOTAL_MIN = 0;
@@ -518,10 +515,6 @@ function labelTrangThai(code) {
     [STATUS.DA_GIAO]: "Đã giao",
     [STATUS.HOAN_THANH]: "Hoàn thành",
     [STATUS.DA_HUY]: "Đã huỷ",
-    [STATUS.DA_HOAN]: "Đã hoàn",
-
-    // fallback dữ liệu cũ
-    [STATUS.YEU_CAU_HOAN]: "Yêu cầu hoàn",
   };
 
   return m[Number(code)] ?? "-";
@@ -590,16 +583,8 @@ function statusBadgeClass(code) {
   if (c === STATUS.DA_GIAO) return "text-bg-primary";
   if (c === STATUS.DA_XAC_NHAN) return "text-bg-primary";
   if (c === STATUS.DANG_GIAO) return "text-bg-info";
-
-  if (c === STATUS.DA_HUY || c === STATUS.DA_HOAN) {
-    return "text-bg-secondary";
-  }
-
-  if (
-    c === STATUS.CHO_XAC_NHAN ||
-    c === STATUS.DANG_XU_LY ||
-    c === STATUS.YEU_CAU_HOAN
-  ) {
+  if (c === STATUS.DA_HUY) return "text-bg-secondary";
+  if (c === STATUS.CHO_XAC_NHAN || c === STATUS.DANG_XU_LY) {
     return "text-bg-warning text-dark";
   }
 
@@ -620,13 +605,11 @@ function formatDateVN(isoDateTime) {
   return `${dd}/${mm}/${yyyy}`;
 }
 function getStaffName(row) {
-  if (row?.loaiDon === true) return "System";
-  return row?.tenNhanVien || "-";
+  return row?.tenNhanVien || (row?.loaiDon ? "System" : "-");
 }
 
 function getStaffRole(row) {
-  if (row?.loaiDon === true) return "Hệ thống";
-  return row?.tenChucVu || "-";
+  return row?.tenChucVu || (row?.loaiDon ? "Hệ thống" : "-");
 }
 /** =======================
  * ✅ Flatpickr: dd/mm/yyyy UI - yyyy-MM-dd data
@@ -1584,5 +1567,16 @@ onBeforeUnmount(() => {
   background: #2954b8;
   border-color: #4b6372;
   color: #fff;
+}
+.status-cell {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap;
+}
+
+.status-badge {
+  min-width: 110px;
+  display: inline-block;
+  text-align: center;
 }
 </style>

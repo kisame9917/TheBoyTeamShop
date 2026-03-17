@@ -17,6 +17,7 @@ public class OnlineCheckoutResponse {
     private String bankAccountNo;
     private String transferContent;
     private BigDecimal amount;
+    private String paymentUrl;
 
     public Boolean getSuccess() {
         return success;
@@ -120,5 +121,12 @@ public class OnlineCheckoutResponse {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+    public String getPaymentUrl() {
+        return paymentUrl;
+    }
+
+    public void setPaymentUrl(String paymentUrl) {
+        this.paymentUrl = paymentUrl;
     }
 }

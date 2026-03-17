@@ -158,7 +158,7 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         if ("COD".equals(paymentMethod)) {
             response.setMessage("Đặt hàng thành công");
             response.setPaymentStatus("UNPAID");
-        } else {
+        } else if ("QR".equals(paymentMethod) || "BANK_QR".equals(paymentMethod)) {
             createPendingQrPayment(savedHoaDon, request);
 
             response.setMessage("Tạo đơn hàng QR thành công");
@@ -169,6 +169,32 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             response.setTransferContent("VEST " + savedHoaDon.getMaHoaDon());
             response.setAmount(savedHoaDon.getTongTienSauGiam());
             response.setQrImageUrl("/images/static-qr-techcombank.png");
+        } else if ("VNPAY".equals(paymentMethod) || "MOMO".equals(paymentMethod) || "CARD".equals(paymentMethod)) {
+            createPendingQrPayment(savedHoaDon, request);
+
+            response.setMessage("Tạo đơn hàng thanh toán online thành công");
+            response.setPaymentStatus("PENDING");
+            response.setAmount(savedHoaDon.getTongTienSauGiam());
+            response.setPaymentUrl(
+                    "http://localhost:5173/mock-payment"
+                            + "?orderId=" + savedHoaDon.getId()
+                            + "&method=" + paymentMethod
+                            + "&amount=" + savedHoaDon.getTongTienSauGiam()
+                            + "&maHoaDon=" + savedHoaDon.getMaHoaDon()
+            );
+        } else {
+            createPendingQrPayment(savedHoaDon, request);
+
+            response.setMessage("Tạo đơn hàng thanh toán online thành công");
+            response.setPaymentStatus("PENDING");
+            response.setAmount(savedHoaDon.getTongTienSauGiam());
+            response.setPaymentUrl(
+                    "http://localhost:5173/mock-payment"
+                            + "?orderId=" + savedHoaDon.getId()
+                            + "&method=" + paymentMethod
+                            + "&amount=" + savedHoaDon.getTongTienSauGiam()
+                            + "&maHoaDon=" + savedHoaDon.getMaHoaDon()
+            );
         }
 
         return response;
@@ -437,8 +463,20 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             return "COD";
         }
 
-        if ("QR".equals(value) || "BANK".equals(value) || "BANKING".equals(value)) {
+        if ("QR".equals(value) || "BANK".equals(value) || "BANKING".equals(value) || "BANK_QR".equals(value)) {
             return "QR";
+        }
+
+        if ("VNPAY".equals(value)) {
+            return "VNPAY";
+        }
+
+        if ("MOMO".equals(value)) {
+            return "MOMO";
+        }
+
+        if ("CARD".equals(value) || "CREDIT_CARD".equals(value) || "CARD_CREDIT".equals(value)) {
+            return "CARD";
         }
 
         return value;

@@ -41,7 +41,8 @@ public class ThongKeService {
     // "Xử lý" = tất cả trạng thái chưa kết thúc
     private static final List<Integer> TRANG_THAI_KET_THUC = Arrays.asList(
             TrangThaiDonHang.HOAN_THANH.getCode(),
-            TrangThaiDonHang.DA_HUY.getCode()
+            TrangThaiDonHang.DA_HUY.getCode(),
+            TrangThaiDonHang.DA_HOAN.getCode()
     );
 
     // =========================================================
@@ -71,7 +72,7 @@ public class ThongKeService {
         );
 
         Long sanPhamDaBan = defaultLong(
-                hoaDonChiTietRepository.sumSoldQuantityInRange(from, to, TRANG_THAI_HOAN_THANH)
+                hoaDonChiTietRepository.sumSoldQuantityInRangeV2(from, to, TRANG_THAI_HOAN_THANH)
         );
 
         Long donHang = defaultLong(
@@ -240,8 +241,9 @@ public class ThongKeService {
             case DA_HUY -> "danger";
             case CHO_XAC_NHAN, YEU_CAU_HOAN -> "warning";
             case DANG_XU_LY, DA_HOAN -> "info";
-            case DANG_GIAO -> "primary";
+            case DANG_GIAO, DA_XAC_NHAN -> "primary";
             case DA_GIAO -> "secondary";
+            default -> "secondary";
         };
     }
 

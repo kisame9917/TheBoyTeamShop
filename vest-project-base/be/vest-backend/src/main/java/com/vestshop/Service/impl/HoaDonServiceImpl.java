@@ -413,7 +413,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setTongTienSauGiam(tongTienSauGiam);
 
         if (isShip) {
-            hd.setTrangThaiDon(1); // Đang xử lý
+            hd.setTrangThaiDon(0); // Chờ xác nhận
         } else {
             hd.setTrangThaiDon(4); // Hoàn thành
         }
@@ -642,18 +642,14 @@ public class HoaDonServiceImpl implements HoaDonService {
             TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
             NhanVien nv = hd.getNhanVien();
 
-            String tenNhanVien;
-            String tenChucVu;
+            String tenNhanVien =
+                    (nv == null ? (Boolean.TRUE.equals(hd.getLoaiDon()) ? "System" : null)
+                            : nv.getTenNhanVien());
 
-            if (Boolean.TRUE.equals(hd.getLoaiDon())) {
-                tenNhanVien = "System";
-                tenChucVu = "Hệ thống";
-            } else {
-                tenNhanVien = (nv == null ? null : nv.getTenNhanVien());
-                tenChucVu = (nv == null || nv.getQuyenHan() == null)
-                        ? null
-                        : nv.getQuyenHan().getTenQuyenHan();
-            }
+            String tenChucVu =
+                    (nv == null
+                            ? (Boolean.TRUE.equals(hd.getLoaiDon()) ? "Hệ thống" : null)
+                            : (nv.getQuyenHan() == null ? null : nv.getQuyenHan().getTenQuyenHan()));
 
             return HoaDonListResponse.builder()
                     .id(hd.getId())
@@ -772,21 +768,29 @@ public class HoaDonServiceImpl implements HoaDonService {
         TrangThaiDonHang newSt = TrangThaiDonHang.fromCode(req.getTrangThaiDon());
         TrangThaiDonHang oldSt = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
 
-        if (oldSt == TrangThaiDonHang.DA_HUY) {
-            throw new IllegalArgumentException("Đơn đã huỷ, không thể đổi trạng thái");
+        if (newSt == null) {
+            throw new IllegalArgumentException("Trạng thái mới không hợp lệ");
         }
+        if (oldSt == null) {
+            throw new IllegalArgumentException("Trạng thái hiện tại không hợp lệ");
+        }
+
         if (oldSt == TrangThaiDonHang.DA_HOAN) {
-            throw new IllegalArgumentException("Đơn đã hoàn, không thể đổi trạng thái");
+            throw new IllegalArgumentException("Đơn đã hoàn tiền, không thể đổi trạng thái");
         }
 
-        // CHỈ áp dụng cho đơn online
-        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
-            // online: chỉ khi sang ĐANG_GIAO mới trừ kho
-            if (newSt == TrangThaiDonHang.DANG_GIAO && oldSt != TrangThaiDonHang.DANG_GIAO) {
-                truTonKhoKhiDangGiao(hd);
-            }
+        if (oldSt == TrangThaiDonHang.DA_HUY && newSt != TrangThaiDonHang.DA_HOAN) {
+            throw new IllegalArgumentException("Đơn đã huỷ, chỉ có thể xác nhận hoàn tiền");
+        }
 
-            // online: nếu đã giao/đã trừ kho rồi mà hủy thì hoàn kho
+        // Xác nhận đơn online => check + trừ kho ngay
+        if (isOnlineConfirmTransition(hd, oldSt, newSt)) {
+            truTonKhoKhiXacNhan(hd);
+        }
+
+// Chỉ áp dụng cho đơn online
+        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
+            // Nếu còn logic hủy sau khi đã trừ kho thì hoàn lại
             if (newSt == TrangThaiDonHang.DA_HUY && daTruTonKho(oldSt)) {
                 hoanTonKho(hd);
             }
@@ -807,7 +811,12 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         LichSuHoaDon ls = new LichSuHoaDon();
         ls.setHoaDon(hd);
-        ls.setHanhDong("Cập nhật trạng thái: " + oldSt.getTen() + " -> " + newSt.getTen());
+        ls.setHanhDong(newSt.name());
+        ls.setGhiChu(
+                req.getGhiChu() != null && !req.getGhiChu().isBlank()
+                        ? req.getGhiChu()
+                        : ("Cập nhật trạng thái: " + oldSt.getTen() + " -> " + newSt.getTen())
+        );
         ls.setGhiChu(req.getGhiChu());
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
@@ -818,59 +827,9 @@ public class HoaDonServiceImpl implements HoaDonService {
     @Override
     @Transactional
     public HoaDonDetailResponse hoanHang(Long idHoaDon, HoaDonReturnRequest req) {
-        HoaDon hd = hoaDonRepository.findById(idHoaDon)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
-
-        TrangThaiDonHang stNow = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
-        if (stNow == TrangThaiDonHang.DA_HUY || stNow == TrangThaiDonHang.DA_HOAN) {
-            throw new IllegalArgumentException("Đơn đã huỷ/đã hoàn, không thể hoàn hàng");
-        }
-
-        boolean isOnline = Boolean.TRUE.equals(hd.getLoaiDon());
-
-        // Chỉ hoàn kho khi:
-        // - Đơn tại quầy: luôn hoàn kho
-        // - Đơn online: chỉ hoàn nếu trước đó đã ở trạng thái đã trừ kho
-        boolean needRestock = !isOnline || daTruTonKho(stNow);
-
-        if (needRestock) {
-            List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(idHoaDon);
-
-            Map<Long, Integer> plus = new HashMap<>();
-            for (HoaDonChiTiet ct : cts) {
-                if (ct.getSanPhamChiTiet() == null) continue;
-                plus.merge(ct.getSanPhamChiTiet().getId(), ct.getSoLuong(), Integer::sum);
-            }
-
-            if (!plus.isEmpty()) {
-                List<SanPhamChiTiet> spcts = sanPhamChiTietRepository.findAllById(plus.keySet());
-                for (SanPhamChiTiet spct : spcts) {
-                    Integer add = plus.getOrDefault(spct.getId(), 0);
-                    Integer current = spct.getSoLuongTon() == null ? 0 : spct.getSoLuongTon();
-                    spct.setSoLuongTon(current + add);
-                    spct.setNgayCapNhat(LocalDateTime.now());
-                }
-                sanPhamChiTietRepository.saveAll(spcts);
-            }
-        }
-
-        hd.setTrangThaiDon(TrangThaiDonHang.DA_HOAN.getCode());
-        hd.setNgayCapNhat(LocalDateTime.now());
-
-        NhanVien nv = getCurrentNhanVien();
-        hd.setNhanVien(nv != null ? nv : hd.getNhanVien());
-        hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
-        hoaDonRepository.save(hd);
-
-        LichSuHoaDon ls = new LichSuHoaDon();
-        ls.setHoaDon(hd);
-        ls.setHanhDong("Hoàn hàng");
-        ls.setGhiChu(req == null ? null : req.getLyDo());
-        ls.setThoiGian(LocalDateTime.now());
-        ls.setTrangThai(true);
-        lichSuHoaDonRepository.save(ls);
-
-        return buildDetail(hd);
+        throw new IllegalArgumentException(
+                "Chức năng hoàn đơn đã tắt. Vui lòng huỷ đơn rồi xác nhận hoàn tiền."
+        );
     }
 
     private void createCodPaymentHistoryIfNeeded(HoaDon hd) {
@@ -908,7 +867,90 @@ public class HoaDonServiceImpl implements HoaDonService {
         return Boolean.TRUE.equals(hd.getLoaiDon())
                 && newSt == TrangThaiDonHang.HOAN_THANH;
     }
+    private boolean isOnlineConfirmTransition(HoaDon hd, TrangThaiDonHang oldSt, TrangThaiDonHang newSt) {
+        if (hd == null || !Boolean.TRUE.equals(hd.getLoaiDon())) return false;
+        if (oldSt != TrangThaiDonHang.CHO_XAC_NHAN) return false;
 
+        return newSt == TrangThaiDonHang.DA_XAC_NHAN;
+    }
+
+    private void truTonKhoKhiXacNhan(HoaDon hd) {
+        List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(hd.getId());
+
+        if (cts == null || cts.isEmpty()) {
+            throw new IllegalArgumentException("Hóa đơn chưa có sản phẩm");
+        }
+
+        List<String> errors = new ArrayList<>();
+
+        for (HoaDonChiTiet ct : cts) {
+            SanPhamChiTiet spct = ct.getSanPhamChiTiet();
+            if (spct == null || spct.getId() == null) continue;
+
+            int soLuongDat = ct.getSoLuong() == null ? 0 : ct.getSoLuong();
+            if (soLuongDat <= 0) {
+                throw new IllegalArgumentException("Số lượng sản phẩm không hợp lệ");
+            }
+
+            int updated = sanPhamChiTietRepository.decreaseStock(spct.getId(), soLuongDat);
+
+            if (updated == 0) {
+                SanPhamChiTiet currentSpct = sanPhamChiTietRepository.findById(spct.getId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Không tìm thấy sản phẩm chi tiết id = " + spct.getId()
+                        ));
+
+                int tonKho = currentSpct.getSoLuongTon() == null ? 0 : currentSpct.getSoLuongTon();
+                String maSp = currentSpct.getMaSanPhamChiTiet();
+
+                errors.add(maSp + " đã hết hoặc không đủ tồn (còn " + tonKho + ", cần " + soLuongDat + ")");
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException("Không đủ sản phẩm trong kho: " + String.join("; ", errors));
+        }
+    }
+
+    private BigDecimal getPaidAmount(HoaDon hd) {
+        if (hd == null || hd.getId() == null) return BigDecimal.ZERO;
+
+        return lichSuThanhToanRepository.findAllByHoaDonIdFetchPTTT(hd.getId())
+                .stream()
+                .filter(x -> Boolean.TRUE.equals(x.getTrangThai()))
+                .map(x -> x.getSoTien() == null ? BigDecimal.ZERO : x.getSoTien())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void createRefundPaymentHistory(HoaDon hd, BigDecimal refundAmount, String note) {
+        if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) return;
+
+        List<LichSuThanhToan> histories = lichSuThanhToanRepository.findAllByHoaDonIdFetchPTTT(hd.getId());
+
+        LichSuThanhToan lastPositivePayment = histories.stream()
+                .filter(x -> Boolean.TRUE.equals(x.getTrangThai()))
+                .filter(x -> x.getSoTien() != null && x.getSoTien().compareTo(BigDecimal.ZERO) > 0)
+                .max(Comparator.comparing(LichSuThanhToan::getNgayThanhToan))
+                .orElse(null);
+
+        LichSuThanhToan refund = new LichSuThanhToan();
+        refund.setHoaDon(hd);
+        refund.setMaGiaoDich("REFUND-" + hd.getMaHoaDon() + "-" + System.currentTimeMillis());
+        refund.setSoTien(refundAmount.negate());
+        refund.setNgayThanhToan(LocalDateTime.now());
+
+        if (lastPositivePayment != null) {
+            refund.setPhuongThucThanhToan(lastPositivePayment.getPhuongThucThanhToan());
+            refund.setHinhThucThanhToan(lastPositivePayment.getHinhThucThanhToan());
+        } else {
+            refund.setHinhThucThanhToan("HOAN_TIEN");
+        }
+
+        refund.setGhiChu(note);
+        refund.setTrangThai(true);
+
+        lichSuThanhToanRepository.save(refund);
+    }
     private HoaDonDetailResponse buildDetail(HoaDon hd) {
         List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(hd.getId());
 
@@ -951,16 +993,13 @@ public class HoaDonServiceImpl implements HoaDonService {
         TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
         NhanVien nv = hd.getNhanVien();
 
-        String maNhanVien;
-        String tenNhanVien;
+        String maNhanVien =
+                (nv == null ? (Boolean.TRUE.equals(hd.getLoaiDon()) ? "SYSTEM" : null)
+                        : nv.getMaNhanVien());
 
-        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
-            maNhanVien = "SYSTEM";
-            tenNhanVien = "System";
-        } else {
-            maNhanVien = (nv == null ? null : nv.getMaNhanVien());
-            tenNhanVien = (nv == null ? null : nv.getTenNhanVien());
-        }
+        String tenNhanVien =
+                (nv == null ? (Boolean.TRUE.equals(hd.getLoaiDon()) ? "System" : null)
+                        : nv.getTenNhanVien());
 
         return HoaDonDetailResponse.builder()
                 .id(hd.getId())
@@ -1199,7 +1238,8 @@ public class HoaDonServiceImpl implements HoaDonService {
     }
 
     private boolean daTruTonKho(TrangThaiDonHang st) {
-        return st == TrangThaiDonHang.DANG_GIAO
+        return st == TrangThaiDonHang.DA_XAC_NHAN
+                || st == TrangThaiDonHang.DANG_GIAO
                 || st == TrangThaiDonHang.DA_GIAO
                 || st == TrangThaiDonHang.HOAN_THANH;
     }

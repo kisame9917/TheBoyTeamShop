@@ -1,7 +1,5 @@
-package com.vestshop.common;
-
+package com.vestshop.Entity;
 import java.util.Arrays;
-
 public enum TrangThaiDonHang {
     CHO_XAC_NHAN(0, "Chờ xác nhận"),
     DANG_XU_LY(1, "Đang xử lý"),
@@ -35,6 +33,6 @@ public enum TrangThaiDonHang {
         return Arrays.stream(values())
                 .filter(x -> x.code == code)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("trangThaiDon không hợp lệ: " + code));
+                .orElseThrow(() -> new IllegalArgumentException("Trạng thái không hợp lệ: " + code));
     }
 }
