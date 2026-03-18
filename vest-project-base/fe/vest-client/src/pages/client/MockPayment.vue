@@ -337,14 +337,24 @@ function clearCheckoutCart() {
 }
 
 function buildSuccessUrl() {
+  const successData = {
+    orderId,
+    maHoaDon,
+    customerName: route.query.customerName || route.query.fullName || "",
+    phone: route.query.phone || "",
+    address: route.query.address || "",
+    paymentMethod: method,
+    paymentLabel: gatewayLabel.value,
+    total: amount || 0,
+  };
+
+  sessionStorage.setItem(
+    "checkout_success_data",
+    JSON.stringify(successData)
+  );
+
   const params = new URLSearchParams();
-
   params.set("orderId", orderId);
-  params.set("gateway", method);
-
-  if (amount > 0) {
-    params.set("amount", String(amount));
-  }
 
   return `/checkout/success?${params.toString()}`;
 }

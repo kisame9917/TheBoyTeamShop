@@ -1,31 +1,52 @@
 <template>
   <div class="checkout-success-page">
-    <div class="container py-5">
+    <div class="success-wrapper">
       <div class="success-card">
-        <div class="success-icon">
-          <i class="bi bi-check2-circle"></i>
+        <div class="success-icon-wrap">
+          <div class="success-icon">
+            <i class="bi bi-check2"></i>
+          </div>
         </div>
 
         <h1 class="success-title">Thanh toán thành công</h1>
-
-        <div class="success-desc">
+        <p class="success-desc">
           Đơn hàng của bạn đã được xác nhận thanh toán thành công.
-        </div>
+        </p>
 
-        <div class="success-info">
-          <div class="success-info__row">
+        <div class="success-info-box">
+          <div class="success-info-row">
             <span>Mã đơn hàng</span>
-            <strong>{{ orderId || "-" }}</strong>
+            <strong>{{ displayOrderCode }}</strong>
           </div>
 
-          <div class="success-info__row">
+          <div class="success-info-row">
+            <span>Người nhận</span>
+            <strong>{{ successData.customerName || "-" }}</strong>
+          </div>
+
+          <div class="success-info-row">
+            <span>Số điện thoại</span>
+            <strong>{{ successData.phone || "-" }}</strong>
+          </div>
+
+          <div class="success-info-row">
+  <span>Email</span>
+  <strong>{{ successData.email || "-" }}</strong>
+</div>
+
+          <div class="success-info-row">
+            <span>Địa chỉ giao</span>
+            <strong class="text-end info-address">{{ successData.address || "-" }}</strong>
+          </div>
+
+          <div class="success-info-row">
             <span>Phương thức thanh toán</span>
-            <strong>{{ gatewayLabel }}</strong>
+            <strong>{{ paymentMethodLabel }}</strong>
           </div>
 
-          <div v-if="amount > 0" class="success-info__row">
-            <span>Số tiền</span>
-            <strong>{{ formatCurrency(amount) }}</strong>
+          <div class="success-info-row total-row">
+            <span>Tổng thanh toán</span>
+            <strong class="total-amount">{{ formatCurrency(successData.total) }}</strong>
           </div>
         </div>
 
@@ -34,7 +55,7 @@
             Về trang chủ
           </router-link>
 
-          <router-link to="/tra-cuu-don-hang" class="btn-lookup">
+          <router-link to="/tra-cuu-don-hang" class="btn-detail">
             Tra cứu đơn hàng
           </router-link>
         </div>
@@ -49,110 +70,161 @@ import { useRoute } from "vue-router";
 
 const route = useRoute();
 
-const orderId = computed(() => String(route.query.orderId || ""));
-const amount = computed(() => Number(route.query.amount || 0));
+function getStoredSuccessData() {
+  try {
+    return JSON.parse(sessionStorage.getItem("checkout_success_data") || "{}");
+  } catch {
+    return {};
+  }
+}
 
-const gateway = computed(() => {
-  return String(
-    route.query.gateway ||
-      route.query.paymentMethod ||
-      route.query.method ||
-      ""
-  ).toUpperCase();
+const stored = getStoredSuccessData();
+
+const successData = computed(() => ({
+  orderId: stored.orderId || String(route.query.orderId || ""),
+  maHoaDon: stored.maHoaDon || "",
+  customerName: stored.customerName || "",
+  phone: stored.phone || "",
+  email: stored.email || "",
+  address: stored.address || "",
+  paymentMethod: stored.paymentMethod || "",
+  paymentLabel: stored.paymentLabel || "",
+  total: Number(stored.total || 0),
+}));
+
+const displayOrderCode = computed(() => {
+  return successData.value.maHoaDon || successData.value.orderId || "-";
 });
 
-const gatewayLabel = computed(() => {
-  if (gateway.value === "VNPAY") return "VNPAY";
-  if (gateway.value === "MOMO") return "MoMo";
-  if (gateway.value === "CARD") return "Thẻ tín dụng / ghi nợ";
-  if (gateway.value === "BANK_QR" || gateway.value === "QR") return "Chuyển khoản QR";
-  return "Thanh toán online";
+const paymentMethodLabel = computed(() => {
+  const method = String(successData.value.paymentMethod || "").toLowerCase();
+
+  if (method === "cod") return "COD";
+  if (method === "bank_qr" || method === "qr") return "Chuyển khoản QR";
+  if (method === "vnpay") return "VNPAY";
+  if (method === "momo") return "MoMo";
+  if (method === "card") return "Thẻ tín dụng / ghi nợ";
+
+  return successData.value.paymentLabel || "Thanh toán online";
 });
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(Number(value || 0));
-};
+function formatCurrency(value) {
+  return new Intl.NumberFormat("vi-VN").format(Number(value || 0)) + " đ";
+}
 </script>
 
 <style scoped>
 .checkout-success-page {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #f5f7fc 0%, #eef2ff 100%);
-  display: flex;
-  align-items: center;
+  min-height: calc(100vh - 120px);
+  background: #f4f6fb;
+  padding: 40px 16px 60px;
+}
+
+.success-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .success-card {
-  max-width: 680px;
+  width: 100%;
+  max-width: 560px;
   margin: 0 auto;
   background: #fff;
   border-radius: 24px;
-  padding: 32px 24px;
+  padding: 34px 28px 28px;
   text-align: center;
-  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 36px rgba(10, 24, 74, 0.08);
+}
+
+.success-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
 }
 
 .success-icon {
-  font-size: 64px;
-  color: #16a34a;
-  margin-bottom: 14px;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
 }
 
 .success-title {
-  font-size: 30px;
+  margin: 0;
+  font-size: 28px;
   font-weight: 800;
   color: #0f172a;
-  margin-bottom: 10px;
 }
 
 .success-desc {
+  margin: 12px 0 22px;
   color: #64748b;
-  font-size: 15px;
-  line-height: 1.6;
-  margin-bottom: 24px;
+  font-size: 14px;
 }
 
-.success-info {
+.success-info-box {
   border: 1px solid #e2e8f0;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #f8fafc;
-  padding: 14px 16px;
+  padding: 16px 18px;
   text-align: left;
 }
 
-.success-info__row {
+.success-info-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  font-size: 15px;
   color: #334155;
 }
 
-.success-info__row + .success-info__row {
-  border-top: 1px dashed #dbe2ee;
+.success-info-row + .success-info-row {
+  border-top: 1px solid #e2e8f0;
+}
+
+.success-info-row span {
+  color: #475569;
+}
+
+.success-info-row strong {
+  color: #0f172a;
+  font-weight: 700;
+  text-align: right;
+}
+
+.info-address {
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+.total-row strong {
+  color: #dc2626;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .success-actions {
-  margin-top: 24px;
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
+  margin-top: 22px;
   flex-wrap: wrap;
 }
 
 .btn-home,
-.btn-lookup {
+.btn-detail {
   min-width: 180px;
   height: 46px;
-  padding: 0 18px;
   border-radius: 12px;
-  font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 800;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -161,51 +233,54 @@ const formatCurrency = (value) => {
 }
 
 .btn-home {
-  background: #0f172a;
+  background: #000f51;
   color: #fff;
-  border: 1px solid #0f172a;
+  border: none;
 }
 
 .btn-home:hover {
-  background: #1e293b;
-  border-color: #1e293b;
+  background: #001a72;
   color: #fff;
 }
 
-.btn-lookup {
+.btn-detail {
   background: #fff;
   color: #0f172a;
   border: 1px solid #cbd5e1;
 }
 
-.btn-lookup:hover {
+.btn-detail:hover {
   background: #f8fafc;
   color: #0f172a;
-  border-color: #94a3b8;
 }
 
 @media (max-width: 576px) {
-  .checkout-success-page {
-    align-items: flex-start;
-  }
-
   .success-card {
-    padding: 24px 16px;
-    border-radius: 20px;
+    padding: 26px 16px 20px;
+    border-radius: 18px;
   }
 
   .success-title {
     font-size: 24px;
   }
 
-  .success-info__row {
+  .success-info-row {
     flex-direction: column;
-    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .success-info-row strong {
+    text-align: left;
+  }
+
+  .info-address {
+    max-width: 100%;
   }
 
   .btn-home,
-  .btn-lookup {
+  .btn-detail {
     width: 100%;
+    min-width: 100%;
   }
 }
 </style>

@@ -31,6 +31,7 @@
               <span>1. Địa chỉ giao hàng</span>
             </div>
 
+
             <div class="checkout-card__body">
               <div class="row g-3">
                 <div class="col-12">
@@ -62,6 +63,20 @@
                     {{ errors.phone }}
                   </div>
                 </div>
+                <div class="col-12">
+  <label class="form-label">
+    Email <span class="req">*</span>
+  </label>
+  <input
+    v-model="form.email"
+    type="email"
+    class="form-control input-ui"
+    placeholder="Nhập email"
+  />
+  <div v-if="errors.email" class="text-danger small mt-1">
+    {{ errors.email }}
+  </div>
+</div>
 
                 <div class="col-md-6">
                   <label class="form-label">
@@ -341,10 +356,13 @@
                   <span>Tổng tiền</span>
                   <strong>{{ money(safeSubtotal) }} đ</strong>
                 </div>
-                <div class="sum-line">
-                  <span>Vận chuyển</span>
-                  <strong>{{ money(shippingFee) }} đ</strong>
-                </div>
+               <div class="sum-line shipping-line">
+  <div class="shipping-label">
+    <span>Vận chuyển</span>
+    <img :src="ghnLogo" alt="GHN" class="ship-fee-logo" />
+  </div>
+  <strong>{{ money(shippingFee) }} đ</strong>
+</div>
                 <div class="sum-line" v-if="discount > 0">
   <span>Giảm giá</span>
   <strong>- {{ money(discount) }} đ</strong>
@@ -817,6 +835,7 @@
 import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
+import ghnLogo from "../../assets/ghn.webp.webp";
 
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
@@ -834,6 +853,7 @@ const wardLoading = ref(false);
 const form = reactive({
   fullName: "",
   phone: "",
+  email: "",
   province: "",
   district: "",
   ward: "",
@@ -965,6 +985,7 @@ const qrForm = reactive({
 const errors = reactive({
   fullName: "",
   phone: "",
+    email: "",
   province: "",
   district: "",
   ward: "",
@@ -1064,6 +1085,12 @@ function normalizeKhIds(raw) {
   }
 
   return null;
+}
+function validateEmail(value) {
+  if (!value?.trim()) return "Vui lòng nhập email";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(value.trim())) return "Email không hợp lệ";
+  return "";
 }
 
 function normalizeVoucher(x) {
@@ -1481,6 +1508,7 @@ function validateForm() {
 
   errors.fullName = validateFullName(form.fullName);
   errors.phone = validatePhone(form.phone);
+  errors.email = validateEmail(form.email);
   errors.province = validateProvince(form.province);
   errors.district = validateDistrict(form.district);
   errors.ward = validateWard(form.ward);
@@ -1505,6 +1533,12 @@ watch(
     (v) => {
       errors.phone = validatePhone(v);
     }
+);
+watch(
+  () => form.email,
+  (v) => {
+    errors.email = validateEmail(v);
+  }
 );
 
 watch(
@@ -1573,7 +1607,7 @@ function buildOrderPayload() {
     idKhachHang: null,
     tenKhachHang: form.fullName.trim(),
     soDienThoai: form.phone.trim(),
-    emailKhachHang: "",
+    emailKhachHang: form.email.trim(),
     diaChiKhachHang: `${form.address.trim()}, ${wardName}, ${districtName}, ${provinceName}`,
 
     idPhieuGiamGia: appliedVoucherId.value,
@@ -1688,12 +1722,20 @@ function normalizePaymentUrl(url) {
 function openPaymentGateway() {
   const paymentUrl = normalizePaymentUrl(qrData.paymentUrl);
 
-  if (!paymentUrl) {
+  if (!paymentUrl) { 
     showToast("Không tìm thấy đường dẫn thanh toán", "warning");
     return;
   }
 
-  window.location.href = paymentUrl;
+  router.push(
+    `/mock-payment?orderId=${encodeURIComponent(qrData.orderId || "")}` +
+      `&method=${encodeURIComponent((form.paymentMethod || "").toUpperCase())}` +
+      `&amount=${encodeURIComponent(qrData.amount || safeGrandTotal.value || 0)}` +
+      `&maHoaDon=${encodeURIComponent(qrData.maHoaDon || "")}` +
+      `&customerName=${encodeURIComponent(form.fullName || "")}` +
+      `&phone=${encodeURIComponent(form.phone || "")}` +
+      `&address=${encodeURIComponent(fullDeliveryAddress.value || "")}`
+  );
 }
 
 
@@ -1776,14 +1818,26 @@ async function confirmQrPayment() {
     successMessage.value = qrSuccessMessage.value;
     showSuccessModal.value = true;
 
-    setTimeout(() => {
-      router.push({
-        path: "/checkout/success",
-        query: {
-          orderId: qrData.orderId || "",
-        },
-      });
-    }, 1400);
+    saveCheckoutSuccessData({
+  orderId: qrData.orderId || "",
+  maHoaDon: qrData.maHoaDon || "",
+  customerName: form.fullName?.trim() || "",
+  phone: form.phone?.trim() || "",
+  email: form.email?.trim() || "",
+  address: fullDeliveryAddress.value || "",
+  paymentMethod: form.paymentMethod || "",
+  paymentLabel: selectedPaymentOption.value?.title || "Thanh toán online",
+  total: Number(qrData.amount || safeGrandTotal.value || 0),
+});
+
+setTimeout(() => {
+  router.push({
+    path: "/checkout/success",
+    query: {
+      orderId: qrData.orderId || "",
+    },
+  });
+}, 1400);
   } catch (error) {
     console.error("CONFIRM QR ERROR:", error);
     qrError.value = error.message || "Xác nhận thanh toán thất bại";
@@ -1831,6 +1885,7 @@ async function submitOrder() {
       createdAt: new Date().toLocaleString("vi-VN"),
       customerName: form.fullName?.trim() || "Khách lẻ",
       phone: form.phone?.trim() || "-",
+      email: form.email?.trim() || "",
       address: fullDeliveryAddress.value || "-",
       paymentLabel: selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
       note: form.note?.trim() || "-",
@@ -1855,14 +1910,26 @@ async function submitOrder() {
     showSuccessModal.value = true;
     showToast(successMessage.value, "success");
 
-    setTimeout(() => {
-      router.push({
-        path: "/checkout/success",
-        query: {
-          orderId: data?.orderId || "",
-        },
-      });
-    }, 1400);
+    saveCheckoutSuccessData({
+  orderId: data?.orderId || "",
+  maHoaDon: data?.maHoaDon || data?.orderCode || data?.orderId || "",
+  customerName: form.fullName?.trim() || "",
+  phone: form.phone?.trim() || "",
+  email: form.email?.trim() || "",
+  address: fullDeliveryAddress.value || "",
+  paymentMethod: form.paymentMethod || "cod",
+  paymentLabel: selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
+  total: Number(safeGrandTotal.value || 0),
+});
+
+setTimeout(() => {
+  router.push({
+    path: "/checkout/success",
+    query: {
+      orderId: data?.orderId || "",
+    },
+  });
+}, 1400);
   } catch (error) {
     console.error("CHECKOUT ERROR:", error);
     console.error("CHECKOUT ERROR RAW:", error?.raw);
@@ -1882,6 +1949,22 @@ function closeConfirmModal() {
 
 function closeSuccessModal() {
   showSuccessModal.value = false;
+}
+function saveCheckoutSuccessData(payload = {}) {
+  sessionStorage.setItem(
+    "checkout_success_data",
+    JSON.stringify({
+      orderId: payload.orderId || "",
+      maHoaDon: payload.maHoaDon || "",
+      customerName: payload.customerName || "",
+      phone: payload.phone || "",
+      email: payload.email || "",
+      address: payload.address || "",
+      paymentMethod: payload.paymentMethod || "",
+      paymentLabel: payload.paymentLabel || "",
+      total: Number(payload.total || 0),
+    })
+  );
 }
 
 function onImgError(e) {
@@ -2915,5 +2998,16 @@ async function printInvoice() {
   color: #1d4ed8;
   font-size: 11px;
   font-weight: 800;
+}
+.shipping-line .shipping-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ship-fee-logo {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
 }
 </style>
