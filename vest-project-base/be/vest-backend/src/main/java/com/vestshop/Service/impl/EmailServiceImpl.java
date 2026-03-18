@@ -11,7 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +27,7 @@ public class EmailServiceImpl implements EmailService {
     private static final Locale LOCALE_VI = new Locale("vi", "VN");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private final JavaMailSender mailSender;
+
 
     @Value("${app.mail.enabled:true}")
     private boolean enabled;
@@ -63,6 +65,11 @@ public class EmailServiceImpl implements EmailService {
         String createdAt = formatDate(order.getNgayTao());
         String note = safeText(order.getGhiChu(), "Không có");
         String buyerName = safeText(order.getTenKhachHang(), recipientName);
+        String lookupUrl = "http://localhost:5174/tra-cuu-don-hang"
+                + "?maHoaDon=" + URLEncoder.encode(maHoaDon, StandardCharsets.UTF_8)
+                + "&soDienThoai=" + URLEncoder.encode(receiverPhone, StandardCharsets.UTF_8);
+
+
 
         List<HoaDonDetailResponse.Item> items = order.getItems() == null ? List.of() : order.getItems();
         StringBuilder itemsHtml = new StringBuilder();
@@ -175,14 +182,30 @@ public class EmailServiceImpl implements EmailService {
                     </table>
                   </div>
 
-                  <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:#4b5563;">
-                    Chúng tôi sẽ liên hệ với bạn nếu cần xác nhận thêm thông tin giao hàng.
-                  </p>
-
-                  <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#374151;">
-                    Trân trọng,<br/>
-                    <strong>VestShop Team</strong>
-                  </p>
+                 <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:#4b5563;">
+                           Chúng tôi sẽ liên hệ với bạn nếu cần xác nhận thêm thông tin giao hàng.
+                         </p>
+                
+                         <div style="margin:24px 0 8px;text-align:center;">
+                           <a href="%s"
+                              style="
+                                display:inline-block;
+                                padding:12px 22px;
+                                background:#000f51;
+                                color:#ffffff;
+                                text-decoration:none;
+                                border-radius:10px;
+                                font-weight:700;
+                                font-size:14px;
+                              ">
+                              Tra cứu đơn hàng
+                           </a>
+                         </div>
+                
+                         <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#374151;">
+                           Trân trọng,<br/>
+                           <strong>VestShop Team</strong>
+                         </p>
                 </td>
               </tr>
 
@@ -211,7 +234,8 @@ public class EmailServiceImpl implements EmailService {
                 escapeHtml(formatMoney(order.getTongTien())),
                 escapeHtml(formatMoney(order.getTongTienGiam())),
                 escapeHtml(formatMoney(order.getPhiVanChuyen())),
-                escapeHtml(formatMoney(order.getTongTienSauGiam()))
+                escapeHtml(formatMoney(order.getTongTienSauGiam())),
+                escapeHtml(lookupUrl)
         );
 
         String plain = "Xin chào " + recipientName + "\n\n"
@@ -231,6 +255,7 @@ public class EmailServiceImpl implements EmailService {
                 + "- Giảm giá: - " + formatMoney(order.getTongTienGiam()) + "\n"
                 + "- Phí vận chuyển: " + formatMoney(order.getPhiVanChuyen()) + "\n"
                 + "- Tổng thanh toán: " + formatMoney(order.getTongTienSauGiam()) + "\n\n"
+                + "Tra cứu đơn hàng: " + lookupUrl + "\n\n"
                 + "Trân trọng,\nVestShop Team";
 
         sendRichEmail(toEmail.trim(), subject, plain, html);
