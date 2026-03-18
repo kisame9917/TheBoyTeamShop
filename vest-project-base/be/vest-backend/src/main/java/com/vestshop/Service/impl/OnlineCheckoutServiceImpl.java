@@ -33,7 +33,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Random;
+import com.vestshop.Service.EmailService;
+import com.vestshop.dto.response.HoaDonDetailResponse;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
 
@@ -45,6 +49,7 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
     private final KhachHangRepository khachHangRepository;
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
     private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
+    private final EmailService emailService;
 
     public OnlineCheckoutServiceImpl(HoaDonRepository hoaDonRepository,
                                      HoaDonChiTietRepository hoaDonChiTietRepository,
@@ -53,7 +58,8 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
                                      LichSuThanhToanRepository lichSuThanhToanRepository,
                                      KhachHangRepository khachHangRepository,
                                      PhieuGiamGiaRepository phieuGiamGiaRepository,
-                                     PhuongThucThanhToanRepository phuongThucThanhToanRepository) {
+                                     PhuongThucThanhToanRepository phuongThucThanhToanRepository,
+                                     EmailService emailService) {
         this.hoaDonRepository = hoaDonRepository;
         this.hoaDonChiTietRepository = hoaDonChiTietRepository;
         this.sanPhamChiTietRepository = sanPhamChiTietRepository;
@@ -62,6 +68,7 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         this.khachHangRepository = khachHangRepository;
         this.phieuGiamGiaRepository = phieuGiamGiaRepository;
         this.phuongThucThanhToanRepository = phuongThucThanhToanRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -197,6 +204,9 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             );
         }
 
+        if ("COD".equals(paymentMethod)) {
+            sendOrderConfirmationEmailIfPossible(savedHoaDon);
+        }
         return response;
     }
 
@@ -375,6 +385,7 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
 
         hoaDon.setTrangThaiDon(0);
         hoaDonRepository.save(hoaDon);
+        sendOrderConfirmationEmailIfPossible(hoaDon);
 
         return new ApiMessageResponse(true, "Xác nhận thanh toán QR thành công");
     }
@@ -510,5 +521,100 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
     private String random5Digits() {
         int value = ThreadLocalRandom.current().nextInt(10000, 100000);
         return String.valueOf(value);
+    }
+    private HoaDonDetailResponse buildMailDetail(HoaDon hoaDon) {
+        List<HoaDonDetailResponse.Item> items = hoaDonChiTietRepository
+                .findAllByHoaDon_Id(hoaDon.getId())
+                .stream()
+                .map(ct -> {
+                    SanPhamChiTiet spct = ct.getSanPhamChiTiet();
+
+                    BigDecimal donGia = (spct != null && spct.getDonGia() != null)
+                            ? spct.getDonGia()
+                            : BigDecimal.ZERO;
+
+                    Integer soLuong = ct.getSoLuong() == null ? 0 : ct.getSoLuong();
+                    BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
+
+                    String tenSanPham = (spct != null && spct.getSanPham() != null)
+                            ? spct.getSanPham().getTenSanPham()
+                            : "Sản phẩm";
+
+                    String mauSac = (spct != null && spct.getMauSac() != null)
+                            ? spct.getMauSac().getTen()
+                            : null;
+
+                    String kichCo = (spct != null && spct.getKichCo() != null)
+                            ? spct.getKichCo().getSoSize()
+                            : null;
+
+                    String anh = null;
+                    if (spct != null) {
+                        anh = spct.getMediaPrimary() != null && spct.getMediaPrimary().getSecureUrl() != null
+                                ? spct.getMediaPrimary().getSecureUrl()
+                                : null;
+                    }
+
+                    return HoaDonDetailResponse.Item.builder()
+                            .idSanPhamChiTiet(spct != null ? spct.getId() : null)
+                            .maSanPhamChiTiet(spct != null ? spct.getMaSanPhamChiTiet() : null)
+                            .tenSanPham(tenSanPham)
+                            .mauSac(mauSac)
+                            .kichCo(kichCo)
+                            .soLuong(soLuong)
+                            .donGia(donGia)
+                            .thanhTien(thanhTien)
+                            .anhDaiDien(anh)
+                            .build();
+                })
+                .toList();
+
+        return HoaDonDetailResponse.builder()
+                .id(hoaDon.getId())
+                .maHoaDon(hoaDon.getMaHoaDon())
+                .trangThaiDon(hoaDon.getTrangThaiDon())
+                .tenTrangThaiDon(hoaDon.getTrangThaiDon() != null && hoaDon.getTrangThaiDon() == 0
+                        ? "Chờ xác nhận"
+                        : "Đang xử lý")
+                .loaiDon(hoaDon.getLoaiDon())
+                .phiVanChuyen(defaultBigDecimal(hoaDon.getPhiVanChuyen()))
+                .tongTien(defaultBigDecimal(hoaDon.getTongTien()))
+                .tongTienGiam(defaultBigDecimal(hoaDon.getTongTienGiam()))
+                .tongTienSauGiam(defaultBigDecimal(hoaDon.getTongTienSauGiam()))
+                .tenKhachHang(hoaDon.getTenKhachHang())
+                .soDienThoai(hoaDon.getSoDienThoai())
+                .diaChiKhachHang(hoaDon.getDiaChiKhachHang())
+                .emailKhachHang(hoaDon.getEmailKhachHang())
+                .tenNguoiNhanHang(hoaDon.getTenNguoiNhanHang())
+                .soDienThoaiNhanHang(hoaDon.getSoDienThoaiNhanHang())
+                .tinhThanhNhanHang(hoaDon.getTinhThanhNhanHang())
+                .quanHuyenNhanHang(hoaDon.getQuanHuyenNhanHang())
+                .phuongXaNhanHang(hoaDon.getPhuongXaNhanHang())
+                .diaChiNhanHangChiTiet(hoaDon.getDiaChiNhanHangChiTiet())
+                .ghiChu(hoaDon.getGhiChu())
+                .ngayTao(hoaDon.getNgayTao())
+                .items(items)
+                .build();
+    }
+    private void sendOrderConfirmationEmailIfPossible(HoaDon hoaDon) {
+        String shippingEmail = trim(hoaDon.getEmailKhachHang());
+        if (isBlank(shippingEmail)) return;
+
+        try {
+            HoaDonDetailResponse detail = buildMailDetail(hoaDon);
+
+            String shippingRecipientName = !isBlank(hoaDon.getTenNguoiNhanHang())
+                    ? hoaDon.getTenNguoiNhanHang().trim()
+                    : (!isBlank(hoaDon.getTenKhachHang()) ? hoaDon.getTenKhachHang().trim() : "Quý khách");
+
+            emailService.sendShippingOrderConfirmation(
+                    shippingEmail,
+                    shippingRecipientName,
+                    detail
+            );
+        } catch (Exception ex) {
+            log.warn("[MAIL] Không gửi được email xác nhận đơn online {} tới {}: {}",
+                    hoaDon.getMaHoaDon(), hoaDon.getEmailKhachHang(), ex.getMessage(), ex);
+        }
     }
 }
