@@ -3,10 +3,13 @@ package com.vestshop.Controller;
 import com.vestshop.Entity.KhachHang;
 import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.Service.ClientAuthService;
+import com.vestshop.Service.KhachHangService;
 import com.vestshop.dto.request.ForgotPasswordOtpRequest;
+import com.vestshop.dto.request.KhachHangRequest;
 import com.vestshop.dto.request.LoginRequest;
 import com.vestshop.dto.request.ResetPasswordOtpRequest;
 import com.vestshop.dto.response.ClientLoginResponse;
+import com.vestshop.dto.response.KhachHangResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/client/auth")
@@ -22,27 +24,39 @@ import java.util.Map;
 public class ClientAuthController {
 
     private final ClientAuthService clientAuthService;
-    private final KhachHangRepository khRepo; // ✅ thêm
+    private final KhachHangRepository khRepo;
+    private final KhachHangService khachHangService;
 
     @GetMapping("/google")
     public void googleLogin(HttpServletResponse response) throws IOException {
         response.sendRedirect("/oauth2/authorization/google");
     }
 
-    // ✅ NEW: lấy thông tin khách hàng hiện tại từ JWT
-    @GetMapping("/me")
-    public ResponseEntity<?> me(Authentication authentication) {
-        String taiKhoan = authentication.getName(); // subject trong JWT
+    private KhachHang getCurrentCustomer(Authentication authentication) {
+        String taiKhoan = authentication.getName();
 
-        KhachHang kh = khRepo.findByTaiKhoan(taiKhoan)
+        return khRepo.findByTaiKhoan(taiKhoan)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+    }
 
-        return ResponseEntity.ok(Map.of(
-                "id", kh.getId(),
-                "taiKhoan", kh.getTaiKhoan(),
-                "tenKhachHang", kh.getTenKhachHang(),
-                "email", kh.getEmail()
-        ));
+    @GetMapping("/me")
+    public ResponseEntity<KhachHangResponse> me(Authentication authentication) {
+        KhachHang kh = getCurrentCustomer(authentication);
+        return ResponseEntity.ok(khachHangService.getById(kh.getId()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<KhachHangResponse> updateMe(
+            Authentication authentication,
+            @RequestBody KhachHangRequest request
+    ) {
+        KhachHang kh = getCurrentCustomer(authentication);
+
+        request.setTaiKhoan(null);
+        request.setTrangThai(null);
+        request.setMatKhau(null);
+
+        return ResponseEntity.ok(khachHangService.update(kh.getId(), request));
     }
 
     @PostMapping("/login")
