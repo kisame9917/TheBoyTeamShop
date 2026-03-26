@@ -11,6 +11,7 @@ import MockPaymentPage from "../pages/client/MockPayment.vue";
 
 const CartPage = () => import("../pages/client/CartPage.vue");
 const ContactPage = () => import("../pages/client/ContactPage.vue");
+const ProfilePage = () => import("../pages/client/ProfilePage.vue");
 
 // Pages (auth)
 import Login from "../pages/auth/Login.vue";
@@ -18,13 +19,14 @@ import Login from "../pages/auth/Login.vue";
 // OAuth redirect page
 const OAuth2Redirect = () => import("../pages/OAuth2Redirect.vue");
 
-// Forgot password flow (pages/auth)
+// Forgot password flow
 const ForgotPassword = () => import("../pages/auth/ForgotPassword.vue");
 const OtpVerify = () => import("../pages/auth/OtpVerify.vue");
 const ResetPasswordOtp = () => import("../pages/auth/ResetPasswordOtp.vue");
 
 const CheckoutPage = () => import("../pages/client/CheckoutPage.vue");
 const OrderLookupPage = () => import("../pages/client/OrderLookupPage.vue");
+const CheckoutSuccessPage = () => import("../pages/client/CheckoutSuccessPage.vue");
 
 const routes = [
   {
@@ -36,11 +38,12 @@ const routes = [
       { path: "search", name: "Search", component: SearchPage },
       { path: "cart", name: "Cart", component: CartPage },
       { path: "product/:id", name: "ProductDetail", component: ProductDetail, props: true },
-   { path: "checkout", name: "Checkout", component: CheckoutPage },
-{ path: "checkout/success", name: "CheckoutSuccess", component: () => import("../pages/client/CheckoutSuccessPage.vue") },
+      { path: "checkout", name: "Checkout", component: CheckoutPage },
+      { path: "checkout/success", name: "CheckoutSuccess", component: CheckoutSuccessPage },
+      { path: "ho-so", name: "ClientProfile", component: ProfilePage },
       { path: "contact", name: "Contact", component: ContactPage },
       { path: "tra-cuu-don-hang", name: "OrderLookup", component: OrderLookupPage },
-{ path: "mock-payment", name: "MockPayment", component: MockPaymentPage },
+      { path: "mock-payment", name: "MockPayment", component: MockPaymentPage },
     ],
   },
 

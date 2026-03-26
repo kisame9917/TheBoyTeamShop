@@ -1,4 +1,3 @@
-// src/services/clientApi.js
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
@@ -8,6 +7,20 @@ export const clientApi = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+clientApi.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
+
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 // Catalog - HOME
 export function getHomeProducts(size = 10) {
   return clientApi.get("/api/client/home", { params: { size } });
@@ -15,11 +28,19 @@ export function getHomeProducts(size = 10) {
 
 // Catalog - SEARCH / SHOP
 export function searchClientProducts(params = {}) {
-  // params có thể gồm: q, loaiId, thuongHieuId, fitId, minPrice, maxPrice, page, size, sort...
   return clientApi.get("/api/client/products", { params });
 }
 
 // Catalog - PRODUCT DETAIL
 export function getClientProductDetail(id) {
   return clientApi.get(`/api/client/products/${id}`);
+}
+
+// Profile
+export function getClientProfile() {
+  return clientApi.get("/api/client/auth/me");
+}
+
+export function updateClientProfile(payload) {
+  return clientApi.put("/api/client/auth/me", payload);
 }

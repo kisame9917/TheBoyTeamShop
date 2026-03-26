@@ -46,8 +46,8 @@
               <div v-if="userMenuOpen" class="user-menu">
                 <div class="user-menu-header">{{ userName }}</div>
                 <button class="user-menu-item" type="button" @click="openProfile">
-                  Hồ sơ (demo)
-                </button>
+  Hồ sơ
+</button>
                 <button class="user-menu-item danger" type="button" @click="logout">
                   Đăng xuất
                 </button>
@@ -278,7 +278,7 @@ function toggleUserMenu() {
 
 function openProfile() {
   userMenuOpen.value = false;
-  alert('Hồ sơ (demo) - sau bạn làm trang profile/me nhé.');
+  router.push({ name: 'ClientProfile' });
 }
 
 function logout() {
