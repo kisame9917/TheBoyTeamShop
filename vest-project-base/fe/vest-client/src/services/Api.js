@@ -21,26 +21,30 @@ clientApi.interceptors.request.use((config) => {
   return config;
 });
 
-// Catalog - HOME
 export function getHomeProducts(size = 10) {
   return clientApi.get("/api/client/home", { params: { size } });
 }
 
-// Catalog - SEARCH / SHOP
 export function searchClientProducts(params = {}) {
   return clientApi.get("/api/client/products", { params });
 }
 
-// Catalog - PRODUCT DETAIL
 export function getClientProductDetail(id) {
   return clientApi.get(`/api/client/products/${id}`);
 }
 
-// Profile
 export function getClientProfile() {
   return clientApi.get("/api/client/auth/me");
 }
 
 export function updateClientProfile(payload) {
   return clientApi.put("/api/client/auth/me", payload);
+}
+
+export function getMyOrders() {
+  return clientApi.get("/api/client/orders/my");
+}
+
+export function getMyOrderDetail(id) {
+  return clientApi.get(`/api/client/orders/my/${id}`);
 }

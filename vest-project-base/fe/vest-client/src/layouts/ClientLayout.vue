@@ -42,16 +42,18 @@
                 <span class="user-name">{{ userName }}</span>
                 <i class="bi bi-caret-down-fill caret"></i>
               </button>
-
-              <div v-if="userMenuOpen" class="user-menu">
-                <div class="user-menu-header">{{ userName }}</div>
-                <button class="user-menu-item" type="button" @click="openProfile">
-  Hồ sơ
-</button>
-                <button class="user-menu-item danger" type="button" @click="logout">
-                  Đăng xuất
-                </button>
-              </div>
+<div v-if="userMenuOpen" class="user-menu">
+  <div class="user-menu-header">{{ userName }}</div>
+  <button class="user-menu-item" type="button" @click="openProfile">
+    Hồ sơ
+  </button>
+  <button class="user-menu-item" type="button" @click="openMyOrders">
+    Đơn hàng của tôi
+  </button>
+  <button class="user-menu-item danger" type="button" @click="logout">
+    Đăng xuất
+  </button>
+</div>
             </div>
 
             <router-link v-else to="/login" class="text-white" aria-label="Tài khoản">
@@ -279,6 +281,10 @@ function toggleUserMenu() {
 function openProfile() {
   userMenuOpen.value = false;
   router.push({ name: 'ClientProfile' });
+}
+function openMyOrders() {
+  userMenuOpen.value = false;
+  router.push({ name: "MyOrders" });
 }
 
 function logout() {
