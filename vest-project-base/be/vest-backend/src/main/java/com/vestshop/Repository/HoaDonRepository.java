@@ -186,4 +186,8 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     """)
     List<Long> findIdsPendingOlderThan(@Param("status") Integer status,
                                        @Param("cutoff") LocalDateTime cutoff);
+
+    List<HoaDon> findAllByKhachHang_IdAndLoaiDonTrueOrderByNgayTaoDesc(Long khachHangId);
+
+    Optional<HoaDon> findByIdAndKhachHang_IdAndLoaiDonTrue(Long id, Long khachHangId);
 }

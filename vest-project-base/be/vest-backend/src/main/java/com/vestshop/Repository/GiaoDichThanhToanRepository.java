@@ -16,6 +16,14 @@ public interface GiaoDichThanhToanRepository extends JpaRepository<GiaoDichThanh
 
     Optional<GiaoDichThanhToan> findFirstByHoaDon_IdOrderByIdDesc(Long hoaDonId);
 
+    @Query("""
+    select g
+    from GiaoDichThanhToan g
+    left join fetch g.phuongThucThanhToan
+    where g.hoaDon.id = :hoaDonId
+    order by g.id desc
+""")
+    List<GiaoDichThanhToan> findLatestWithPaymentMethod(@Param("hoaDonId") Long hoaDonId);
     /**
      * Tính doanh thu TIỀN MẶT theo thời gian tạo hóa đơn (hoa_don.ngay_tao)
      * - Chỉ tính các hóa đơn trạng thái hoàn thành (trangThaiDon = status)
