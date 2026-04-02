@@ -36,7 +36,7 @@ import java.util.Random;
 import com.vestshop.Service.EmailService;
 import com.vestshop.dto.response.HoaDonDetailResponse;
 import lombok.extern.slf4j.Slf4j;
-
+import org.springframework.security.core.Authentication;
 @Slf4j
 @Service
 public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
@@ -73,16 +73,12 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
 
     @Override
     @Transactional
-    public OnlineCheckoutResponse checkout(OnlineCheckoutRequest request) {
+    public OnlineCheckoutResponse checkout(OnlineCheckoutRequest request, Authentication authentication) {
         validateRequest(request);
 
         String paymentMethod = normalizePaymentMethod(request.getPaymentMethod());
 
-        KhachHang khachHang = null;
-        if (request.getIdKhachHang() != null) {
-            khachHang = khachHangRepository.findById(request.getIdKhachHang())
-                    .orElseThrow(() -> new BadRequestException("Không tìm thấy khách hàng"));
-        }
+        KhachHang khachHang = resolveCheckoutCustomer(authentication, request);
 
         PhieuGiamGia phieuGiamGia = null;
         if (request.getIdPhieuGiamGia() != null) {
@@ -616,5 +612,25 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             log.warn("[MAIL] Không gửi được email xác nhận đơn online {} tới {}: {}",
                     hoaDon.getMaHoaDon(), hoaDon.getEmailKhachHang(), ex.getMessage(), ex);
         }
+    }
+    private KhachHang resolveCheckoutCustomer(Authentication authentication, OnlineCheckoutRequest request) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getName() != null
+                && !"anonymousUser".equalsIgnoreCase(authentication.getName())) {
+
+            String principal = authentication.getName().trim();
+
+            return khachHangRepository.findByTaiKhoanIgnoreCase(principal)
+                    .or(() -> khachHangRepository.findByEmailIgnoreCase(principal))
+                    .orElseThrow(() -> new BadRequestException("Không tìm thấy khách hàng từ phiên đăng nhập"));
+        }
+
+        if (request.getIdKhachHang() != null) {
+            return khachHangRepository.findById(request.getIdKhachHang())
+                    .orElseThrow(() -> new BadRequestException("Không tìm thấy khách hàng"));
+        }
+
+        return null;
     }
 }

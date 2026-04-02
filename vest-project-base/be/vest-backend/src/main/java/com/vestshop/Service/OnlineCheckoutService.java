@@ -8,7 +8,8 @@ import com.vestshop.dto.response.OnlineOrderLookupResponse;
 
 public interface OnlineCheckoutService {
 
-    OnlineCheckoutResponse checkout(OnlineCheckoutRequest request);
+    OnlineCheckoutResponse checkout(OnlineCheckoutRequest request,
+                                    org.springframework.security.core.Authentication authentication);
 
     ApiMessageResponse confirmQrPayment(Long orderId, ConfirmPaymentRequest request);
 

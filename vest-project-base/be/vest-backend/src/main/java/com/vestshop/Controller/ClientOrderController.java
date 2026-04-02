@@ -18,6 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import com.vestshop.Service.ClientOrderMutationService;
+import com.vestshop.dto.request.ClientOrderCancelRequest;
+import com.vestshop.dto.request.ClientOrderUpdateShippingRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,6 +35,7 @@ public class ClientOrderController {
     private final HoaDonRepository hoaDonRepository;
     private final HoaDonChiTietRepository hoaDonChiTietRepository;
     private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
+    private final ClientOrderMutationService clientOrderMutationService;
 
     @GetMapping("/my")
     public ResponseEntity<List<ClientMyOrderSummaryResponse>> myOrders(Authentication authentication) {
@@ -58,6 +62,33 @@ public class ClientOrderController {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
 
         return ResponseEntity.ok(toDetail(hoaDon));
+    }
+    @PostMapping("/my/{id}/cancel")
+    @Transactional
+    public ResponseEntity<OnlineOrderLookupResponse> cancelMyOrder(@PathVariable Long id,
+                                                                   @RequestBody ClientOrderCancelRequest request,
+                                                                   Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập");
+        }
+
+        return ResponseEntity.ok(
+                clientOrderMutationService.cancelMyOrder(id, authentication.getName(), request)
+        );
+    }
+
+    @PatchMapping("/my/{id}/shipping-info")
+    @Transactional
+    public ResponseEntity<OnlineOrderLookupResponse> updateMyOrderShipping(@PathVariable Long id,
+                                                                           @RequestBody ClientOrderUpdateShippingRequest request,
+                                                                           Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập");
+        }
+
+        return ResponseEntity.ok(
+                clientOrderMutationService.updateMyOrderShipping(id, authentication.getName(), request)
+        );
     }
 
     private KhachHang getCurrentCustomer(Authentication authentication) {

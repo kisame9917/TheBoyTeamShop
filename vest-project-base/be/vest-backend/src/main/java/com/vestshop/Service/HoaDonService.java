@@ -41,4 +41,5 @@ public interface HoaDonService {
     void cancelDraft(Long hoaDonId, CancelDraftRequest req);
     List<HoaDonDetailResponse> getPosDrafts();
     HoaDonDetailResponse syncPosDraft(Long hoaDonId, PosDraftSyncRequest req);
+    HoaDonDetailResponse confirmRefund(Long hoaDonId, RefundConfirmRequest request);
 }

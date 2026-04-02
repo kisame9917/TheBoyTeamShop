@@ -11,7 +11,8 @@ public enum TrangThaiDonHang {
     DA_HUY(5, "Đã huỷ"),
     YEU_CAU_HOAN(6, "Yêu cầu hoàn"),
     DA_HOAN(7, "Đã hoàn tiền"),
-    DA_XAC_NHAN(8, "Đã xác nhận");
+    DA_XAC_NHAN(8, "Đã xác nhận"),
+    YEU_CAU_HUY(9, "Yêu cầu hủy");
 
     private final int code;
     private final String ten;

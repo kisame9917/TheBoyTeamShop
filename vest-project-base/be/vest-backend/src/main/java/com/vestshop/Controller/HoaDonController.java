@@ -123,4 +123,10 @@ public class HoaDonController {
     ) {
         return ResponseEntity.ok(hoaDonService.syncPosDraft(id, req));
     }
+
+    @PostMapping("/{id}/xac-nhan-hoan-tien")
+    public ResponseEntity<HoaDonDetailResponse> confirmRefund(@PathVariable Long id,
+                                                              @RequestBody RefundConfirmRequest request) {
+        return ResponseEntity.ok(hoaDonService.confirmRefund(id, request));
+    }
 }

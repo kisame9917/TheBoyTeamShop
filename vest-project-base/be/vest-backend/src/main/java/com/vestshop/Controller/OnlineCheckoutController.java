@@ -20,8 +20,9 @@ public class OnlineCheckoutController {
     }
 
     @PostMapping
-    public ResponseEntity<OnlineCheckoutResponse> checkout(@RequestBody OnlineCheckoutRequest request) {
-        return ResponseEntity.ok(onlineCheckoutService.checkout(request));
+    public ResponseEntity<OnlineCheckoutResponse> checkout(@RequestBody OnlineCheckoutRequest request,
+                                                           org.springframework.security.core.Authentication authentication) {
+        return ResponseEntity.ok(onlineCheckoutService.checkout(request, authentication));
     }
 
     @PostMapping("/{orderId}/confirm-payment")
