@@ -40,3 +40,52 @@ http.interceptors.response.use(
 )
 
 export default http
+
+
+export async function adminChangeOrderStatus(orderId, payload) {
+  const token =
+    localStorage.getItem("ADMIN_ACCESS_TOKEN") ||
+    sessionStorage.getItem("ADMIN_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
+
+  const res = await fetch(`http://localhost:8080/api/hoa-don/${orderId}/change-status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Cập nhật trạng thái thất bại");
+  }
+
+  return data;
+}
+
+export async function adminConfirmRefund(orderId, payload) {
+  const token =
+    localStorage.getItem("ADMIN_ACCESS_TOKEN") ||
+    sessionStorage.getItem("ADMIN_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
+
+  const res = await fetch(`http://localhost:8080/api/hoa-don/${orderId}/xac-nhan-hoan-tien`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload || {}),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Xác nhận hoàn tiền thất bại");
+  }
+
+  return data;
+}

@@ -845,7 +845,8 @@ const PROVINCE_API_BASE = "https://provinces.open-api.vn/api/v1";
 const provinces = ref([]);
 const districts = ref([]);
 const wards = ref([]);
-
+const vestUser = JSON.parse(localStorage.getItem("vest_user") || "null");
+const currentCustomerId = Number(vestUser?.id || 0) || null;
 const provinceLoading = ref(false);
 const districtLoading = ref(false);
 const wardLoading = ref(false);
@@ -1604,7 +1605,7 @@ function buildOrderPayload() {
     loaiDon: true,
     phiVanChuyen: calculatedShippingFee,
 
-    idKhachHang: null,
+    idKhachHang: currentCustomerId,
     tenKhachHang: form.fullName.trim(),
     soDienThoai: form.phone.trim(),
     emailKhachHang: form.email.trim(),
@@ -1640,13 +1641,19 @@ paymentMethod:
 }
 
 async function checkoutApi(payload) {
-  const response = await fetch("http://localhost:8080/api/online-checkout", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const token =
+  localStorage.getItem("USER_ACCESS_TOKEN") ||
+  sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+  localStorage.getItem("vest_token");
+
+const response = await fetch("http://localhost:8080/api/online-checkout", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  },
+  body: JSON.stringify(payload),
+});
 
   const data = await response.json().catch(() => ({}));
 

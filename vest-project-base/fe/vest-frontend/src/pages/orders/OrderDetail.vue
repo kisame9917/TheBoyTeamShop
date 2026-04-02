@@ -70,6 +70,35 @@
           <i class="bi bi-x-circle me-1"></i> Huỷ đơn
         </button>
       </div>
+      <button
+  v-if="canApproveCancel"
+  type="button"
+  class="btn btn-danger btn-sm"
+  @click="openApproveCancelModal"
+>
+  <i class="bi bi-check2-circle me-1"></i>
+  Xác nhận hủy
+</button>
+
+<button
+  v-if="canRejectCancel"
+  type="button"
+  class="btn btn-outline-secondary btn-sm"
+  @click="openRejectCancelModal"
+>
+  <i class="bi bi-arrow-counterclockwise me-1"></i>
+  Từ chối hủy
+</button>
+
+<button
+  v-if="canConfirmRefund"
+  type="button"
+  class="btn btn-warning btn-sm"
+  @click="openRefundModal"
+>
+  <i class="bi bi-cash-coin me-1"></i>
+  Xác nhận hoàn tiền
+</button>
 
       <div class="d-flex gap-2">
         <button
@@ -740,8 +769,10 @@ const props = defineProps({
 });
 const router = useRouter();
 const route = useRoute();
-
+const refundAmount = ref(0);
+const refundNote = ref("");
 const hd = ref(null);
+const confirmActionType = ref("status");
 
 const STATUS = {
   CHO_XAC_NHAN: 0,
@@ -751,6 +782,8 @@ const STATUS = {
   DA_GIAO: 3,
   HOAN_THANH: 4,
   DA_HUY: 5,
+   DA_HOAN: 7,
+  YEU_CAU_HUY: 9,
 };
 function statusLabel(code) {
   if (code === null || code === undefined || code === "") return "-";
@@ -763,6 +796,8 @@ function statusLabel(code) {
     [STATUS.DA_GIAO]: "Đã giao",
     [STATUS.HOAN_THANH]: "Hoàn thành",
     [STATUS.DA_HUY]: "Đã huỷ",
+    [STATUS.DA_HOAN]: "Đã hoàn tiền",
+[STATUS.YEU_CAU_HUY]: "Yêu cầu hủy",
   };
 
   return m[Number(code)] ?? "-";
@@ -785,6 +820,10 @@ function statusBadgeClass(code) {
       return "text-bg-warning text-dark";
     case STATUS.CHO_XAC_NHAN:
       return "text-bg-secondary";
+      case STATUS.YEU_CAU_HUY:
+  return "text-bg-warning text-dark";
+case STATUS.DA_HOAN:
+  return "text-bg-success";
     case STATUS.DA_HUY:
       return "text-bg-dark";
     default:
@@ -1016,6 +1055,20 @@ const advanceBtnText = computed(() => {
 
 const canCancel = computed(() => currentStatus.value === STATUS.CHO_XAC_NHAN);
 
+const canApproveCancel = computed(
+  () => currentStatus.value === STATUS.YEU_CAU_HUY
+);
+
+const canRejectCancel = computed(
+  () => currentStatus.value === STATUS.YEU_CAU_HUY
+);
+
+const canConfirmRefund = computed(() => {
+  if (currentStatus.value !== STATUS.DA_HUY) return false;
+
+  const lichSu = hd.value?.lichSuThanhToan || [];
+  return lichSu.some((x) => Number(x?.soTien || 0) > 0);
+});
 /** ===== STEPPER ===== */
 const fullStepper = computed(() => {
   if (!isShipOrder.value) {
@@ -1051,6 +1104,26 @@ const actionToStepCode = (hanhDong) => {
   };
   return m[hanhDong];
 };
+
+function openApproveCancelModal() {
+  openConfirmActionModal({
+    title: "Xác nhận hủy đơn",
+    desc: "Đơn sẽ chuyển sang trạng thái 'Đã hủy'.",
+    targetStatus: STATUS.DA_HUY,
+    note: "Admin xác nhận hủy đơn theo yêu cầu khách hàng",
+    actionType: "status",
+  });
+}
+
+function openRejectCancelModal() {
+  openConfirmActionModal({
+    title: "Từ chối yêu cầu hủy",
+    desc: "Đơn sẽ quay lại trạng thái 'Chờ xác nhận'.",
+    targetStatus: STATUS.CHO_XAC_NHAN,
+    note: "Admin từ chối yêu cầu hủy đơn",
+    actionType: "status",
+  });
+}
 
 const currentStepCode = computed(() => {
   const st = Number(hd.value?.trangThaiDon ?? -1);
@@ -1139,13 +1212,14 @@ const confirmTitle = ref("Xác nhận");
 const confirmDesc = ref("");
 const confirmTargetStatus = ref(null);
 const confirmNote = ref("");
-function openConfirmActionModal({ title, desc, targetStatus, note }) {
+function openConfirmActionModal({ title, desc, targetStatus, note, actionType = "status" }) {
   if (!hd.value) return;
 
   confirmTitle.value = title;
   confirmDesc.value = desc;
   confirmTargetStatus.value = targetStatus;
   confirmNote.value = note || "";
+  confirmActionType.value = actionType;
 
   const el = confirmActionModalRef.value;
   if (!el) return;
@@ -1187,10 +1261,17 @@ async function confirmDoAction() {
   try {
     closeConfirmActionModal();
 
-    await hoaDonApi.changeStatus(props.id, {
-      trangThaiDon: confirmTargetStatus.value,
-      ghiChu: confirmNote.value?.trim() || "Cập nhật trạng thái",
-    });
+    if (confirmActionType.value === "refund") {
+      await hoaDonApi.confirmRefund(props.id, {
+        soTienHoan: refundAmount.value,
+        ghiChu: confirmNote.value?.trim() || "Admin xác nhận hoàn tiền",
+      });
+    } else {
+      await hoaDonApi.changeStatus(props.id, {
+        trangThaiDon: confirmTargetStatus.value,
+        ghiChu: confirmNote.value?.trim() || "Cập nhật trạng thái",
+      });
+    }
 
     await fetchDetail();
     showToast("Cập nhật trạng thái thành công!");
@@ -1213,6 +1294,7 @@ function openConfirmAdvanceModal() {
     desc: "Hành động này sẽ cập nhật trạng thái và ghi lịch sử hóa đơn.",
     targetStatus: ns,
     note: `Chuyển trạng thái: ${statusLabel(currentStatus.value)} -> ${statusLabel(ns)}`,
+    actionType: "status",
   });
 }
 
@@ -1222,6 +1304,7 @@ function openConfirmCancelModal() {
     desc: "Đơn sẽ chuyển sang trạng thái 'Đã huỷ'. Hãy chắc chắn trước khi thực hiện.",
     targetStatus: STATUS.DA_HUY,
     note: "Huỷ đơn",
+    actionType: "status",
   });
 }
 
@@ -1275,6 +1358,10 @@ function mapHistoryToStatusLabel(hanhDong) {
     DA_GIAO: "Đã giao",
     HOAN_THANH: "Hoàn thành",
     DA_HUY: "Đã huỷ",
+    YEU_CAU_HUY: "Yêu cầu hủy",
+DA_HOAN: "Đã hoàn tiền",
+XAC_NHAN_HOAN_TIEN: "Đã hoàn tiền",
+KHACH_HANG_YEU_CAU_HUY_DON: "Yêu cầu hủy",
   };
 
   return m[hanhDong] || hanhDong;
@@ -1401,6 +1488,19 @@ function printInvoice() {
   w.print();
 
   showToast("Đã mở cửa sổ in / lưu PDF!");
+}
+
+function openRefundModal() {
+  refundAmount.value = Number(hd.value?.tongTienSauGiam || 0);
+  refundNote.value = "Admin xác nhận hoàn tiền cho khách";
+
+  openConfirmActionModal({
+    title: "Xác nhận hoàn tiền",
+    desc: `Xác nhận hoàn tiền ${formatCurrency(refundAmount.value)} cho khách hàng.`,
+    targetStatus: null,
+    note: refundNote.value,
+    actionType: "refund",
+  });
 }
 /** Toast */
 const toastRef = ref(null);

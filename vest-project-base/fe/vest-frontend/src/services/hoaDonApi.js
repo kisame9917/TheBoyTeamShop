@@ -59,6 +59,10 @@ export default {
     return http.post(`${BASE}/draft/${id}/cancel`, payload);
   },
 
+  confirmRefund(id, body) {
+  return http.post(`${BASE}/${id}/xac-nhan-hoan-tien`, body);
+},
+
   // (tuỳ chọn) nếu bạn vẫn muốn giữ createPos
   // createPos(payload) {
   //   return http.post(`${BASE}/pos`, payload);

@@ -454,6 +454,8 @@ const STATUS = {
   DA_GIAO: 3,
   HOAN_THANH: 4,
   DA_HUY: 5,
+  YEU_CAU_HUY: 9,
+DA_HOAN: 7,
 };
 
 const statusOptions = [
@@ -463,6 +465,8 @@ const statusOptions = [
   { code: STATUS.DA_GIAO, label: "Đã giao" },
   { code: STATUS.HOAN_THANH, label: "Hoàn thành" },
   { code: STATUS.DA_HUY, label: "Đã huỷ" },
+  { code: STATUS.YEU_CAU_HUY, label: "Yêu cầu hủy" },
+{ code: STATUS.DA_HOAN, label: "Đã hoàn tiền" },
 ];
 // ===== Range tổng tiền (theo mẫu) =====
 const TOTAL_MIN = 0;
@@ -515,6 +519,8 @@ function labelTrangThai(code) {
     [STATUS.DA_GIAO]: "Đã giao",
     [STATUS.HOAN_THANH]: "Hoàn thành",
     [STATUS.DA_HUY]: "Đã huỷ",
+    [STATUS.YEU_CAU_HUY]: "Yêu cầu hủy",
+[STATUS.DA_HOAN]: "Đã hoàn tiền",
   };
 
   return m[Number(code)] ?? "-";
@@ -584,9 +590,13 @@ function statusBadgeClass(code) {
   if (c === STATUS.DA_XAC_NHAN) return "text-bg-primary";
   if (c === STATUS.DANG_GIAO) return "text-bg-info";
   if (c === STATUS.DA_HUY) return "text-bg-secondary";
+  if (c === STATUS.DA_HOAN) return "text-bg-success";
+  if (c === STATUS.YEU_CAU_HUY) return "text-bg-warning text-dark";
   if (c === STATUS.CHO_XAC_NHAN || c === STATUS.DANG_XU_LY) {
     return "text-bg-warning text-dark";
   }
+  
+  
 
   return "text-bg-secondary";
 }

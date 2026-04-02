@@ -48,3 +48,27 @@ export function getMyOrders() {
 export function getMyOrderDetail(id) {
   return clientApi.get(`/api/client/orders/my/${id}`);
 }
+
+export async function cancelMyOrder(orderId, payload) {
+  const token =
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
+
+  const res = await fetch(`http://localhost:8080/api/client/orders/my/${orderId}/cancel`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload || {}),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Hủy đơn thất bại");
+  }
+
+  return data;
+}
