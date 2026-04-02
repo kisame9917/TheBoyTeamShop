@@ -19,6 +19,7 @@ import com.vestshop.dto.response.ConversationSummaryResponse;
 import org.springframework.stereotype.Service;
 import com.vestshop.Service.NotificationRealtimeService;
 import com.vestshop.dto.response.NotificationEventResponse;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.text.Normalizer;
@@ -76,6 +77,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    @Transactional
     public List<ChatSaveResult> saveMessage(Long conversationId, String senderType, String senderId, String content) {
         List<ChatSaveResult> result = new ArrayList<>();
 
