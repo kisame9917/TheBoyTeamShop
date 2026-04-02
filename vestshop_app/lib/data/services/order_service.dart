@@ -25,4 +25,8 @@ class OrderService {
 
     return result;
   }
+  Future<OrderModel> getOrderDetail(int orderId) async {
+  final data = await apiClient.get('/hoa-don/$orderId');
+  return OrderModel.fromJson(Map<String, dynamic>.from(data));
+}
 }

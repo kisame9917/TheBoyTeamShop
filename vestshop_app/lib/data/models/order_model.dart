@@ -1,3 +1,6 @@
+import 'payment_transaction_model.dart';
+
+
 class OrderItemModel {
   final int? idSanPhamChiTiet;
   final String? maSanPhamChiTiet;
@@ -48,6 +51,8 @@ class OrderModel {
   final double phiVanChuyen;
   final int? idPhieuGiamGia;
   final List<OrderItemModel> items;
+  final String? qrCode;
+  final List<PaymentTransactionModel> giaoDichThanhToan;
 
   OrderModel({
     required this.id,
@@ -61,6 +66,8 @@ class OrderModel {
     required this.phiVanChuyen,
     required this.idPhieuGiamGia,
     required this.items,
+    required this.qrCode,
+    required this.giaoDichThanhToan,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -76,7 +83,15 @@ class OrderModel {
             .map((e) => OrderItemModel.fromJson(Map<String, dynamic>.from(e)))
             .toList()
         : <OrderItemModel>[];
+    final rawTransactions = json['giaoDichThanhToan'] ?? [];
 
+    final parsedTransactions = rawTransactions is List
+    ? rawTransactions
+        .map((e) => PaymentTransactionModel.fromJson(
+              Map<String, dynamic>.from(e),
+            ))
+        .toList()
+    : <PaymentTransactionModel>[];
     return OrderModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       maHoaDon: json['maHoaDon']?.toString() ?? '',
@@ -89,6 +104,8 @@ class OrderModel {
       phiVanChuyen: (json['phiVanChuyen'] as num?)?.toDouble() ?? 0,
       idPhieuGiamGia: (json['idPhieuGiamGia'] as num?)?.toInt(),
       items: parsedItems,
+      qrCode: json['qrCode']?.toString(),
+      giaoDichThanhToan: parsedTransactions,
     );
   }
 }

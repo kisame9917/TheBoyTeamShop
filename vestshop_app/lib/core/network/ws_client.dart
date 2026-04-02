@@ -16,28 +16,25 @@ class WsClient {
     final normalizedUrl = url.replaceAll('#', '');
     debugPrint('WS connecting to: $normalizedUrl');
 
-    _client = StompClient(
-      config: StompConfig.sockJS(
+   _client = StompClient(
+      config: StompConfig(
         url: normalizedUrl,
         reconnectDelay: const Duration(seconds: 5),
-        heartbeatOutgoing: const Duration(seconds: 10),
-        heartbeatIncoming: const Duration(seconds: 10),
         onConnect: (frame) {
           _isConnected = true;
           debugPrint('WS connected');
           onConnect(frame);
         },
-        onDisconnect: (frame) {
+        onWebSocketError: (e) {
+          _isConnected = false;
+          debugPrint('WebSocket error: $e');
+        },
+        onStompError: (f) {
+          debugPrint('STOMP error: ${f.body}');
+        },
+        onDisconnect: (_) {
           _isConnected = false;
           debugPrint('WS disconnected');
-        },
-        onWebSocketError: (dynamic error) {
-          _isConnected = false;
-          debugPrint('WebSocket error: $error');
-        },
-        onStompError: (frame) {
-          _isConnected = false;
-          debugPrint('STOMP error: ${frame.body}');
         },
         onWebSocketDone: () {
           _isConnected = false;
@@ -48,6 +45,7 @@ class WsClient {
 
     _client!.activate();
   }
+
 
   void subscribe({
     required String destination,
