@@ -798,58 +798,180 @@ function downloadCsv() {
 /** 1) Chuẩn hoá tên màu: bỏ dấu, bỏ ngoặc, chuẩn hoá khoảng trắng */
 function normalizeColorName(name) {
   return String(name || '')
-      .trim()
-      .toLowerCase()
-      .replace(/đ/g, 'd')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\(.*?\)/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\(.*?\)/g, '')
+    .replace(/_/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 const COLOR_MAP = {
+  // trung tính
   den: '#111827',
+  black: '#111827',
+  charcoal: '#1f2937',
+  than: '#374151',
+
   trang: '#ffffff',
+  white: '#ffffff',
+  sua: '#fffdfa',
+  ivory: '#fffff0',
+  kem: '#fff7ed',
+  cream: '#fff7ed',
+  be: '#f5f5dc',
+  beige: '#f5f5dc',
+  nude: '#eec9a5',
+
   xam: '#9ca3af',
   ghi: '#9ca3af',
+  gray: '#9ca3af',
+  grey: '#9ca3af',
+  'xam dam': '#6b7280',
+  'ghi dam': '#6b7280',
+  'xam nhat': '#d1d5db',
+  'ghi nhat': '#d1d5db',
+
+  bac: '#c0c0c0',
+  silver: '#c0c0c0',
+
+  // đỏ / hồng / tím
   do: '#ef4444',
-  vang: '#f59e0b',
-  cam: '#f97316',
+  red: '#ef4444',
+  'do tuoi': '#ff3b30',
+  'do do': '#b91c1c',
+  'do dam': '#b91c1c',
+  burgundy: '#800020',
+  bordo: '#800020',
+  maroon: '#800000',
+  wine: '#722f37',
+  'do ruou': '#722f37',
+
   hong: '#ec4899',
-  tim: '#a855f7',
-  nau: '#92400e',
-  be: '#f5f5dc',
-  kem: '#fff7ed',
-  'xanh la': '#22c55e',
-  'xanh luc': '#16a34a',
-  'xanh ngoc': '#14b8a6',
+  pink: '#ec4899',
+  'hong nhat': '#f9a8d4',
+  rose: '#f43f5e',
+  'hong sen': '#db2777',
+  magenta: '#ff00ff',
+  fuchsia: '#ff00ff',
+
+  tim: '#8b5cf6',
+  purple: '#8b5cf6',
+  violet: '#7c3aed',
+  lavender: '#c4b5fd',
+  lilac: '#c8a2c8',
+
+  // vàng / cam / nâu
+  vang: '#eab308',
+  yellow: '#eab308',
+  gold: '#d4af37',
+  golden: '#d4af37',
+  mustard: '#d97706',
+  'vang chanh': '#facc15',
+
+  cam: '#f97316',
+  orange: '#f97316',
+  coral: '#fb7185',
+  peach: '#fdba74',
+
+  nau: '#8b5e3c',
+  brown: '#8b5e3c',
+  chocolate: '#7b3f00',
+  coffee: '#6f4e37',
+  cafe: '#6f4e37',
+  caramel: '#b45309',
+  mocha: '#7c5a43',
+
+  // xanh dương
+  xanh: '#3b82f6',
+  blue: '#3b82f6',
   'xanh duong': '#3b82f6',
+  'xanh da troi': '#0ea5e9',
+  sky: '#0ea5e9',
+  skyblue: '#0ea5e9',
+  'xanh coban': '#2563eb',
+  cobalt: '#2563eb',
+  royal: '#4169e1',
+  'royal blue': '#4169e1',
   'xanh navy': '#1e3a8a',
   'xanh than': '#1e3a8a',
   navy: '#1e3a8a',
-  cyan: '#06b6d4'
+  'midnight blue': '#191970',
+
+  // xanh lá
+  'xanh la': '#22c55e',
+  green: '#22c55e',
+  'xanh luc': '#16a34a',
+  lime: '#84cc16',
+  olive: '#708238',
+  mint: '#6ee7b7',
+  'xanh mint': '#6ee7b7',
+  'xanh reu': '#4d7c0f',
+  moss: '#4d7c0f',
+
+  // xanh ngọc / cyan
+  'xanh ngoc': '#14b8a6',
+  teal: '#0f766e',
+  turquoise: '#40e0d0',
+  cyan: '#06b6d4',
+  aqua: '#06b6d4',
+
+  // khác
+  kemsua: '#fff8dc',
+  'da bo': '#c68642'
 }
 
-function getColorCode(colorName) {
-  if (!colorName) return '#ccc'
-  const key = normalizeColorName(colorName)
+function getColorCode(name) {
+  if (!name) return '#e5e7eb'
 
-  if (COLOR_MAP[key]) return COLOR_MAP[key]
+  const raw = String(name || '').trim()
+  const normalized = normalizeColorName(raw)
 
-  if (key.includes('navy') || key.includes('than')) return COLOR_MAP['xanh navy']
-  if (key.includes('xanh') && key.includes('la')) return COLOR_MAP['xanh la']
-  if (key.includes('xanh') && key.includes('duong')) return COLOR_MAP['xanh duong']
-  if (key.includes('do')) return COLOR_MAP.do
-  if (key.includes('vang')) return COLOR_MAP.vang
-  if (key.includes('cam')) return COLOR_MAP.cam
-  if (key.includes('hong')) return COLOR_MAP.hong
-  if (key.includes('tim')) return COLOR_MAP.tim
-  if (key.includes('nau')) return COLOR_MAP.nau
-  if (key.includes('trang')) return COLOR_MAP.trang
-  if (key.includes('den')) return COLOR_MAP.den
+  // ưu tiên đọc mã màu thật nếu người dùng lưu kiểu: "Đỏ (#ff0000)"
+  const hexMatch = raw.match(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/)
+  if (hexMatch) return hexMatch[0]
 
-  return '#3b82f6'
+  // ưu tiên match exact
+  if (COLOR_MAP[normalized]) return COLOR_MAP[normalized]
+
+  // match theo từ khóa
+  if (normalized.includes('navy') || normalized.includes('than')) return COLOR_MAP['xanh navy']
+  if (normalized.includes('coban') || normalized.includes('cobalt')) return COLOR_MAP['xanh coban']
+  if (normalized.includes('royal')) return COLOR_MAP.royal
+  if (normalized.includes('da troi') || normalized.includes('sky')) return COLOR_MAP['xanh da troi']
+
+  if (normalized.includes('xanh') && (normalized.includes('la') || normalized.includes('luc'))) return COLOR_MAP['xanh la']
+  if (normalized.includes('xanh') && normalized.includes('reu')) return COLOR_MAP['xanh reu']
+  if (normalized.includes('xanh') && normalized.includes('mint')) return COLOR_MAP['xanh mint']
+  if (normalized.includes('xanh') && normalized.includes('ngoc')) return COLOR_MAP['xanh ngoc']
+  if (normalized.includes('xanh') && normalized.includes('duong')) return COLOR_MAP['xanh duong']
+  if (normalized.includes('xanh')) return COLOR_MAP.xanh
+
+  if (normalized.includes('den') || normalized.includes('black')) return COLOR_MAP.den
+  if (normalized.includes('trang') || normalized.includes('white')) return COLOR_MAP.trang
+  if (normalized.includes('xam') || normalized.includes('ghi') || normalized.includes('gray') || normalized.includes('grey')) return COLOR_MAP.xam
+  if (normalized.includes('bac') || normalized.includes('silver')) return COLOR_MAP.bac
+
+  if (normalized.includes('do') || normalized.includes('red')) return COLOR_MAP.do
+  if (normalized.includes('hong') || normalized.includes('pink')) return COLOR_MAP.hong
+  if (normalized.includes('tim') || normalized.includes('purple') || normalized.includes('violet')) return COLOR_MAP.tim
+
+  if (normalized.includes('vang') || normalized.includes('yellow') || normalized.includes('gold')) return COLOR_MAP.vang
+  if (normalized.includes('cam') || normalized.includes('orange') || normalized.includes('coral') || normalized.includes('peach')) return COLOR_MAP.cam
+
+  if (normalized.includes('nau') || normalized.includes('brown') || normalized.includes('cafe') || normalized.includes('coffee') || normalized.includes('chocolate') || normalized.includes('caramel') || normalized.includes('mocha')) {
+    return COLOR_MAP.nau
+  }
+
+  if (normalized.includes('be') || normalized.includes('beige') || normalized.includes('kem') || normalized.includes('cream') || normalized.includes('ivory') || normalized.includes('nude')) {
+    return COLOR_MAP.be
+  }
+
+  return '#e5e7eb'
 }
 
 /** utils */
@@ -1047,5 +1169,9 @@ function onPriceBlur(e) {
     order: 2;
     margin-left: auto;
   }
+}
+.color-dot,
+.color-dot-lg {
+  border: 1px solid #d1d5db;
 }
 </style>
