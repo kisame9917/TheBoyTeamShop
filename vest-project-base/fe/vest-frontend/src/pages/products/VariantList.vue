@@ -40,7 +40,7 @@
             <input
                 v-model="filters.keyword"
                 class="form-control"
-                placeholder="Tìm theo mã, màu, kích cỡ..."
+                placeholder="Tìm theo mã SP, mã SP chi tiết, tên, màu, kích cỡ..."
             />
           </div>
 
@@ -166,7 +166,7 @@
           </thead>
 
           <tbody>
-          <tr v-for="(v, index) in filteredItems" :key="v.id">
+          <tr v-for="(v, index) in pagedItems" :key="v.id">
             <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
             <td class="text-center">
@@ -177,8 +177,7 @@
               />
               <span v-else class="no-img">Ảnh biến thể</span>
             </td>
-
-            <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
+                        <!-- ✅ THÊM + ĐỔI THỨ TỰ -->
             <td class="text-center">{{ v.maSanPham || '-' }}</td>
             <td class="text-center fw-semibold">{{ v.tenSanPham }}</td>
             <td class="text-center">{{ v.maSanPhamChiTiet }}</td>
@@ -234,7 +233,7 @@
             <!-- ✅ colspan tăng 1 -->
             <td colspan="11" class="text-center py-4">Đang tải dữ liệu...</td>
           </tr>
-          <tr v-if="!loading && filteredItems.length === 0">
+          <tr v-if="!loading && pagedItems.length === 0">
             <!-- ✅ colspan tăng 1 -->
             <td colspan="11" class="text-center py-4">Không có dữ liệu</td>
           </tr>
@@ -246,7 +245,7 @@
       <div class="p-3" v-if="totalPages > 0">
         <div class="paging-bar">
           <div class="paging-left">
-            Hiển thị: {{ filteredItems.length }} / tổng {{ totalElements }} bản ghi
+            Hiển thị: {{ pagedItems.length }} / tổng {{ totalElements }} bản ghi
           </div>
 
           <div class="paging-center">
@@ -358,7 +357,7 @@
           </div>
 
           <div class="col-12">
-            <label class="form-label small fw-semibold">Ảnh biến thể</label>
+                        <label class="form-label small fw-semibold">Ảnh biến thể</label>
             <input type="file" class="form-control" accept="image/*" @change="handleFileUpload" />
             <div v-if="editingVariant.anh" class="mt-2">
               <img :src="resolveMediaUrl(editingVariant.anh || editingVariant.primaryImageUrl || editingVariant.mediaAsset)" class="preview-img" />
@@ -404,7 +403,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { emitTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 import { useRouter } from 'vue-router'
 import { getAllDetails, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
@@ -416,12 +415,10 @@ const { success, error } = useToast()
 const router = useRouter()
 
 /** pagination */
-const items = ref([])
+const allItems = ref([])
 const loading = ref(false)
 const currentPage = ref(0)
 const pageSize = ref(10)
-const totalPages = ref(0)
-const totalElements = ref(0)
 const pageInput = ref(1)
 
 /** filter UI */
@@ -485,13 +482,33 @@ async function loadAttributes() {
   }
 }
 
+function mapVariant(item) {
+  return {
+    ...item,
+    mediaPrimaryId: item.mediaPrimaryId ?? item.idMediaPrimary ?? item.id_media_primary ?? null
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
-    const res = await getAllDetails(currentPage.value, pageSize.value)
-    items.value = (res.data.content || []).map((item) => ({ ...item, mediaPrimaryId: item.mediaPrimaryId ?? item.idMediaPrimary ?? item.id_media_primary ?? null }))
-    totalPages.value = res.data.totalPages
-    totalElements.value = res.data.totalElements || 0
+    const firstRes = await getAllDetails(0, 100)
+    const firstData = firstRes?.data || {}
+    const firstPageItems = (firstData.content || []).map(mapVariant)
+    const pages = Number(firstData.totalPages || 1)
+
+    if (pages <= 1) {
+      allItems.value = firstPageItems
+    } else {
+      const rest = []
+      for (let page = 1; page < pages; page++) {
+        const res = await getAllDetails(page, 100)
+        const data = res?.data || {}
+        rest.push(...(data.content || []).map(mapVariant))
+      }
+      allItems.value = [...firstPageItems, ...rest]
+    }
+
     pageInput.value = currentPage.value + 1
   } catch (e) {
     console.error(e)
@@ -500,19 +517,37 @@ async function loadData() {
   }
 }
 
-/** filtering: client-side trên page đang load */
+function normalizeSearchText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+/** filtering: client-side trên toàn bộ danh sách biến thể */
 const filteredItems = computed(() => {
   const kw = (filters.keyword || '').trim().toLowerCase()
+  const normalizedKw = normalizeSearchText(filters.keyword)
 
-  return (items.value || []).filter(v => {
+  return (allItems.value || []).filter(v => {
+    const keywordFields = [
+      v.maSanPham,
+      v.maSanPhamChiTiet,
+      v.tenSanPham,
+            v.tenMauSac,
+      v.tenKichCo
+    ]
+
     const matchKeyword =
-        !kw ||
-        // ✅ thêm maSanPham vào search
-        (v.maSanPham && String(v.maSanPham).toLowerCase().includes(kw)) ||
-        (v.maSanPhamChiTiet && v.maSanPhamChiTiet.toLowerCase().includes(kw)) ||
-        (v.tenSanPham && v.tenSanPham.toLowerCase().includes(kw)) ||
-        (v.tenMauSac && v.tenMauSac.toLowerCase().includes(kw)) ||
-        (v.tenKichCo && String(v.tenKichCo).toLowerCase().includes(kw))
+      !kw ||
+      keywordFields.some(value => {
+        const raw = String(value || '').toLowerCase()
+        const normalized = normalizeSearchText(value)
+        return raw.includes(kw) || (!!normalizedKw && normalized.includes(normalizedKw))
+      })
 
     const matchColor = !filters.color || v.tenMauSac === filters.color
     const matchSize = !filters.size || String(v.tenKichCo) === String(filters.size)
@@ -539,6 +574,24 @@ const filteredItems = computed(() => {
   })
 })
 
+const totalElements = computed(() => filteredItems.value.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalElements.value / pageSize.value)))
+
+const pagedItems = computed(() => {
+  const start = currentPage.value * pageSize.value
+  return filteredItems.value.slice(start, start + pageSize.value)
+})
+
+watch([filteredItems, pageSize], () => {
+  const maxPage = Math.max(0, totalPages.value - 1)
+  if (currentPage.value > maxPage) currentPage.value = maxPage
+  pageInput.value = currentPage.value + 1
+})
+
+watch(currentPage, (page) => {
+  pageInput.value = page + 1
+})
+
 function syncPrice() {
   if (filters.priceMin > filters.priceMax) {
     const t = filters.priceMin
@@ -551,7 +604,6 @@ function syncPrice() {
 function changePage(page) {
   if (page >= 0 && page < totalPages.value) {
     currentPage.value = page
-    loadData()
   }
 }
 
@@ -563,7 +615,6 @@ function jumpPage() {
 
 function onChangeSize() {
   currentPage.value = 0
-  loadData()
 }
 
 /** reset */
@@ -575,7 +626,7 @@ async function resetFilters() {
   filters.status = 'all'
   filters.priceMin = PRICE_MIN
   filters.priceMax = PRICE_MAX
-  await loadData()
+  currentPage.value = 0
   success('Đã hiển thị tất cả biến thể')
 }
 
@@ -666,7 +717,7 @@ async function submitEdit() {
       trangThai: editingVariant.trangThai,
       anh: editingVariant.anh,
       mediaPrimaryId: editingVariant.mediaPrimaryId
-    })
+          })
 
     emitTabSync(TAB_SYNC_EVENTS.PRODUCT_STOCK_CHANGED, {
       productDetailId: editingVariant.id,
@@ -703,7 +754,7 @@ async function handleFileUpload(event) {
 function downloadCsv() {
   try {
     const rows = filteredItems.value.map((v, i) => ({
-      STT: currentPage.value * pageSize.value + i + 1,
+      STT: i + 1,
       // ✅ thêm maSanPham + chỉnh thứ tự cho đúng yêu cầu
       MaSP: v.maSanPham ?? '',
       TenSanPham: v.tenSanPham ?? '',
@@ -747,58 +798,180 @@ function downloadCsv() {
 /** 1) Chuẩn hoá tên màu: bỏ dấu, bỏ ngoặc, chuẩn hoá khoảng trắng */
 function normalizeColorName(name) {
   return String(name || '')
-      .trim()
-      .toLowerCase()
-      .replace(/đ/g, 'd')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\(.*?\)/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\(.*?\)/g, '')
+    .replace(/_/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 const COLOR_MAP = {
+  // trung tính
   den: '#111827',
+  black: '#111827',
+  charcoal: '#1f2937',
+  than: '#374151',
+
   trang: '#ffffff',
+  white: '#ffffff',
+  sua: '#fffdfa',
+  ivory: '#fffff0',
+  kem: '#fff7ed',
+  cream: '#fff7ed',
+  be: '#f5f5dc',
+  beige: '#f5f5dc',
+  nude: '#eec9a5',
+
   xam: '#9ca3af',
   ghi: '#9ca3af',
+  gray: '#9ca3af',
+  grey: '#9ca3af',
+  'xam dam': '#6b7280',
+  'ghi dam': '#6b7280',
+  'xam nhat': '#d1d5db',
+  'ghi nhat': '#d1d5db',
+
+  bac: '#c0c0c0',
+  silver: '#c0c0c0',
+
+  // đỏ / hồng / tím
   do: '#ef4444',
-  vang: '#f59e0b',
-  cam: '#f97316',
+  red: '#ef4444',
+  'do tuoi': '#ff3b30',
+  'do do': '#b91c1c',
+  'do dam': '#b91c1c',
+  burgundy: '#800020',
+  bordo: '#800020',
+  maroon: '#800000',
+  wine: '#722f37',
+  'do ruou': '#722f37',
+
   hong: '#ec4899',
-  tim: '#a855f7',
-  nau: '#92400e',
-  be: '#f5f5dc',
-  kem: '#fff7ed',
-  'xanh la': '#22c55e',
-  'xanh luc': '#16a34a',
-  'xanh ngoc': '#14b8a6',
+  pink: '#ec4899',
+  'hong nhat': '#f9a8d4',
+  rose: '#f43f5e',
+  'hong sen': '#db2777',
+  magenta: '#ff00ff',
+  fuchsia: '#ff00ff',
+
+  tim: '#8b5cf6',
+  purple: '#8b5cf6',
+  violet: '#7c3aed',
+  lavender: '#c4b5fd',
+  lilac: '#c8a2c8',
+
+  // vàng / cam / nâu
+  vang: '#eab308',
+  yellow: '#eab308',
+  gold: '#d4af37',
+  golden: '#d4af37',
+  mustard: '#d97706',
+  'vang chanh': '#facc15',
+
+  cam: '#f97316',
+  orange: '#f97316',
+  coral: '#fb7185',
+  peach: '#fdba74',
+
+  nau: '#8b5e3c',
+  brown: '#8b5e3c',
+  chocolate: '#7b3f00',
+  coffee: '#6f4e37',
+  cafe: '#6f4e37',
+  caramel: '#b45309',
+  mocha: '#7c5a43',
+
+  // xanh dương
+  xanh: '#3b82f6',
+  blue: '#3b82f6',
   'xanh duong': '#3b82f6',
+  'xanh da troi': '#0ea5e9',
+  sky: '#0ea5e9',
+  skyblue: '#0ea5e9',
+  'xanh coban': '#2563eb',
+  cobalt: '#2563eb',
+  royal: '#4169e1',
+  'royal blue': '#4169e1',
   'xanh navy': '#1e3a8a',
   'xanh than': '#1e3a8a',
   navy: '#1e3a8a',
-  cyan: '#06b6d4'
+  'midnight blue': '#191970',
+
+  // xanh lá
+  'xanh la': '#22c55e',
+  green: '#22c55e',
+  'xanh luc': '#16a34a',
+  lime: '#84cc16',
+  olive: '#708238',
+  mint: '#6ee7b7',
+  'xanh mint': '#6ee7b7',
+  'xanh reu': '#4d7c0f',
+  moss: '#4d7c0f',
+
+  // xanh ngọc / cyan
+  'xanh ngoc': '#14b8a6',
+  teal: '#0f766e',
+  turquoise: '#40e0d0',
+  cyan: '#06b6d4',
+  aqua: '#06b6d4',
+
+  // khác
+  kemsua: '#fff8dc',
+  'da bo': '#c68642'
 }
 
-function getColorCode(colorName) {
-  if (!colorName) return '#ccc'
-  const key = normalizeColorName(colorName)
+function getColorCode(name) {
+  if (!name) return '#e5e7eb'
 
-  if (COLOR_MAP[key]) return COLOR_MAP[key]
+  const raw = String(name || '').trim()
+  const normalized = normalizeColorName(raw)
 
-  if (key.includes('navy') || key.includes('than')) return COLOR_MAP['xanh navy']
-  if (key.includes('xanh') && key.includes('la')) return COLOR_MAP['xanh la']
-  if (key.includes('xanh') && key.includes('duong')) return COLOR_MAP['xanh duong']
-  if (key.includes('do')) return COLOR_MAP.do
-  if (key.includes('vang')) return COLOR_MAP.vang
-  if (key.includes('cam')) return COLOR_MAP.cam
-  if (key.includes('hong')) return COLOR_MAP.hong
-  if (key.includes('tim')) return COLOR_MAP.tim
-  if (key.includes('nau')) return COLOR_MAP.nau
-  if (key.includes('trang')) return COLOR_MAP.trang
-  if (key.includes('den')) return COLOR_MAP.den
+  // ưu tiên đọc mã màu thật nếu người dùng lưu kiểu: "Đỏ (#ff0000)"
+  const hexMatch = raw.match(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/)
+  if (hexMatch) return hexMatch[0]
 
-  return '#3b82f6'
+  // ưu tiên match exact
+  if (COLOR_MAP[normalized]) return COLOR_MAP[normalized]
+
+  // match theo từ khóa
+  if (normalized.includes('navy') || normalized.includes('than')) return COLOR_MAP['xanh navy']
+  if (normalized.includes('coban') || normalized.includes('cobalt')) return COLOR_MAP['xanh coban']
+  if (normalized.includes('royal')) return COLOR_MAP.royal
+  if (normalized.includes('da troi') || normalized.includes('sky')) return COLOR_MAP['xanh da troi']
+
+  if (normalized.includes('xanh') && (normalized.includes('la') || normalized.includes('luc'))) return COLOR_MAP['xanh la']
+  if (normalized.includes('xanh') && normalized.includes('reu')) return COLOR_MAP['xanh reu']
+  if (normalized.includes('xanh') && normalized.includes('mint')) return COLOR_MAP['xanh mint']
+  if (normalized.includes('xanh') && normalized.includes('ngoc')) return COLOR_MAP['xanh ngoc']
+  if (normalized.includes('xanh') && normalized.includes('duong')) return COLOR_MAP['xanh duong']
+  if (normalized.includes('xanh')) return COLOR_MAP.xanh
+
+  if (normalized.includes('den') || normalized.includes('black')) return COLOR_MAP.den
+  if (normalized.includes('trang') || normalized.includes('white')) return COLOR_MAP.trang
+  if (normalized.includes('xam') || normalized.includes('ghi') || normalized.includes('gray') || normalized.includes('grey')) return COLOR_MAP.xam
+  if (normalized.includes('bac') || normalized.includes('silver')) return COLOR_MAP.bac
+
+  if (normalized.includes('do') || normalized.includes('red')) return COLOR_MAP.do
+  if (normalized.includes('hong') || normalized.includes('pink')) return COLOR_MAP.hong
+  if (normalized.includes('tim') || normalized.includes('purple') || normalized.includes('violet')) return COLOR_MAP.tim
+
+  if (normalized.includes('vang') || normalized.includes('yellow') || normalized.includes('gold')) return COLOR_MAP.vang
+  if (normalized.includes('cam') || normalized.includes('orange') || normalized.includes('coral') || normalized.includes('peach')) return COLOR_MAP.cam
+
+  if (normalized.includes('nau') || normalized.includes('brown') || normalized.includes('cafe') || normalized.includes('coffee') || normalized.includes('chocolate') || normalized.includes('caramel') || normalized.includes('mocha')) {
+    return COLOR_MAP.nau
+  }
+
+  if (normalized.includes('be') || normalized.includes('beige') || normalized.includes('kem') || normalized.includes('cream') || normalized.includes('ivory') || normalized.includes('nude')) {
+    return COLOR_MAP.be
+  }
+
+  return '#e5e7eb'
 }
 
 /** utils */
@@ -826,7 +999,6 @@ function onPriceBlur(e) {
 }
 
 </script>
-
 <style scoped>
 /* giữ nguyên như bạn */
 .variant-page { padding: 16px; background: #ffffff; min-height: 100vh; }
@@ -983,7 +1155,6 @@ function onPriceBlur(e) {
   width: 170px;
   max-width: 200px;
 }
-
 /* responsive: mobile thì tự xuống dòng gọn gàng */
 @media (max-width: 768px){
   .paging-bar{
@@ -998,5 +1169,9 @@ function onPriceBlur(e) {
     order: 2;
     margin-left: auto;
   }
+}
+.color-dot,
+.color-dot-lg {
+  border: 1px solid #d1d5db;
 }
 </style>
