@@ -71,34 +71,34 @@
         </button>
       </div>
       <button
-  v-if="canApproveCancel"
-  type="button"
-  class="btn btn-danger btn-sm"
-  @click="openApproveCancelModal"
->
-  <i class="bi bi-check2-circle me-1"></i>
-  Xác nhận hủy
-</button>
+        v-if="canApproveCancel"
+        type="button"
+        class="btn btn-danger btn-sm"
+        @click="openApproveCancelModal"
+      >
+        <i class="bi bi-check2-circle me-1"></i>
+        Xác nhận hủy
+      </button>
 
-<button
-  v-if="canRejectCancel"
-  type="button"
-  class="btn btn-outline-secondary btn-sm"
-  @click="openRejectCancelModal"
->
-  <i class="bi bi-arrow-counterclockwise me-1"></i>
-  Từ chối hủy
-</button>
+      <button
+        v-if="canRejectCancel"
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        @click="openRejectCancelModal"
+      >
+        <i class="bi bi-arrow-counterclockwise me-1"></i>
+        Từ chối hủy
+      </button>
 
-<button
-  v-if="canConfirmRefund"
-  type="button"
-  class="btn btn-warning btn-sm"
-  @click="openRefundModal"
->
-  <i class="bi bi-cash-coin me-1"></i>
-  Xác nhận hoàn tiền
-</button>
+      <button
+        v-if="canConfirmRefund"
+        type="button"
+        class="btn btn-warning btn-sm"
+        @click="openRefundModal"
+      >
+        <i class="bi bi-cash-coin me-1"></i>
+        Xác nhận hoàn tiền
+      </button>
 
       <div class="d-flex gap-2">
         <button
@@ -526,7 +526,7 @@
       </div>
     </div>
 
-<!-- Confirm Action Modal (advance/cancel/refund) -->
+    <!-- Confirm Action Modal (advance/cancel/refund) -->
     <div
       class="modal fade"
       id="confirmActionModal"
@@ -552,16 +552,16 @@
             <div class="mb-2">
               Hóa đơn: <b>{{ hd?.maHoaDon }}</b>
             </div>
-<div class="mt-3">
-  <label class="form-label fw-semibold">Ghi chú</label>
+            <div class="mt-3">
+              <label class="form-label fw-semibold">Ghi chú</label>
 
-<textarea
-  v-model.trim="confirmNote"
-  class="form-control"
-  rows="3"
-  placeholder="Nhập ghi chú (không bắt buộc)"
-></textarea>
-</div>
+              <textarea
+                v-model.trim="confirmNote"
+                class="form-control"
+                rows="3"
+                placeholder="Nhập ghi chú (không bắt buộc)"
+              ></textarea>
+            </div>
             <div class="mb-2">
               Trạng thái hiện tại:
               <span class="badge bg-secondary">{{
@@ -590,9 +590,10 @@
             <button
               type="button"
               class="btn btn-primary text-dark"
+              :disabled="actionSubmitting"
               @click="confirmDoAction"
             >
-              Xác nhận
+              {{ actionSubmitting ? "Đang xử lý..." : "Xác nhận" }}
             </button>
           </div>
         </div>
@@ -732,29 +733,6 @@
       </div>
     </div>
 
-    <!-- Toast -->
-    <div
-      class="toast-container position-fixed top-0 end-0 p-3"
-      style="z-index: 9999"
-    >
-     <div
-  class="toast align-items-center border-0"
-  :class="toastClass"
-  ref="toastRef"
-  role="alert"
-  aria-live="assertive"
-  aria-atomic="true"
->
-        <div class="d-flex">
-          <div class="toast-body">{{ toastMsg }}</div>
-          <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            @click="hideToast"
-          ></button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -764,6 +742,8 @@ import { useRouter, useRoute } from "vue-router";
 import QRCode from "qrcode";
 import hoaDonApi from "@/services/hoaDonApi";
 import { resolveMediaUrl } from "@/utils/media";
+import { useToast } from "@/composables/useToast";
+const toast = useToast();
 const props = defineProps({
   id: { type: [String, Number], required: true },
 });
@@ -782,7 +762,7 @@ const STATUS = {
   DA_GIAO: 3,
   HOAN_THANH: 4,
   DA_HUY: 5,
-   DA_HOAN: 7,
+  DA_HOAN: 7,
   YEU_CAU_HUY: 9,
 };
 function statusLabel(code) {
@@ -797,7 +777,7 @@ function statusLabel(code) {
     [STATUS.HOAN_THANH]: "Hoàn thành",
     [STATUS.DA_HUY]: "Đã huỷ",
     [STATUS.DA_HOAN]: "Đã hoàn tiền",
-[STATUS.YEU_CAU_HUY]: "Yêu cầu hủy",
+    [STATUS.YEU_CAU_HUY]: "Yêu cầu hủy",
   };
 
   return m[Number(code)] ?? "-";
@@ -820,10 +800,10 @@ function statusBadgeClass(code) {
       return "text-bg-warning text-dark";
     case STATUS.CHO_XAC_NHAN:
       return "text-bg-secondary";
-      case STATUS.YEU_CAU_HUY:
-  return "text-bg-warning text-dark";
-case STATUS.DA_HOAN:
-  return "text-bg-success";
+    case STATUS.YEU_CAU_HUY:
+      return "text-bg-warning text-dark";
+    case STATUS.DA_HOAN:
+      return "text-bg-success";
     case STATUS.DA_HUY:
       return "text-bg-dark";
     default:
@@ -872,7 +852,7 @@ async function fetchDetail() {
     currentPage.value = 1;
   } catch (e) {
     console.error(e);
-    showToast("Không tải được chi tiết hóa đơn!");
+   toast.error("Không tải được chi tiết hóa đơn!");
   }
 }
 
@@ -898,7 +878,9 @@ const receiverName = computed(() => {
   );
 });
 function normalizePayMethod(v) {
-  return String(v || "").trim().toUpperCase();
+  return String(v || "")
+    .trim()
+    .toUpperCase();
 }
 
 function isCODMethod(v) {
@@ -1056,11 +1038,11 @@ const advanceBtnText = computed(() => {
 const canCancel = computed(() => currentStatus.value === STATUS.CHO_XAC_NHAN);
 
 const canApproveCancel = computed(
-  () => currentStatus.value === STATUS.YEU_CAU_HUY
+  () => currentStatus.value === STATUS.YEU_CAU_HUY,
 );
 
 const canRejectCancel = computed(
-  () => currentStatus.value === STATUS.YEU_CAU_HUY
+  () => currentStatus.value === STATUS.YEU_CAU_HUY,
 );
 
 const canConfirmRefund = computed(() => {
@@ -1077,18 +1059,18 @@ const fullStepper = computed(() => {
 
   return activeFlow.value.map((code) => ({
     code,
-   label:
-  code === STATUS.CHO_XAC_NHAN
-    ? "Chờ xác nhận"
-    : code === STATUS.DA_XAC_NHAN
-      ? "Đã xác nhận"
-      : code === STATUS.DANG_GIAO
-        ? "Đang giao"
-        : code === STATUS.DA_GIAO
-          ? "Đã giao"
-          : code === STATUS.HOAN_THANH
-            ? "Hoàn thành"
-            : statusLabel(code),
+    label:
+      code === STATUS.CHO_XAC_NHAN
+        ? "Chờ xác nhận"
+        : code === STATUS.DA_XAC_NHAN
+          ? "Đã xác nhận"
+          : code === STATUS.DANG_GIAO
+            ? "Đang giao"
+            : code === STATUS.DA_GIAO
+              ? "Đã giao"
+              : code === STATUS.HOAN_THANH
+                ? "Hoàn thành"
+                : statusLabel(code),
   }));
 });
 
@@ -1211,8 +1193,15 @@ let bsConfirmActionModal = null;
 const confirmTitle = ref("Xác nhận");
 const confirmDesc = ref("");
 const confirmTargetStatus = ref(null);
+const actionSubmitting = ref(false);
 const confirmNote = ref("");
-function openConfirmActionModal({ title, desc, targetStatus, note, actionType = "status" }) {
+function openConfirmActionModal({
+  title,
+  desc,
+  targetStatus,
+  note,
+  actionType = "status",
+}) {
   if (!hd.value) return;
 
   confirmTitle.value = title;
@@ -1256,11 +1245,49 @@ function closeConfirmActionModal() {
     document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
   }
 }
+function getApiErrorMessage(e) {
+  const data = e?.response?.data;
 
+  if (typeof data === "string" && data.trim()) return data;
+
+  if (typeof data?.message === "string" && data.message.trim()) {
+    return data.message;
+  }
+
+  if (typeof data?.data?.message === "string" && data.data.message.trim()) {
+    return data.data.message;
+  }
+
+  if (Array.isArray(data?.errors) && data.errors.length) {
+    const first = data.errors[0];
+    if (typeof first === "string") return first;
+    if (typeof first?.message === "string") return first.message;
+  }
+
+  if (Array.isArray(data?.data) && data.data.length) {
+    const first = data.data[0];
+    if (typeof first === "string") return first;
+    if (typeof first?.message === "string") return first.message;
+  }
+
+  return e?.message || "Cập nhật trạng thái thất bại!";
+}
+
+function isInventoryErrorMessage(msg) {
+  const s = String(msg || "").toLowerCase();
+  return (
+    s.includes("tồn kho") ||
+    s.includes("không đủ") ||
+    s.includes("het hang") ||
+    s.includes("hết hàng") ||
+    s.includes("không còn") ||
+    s.includes("khong du") ||
+    s.includes("không tồn tại") ||
+    s.includes("khong ton tai")
+  );
+}
 async function confirmDoAction() {
   try {
-    closeConfirmActionModal();
-
     if (confirmActionType.value === "refund") {
       await hoaDonApi.confirmRefund(props.id, {
         soTienHoan: refundAmount.value,
@@ -1273,15 +1300,18 @@ async function confirmDoAction() {
       });
     }
 
+    closeConfirmActionModal();
     await fetchDetail();
-    showToast("Cập nhật trạng thái thành công!");
+    toast.success("Cập nhật trạng thái thành công");
   } catch (e) {
     console.error(e);
+
     const msg =
       e?.response?.data?.message ||
       e?.response?.data?.data?.message ||
       "Cập nhật trạng thái thất bại!";
-    showToast(msg, "danger");
+
+    toast.error(msg);
   }
 }
 /** Buttons handlers */
@@ -1359,9 +1389,9 @@ function mapHistoryToStatusLabel(hanhDong) {
     HOAN_THANH: "Hoàn thành",
     DA_HUY: "Đã huỷ",
     YEU_CAU_HUY: "Yêu cầu hủy",
-DA_HOAN: "Đã hoàn tiền",
-XAC_NHAN_HOAN_TIEN: "Đã hoàn tiền",
-KHACH_HANG_YEU_CAU_HUY_DON: "Yêu cầu hủy",
+    DA_HOAN: "Đã hoàn tiền",
+    XAC_NHAN_HOAN_TIEN: "Đã hoàn tiền",
+    KHACH_HANG_YEU_CAU_HUY_DON: "Yêu cầu hủy",
   };
 
   return m[hanhDong] || hanhDong;
@@ -1487,7 +1517,7 @@ function printInvoice() {
   w.onafterprint = () => w.close();
   w.print();
 
-  showToast("Đã mở cửa sổ in / lưu PDF!");
+ toast.success("Đã mở cửa sổ in / lưu PDF!");
 }
 
 function openRefundModal() {
@@ -1502,39 +1532,7 @@ function openRefundModal() {
     actionType: "refund",
   });
 }
-/** Toast */
-const toastRef = ref(null);
-const toastMsg = ref("");
-const toastType = ref("success");
-let bsToast = null;
 
-const toastClass = computed(() => {
-  return toastType.value === "danger"
-    ? "text-bg-danger"
-    : toastType.value === "warning"
-      ? "text-bg-warning text-dark"
-      : "text-bg-success";
-});
-
-function showToast(msg, type = "success") {
-  toastMsg.value = msg;
-  toastType.value = type;
-
-  const el = toastRef.value;
-  if (!el) return;
-
-  const Toast = window.bootstrap?.Toast;
-  if (Toast) {
-    bsToast = Toast.getOrCreateInstance(el, { delay: 2500 });
-    bsToast.show();
-  }
-}
-
-function hideToast() {
-  try {
-    bsToast?.hide?.();
-  } catch {}
-}
 
 /** Mount */
 onMounted(async () => {

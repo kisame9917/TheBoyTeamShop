@@ -31,7 +31,6 @@
               <span>1. Địa chỉ giao hàng</span>
             </div>
 
-
             <div class="checkout-card__body">
               <div class="row g-3">
                 <div class="col-12">
@@ -39,10 +38,10 @@
                     Họ và Tên <span class="req">*</span>
                   </label>
                   <input
-                      v-model="form.fullName"
-                      type="text"
-                      class="form-control input-ui"
-                      placeholder="Nhập họ tên"
+                    v-model="form.fullName"
+                    type="text"
+                    class="form-control input-ui"
+                    placeholder="Nhập họ tên"
                   />
                   <div v-if="errors.fullName" class="text-danger small mt-1">
                     {{ errors.fullName }}
@@ -54,116 +53,90 @@
                     Số điện thoại <span class="req">*</span>
                   </label>
                   <input
-                      v-model="form.phone"
-                      type="text"
-                      class="form-control input-ui"
-                      placeholder="Nhập số điện thoại"
+                    v-model="form.phone"
+                    type="text"
+                    class="form-control input-ui"
+                    placeholder="Nhập số điện thoại"
                   />
                   <div v-if="errors.phone" class="text-danger small mt-1">
                     {{ errors.phone }}
                   </div>
                 </div>
                 <div class="col-12">
+                  <label class="form-label">
+                    Email <span class="req">*</span>
+                  </label>
+                  <input
+                    v-model="form.email"
+                    type="email"
+                    class="form-control input-ui"
+                    placeholder="Nhập email"
+                  />
+                  <div v-if="errors.email" class="text-danger small mt-1">
+                    {{ errors.email }}
+                  </div>
+                </div>
+
+               <div class="col-md-6">
   <label class="form-label">
-    Email <span class="req">*</span>
+    Tỉnh/Thành phố <span class="req">*</span>
   </label>
-  <input
-    v-model="form.email"
-    type="email"
-    class="form-control input-ui"
-    placeholder="Nhập email"
-  />
-  <div v-if="errors.email" class="text-danger small mt-1">
-    {{ errors.email }}
+  <select
+    v-model="form.province"
+    class="form-select input-ui"
+    :disabled="provinceLoading"
+    @change="onProvinceChange"
+  >
+    <option value="">
+      {{ provinceLoading ? "Đang tải tỉnh/thành..." : "Chọn tỉnh/thành phố" }}
+    </option>
+    <option
+      v-for="province in provinces"
+      :key="province.code"
+      :value="province.code"
+    >
+      {{ province.name }}
+    </option>
+  </select>
+  <div v-if="errors.province" class="text-danger small mt-1">
+    {{ errors.province }}
   </div>
 </div>
 
-                <div class="col-md-6">
-                  <label class="form-label">
-                    Tỉnh/Thành phố <span class="req">*</span>
-                  </label>
-                  <select
-                      v-model="form.province"
-                      class="form-select input-ui"
-                      :disabled="provinceLoading"
-                      @change="onProvinceChange"
-                  >
-                    <option value="">
-                      {{ provinceLoading ? "Đang tải tỉnh/thành..." : "Chọn tỉnh/thành phố" }}
-                    </option>
-                    <option
-                        v-for="province in provinces"
-                        :key="province.code"
-                        :value="province.code"
-                    >
-                      {{ province.name }}
-                    </option>
-                  </select>
-                  <div v-if="errors.province" class="text-danger small mt-1">
-                    {{ errors.province }}
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">
-                    Quận/Huyện <span class="req">*</span>
-                  </label>
-                  <select
-                      v-model="form.district"
-                      class="form-select input-ui"
-                      :disabled="!form.province || districtLoading"
-                      @change="onDistrictChange"
-                  >
-                    <option value="">
-                      {{ districtLoading ? "Đang tải quận/huyện..." : "Chọn quận/huyện" }}
-                    </option>
-                    <option
-                        v-for="district in districts"
-                        :key="district.code"
-                        :value="district.code"
-                    >
-                      {{ district.name }}
-                    </option>
-                  </select>
-                  <div v-if="errors.district" class="text-danger small mt-1">
-                    {{ errors.district }}
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">
-                    Phường/Xã <span class="req">*</span>
-                  </label>
-                  <select
-                      v-model="form.ward"
-                      class="form-select input-ui"
-                      :disabled="!form.district || wardLoading"
-                  >
-                    <option value="">
-                      {{ wardLoading ? "Đang tải phường/xã..." : "Chọn phường/xã" }}
-                    </option>
-                    <option
-                        v-for="ward in wards"
-                        :key="ward.code"
-                        :value="ward.code"
-                    >
-                      {{ ward.name }}
-                    </option>
-                  </select>
-                  <div v-if="errors.ward" class="text-danger small mt-1">
-                    {{ errors.ward }}
-                  </div>
-                </div>
+<div class="col-md-6">
+  <label class="form-label">
+    Phường/Xã/Đặc khu <span class="req">*</span>
+  </label>
+  <select
+    v-model="form.ward"
+    class="form-select input-ui"
+    :disabled="!form.province || wardLoading"
+  >
+    <option value="">
+      {{ wardLoading ? "Đang tải phường/xã..." : "Chọn phường/xã/đặc khu" }}
+    </option>
+    <option
+      v-for="ward in wards"
+      :key="ward.code"
+      :value="ward.code"
+    >
+      {{ ward.name }}
+    </option>
+  </select>
+  <div v-if="errors.ward" class="text-danger small mt-1">
+    {{ errors.ward }}
+  </div>
+</div>
 
                 <div class="col-md-6">
                   <label class="form-label">
                     Địa chỉ chi tiết <span class="req">*</span>
                   </label>
                   <input
-                      v-model="form.address"
-                      type="text"
-                      class="form-control input-ui"
-                      placeholder="Số nhà, tên đường..."
+                    v-model="form.address"
+                    type="text"
+                    class="form-control input-ui"
+                    placeholder="Số nhà, tên đường..."
                   />
                   <div v-if="errors.address" class="text-danger small mt-1">
                     {{ errors.address }}
@@ -173,10 +146,10 @@
                 <div class="col-12">
                   <label class="form-label">Ghi chú</label>
                   <textarea
-                      v-model="form.note"
-                      class="form-control input-ui textarea-ui"
-                      rows="4"
-                      placeholder="Ghi chú cho đơn hàng"
+                    v-model="form.note"
+                    class="form-control input-ui textarea-ui"
+                    rows="4"
+                    placeholder="Ghi chú cho đơn hàng"
                   ></textarea>
                 </div>
               </div>
@@ -192,104 +165,122 @@
               <label class="option-row">
                 <div class="option-row__left">
                   <input
-                      class="form-check-input me-2"
-                      type="radio"
-                      value="standard"
-                      v-model="form.shippingMethod"
+                    class="form-check-input me-2"
+                    type="radio"
+                    value="standard"
+                    v-model="form.shippingMethod"
                   />
                   <span class="option-row__title">Giao hàng tiêu chuẩn</span>
                 </div>
-                <span class="option-row__value">+ {{ money(shippingFee) }} đ</span>
+                <span class="option-row__value"
+                  >+ {{ money(shippingFee) }} đ</span
+                >
               </label>
             </div>
           </section>
 
-         <section class="checkout-card mb-4">
-  <div class="checkout-card__header">
-    <span>3. Phương thức thanh toán</span>
-  </div>
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>3. Phương thức thanh toán</span>
+            </div>
 
-  <div class="checkout-card__body">
-    <label
-      v-for="opt in paymentOptions"
-      :key="opt.value"
-      class="payment-option"
-      :class="{ active: form.paymentMethod === opt.value }"
-    >
-      <div class="payment-option__left">
-        <input
-          class="form-check-input"
-          type="radio"
-          :value="opt.value"
-          v-model="form.paymentMethod"
-        />
-        <div class="payment-option__content">
-          <div class="payment-option__title-row">
-            <span class="payment-option__title">{{ opt.title }}</span>
-            <span v-if="opt.badge" class="payment-option__badge">
-              {{ opt.badge }}
-            </span>
-          </div>
-          <div class="payment-option__desc">{{ opt.desc }}</div>
-        </div>
-      </div>
+            <div class="checkout-card__body">
+              <label
+                v-for="opt in paymentOptions"
+                :key="opt.value"
+                class="payment-option"
+                :class="{ active: form.paymentMethod === opt.value }"
+              >
+                <div class="payment-option__left">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    :value="opt.value"
+                    v-model="form.paymentMethod"
+                  />
+                  <div class="payment-option__content">
+                    <div class="payment-option__title-row">
+                      <span class="payment-option__title">{{ opt.title }}</span>
+                      <span v-if="opt.badge" class="payment-option__badge">
+                        {{ opt.badge }}
+                      </span>
+                    </div>
+                    <div class="payment-option__desc">{{ opt.desc }}</div>
+                  </div>
+                </div>
 
-      <i
-        class="bi"
-        :class="form.paymentMethod === opt.value ? 'bi-check-circle-fill' : 'bi-circle'"
-      ></i>
-    </label>
+                <i
+                  class="bi"
+                  :class="
+                    form.paymentMethod === opt.value
+                      ? 'bi-check-circle-fill'
+                      : 'bi-circle'
+                  "
+                ></i>
+              </label>
 
-    <div class="payment-helper mt-3">
-      <i class="bi bi-info-circle"></i>
-      <span>{{ selectedPaymentOption?.helper || "Vui lòng chọn phương thức thanh toán" }}</span>
-    </div>
+              <div class="payment-helper mt-3">
+                <i class="bi bi-info-circle"></i>
+                <span>{{
+                  selectedPaymentOption?.helper ||
+                  "Vui lòng chọn phương thức thanh toán"
+                }}</span>
+              </div>
 
-    <div v-if="errors.paymentMethod" class="text-danger small mt-2">
-      {{ errors.paymentMethod }}
-    </div>
-  </div>
-</section>
+              <div v-if="errors.paymentMethod" class="text-danger small mt-2">
+                {{ errors.paymentMethod }}
+              </div>
+            </div>
+          </section>
 
           <section class="checkout-card mb-4">
-  <div class="checkout-card__header">
-    <span>4. Áp dụng mã giảm giá</span>
-  </div>
+            <div class="checkout-card__header">
+              <span>4. Áp dụng mã giảm giá</span>
+            </div>
 
-  <div class="checkout-card__body">
-    <div class="coupon-box">
-      <input
-        :value="appliedVoucherDisplay"
-        class="form-control input-ui"
-        placeholder="Chưa có mã giảm giá phù hợp"
-        readonly
-      />
-      <button
-        class="coupon-btn"
-        type="button"
-        @click="openVoucherModal"
-        :disabled="eligibleVoucherEntries.length === 0"
-      >
-        Chọn
-      </button>
-    </div>
-<div v-if="appliedVoucherEntry" class="small mt-2"
-     :class="appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id ? 'text-primary' : 'text-primary'">
-  <template v-if="appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id">
-     Áp dụng mã tốt nhất:
-  </template>
-  <template v-else>
-    Đang áp dụng:
-  </template>
-  <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
-  - giảm {{ money(appliedVoucherEntry.discount) }} đ
-</div>
+            <div class="checkout-card__body">
+              <div class="coupon-box">
+                <input
+                  :value="appliedVoucherDisplay"
+                  class="form-control input-ui"
+                  placeholder="Chưa có mã giảm giá phù hợp"
+                  readonly
+                />
+                <button
+                  class="coupon-btn"
+                  type="button"
+                  @click="openVoucherModal"
+                  :disabled="eligibleVoucherEntries.length === 0"
+                >
+                  Chọn
+                </button>
+              </div>
+              <div
+                v-if="appliedVoucherEntry"
+                class="small mt-2"
+                :class="
+                  appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
+                    ? 'text-primary'
+                    : 'text-primary'
+                "
+              >
+                <template
+                  v-if="
+                    appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
+                  "
+                >
+                  Áp dụng mã tốt nhất:
+                </template>
+                <template v-else> Đang áp dụng: </template>
+                <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
+                - giảm {{ money(appliedVoucherEntry.discount) }} đ
+              </div>
 
-<div v-else class="small text-muted mt-2">
-  Không có phiếu giảm giá phù hợp với đơn hàng này.
-</div>
-  </div>
-</section>
+              <div v-else class="small text-muted mt-2">
+                Không có phiếu giảm giá phù hợp với đơn hàng này.
+              </div>
+            </div>
+          </section>
         </div>
 
         <div class="col-lg-5">
@@ -303,16 +294,20 @@
             <div v-else class="summary-card__body">
               <div class="summary-list">
                 <div
-                    class="summary-item"
-                    v-for="it in cartItems"
-                    :key="it.idSanPhamChiTiet || it.key || `${it.productId}-${it.size}-${it.color}`"
+                  class="summary-item"
+                  v-for="it in cartItems"
+                  :key="
+                    it.idSanPhamChiTiet ||
+                    it.key ||
+                    `${it.productId}-${it.size}-${it.color}`
+                  "
                 >
                   <div class="summary-item__left">
                     <img
-                        :src="it.image"
-                        class="summary-item__img"
-                        alt="sp"
-                        @error="onImgError"
+                      :src="it.image"
+                      class="summary-item__img"
+                      alt="sp"
+                      @error="onImgError"
                     />
 
                     <div class="summary-item__info">
@@ -324,8 +319,8 @@
                       </div>
 
                       <div
-                          class="summary-item__spct"
-                          v-if="resolveProductDetailId(it)"
+                        class="summary-item__spct"
+                        v-if="resolveProductDetailId(it)"
                       >
                         SPCT: {{ resolveProductDetailId(it) }}
                       </div>
@@ -341,7 +336,10 @@
                       {{ money(it.price) }} đ
                     </div>
                     <div class="summary-item__total">
-                      {{ money((Number(it.price) || 0) * (Number(it.qty) || 0)) }} đ
+                      {{
+                        money((Number(it.price) || 0) * (Number(it.qty) || 0))
+                      }}
+                      đ
                     </div>
                   </div>
                 </div>
@@ -356,59 +354,69 @@
                   <span>Tổng tiền</span>
                   <strong>{{ money(safeSubtotal) }} đ</strong>
                 </div>
-               <div class="sum-line shipping-line">
-  <div class="shipping-label">
-    <span>Vận chuyển</span>
-    <img :src="ghnLogo" alt="GHN" class="ship-fee-logo" />
-  </div>
-  <strong>{{ money(shippingFee) }} đ</strong>
-</div>
+                <div class="sum-line shipping-line">
+                  <div class="shipping-label">
+                    <span>Vận chuyển</span>
+                    <img :src="ghnLogo" alt="GHN" class="ship-fee-logo" />
+                  </div>
+                  <strong>{{ money(shippingFee) }} đ</strong>
+                </div>
                 <div class="sum-line" v-if="discount > 0">
-  <span>Giảm giá</span>
-  <strong>- {{ money(discount) }} đ</strong>
-</div>
+                  <span>Giảm giá</span>
+                  <strong>- {{ money(discount) }} đ</strong>
+                </div>
                 <div class="sum-line total">
                   <span>THÀNH TIỀN</span>
                   <strong>{{ money(safeGrandTotal) }} đ</strong>
                 </div>
 
                 <div class="summary-actions mt-3">
-  <label class="invoice-row">
-    <input
-      v-model="form.invoice"
-      type="checkbox"
-      class="form-check-input me-2"
-    />
-    <span>Xuất file PDF sau khi đặt hàng</span>
-  </label>
+                  <label class="invoice-row">
+                    <input
+                      v-model="form.invoice"
+                      type="checkbox"
+                      class="form-check-input me-2"
+                    />
+                    <span>Xuất file PDF sau khi đặt hàng</span>
+                  </label>
 
-  <button
-    class="btn-preview-pdf"
-    type="button"
-    :disabled="cartItems.length === 0"
-    @click="printInvoice"
-  >
-    <i class="bi bi-printer me-2"></i>
-    Xuất PDF / In tạm tính
-  </button>
-</div>
-<div v-if="appliedVoucherEntry" class="voucher-saving-note mt-3">
-  Bạn đang tiết kiệm <b>{{ money(discount) }} đ</b> với mã
-  <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>.
-</div>
-                <div v-if="errors.items" class="alert alert-danger py-2 mt-3 mb-2">
+                  <button
+                    class="btn-preview-pdf"
+                    type="button"
+                    :disabled="cartItems.length === 0"
+                    @click="printInvoice"
+                  >
+                    <i class="bi bi-printer me-2"></i>
+                    Xuất PDF / In tạm tính
+                  </button>
+                </div>
+                <div
+                  v-if="appliedVoucherEntry"
+                  class="voucher-saving-note mt-3"
+                >
+                  Bạn đang tiết kiệm <b>{{ money(discount) }} đ</b> với mã
+                  <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b
+                  >.
+                </div>
+                <div
+                  v-if="errors.items"
+                  class="alert alert-danger py-2 mt-3 mb-2"
+                >
                   {{ errors.items }}
                 </div>
 
-                <div v-if="errors.general" class="alert alert-danger py-2 mt-2 mb-0">
+                <div
+                  v-if="errors.general"
+                  class="alert alert-danger py-2 mt-2 mb-0"
+                >
                   {{ errors.general }}
                 </div>
 
                 <button
-                    class="btn-order w-100 mt-3"
-                    type="button"
-                    :disabled="cartItems.length === 0 || loading"
-                    @click="placeOrder"
+                  class="btn-order w-100 mt-3"
+                  type="button"
+                  :disabled="cartItems.length === 0 || loading"
+                  @click="placeOrder"
                 >
                   {{ loading ? "ĐANG XỬ LÝ..." : "ĐẶT HÀNG" }}
                 </button>
@@ -437,149 +445,163 @@
         <div class="qr-modal">
           <div class="qr-modal-header">
             <h5 class="mb-0">Thanh toán chuyển khoản QR</h5>
-            <button class="btn-close" type="button" @click="closeQrModal"></button>
+            <button
+              class="btn-close"
+              type="button"
+              @click="closeQrModal"
+            ></button>
           </div>
 
-        <div class="qr-modal-body">
-  <div class="payment-channel-badge mb-3">
-    {{ selectedPaymentOption?.title || "Thanh toán online" }}
-  </div>
+          <div class="qr-modal-body">
+            <div class="payment-channel-badge mb-3">
+              {{ selectedPaymentOption?.title || "Thanh toán online" }}
+            </div>
 
-  <template v-if="form.paymentMethod === 'bank_qr'">
-    <div class="text-center mb-3">
-      <img
-        v-if="qrData.qrImageUrl"
-        :src="normalizeQrUrl(qrData.qrImageUrl)"
-        alt="QR thanh toán"
-        class="qr-image"
-      />
-      <div v-else class="qr-placeholder">
-        Chưa có ảnh QR
-      </div>
-    </div>
+            <template v-if="form.paymentMethod === 'bank_qr'">
+              <div class="text-center mb-3">
+                <img
+                  v-if="qrData.qrImageUrl"
+                  :src="normalizeQrUrl(qrData.qrImageUrl)"
+                  alt="QR thanh toán"
+                  class="qr-image"
+                />
+                <div v-else class="qr-placeholder">Chưa có ảnh QR</div>
+              </div>
 
-    <div class="qr-info">
-      <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
-      <div><b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}</div>
-      <div><b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}</div>
-      <div><b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}</div>
-      <div><b>Số tiền:</b> {{ money(qrData.amount || safeGrandTotal) }} đ</div>
-      <div><b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}</div>
-    </div>
+              <div class="qr-info">
+                <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
+                <div>
+                  <b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}
+                </div>
+                <div>
+                  <b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}
+                </div>
+                <div>
+                  <b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}
+                </div>
+                <div>
+                  <b>Số tiền:</b> {{ money(qrData.amount || safeGrandTotal) }} đ
+                </div>
+                <div>
+                  <b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}
+                </div>
+              </div>
 
-    <div class="mt-3">
-      <label class="form-label">Mã giao dịch (nếu có)</label>
-      <input
-        v-model="qrForm.maGiaoDich"
-        type="text"
-        class="form-control input-ui"
-        placeholder="Ví dụ: TCB123456789"
-      />
-    </div>
+              <div class="mt-3">
+                <label class="form-label">Mã giao dịch (nếu có)</label>
+                <input
+                  v-model="qrForm.maGiaoDich"
+                  type="text"
+                  class="form-control input-ui"
+                  placeholder="Ví dụ: TCB123456789"
+                />
+              </div>
 
-    <div class="mt-3">
-      <label class="form-label">Ghi chú xác nhận</label>
-      <textarea
-        v-model="qrForm.ghiChu"
-        class="form-control input-ui textarea-ui"
-        rows="3"
-        placeholder="Khách đã chuyển khoản"
-      ></textarea>
-    </div>
-  </template>
+              <div class="mt-3">
+                <label class="form-label">Ghi chú xác nhận</label>
+                <textarea
+                  v-model="qrForm.ghiChu"
+                  class="form-control input-ui textarea-ui"
+                  rows="3"
+                  placeholder="Khách đã chuyển khoản"
+                ></textarea>
+              </div>
+            </template>
 
-  <template v-else>
-    <div class="gateway-box">
-      <div class="gateway-box__title">
-        Thanh toán qua {{ selectedPaymentOption?.title }}
-      </div>
+            <template v-else>
+              <div class="gateway-box">
+                <div class="gateway-box__title">
+                  Thanh toán qua {{ selectedPaymentOption?.title }}
+                </div>
 
-      <div class="gateway-box__desc">
-        {{ gatewayInstruction }}
-      </div>
+                <div class="gateway-box__desc">
+                  {{ gatewayInstruction }}
+                </div>
 
-      <div class="gateway-box__meta">
-        <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
-        <div><b>Số tiền:</b> {{ money(qrData.amount || safeGrandTotal) }} đ</div>
-      </div>
+                <div class="gateway-box__meta">
+                  <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
+                  <div>
+                    <b>Số tiền:</b>
+                    {{ money(qrData.amount || safeGrandTotal) }} đ
+                  </div>
+                </div>
 
-      <button
-        class="btn-open-gateway mt-3"
-        type="button"
-        @click="openPaymentGateway"
-      >
-        Mở trang thanh toán
-      </button>
+                <button
+                  class="btn-open-gateway mt-3"
+                  type="button"
+                  @click="openPaymentGateway"
+                >
+                  Mở trang thanh toán
+                </button>
 
+                <div class="mt-3">
+                  <label class="form-label">Mã giao dịch / mã tham chiếu</label>
+                  <input
+                    v-model="qrForm.maGiaoDich"
+                    type="text"
+                    class="form-control input-ui"
+                    placeholder="Ví dụ: VNPAY123456 / MOMO123456"
+                  />
+                </div>
 
-      <div class="mt-3">
-        <label class="form-label">Mã giao dịch / mã tham chiếu</label>
-        <input
-          v-model="qrForm.maGiaoDich"
-          type="text"
-          class="form-control input-ui"
-          placeholder="Ví dụ: VNPAY123456 / MOMO123456"
-        />
-      </div>
+                <div class="mt-3">
+                  <label class="form-label">Ghi chú xác nhận</label>
+                  <textarea
+                    v-model="qrForm.ghiChu"
+                    class="form-control input-ui textarea-ui"
+                    rows="3"
+                    placeholder="Đã thanh toán online thành công"
+                  ></textarea>
+                </div>
+              </div>
+            </template>
 
-      <div class="mt-3">
-        <label class="form-label">Ghi chú xác nhận</label>
-        <textarea
-          v-model="qrForm.ghiChu"
-          class="form-control input-ui textarea-ui"
-          rows="3"
-          placeholder="Đã thanh toán online thành công"
-        ></textarea>
-      </div>
-    </div>
-  </template>
+            <div v-if="qrSuccessMessage" class="alert alert-success mt-3 mb-0">
+              {{ qrSuccessMessage }}
+            </div>
 
-  <div v-if="qrSuccessMessage" class="alert alert-success mt-3 mb-0">
-    {{ qrSuccessMessage }}
-  </div>
+            <div v-if="qrError" class="alert alert-danger mt-3 mb-0">
+              {{ qrError }}
+            </div>
+          </div>
 
-  <div v-if="qrError" class="alert alert-danger mt-3 mb-0">
-    {{ qrError }}
-  </div>
-</div>
+          <div class="qr-modal-footer">
+            <button class="btn-qr-close" type="button" @click="closeQrModal">
+              Đóng
+            </button>
 
-      <div class="qr-modal-footer">
-  <button class="btn-qr-close" type="button" @click="closeQrModal">
-    Đóng
-  </button>
-
-  <button
-    class="btn-qr-confirm"
-    type="button"
-    :disabled="confirmingQr"
-    @click="confirmQrPayment"
-  >
-    {{
-      confirmingQr
-        ? "ĐANG XÁC NHẬN..."
-        : form.paymentMethod === "bank_qr"
-          ? "Tôi đã chuyển khoản"
-          : "Tôi đã thanh toán thành công"
-    }}
-  </button>
-</div>   
+            <button
+              class="btn-qr-confirm"
+              type="button"
+              :disabled="confirmingQr"
+              @click="confirmQrPayment"
+            >
+              {{
+                confirmingQr
+                  ? "ĐANG XÁC NHẬN..."
+                  : form.paymentMethod === "bank_qr"
+                    ? "Tôi đã chuyển khoản"
+                    : "Tôi đã thanh toán thành công"
+              }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
   <!-- Modal xác nhận đặt hàng -->
   <div
-      v-if="showConfirmModal"
-      class="confirm-backdrop"
-      @click.self="closeConfirmModal"
+    v-if="showConfirmModal"
+    class="confirm-backdrop"
+    @click.self="closeConfirmModal"
   >
     <div class="confirm-modal">
       <div class="confirm-modal__header">
         <h5 class="mb-0">Xác nhận đặt hàng</h5>
         <button
-            class="btn-close btn-close-white"
-            type="button"
-            @click="closeConfirmModal"
+          class="btn-close btn-close-white"
+          type="button"
+          @click="closeConfirmModal"
         ></button>
       </div>
 
@@ -598,19 +620,19 @@
 
       <div class="confirm-modal__footer">
         <button
-            class="btn-cancel"
-            type="button"
-            @click="closeConfirmModal"
-            :disabled="confirmSubmitting"
+          class="btn-cancel"
+          type="button"
+          @click="closeConfirmModal"
+          :disabled="confirmSubmitting"
         >
           Hủy
         </button>
 
         <button
-            class="btn-confirm"
-            type="button"
-            @click="submitOrder"
-            :disabled="confirmSubmitting"
+          class="btn-confirm"
+          type="button"
+          @click="submitOrder"
+          :disabled="confirmSubmitting"
         >
           {{ confirmSubmitting ? "ĐANG XỬ LÝ..." : "Xác nhận đặt hàng" }}
         </button>
@@ -620,9 +642,9 @@
 
   <!-- Modal thành công -->
   <div
-      v-if="showSuccessModal"
-      class="success-backdrop"
-      @click.self="closeSuccessModal"
+    v-if="showSuccessModal"
+    class="success-backdrop"
+    @click.self="closeSuccessModal"
   >
     <div class="success-modal">
       <div class="success-icon-wrap">
@@ -636,199 +658,215 @@
         {{ successMessage }}
       </div>
 
-      <div class="success-note">
-        Đang chuyển sang trang kết quả đơn hàng...
-      </div>
+      <div class="success-note">Đang chuyển sang trang kết quả đơn hàng...</div>
     </div>
   </div>
- <div v-if="showVoucherModal" class="confirm-backdrop" @click.self="showVoucherModal = false">
-  <div class="voucher-modal">
-    <div class="voucher-modal__header">
-      <h5>Chọn phiếu giảm giá</h5>
-      <button type="button" class="voucher-modal__close" @click="showVoucherModal = false">
-        ×
-      </button>
-    </div>
-
-    <div class="voucher-modal__body">
-     <div v-if="eligibleVoucherEntries.length === 0" class="text-muted">
-  Không có phiếu giảm giá phù hợp với đơn hàng này.
-</div>
-
-<template v-if="publicEligibleVoucherEntries.length">
-  <div class="voucher-group-title">Mã công khai có thể dùng</div>
-
-  <label
-    v-for="e in publicEligibleVoucherEntries"
-    :key="`public-${e.v.id}`"
-    class="voucher-item"
-    :class="{ active: selectedVoucherId === e.v.id }"
+  <div
+    v-if="showVoucherModal"
+    class="confirm-backdrop"
+    @click.self="showVoucherModal = false"
   >
-    <input
-      type="radio"
-      :value="e.v.id"
-      v-model="selectedVoucherId"
-      hidden
-    />
-
-    <div class="voucher-item__left">
-      <div class="voucher-item__code">
-        {{ e.v.ma_giam_gia }}
-        <span class="badge-public">Công khai</span>
-        <span v-if="bestEligibleVoucherEntry?.v?.id === e.v.id" class="badge-best">
-          Tốt nhất
-        </span>
+    <div class="voucher-modal">
+      <div class="voucher-modal__header">
+        <h5>Chọn phiếu giảm giá</h5>
+        <button
+          type="button"
+          class="voucher-modal__close"
+          @click="showVoucherModal = false"
+        >
+          ×
+        </button>
       </div>
 
-      <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+      <div class="voucher-modal__body">
+        <div v-if="eligibleVoucherEntries.length === 0" class="text-muted">
+          Không có phiếu giảm giá phù hợp với đơn hàng này.
+        </div>
 
-      <div class="voucher-item__discount text-danger">
-        Giảm {{ money(e.discount) }} đ
+        <template v-if="publicEligibleVoucherEntries.length">
+          <div class="voucher-group-title">Mã công khai có thể dùng</div>
+
+          <label
+            v-for="e in publicEligibleVoucherEntries"
+            :key="`public-${e.v.id}`"
+            class="voucher-item"
+            :class="{ active: selectedVoucherId === e.v.id }"
+          >
+            <input
+              type="radio"
+              :value="e.v.id"
+              v-model="selectedVoucherId"
+              hidden
+            />
+
+            <div class="voucher-item__left">
+              <div class="voucher-item__code">
+                {{ e.v.ma_giam_gia }}
+                <span class="badge-public">Công khai</span>
+                <span
+                  v-if="bestEligibleVoucherEntry?.v?.id === e.v.id"
+                  class="badge-best"
+                >
+                  Tốt nhất
+                </span>
+              </div>
+
+              <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+
+              <div class="voucher-item__discount text-danger">
+                Giảm {{ money(e.discount) }} đ
+              </div>
+
+              <div class="voucher-item__meta">
+                Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+              </div>
+            </div>
+
+            <div class="voucher-item__right">
+              <span v-if="selectedVoucherId === e.v.id">✔</span>
+            </div>
+          </label>
+        </template>
+
+        <template v-if="personalEligibleVoucherEntries.length">
+          <div class="voucher-group-title mt-2">Mã cá nhân của bạn</div>
+
+          <label
+            v-for="e in personalEligibleVoucherEntries"
+            :key="`personal-${e.v.id}`"
+            class="voucher-item"
+            :class="{ active: selectedVoucherId === e.v.id }"
+          >
+            <input
+              type="radio"
+              :value="e.v.id"
+              v-model="selectedVoucherId"
+              hidden
+            />
+
+            <div class="voucher-item__left">
+              <div class="voucher-item__code">
+                {{ e.v.ma_giam_gia }}
+                <span
+                  v-if="bestEligibleVoucherEntry?.v?.id === e.v.id"
+                  class="badge-best"
+                >
+                  Tốt nhất
+                </span>
+              </div>
+
+              <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+
+              <div class="voucher-item__discount text-danger">
+                Giảm {{ money(e.discount) }} đ
+              </div>
+
+              <div class="voucher-item__meta">
+                Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+              </div>
+            </div>
+
+            <div class="voucher-item__right">
+              <span v-if="selectedVoucherId === e.v.id">✔</span>
+            </div>
+          </label>
+        </template>
       </div>
 
-      <div class="voucher-item__meta">
-        Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+      <div class="voucher-modal__footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          @click="showVoucherModal = false"
+        >
+          Đóng
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger"
+          @click="confirmVoucherSelection"
+        >
+          Áp dụng
+        </button>
       </div>
-    </div>
-
-    <div class="voucher-item__right">
-      <span v-if="selectedVoucherId === e.v.id">✔</span>
-    </div>
-  </label>
-</template>
-
-<template v-if="personalEligibleVoucherEntries.length">
-  <div class="voucher-group-title mt-2">Mã cá nhân của bạn</div>
-
-  <label
-    v-for="e in personalEligibleVoucherEntries"
-    :key="`personal-${e.v.id}`"
-    class="voucher-item"
-    :class="{ active: selectedVoucherId === e.v.id }"
-  >
-    <input
-      type="radio"
-      :value="e.v.id"
-      v-model="selectedVoucherId"
-      hidden
-    />
-
-    <div class="voucher-item__left">
-      <div class="voucher-item__code">
-        {{ e.v.ma_giam_gia }}
-        <span v-if="bestEligibleVoucherEntry?.v?.id === e.v.id" class="badge-best">
-          Tốt nhất
-        </span>
-      </div>
-
-      <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
-
-      <div class="voucher-item__discount text-danger">
-        Giảm {{ money(e.discount) }} đ
-      </div>
-
-      <div class="voucher-item__meta">
-        Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
-      </div>
-    </div>
-
-    <div class="voucher-item__right">
-      <span v-if="selectedVoucherId === e.v.id">✔</span>
-    </div>
-  </label>
-</template>
-    </div>
-
-    <div class="voucher-modal__footer">
-      <button type="button" class="btn btn-secondary" @click="showVoucherModal = false">
-        Đóng
-      </button>
-      <button type="button" class="btn btn-danger" @click="confirmVoucherSelection">
-        Áp dụng
-      </button>
     </div>
   </div>
-</div>
-<div class="app-toast-wrap">
-  <transition name="fade">
-    <div
-      v-if="toast.show"
-      class="app-toast"
-      :class="`app-toast--${toast.type}`"
-    >
-      <i
-        class="bi"
-        :class="
-          toast.type === 'success'
-            ? 'bi-check-circle-fill'
-            : toast.type === 'warning'
-              ? 'bi-exclamation-triangle-fill'
-              : 'bi-info-circle-fill'
-        "
-      ></i>
-      <span>{{ toast.message }}</span>
-    </div>
-  </transition>
-</div>
-
-<div ref="printAreaRef" class="invoice-print-area">
-  <div class="receipt">
-    <div class="center bold big">HÓA ĐƠN TẠM TÍNH</div>
-    <div class="center small muted">Mã đơn: {{ invoiceData.maHoaDon }}</div>
-    <div class="center small muted">{{ invoiceData.createdAt }}</div>
-
-    <div class="hr"></div>
-
-    <div class="mt2"><b>Khách hàng:</b> {{ invoiceData.customerName }}</div>
-    <div class="mt2"><b>SĐT:</b> {{ invoiceData.phone }}</div>
-    <div class="mt2"><b>Địa chỉ:</b> {{ invoiceData.address }}</div>
-    <div class="mt2"><b>Thanh toán:</b> {{ invoiceData.paymentLabel }}</div>
-    <div class="mt2"><b>Ghi chú:</b> {{ invoiceData.note }}</div>
-
-    <div class="hr"></div>
-
-    <div class="items-head bold">
-      <div class="w-name">Sản phẩm</div>
-      <div class="w-qty right">SL</div>
-      <div class="w-price right">Tiền</div>
-    </div>
-
-    <div
-      class="item mt6"
-      v-for="it in invoiceData.items"
-      :key="it.key"
-    >
-      <div class="w-name">
-        <div>{{ it.name }}</div>
-        <div class="small muted">{{ it.variantText }}</div>
+  <div class="app-toast-wrap">
+    <transition name="fade">
+      <div
+        v-if="toast.show"
+        class="app-toast"
+        :class="`app-toast--${toast.type}`"
+      >
+        <i
+          class="bi"
+          :class="
+            toast.type === 'success'
+              ? 'bi-check-circle-fill'
+              : toast.type === 'warning'
+                ? 'bi-exclamation-triangle-fill'
+                : 'bi-info-circle-fill'
+          "
+        ></i>
+        <span>{{ toast.message }}</span>
       </div>
-      <div class="w-qty right">{{ it.qty }}</div>
-      <div class="w-price right">{{ money(it.total) }}</div>
-    </div>
-
-    <div class="hr"></div>
-
-    <div class="row2">
-      <span>Tạm tính</span>
-      <span>{{ money(invoiceData.subtotal) }}</span>
-    </div>
-    <div class="row2">
-      <span>Vận chuyển</span>
-      <span>{{ money(invoiceData.shippingFee) }}</span>
-    </div>
-    <div class="row2">
-      <span>Giảm giá</span>
-      <span>-{{ money(invoiceData.discount) }}</span>
-    </div>
-    <div class="row2 bold mt6">
-      <span>Thành tiền</span>
-      <span>{{ money(invoiceData.total) }}</span>
-    </div>
-
-    <div class="hr"></div>
-    <div class="center small mt8">Cảm ơn quý khách đã mua hàng!</div>
+    </transition>
   </div>
-</div>
+
+  <div ref="printAreaRef" class="invoice-print-area">
+    <div class="receipt">
+      <div class="center bold big">HÓA ĐƠN TẠM TÍNH</div>
+      <div class="center small muted">Mã đơn: {{ invoiceData.maHoaDon }}</div>
+      <div class="center small muted">{{ invoiceData.createdAt }}</div>
+
+      <div class="hr"></div>
+
+      <div class="mt2"><b>Khách hàng:</b> {{ invoiceData.customerName }}</div>
+      <div class="mt2"><b>SĐT:</b> {{ invoiceData.phone }}</div>
+      <div class="mt2"><b>Địa chỉ:</b> {{ invoiceData.address }}</div>
+      <div class="mt2"><b>Thanh toán:</b> {{ invoiceData.paymentLabel }}</div>
+      <div class="mt2"><b>Ghi chú:</b> {{ invoiceData.note }}</div>
+
+      <div class="hr"></div>
+
+      <div class="items-head bold">
+        <div class="w-name">Sản phẩm</div>
+        <div class="w-qty right">SL</div>
+        <div class="w-price right">Tiền</div>
+      </div>
+
+      <div class="item mt6" v-for="it in invoiceData.items" :key="it.key">
+        <div class="w-name">
+          <div>{{ it.name }}</div>
+          <div class="small muted">{{ it.variantText }}</div>
+        </div>
+        <div class="w-qty right">{{ it.qty }}</div>
+        <div class="w-price right">{{ money(it.total) }}</div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row2">
+        <span>Tạm tính</span>
+        <span>{{ money(invoiceData.subtotal) }}</span>
+      </div>
+      <div class="row2">
+        <span>Vận chuyển</span>
+        <span>{{ money(invoiceData.shippingFee) }}</span>
+      </div>
+      <div class="row2">
+        <span>Giảm giá</span>
+        <span>-{{ money(invoiceData.discount) }}</span>
+      </div>
+      <div class="row2 bold mt6">
+        <span>Thành tiền</span>
+        <span>{{ money(invoiceData.total) }}</span>
+      </div>
+
+      <div class="hr"></div>
+      <div class="center small mt8">Cảm ơn quý khách đã mua hàng!</div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -836,27 +874,22 @@ import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ghnLogo from "../../assets/ghn.webp.webp";
+import vnUnitsData from "../../assets/vn_units.json"; // sửa path nếu file của bạn nằm chỗ khác
 
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
 
-const PROVINCE_API_BASE = "https://provinces.open-api.vn/api/v1";
-
 const provinces = ref([]);
-const districts = ref([]);
 const wards = ref([]);
 const vestUser = JSON.parse(localStorage.getItem("vest_user") || "null");
 const currentCustomerId = Number(vestUser?.id || 0) || null;
 const provinceLoading = ref(false);
-const districtLoading = ref(false);
 const wardLoading = ref(false);
-
 const form = reactive({
   fullName: "",
   phone: "",
   email: "",
   province: "",
-  district: "",
   ward: "",
   address: "",
   note: "",
@@ -884,26 +917,32 @@ const paymentOptions = [
     title: "VNPAY",
     desc: "ATM nội địa / QR / Internet Banking.",
     badge: "Nhanh",
-    helper: "FE đã sẵn flow mở cổng VNPAY. Backend chỉ cần trả paymentUrl là chạy thật.",
+    helper:
+      "FE đã sẵn flow mở cổng VNPAY. Backend chỉ cần trả paymentUrl là chạy thật.",
   },
   {
     value: "momo",
     title: "Ví MoMo",
     desc: "Thanh toán nhanh qua ví điện tử MoMo.",
     badge: "Ví điện tử",
-    helper: "FE đã sẵn flow mở MoMo. Backend chỉ cần trả paymentUrl là chạy thật.",
+    helper:
+      "FE đã sẵn flow mở MoMo. Backend chỉ cần trả paymentUrl là chạy thật.",
   },
   {
     value: "card",
     title: "Thẻ tín dụng / ghi nợ",
     desc: "Visa / MasterCard / JCB.",
     badge: "Quốc tế",
-    helper: "FE đã sẵn flow thanh toán thẻ. Backend chỉ cần trả paymentUrl là chạy thật.",
+    helper:
+      "FE đã sẵn flow thanh toán thẻ. Backend chỉ cần trả paymentUrl là chạy thật.",
   },
 ];
 
 const selectedPaymentOption = computed(() => {
-  return paymentOptions.find((x) => x.value === form.paymentMethod) || paymentOptions[0];
+  return (
+    paymentOptions.find((x) => x.value === form.paymentMethod) ||
+    paymentOptions[0]
+  );
 });
 
 const gatewayInstruction = computed(() => {
@@ -939,8 +978,8 @@ const paymentUiHint = computed(() => {
 const vouchers = ref([]);
 const showVoucherModal = ref(false);
 
-const selectedVoucherId = ref(null);   // đang tick trong modal
-const appliedVoucherId = ref(null);    // đang áp dụng thật
+const selectedVoucherId = ref(null); // đang tick trong modal
+const appliedVoucherId = ref(null); // đang áp dụng thật
 const discount = ref(0);
 const loading = ref(false);
 
@@ -986,9 +1025,8 @@ const qrForm = reactive({
 const errors = reactive({
   fullName: "",
   phone: "",
-    email: "",
+  email: "",
   province: "",
-  district: "",
   ward: "",
   address: "",
   shippingMethod: "",
@@ -996,13 +1034,11 @@ const errors = reactive({
   items: "",
   general: "",
 });
-
 const selectedProvince = computed(() => {
-  return provinces.value.find((p) => String(p.code) === String(form.province)) || null;
-});
-
-const selectedDistrict = computed(() => {
-  return districts.value.find((d) => String(d.code) === String(form.district)) || null;
+  return (
+    provinces.value.find((p) => String(p.code) === String(form.province)) ||
+    null
+  );
 });
 
 const selectedWard = computed(() => {
@@ -1011,37 +1047,17 @@ const selectedWard = computed(() => {
 
 const shippingFee = computed(() => {
   const provinceName = String(selectedProvince.value?.name || "").toLowerCase();
-  const districtName = String(selectedDistrict.value?.name || "").toLowerCase();
   const wardName = String(selectedWard.value?.name || "").toLowerCase();
 
-  if (!provinceName || !districtName || !wardName) return 0;
+  if (!provinceName || !wardName) return 0;
 
   let fee = 30000;
 
-  // nội thành HN/HCM
-  if (
-    provinceName.includes("hà nội") ||
-    provinceName.includes("hồ chí minh")
-  ) {
+  if (provinceName.includes("hà nội") || provinceName.includes("hồ chí minh")) {
     fee = 25000;
   }
 
-  // nếu là quận thì giảm thêm
-  if (districtName.includes("quận")) {
-    fee -= 5000;
-  }
-
-  // nếu là huyện/thị xã/thành phố thuộc tỉnh thì cộng thêm
-  if (
-    districtName.includes("huyện") ||
-    districtName.includes("thị xã") ||
-    districtName.includes("thành phố")
-  ) {
-    fee += 5000;
-  }
-
-  // nếu là xã thì cộng thêm nữa
-  if (wardName.includes("xã")) {
+  if (wardName.includes("xã") || wardName.includes("đặc khu")) {
     fee += 5000;
   }
 
@@ -1108,7 +1124,9 @@ function normalizeVoucher(x) {
     gia_tri_phan_tram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
     gia_tri_tien_mat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
     don_hang_toi_thieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
-    gia_tri_giam_toi_da: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
+    gia_tri_giam_toi_da: Number(
+      x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0,
+    ),
     loai_phieu: x.loaiPhieu ?? x.loai_phieu ?? null,
     khach_hang_ids: normalizeKhIds(khIdsRaw),
     khach_hang_id: khSingle != null ? Number(khSingle) : null,
@@ -1155,13 +1173,16 @@ function calcVoucherDiscount(subtotal, v) {
 }
 
 const safeGrandTotal = computed(() => {
-  return safeSubtotal.value + (Number(shippingFee.value) || 0) - (Number(discount.value) || 0);
+  return (
+    safeSubtotal.value +
+    (Number(shippingFee.value) || 0) -
+    (Number(discount.value) || 0)
+  );
 });
 const fullDeliveryAddress = computed(() => {
   return [
     form.address?.trim(),
     selectedWard.value?.name || "",
-    selectedDistrict.value?.name || "",
     selectedProvince.value?.name || "",
   ]
     .filter((x) => !!x)
@@ -1181,7 +1202,8 @@ const invoiceData = computed(() => {
       currentOrder.orderId ||
       "TAM_TINH",
     createdAt: currentOrder.createdAt || new Date().toLocaleString("vi-VN"),
-    customerName: currentOrder.customerName || form.fullName?.trim() || "Khách lẻ",
+    customerName:
+      currentOrder.customerName || form.fullName?.trim() || "Khách lẻ",
     phone: currentOrder.phone || form.phone?.trim() || "-",
     address: currentOrder.address || fullDeliveryAddress.value || "-",
     paymentLabel:
@@ -1249,13 +1271,13 @@ const eligibleVoucherEntries = computed(() => {
 });
 const publicEligibleVoucherEntries = computed(() => {
   return eligibleVoucherEntries.value.filter(
-    (x) => x.v.loai_phieu === "CONG_KHAI"
+    (x) => x.v.loai_phieu === "CONG_KHAI",
   );
 });
 
 const personalEligibleVoucherEntries = computed(() => {
   return eligibleVoucherEntries.value.filter(
-    (x) => x.v.loai_phieu === "CA_NHAN"
+    (x) => x.v.loai_phieu === "CA_NHAN",
   );
 });
 const bestEligibleVoucherEntry = computed(() => {
@@ -1294,7 +1316,10 @@ function syncAppliedVoucher() {
   appliedVoucherId.value = chosen.v.id;
   discount.value = chosen.discount;
 
-  if (!selectedVoucherId.value || !eligible.some((x) => x.v.id === selectedVoucherId.value)) {
+  if (
+    !selectedVoucherId.value ||
+    !eligible.some((x) => x.v.id === selectedVoucherId.value)
+  ) {
     selectedVoucherId.value = chosen.v.id;
   }
 }
@@ -1304,7 +1329,7 @@ watch(
   () => {
     syncAppliedVoucher();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 function openVoucherModal() {
@@ -1315,7 +1340,7 @@ function openVoucherModal() {
 
 function confirmVoucherSelection() {
   const picked = eligibleVoucherEntries.value.find(
-    (x) => x.v.id === selectedVoucherId.value
+    (x) => x.v.id === selectedVoucherId.value,
   );
 
   if (!picked) {
@@ -1332,9 +1357,18 @@ function confirmVoucherSelection() {
 async function fetchProvinces() {
   try {
     provinceLoading.value = true;
-    const res = await fetch(`${PROVINCE_API_BASE}/p/`);
-    const data = await res.json();
-    provinces.value = Array.isArray(data) ? data : [];
+
+    provinces.value = (Array.isArray(vnUnitsData) ? vnUnitsData : []).map(
+      (p) => ({
+        code: p.Code,
+        name: p.FullName,
+        wards: (p.Wards || []).map((w) => ({
+          code: w.Code,
+          name: w.FullName,
+          provinceCode: w.ProvinceCode,
+        })),
+      }),
+    );
   } catch (error) {
     console.error("fetchProvinces error:", error);
     provinces.value = [];
@@ -1343,38 +1377,22 @@ async function fetchProvinces() {
   }
 }
 
-async function fetchDistrictsByProvince(provinceCode) {
+async function fetchWardsByProvince(provinceCode) {
   if (!provinceCode) {
-    districts.value = [];
-    return;
-  }
-
-  try {
-    districtLoading.value = true;
-    const res = await fetch(`${PROVINCE_API_BASE}/p/${provinceCode}?depth=2`);
-    const data = await res.json();
-    districts.value = Array.isArray(data?.districts) ? data.districts : [];
-  } catch (error) {
-    console.error("fetchDistrictsByProvince error:", error);
-    districts.value = [];
-  } finally {
-    districtLoading.value = false;
-  }
-}
-
-async function fetchWardsByDistrict(districtCode) {
-  if (!districtCode) {
     wards.value = [];
     return;
   }
 
   try {
     wardLoading.value = true;
-    const res = await fetch(`${PROVINCE_API_BASE}/d/${districtCode}?depth=2`);
-    const data = await res.json();
-    wards.value = Array.isArray(data?.wards) ? data.wards : [];
+
+    const province = provinces.value.find(
+      (p) => String(p.code) === String(provinceCode),
+    );
+
+    wards.value = province?.wards || [];
   } catch (error) {
-    console.error("fetchWardsByDistrict error:", error);
+    console.error("fetchWardsByProvince error:", error);
     wards.value = [];
   } finally {
     wardLoading.value = false;
@@ -1382,29 +1400,14 @@ async function fetchWardsByDistrict(districtCode) {
 }
 
 async function onProvinceChange() {
-  form.district = "";
   form.ward = "";
-  districts.value = [];
   wards.value = [];
 
   errors.province = "";
-  errors.district = "";
   errors.ward = "";
 
   if (form.province) {
-    await fetchDistrictsByProvince(form.province);
-  }
-}
-
-async function onDistrictChange() {
-  form.ward = "";
-  wards.value = [];
-
-  errors.district = "";
-  errors.ward = "";
-
-  if (form.district) {
-    await fetchWardsByDistrict(form.district);
+    await fetchWardsByProvince(form.province);
   }
 }
 
@@ -1439,11 +1442,6 @@ function validateProvince(value) {
   return "";
 }
 
-function validateDistrict(value) {
-  if (!value) return "Vui lòng chọn quận/huyện";
-  return "";
-}
-
 function validateWard(value) {
   if (!value) return "Vui lòng chọn phường/xã";
   return "";
@@ -1470,11 +1468,11 @@ function validatePaymentMethod(value) {
 
 function resolveProductDetailId(it) {
   return (
-      it.idSanPhamChiTiet ||
-      it.productDetailId ||
-      it.idSpct ||
-      it.variantId ||
-      null
+    it.idSanPhamChiTiet ||
+    it.productDetailId ||
+    it.idSpct ||
+    it.variantId ||
+    null
   );
 }
 
@@ -1511,7 +1509,6 @@ function validateForm() {
   errors.phone = validatePhone(form.phone);
   errors.email = validateEmail(form.email);
   errors.province = validateProvince(form.province);
-  errors.district = validateDistrict(form.district);
   errors.ward = validateWard(form.ward);
   errors.address = validateAddress(form.address);
   errors.shippingMethod = validateShippingMethod(form.shippingMethod);
@@ -1523,63 +1520,55 @@ function validateForm() {
 }
 
 watch(
-    () => form.fullName,
-    (v) => {
-      errors.fullName = validateFullName(v);
-    }
+  () => form.fullName,
+  (v) => {
+    errors.fullName = validateFullName(v);
+  },
 );
 
 watch(
-    () => form.phone,
-    (v) => {
-      errors.phone = validatePhone(v);
-    }
+  () => form.phone,
+  (v) => {
+    errors.phone = validatePhone(v);
+  },
 );
 watch(
   () => form.email,
   (v) => {
     errors.email = validateEmail(v);
-  }
+  },
 );
 
 watch(
-    () => form.province,
-    (v) => {
-      errors.province = validateProvince(v);
-    }
+  () => form.province,
+  (v) => {
+    errors.province = validateProvince(v);
+  },
 );
 
 watch(
-    () => form.district,
-    (v) => {
-      errors.district = validateDistrict(v);
-    }
+  () => form.ward,
+  (v) => {
+    errors.ward = validateWard(v);
+  },
 );
 
 watch(
-    () => form.ward,
-    (v) => {
-      errors.ward = validateWard(v);
-    }
+  () => form.address,
+  (v) => {
+    errors.address = validateAddress(v);
+  },
 );
 
 watch(
-    () => form.address,
-    (v) => {
-      errors.address = validateAddress(v);
-    }
-);
-
-watch(
-    () => form.paymentMethod,
-    (v) => {
-      errors.paymentMethod = validatePaymentMethod(v);
-    }
+  () => form.paymentMethod,
+  (v) => {
+    errors.paymentMethod = validatePaymentMethod(v);
+  },
 );
 
 function buildOrderPayload() {
   const provinceName = selectedProvince.value?.name || "";
-  const districtName = selectedDistrict.value?.name || "";
   const wardName = selectedWard.value?.name || "";
 
   const normalizedItems = cartItems.value.map((it) => {
@@ -1598,7 +1587,7 @@ function buildOrderPayload() {
   const calculatedShippingFee = Number(shippingFee.value) || 0;
   const calculatedDiscount = Number(discount.value) || 0;
   const calculatedGrandTotal =
-      calculatedSubtotal + calculatedShippingFee - calculatedDiscount;
+    calculatedSubtotal + calculatedShippingFee - calculatedDiscount;
 
   return {
     maHoaDon: null,
@@ -1609,19 +1598,19 @@ function buildOrderPayload() {
     tenKhachHang: form.fullName.trim(),
     soDienThoai: form.phone.trim(),
     emailKhachHang: form.email.trim(),
-    diaChiKhachHang: `${form.address.trim()}, ${wardName}, ${districtName}, ${provinceName}`,
+    diaChiKhachHang: `${form.address.trim()}, ${wardName}, ${provinceName}`,
 
     idPhieuGiamGia: appliedVoucherId.value,
-giamThuCongPercent: 0,
+    giamThuCongPercent: 0,
     paid: 0,
     ghiChu: form.note?.trim() || "Khách đặt hàng online",
 
-paymentMethod:
-  form.paymentMethod === "cod"
-    ? "COD"
-    : form.paymentMethod === "bank_qr"
-      ? "QR"
-      : form.paymentMethod.toUpperCase(),
+    paymentMethod:
+      form.paymentMethod === "cod"
+        ? "COD"
+        : form.paymentMethod === "bank_qr"
+          ? "QR"
+          : form.paymentMethod.toUpperCase(),
     maGiaoDich: null,
     ghiChuThanhToan: null,
 
@@ -1629,7 +1618,7 @@ paymentMethod:
     soDienThoaiNhanHang: form.phone.trim(),
     tinhThanhNhanHang: provinceName,
     phuongXaNhanHang: wardName,
-    quanHuyenNhanHang: districtName,
+    quanHuyenNhanHang: "",
     diaChiNhanHangChiTiet: form.address.trim(),
 
     tongTien: calculatedSubtotal,
@@ -1642,18 +1631,18 @@ paymentMethod:
 
 async function checkoutApi(payload) {
   const token =
-  localStorage.getItem("USER_ACCESS_TOKEN") ||
-  sessionStorage.getItem("USER_ACCESS_TOKEN") ||
-  localStorage.getItem("vest_token");
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
 
-const response = await fetch("http://localhost:8080/api/online-checkout", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  },
-  body: JSON.stringify(payload),
-});
+  const response = await fetch("http://localhost:8080/api/online-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
 
   const data = await response.json().catch(() => ({}));
 
@@ -1669,14 +1658,14 @@ const response = await fetch("http://localhost:8080/api/online-checkout", {
 
 async function confirmQrPaymentApi(orderId, payload) {
   const response = await fetch(
-      `http://localhost:8080/api/online-checkout/${orderId}/confirm-payment`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
+    `http://localhost:8080/api/online-checkout/${orderId}/confirm-payment`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
   );
 
   const data = await response.json().catch(() => ({}));
@@ -1729,7 +1718,7 @@ function normalizePaymentUrl(url) {
 function openPaymentGateway() {
   const paymentUrl = normalizePaymentUrl(qrData.paymentUrl);
 
-  if (!paymentUrl) { 
+  if (!paymentUrl) {
     showToast("Không tìm thấy đường dẫn thanh toán", "warning");
     return;
   }
@@ -1741,10 +1730,9 @@ function openPaymentGateway() {
       `&maHoaDon=${encodeURIComponent(qrData.maHoaDon || "")}` +
       `&customerName=${encodeURIComponent(form.fullName || "")}` +
       `&phone=${encodeURIComponent(form.phone || "")}` +
-      `&address=${encodeURIComponent(fullDeliveryAddress.value || "")}`
+      `&address=${encodeURIComponent(fullDeliveryAddress.value || "")}`,
   );
 }
-
 
 function openQrModal(data) {
   qrData.orderId = data?.orderId || data?.id || null;
@@ -1755,7 +1743,8 @@ function openQrModal(data) {
   qrData.bankAccountNo = data?.bankAccountNo || "";
   qrData.transferContent = data?.transferContent || "";
   qrData.amount = Number(data?.amount) || Number(safeGrandTotal.value) || 0;
-  qrData.paymentUrl = data?.paymentUrl || data?.payUrl || data?.redirectUrl || "";
+  qrData.paymentUrl =
+    data?.paymentUrl || data?.payUrl || data?.redirectUrl || "";
   qrData.provider = form.paymentMethod;
 
   qrForm.maGiaoDich = "";
@@ -1769,11 +1758,14 @@ function openQrModal(data) {
   showQrModal.value = true;
 
   if (form.paymentMethod === "bank_qr") {
-    showToast("Đơn hàng đã được tạo. Vui lòng quét QR để chuyển khoản.", "success");
+    showToast(
+      "Đơn hàng đã được tạo. Vui lòng quét QR để chuyển khoản.",
+      "success",
+    );
   } else {
     showToast(
       `Đơn hàng đã được tạo. Tiếp tục thanh toán qua ${selectedPaymentOption.value.title}.`,
-      "success"
+      "success",
     );
   }
 }
@@ -1804,7 +1796,8 @@ async function confirmQrPayment() {
         (form.paymentMethod === "bank_qr"
           ? "Khách đã chuyển khoản"
           : "Khách đã thanh toán online"),
-      paymentGateway: form.paymentMethod === "cod" ? null : form.paymentMethod.toUpperCase(),
+      paymentGateway:
+        form.paymentMethod === "cod" ? null : form.paymentMethod.toUpperCase(),
     };
 
     const data = await confirmQrPaymentApi(qrData.orderId, payload);
@@ -1826,25 +1819,25 @@ async function confirmQrPayment() {
     showSuccessModal.value = true;
 
     saveCheckoutSuccessData({
-  orderId: qrData.orderId || "",
-  maHoaDon: qrData.maHoaDon || "",
-  customerName: form.fullName?.trim() || "",
-  phone: form.phone?.trim() || "",
-  email: form.email?.trim() || "",
-  address: fullDeliveryAddress.value || "",
-  paymentMethod: form.paymentMethod || "",
-  paymentLabel: selectedPaymentOption.value?.title || "Thanh toán online",
-  total: Number(qrData.amount || safeGrandTotal.value || 0),
-});
-
-setTimeout(() => {
-  router.push({
-    path: "/checkout/success",
-    query: {
       orderId: qrData.orderId || "",
-    },
-  });
-}, 1400);
+      maHoaDon: qrData.maHoaDon || "",
+      customerName: form.fullName?.trim() || "",
+      phone: form.phone?.trim() || "",
+      email: form.email?.trim() || "",
+      address: fullDeliveryAddress.value || "",
+      paymentMethod: form.paymentMethod || "",
+      paymentLabel: selectedPaymentOption.value?.title || "Thanh toán online",
+      total: Number(qrData.amount || safeGrandTotal.value || 0),
+    });
+
+    setTimeout(() => {
+      router.push({
+        path: "/checkout/success",
+        query: {
+          orderId: qrData.orderId || "",
+        },
+      });
+    }, 1400);
   } catch (error) {
     console.error("CONFIRM QR ERROR:", error);
     qrError.value = error.message || "Xác nhận thanh toán thất bại";
@@ -1874,7 +1867,7 @@ async function submitOrder() {
     console.log("ORDER PAYLOAD:", payload);
 
     const hasInvalidItem = payload.items.some(
-      (it) => !it.idSanPhamChiTiet || !it.soLuong
+      (it) => !it.idSanPhamChiTiet || !it.soLuong,
     );
 
     if (hasInvalidItem) {
@@ -1888,13 +1881,15 @@ async function submitOrder() {
     placedOrderItems.value = JSON.parse(JSON.stringify(cartItems.value));
     placedOrder.value = {
       ...data,
-      maHoaDon: data?.maHoaDon || data?.orderCode || data?.orderId || "TAM_TINH",
+      maHoaDon:
+        data?.maHoaDon || data?.orderCode || data?.orderId || "TAM_TINH",
       createdAt: new Date().toLocaleString("vi-VN"),
       customerName: form.fullName?.trim() || "Khách lẻ",
       phone: form.phone?.trim() || "-",
       email: form.email?.trim() || "",
       address: fullDeliveryAddress.value || "-",
-      paymentLabel: selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
+      paymentLabel:
+        selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
       note: form.note?.trim() || "-",
       subtotal: Number(safeSubtotal.value) || 0,
       shippingFee: Number(shippingFee.value) || 0,
@@ -1918,25 +1913,26 @@ async function submitOrder() {
     showToast(successMessage.value, "success");
 
     saveCheckoutSuccessData({
-  orderId: data?.orderId || "",
-  maHoaDon: data?.maHoaDon || data?.orderCode || data?.orderId || "",
-  customerName: form.fullName?.trim() || "",
-  phone: form.phone?.trim() || "",
-  email: form.email?.trim() || "",
-  address: fullDeliveryAddress.value || "",
-  paymentMethod: form.paymentMethod || "cod",
-  paymentLabel: selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
-  total: Number(safeGrandTotal.value || 0),
-});
-
-setTimeout(() => {
-  router.push({
-    path: "/checkout/success",
-    query: {
       orderId: data?.orderId || "",
-    },
-  });
-}, 1400);
+      maHoaDon: data?.maHoaDon || data?.orderCode || data?.orderId || "",
+      customerName: form.fullName?.trim() || "",
+      phone: form.phone?.trim() || "",
+      email: form.email?.trim() || "",
+      address: fullDeliveryAddress.value || "",
+      paymentMethod: form.paymentMethod || "cod",
+      paymentLabel:
+        selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
+      total: Number(safeGrandTotal.value || 0),
+    });
+
+    setTimeout(() => {
+      router.push({
+        path: "/checkout/success",
+        query: {
+          orderId: data?.orderId || "",
+        },
+      });
+    }, 1400);
   } catch (error) {
     console.error("CHECKOUT ERROR:", error);
     console.error("CHECKOUT ERROR RAW:", error?.raw);
@@ -1970,13 +1966,13 @@ function saveCheckoutSuccessData(payload = {}) {
       paymentMethod: payload.paymentMethod || "",
       paymentLabel: payload.paymentLabel || "",
       total: Number(payload.total || 0),
-    })
+    }),
   );
 }
 
 function onImgError(e) {
   e.target.src =
-      "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='14'%3E%E1%BA%A2nh%3C/text%3E%3C/svg%3E";
+    "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='14'%3E%E1%BA%A2nh%3C/text%3E%3C/svg%3E";
 }
 
 onMounted(async () => {
@@ -1994,7 +1990,10 @@ async function printInvoice() {
   const area = printAreaRef.value;
   if (!area) return;
 
-  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH").replace(/\s+/g, "_");
+  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH").replace(
+    /\s+/g,
+    "_",
+  );
   const w = window.open("", "_blank", "width=420,height=760");
 
   if (!w) {
@@ -2455,7 +2454,6 @@ async function printInvoice() {
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
-
 }
 
 .confirm-modal__header {
@@ -2491,7 +2489,6 @@ async function printInvoice() {
   background: #eef2ff;
   color: var(--navy);
   font-size: 30px;
-
 }
 
 .confirm-title {

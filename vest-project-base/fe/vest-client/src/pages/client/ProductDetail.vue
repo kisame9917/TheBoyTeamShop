@@ -57,7 +57,7 @@
                 <div class="price-note">Giá bán lẻ tại cửa hàng</div>
               </div>
 
-              <!-- <div class="stock-line" v-if="selectedVariant">
+              <div class="stock-line" v-if="selectedVariant">
                 <span
                     class="stock-badge"
                     :class="{ out: (selectedVariant.stock ?? 0) <= 0 }"
@@ -68,7 +68,7 @@
                         : "Hết hàng"
                   }}
                 </span>
-              </div> -->
+              </div>
 
               <div class="desc-box" v-if="productDescription">
                 {{ productDescription }}
