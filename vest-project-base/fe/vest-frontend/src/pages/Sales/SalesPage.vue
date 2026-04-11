@@ -1477,90 +1477,119 @@
       </div>
 
       <div
-        v-if="showQrPayModal"
-        class="modal fade show"
-        tabindex="-1"
-        role="dialog"
-        aria-modal="true"
-        style="display: block; z-index: 1065"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title fw-bold">Thanh toán bằng QR</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="closeQrPay"
-              ></button>
+  v-if="showQrPayModal"
+  class="modal fade show"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  style="display: block; z-index: 1065"
+>
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content qr-pay-modal">
+      <div class="modal-header qr-pay-header">
+        <div>
+          <div class="qr-pay-eyebrow">VNPAY Sandbox</div>
+          <h5 class="modal-title fw-bold mb-1">Thanh toán bằng QR</h5>
+          <div class="qr-pay-subtitle">
+            Quét mã hoặc chuyển sang trang thanh toán
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn-close"
+          @click="closeQrPay"
+        ></button>
+      </div>
+
+      <div class="modal-body qr-pay-body">
+        <div class="qr-pay-top">
+          <div class="qr-pay-meta-card">
+            <div class="qr-pay-meta-label">Mã hóa đơn</div>
+            <div class="qr-pay-meta-value font-monospace">
+              {{ activeOrder?.maHoaDon }}
             </div>
+          </div>
 
-            <div class="modal-body">
-              <div class="small text-muted mb-2">
-                Mã HĐ: <b class="font-monospace">{{ activeOrder?.maHoaDon }}</b>
-              </div>
+          <div class="qr-pay-amount-card">
+            <div class="qr-pay-meta-label">Số tiền thanh toán</div>
+            <div class="qr-pay-amount">{{ money(grandTotal) }}</div>
+          </div>
+        </div>
 
-              <div class="fw-bold mb-2">
-                Số tiền:
-                <span class="text-danger">{{ money(grandTotal) }}</span>
-              </div>
+        <div class="qr-stage">
+          <div class="qr-stage-glow"></div>
 
-              <div class="border rounded-3 p-3 text-center">
-                <div v-if="qrImg" class="d-flex justify-content-center">
-                  <img
-                    :src="qrImg"
-                    alt="QR Pay"
-                    style="width: 260px; height: 260px; object-fit: contain"
-                  />
-                </div>
-                <div v-else class="text-muted small py-4">Đang tải QR...</div>
+          <div class="qr-frame">
+            <img
+              v-if="qrImg"
+              :src="qrImg"
+              alt="QR Pay"
+              class="qr-image"
+            />
+            <div v-else class="text-muted small py-5">Đang tải QR...</div>
+          </div>
 
-                <div class="small text-muted mt-3 text-start">
-                  <div>Ngân hàng: <b>Techcombank</b></div>
-                  <div>Chủ tài khoản: <b>Lê Quang Huy</b></div>
-                  <div>
-                    Nội dung chuyển khoản:
-                    <b class="font-monospace">{{ qrContent }}</b>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-3">
-                <label class="form-label mb-1">Ghi chú (tuỳ chọn)</label>
-                <input
-                  class="form-control"
-                  v-model="qrNoteDraft"
-                  placeholder="VD: CK QR - HDxxxx"
-                />
-              </div>
-
-              <div class="small text-muted mt-2">
-                Sau khi khách chuyển khoản xong, bấm
-                <b>Đã nhận tiền → Tạo hóa đơn</b>.
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="closeQrPay"
-              >
-                Đóng
-              </button>
-
-              <button
-                class="btn btn-success"
-                type="button"
-                @click="markPaidAndCheckout"
-                :disabled="submitting"
-              >
-                Đã nhận tiền → Tạo hóa đơn
-              </button>
+          <div class="qr-stage-caption">
+            <div class="qr-stage-title">Quét mã để thanh toán</div>
+            <div class="qr-stage-note">
+              Hệ thống mô phỏng giao diện thanh toán VNPAY Sandbox
             </div>
           </div>
         </div>
+
+        <div class="qr-pay-info-card">
+          <div class="qr-pay-info-row">
+            <span class="qr-pay-info-label">Cổng thanh toán</span>
+            <span class="qr-pay-info-value">VNPAY Sandbox</span>
+          </div>
+          <div class="qr-pay-info-row qr-pay-info-row-top">
+            <span class="qr-pay-info-label">Nội dung đơn</span>
+            <span class="qr-pay-info-value font-monospace qr-pay-code">
+              {{ qrContent }}
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label qr-pay-input-label">Ghi chú</label>
+          <input
+            class="form-control qr-pay-input"
+            v-model="qrNoteDraft"
+            placeholder="VD: VNPAY sandbox - HDxxxx"
+          />
+        </div>
       </div>
+
+      <div class="modal-footer qr-pay-footer">
+        <button
+          class="btn qr-btn qr-btn-secondary"
+          type="button"
+          @click="closeQrPay"
+        >
+          Đóng
+        </button>
+
+        <button
+          class="btn qr-btn qr-btn-primary"
+          type="button"
+          @click="goToSandboxPayment"
+        >
+          Chuyển hướng thanh toán
+        </button>
+
+        <button
+          class="btn qr-btn qr-btn-success"
+          type="button"
+          @click="markPaidAndCheckout"
+          :disabled="submitting"
+        >
+          Thanh toán thành công
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
       <div
         v-if="showPaymentConfirmModal"
@@ -1729,7 +1758,9 @@ import { listKhachHang } from "@/services/khachHangApi";
 import { resolveMediaUrl } from "@/utils/media";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
-import personalBankQr from "@/assets/techcombank-qr.png";
+const qrImg = ref("");
+const qrContent = ref("");
+const qrNoteDraft = ref("");
 const MAX_ORDERS = 10;
 const STORAGE_KEY = "sales_store_only_v7_merged";
 const router = useRouter();
@@ -4148,26 +4179,38 @@ async function runVoucherPrecheckFlow() {
   return true;
 }
 
-const qrImg = ref("");
-const qrContent = ref("");
-const qrNoteDraft = ref("");
-function openQrPay() {
+async function openQrPay() {
   const o = activeOrder.value;
   if (!o) return;
 
-  o.paymentMethod = "QR";
-  o.maGiaoDich = `QR-${o.maHoaDon}-${Date.now()}`;
-  o.ghiChuThanhToan = `QR thanh toán - ${o.maHoaDon}`;
+  const err = validateCheckout(o);
+  if (err && !String(err).includes("Khách thanh toán chưa đủ")) {
+    return toastShow(err, "warning");
+  }
 
-  qrNoteDraft.value = `HD:${o.maHoaDon}`;
-  qrContent.value = qrNoteDraft.value;
-  qrImg.value = personalBankQr;
+  o.paymentMethod = "QR";
+
+  const sandboxUrl = "https://sandbox.vnpayment.vn/apis/vnpay-demo/";
+  qrContent.value = `VNPAY Sandbox • ${o.maHoaDon}`;
+  qrNoteDraft.value = `VNPAY sandbox - ${o.maHoaDon}`;
+  qrImg.value = `https://quickchart.io/qr?text=${encodeURIComponent(sandboxUrl)}&size=320`;
 
   showQrPayModal.value = true;
 }
 
 function closeQrPay() {
   showQrPayModal.value = false;
+  qrImg.value = "";
+  qrContent.value = "";
+  qrNoteDraft.value = "";
+}
+
+function goToSandboxPayment() {
+  window.open(
+    "https://sandbox.vnpayment.vn/apis/vnpay-demo/",
+    "_blank",
+    "noopener,noreferrer",
+  );
 }
 
 async function markPaidAndCheckout() {
@@ -4175,17 +4218,18 @@ async function markPaidAndCheckout() {
   if (!o) return;
 
   const ok = await openPaymentConfirm(
-    `Bạn xác nhận đã nhận tiền QR cho hóa đơn ${o.maHoaDon} không?`,
+    `Xác nhận thanh toán thành công cho hóa đơn ${o.maHoaDon}?`,
   );
   if (!ok) return;
 
-  o.paid = grandTotal.value;
-  o.maGiaoDich = `QR-${o.maHoaDon}-${Date.now()}`;
+  o.paymentMethod = "QR";
+  o.paid = Number(grandTotal.value || 0);
+  o.maGiaoDich = `VNPAY-SANDBOX-${o.maHoaDon}-${Date.now()}`;
   o.ghiChuThanhToan = (
-    qrNoteDraft.value || `QR thanh toán - ${o.maHoaDon}`
+    qrNoteDraft.value || `VNPAY sandbox - ${o.maHoaDon}`
   ).trim();
 
-  showQrPayModal.value = false;
+  closeQrPay();
   await confirmOrder();
 }
 
@@ -5030,5 +5074,278 @@ onBeforeUnmount(() => {
 
 :deep(.multiselect-placeholder) {
   color: #6c757d;
+}
+.qr-pay-modal {
+  border: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.18),
+    0 10px 24px rgba(15, 23, 42, 0.1);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.qr-pay-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #eef2f7;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
+    #ffffff;
+}
+
+.qr-pay-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2563eb;
+  margin-bottom: 4px;
+}
+
+.qr-pay-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.qr-pay-body {
+  padding: 18px 20px 16px;
+}
+
+.qr-pay-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.qr-pay-meta-card,
+.qr-pay-amount-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.qr-pay-meta-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.qr-pay-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  word-break: break-word;
+}
+
+.qr-pay-amount {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #dc2626;
+}
+
+.qr-stage {
+  position: relative;
+  border-radius: 22px;
+  padding: 20px 16px 16px;
+  background:
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  border: 1px solid #e8eef7;
+  text-align: center;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.qr-stage-glow {
+  position: absolute;
+  inset: auto;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18), transparent 70%);
+  pointer-events: none;
+}
+
+.qr-frame {
+  position: relative;
+  z-index: 1;
+  width: 230px;
+  height: 230px;
+  margin: 0 auto 14px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  display: block;
+}
+
+.qr-stage-caption {
+  position: relative;
+  z-index: 1;
+}
+
+.qr-stage-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.qr-stage-note {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.qr-pay-info-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.qr-pay-info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+}
+
+.qr-pay-info-row-top {
+  border-top: 1px solid #f1f5f9;
+}
+
+.qr-pay-info-label {
+  font-size: 13px;
+  color: #6b7280;
+  min-width: 110px;
+}
+
+.qr-pay-info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  text-align: right;
+}
+
+.qr-pay-code {
+  word-break: break-all;
+}
+
+.qr-pay-input-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.qr-pay-input {
+  min-height: 44px;
+  border-radius: 14px;
+  border-color: #dbe3ee;
+  box-shadow: none;
+}
+
+.qr-pay-input:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+.qr-pay-footer {
+  border-top: 1px solid #eef2f7;
+  padding: 14px 20px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1.3fr;
+  gap: 10px;
+}
+
+.qr-btn {
+  min-height: 46px;
+  border-radius: 14px;
+  font-weight: 700;
+  border: 0;
+}
+
+.qr-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.qr-btn-secondary:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.qr-btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+}
+
+.qr-btn-primary:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.qr-btn-success {
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.22);
+}
+
+.qr-btn-success:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.qr-btn:disabled {
+  opacity: 0.7;
+  transform: none !important;
+  box-shadow: none;
+}
+
+@media (max-width: 576px) {
+  .qr-pay-top {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-pay-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-frame {
+    width: 210px;
+    height: 210px;
+  }
+
+  .qr-image {
+    width: 168px;
+    height: 168px;
+  }
+
+  .qr-pay-info-row {
+    flex-direction: column;
+  }
+
+  .qr-pay-info-value {
+    text-align: left;
+  }
 }
 </style>
