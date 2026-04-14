@@ -45,6 +45,11 @@ public class SanPhamChiTietController {
         return ResponseEntity.ok(service.getByProductId(productId));
     }
 
+    @GetMapping("/lookup")
+    public ResponseEntity<SanPhamChiTietResponse> findByCode(@RequestParam("code") String code) {
+        return ResponseEntity.ok(service.findByCode(code));
+    }
+
     @PostMapping
     public ResponseEntity<SanPhamChiTietResponse> create(@RequestBody SanPhamChiTietRequest request) {
         return ResponseEntity.ok(service.create(request));

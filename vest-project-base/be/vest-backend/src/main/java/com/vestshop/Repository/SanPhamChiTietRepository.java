@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface SanPhamChiTietRepository extends JpaRepository<SanPhamChiTiet, Long> {
     @org.springframework.data.jpa.repository.Query(
@@ -54,4 +55,6 @@ public interface SanPhamChiTietRepository extends JpaRepository<SanPhamChiTiet, 
     WHERE s.id IN :ids
 """)
     List<SanPhamChiTiet> findByIdIn(@Param("ids") List<Long> ids);
+
+    Optional<SanPhamChiTiet> findByMaSanPhamChiTietIgnoreCase(String maSanPhamChiTiet);
 }

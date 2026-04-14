@@ -119,6 +119,15 @@ public class SanPhamChiTietServiceImpl implements SanPhamChiTietService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public SanPhamChiTietResponse findByCode(String code) {
+        String value = code == null ? "" : code.trim();
+        SanPhamChiTiet entity = repository.findByMaSanPhamChiTietIgnoreCase(value)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm theo mã QR"));
+        return mapToResponse(entity);
+    }
+
+    @Override
     @Transactional
     public SanPhamChiTietResponse update(Long id, SanPhamChiTietRequest request) {
         SanPhamChiTiet entity = repository.findById(id)
