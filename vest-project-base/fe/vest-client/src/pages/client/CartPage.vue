@@ -237,6 +237,7 @@
         </div>
       </div>
     </div>
+     <ChatWidget />
   </div>
 </template>
 
@@ -246,6 +247,7 @@ import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
 import { getProducts } from "../../services/productClientApi"; // sửa đúng path service của bạn
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const router = useRouter();
 const { items, totalQty, subtotal, removeItem, updateQty } = useCart();
 

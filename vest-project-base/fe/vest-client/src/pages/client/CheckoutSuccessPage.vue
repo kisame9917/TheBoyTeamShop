@@ -61,13 +61,14 @@
         </div>
       </div>
     </div>
+    <ChatWidget />
   </div>
 </template>
 
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const route = useRoute();
 
 function getStoredSuccessData() {

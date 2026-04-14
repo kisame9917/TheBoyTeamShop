@@ -203,13 +203,14 @@
         </div>
       </div>
     </section>
+     <ChatWidget />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const route = useRoute();
 const router = useRouter();
 

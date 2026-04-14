@@ -407,13 +407,16 @@
       <button class="btn btn-dark" type="button" @click="submitItemsMock">Lưu thay đổi</button>
     </div>
   </div>
+  
 </div>
+<ChatWidget />
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { getMyOrderDetail, getMyOrders, cancelMyOrder } from "../../services/Api";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
+import ChatWidget from '../../components/ClientChatWidget.vue';
 import {
   canCancelOrder,
   canEditShipping,

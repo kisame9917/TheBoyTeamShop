@@ -207,12 +207,13 @@
         </div>
       </div>
     </section>
+    <ChatWidget />
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
-
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const form = reactive({
   hoTen: '',
   soDienThoai: '',

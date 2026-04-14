@@ -866,6 +866,7 @@
       <div class="hr"></div>
       <div class="center small mt8">Cảm ơn quý khách đã mua hàng!</div>
     </div>
+     <ChatWidget />
   </div>
 </template>
 
@@ -875,7 +876,7 @@ import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ghnLogo from "../../assets/ghn.webp.webp";
 import vnUnitsData from "../../assets/vn_units.json"; // sửa path nếu file của bạn nằm chỗ khác
-
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
 

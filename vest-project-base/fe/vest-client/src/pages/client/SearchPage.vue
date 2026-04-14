@@ -201,12 +201,14 @@
 
       </div>
     </div>
+    <ChatWidget />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import ChatWidget from '../../components/ClientChatWidget.vue';
 import {
   getProducts,
   getGiaMaxDb,
