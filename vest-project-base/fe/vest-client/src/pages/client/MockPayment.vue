@@ -210,6 +210,7 @@
         <span>{{ toast.message }}</span>
       </div>
     </transition>
+   <ChatWidget />
   </div>
 </template>
 
@@ -217,7 +218,7 @@
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
-
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const route = useRoute();
 const router = useRouter();
 const cart = useCart();

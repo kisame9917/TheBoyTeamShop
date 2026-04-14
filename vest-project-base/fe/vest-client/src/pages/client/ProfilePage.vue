@@ -146,12 +146,13 @@
       </div>
     </div>
   </section>
+   <ChatWidget />
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { getClientProfile, updateClientProfile } from '../../services/Api';
-
+import ChatWidget from '../../components/ClientChatWidget.vue';
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');

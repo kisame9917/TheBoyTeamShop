@@ -58,13 +58,7 @@
           </div>
 
           <div v-if="showBotSupportPanel(m)" class="bot-support-panel">
-            <button
-              class="support-btn auto-btn"
-              @click="sendQuickOption('Hỗ trợ tự động')"
-            >
-              <span class="support-icon">✳</span>
-              <span>Hỗ trợ tự động</span>
-            </button>
+           
 
             <button
               class="support-btn staff-btn"

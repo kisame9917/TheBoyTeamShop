@@ -325,6 +325,7 @@
 
       <div v-else class="state-box">Không tìm thấy sản phẩm.</div>
     </div>
+    <ChatWidget />
   </div>
 </template>
 
@@ -332,6 +333,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useCart } from "../../composables/useCart";
+import ChatWidget from '../../components/ClientChatWidget.vue';
 import {
   getProductById,
   getProductVariantsByProductId,
