@@ -5,8 +5,10 @@ export const getByProductId = (productId) => {
     return http.get(`/api/san-pham-chi-tiet/by-product/${productId}`)
 }
 
-export const getAllDetails = (page = 0, size = 10) => {
-    return http.get('/api/san-pham-chi-tiet', { params: { page, size } })
+export const getAllDetails = (page = 0, size = 10, keyword = '') => {
+    return http.get('/api/san-pham-chi-tiet', {
+        params: { page, size, keyword }
+    })
 }
 
 export const createDetail = (payload) => {
@@ -31,3 +33,8 @@ export const increaseStock = (id, qty = 1) => {
 
 
 export const uploadImage = (file) => uploadVariantPrimaryImage(file)
+
+
+export const getDetailByCode = (code) => {
+  return http.get('/api/san-pham-chi-tiet/lookup', { params: { code } })
+}

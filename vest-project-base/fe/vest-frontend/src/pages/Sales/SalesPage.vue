@@ -69,7 +69,7 @@
               <button
                 class="btn btn-outline-primary btn-sm"
                 type="button"
-                @click="toastInfo('Chưa tích hợp quét QR')"
+                @click="openScanQrModal"
               >
                 <i class="bi bi-qr-code-scan me-1"></i> Quét QR
               </button>
@@ -854,6 +854,36 @@
         @click="closeBackdropModal"
         style="z-index: 1050"
       ></div>
+
+      <div
+        v-if="showScanQrModal"
+        class="qr-scan-modal"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div class="qr-scan-dialog">
+          <div class="qr-scan-header">
+            <h5 class="m-0 fw-bold">Quét QR sản phẩm</h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="closeScanQrModal"
+            ></button>
+          </div>
+
+          <div class="qr-scan-body">
+            <div class="text-muted small mb-2">
+              Đưa mã QR của biến thể vào khung để thêm vào giỏ hàng.
+            </div>
+
+            <div id="product-qr-reader" class="qr-reader-box"></div>
+
+            <div v-if="scanQrError" class="alert alert-warning mt-3 mb-0">
+              {{ scanQrError }}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div
         v-if="showProductModal"
@@ -1736,6 +1766,10 @@
 </template>
 
 <script setup>
+import { Html5Qrcode } from "html5-qrcode";
+import { getDetailByCode } from "@/services/sanPhamChiTietApi";
+import { nextTick } from "vue";
+
 import {
   computed,
   ref,
@@ -1764,6 +1798,9 @@ const qrNoteDraft = ref("");
 const MAX_ORDERS = 10;
 const STORAGE_KEY = "sales_store_only_v7_merged";
 const router = useRouter();
+const showScanQrModal = ref(false);
+const scanQrError = ref("");
+let productQrScanner = null;
 
 function getDateKeyLocal(d = new Date()) {
   const yyyy = d.getFullYear();
@@ -1836,6 +1873,81 @@ function genMaHoaDon(d = new Date()) {
   const dd = String(d.getDate()).padStart(2, "0");
   const r5 = String(randInt(100000)).padStart(5, "0");
   return `HD${yy}${mm}${dd}${r5}`;
+}
+
+async function openScanQrModal() {
+  showScanQrModal.value = true;
+  scanQrError.value = "";
+  await nextTick();
+  await startProductQr();
+}
+
+async function closeScanQrModal() {
+  await stopProductQr();
+  showScanQrModal.value = false;
+}
+
+async function startProductQr() {
+  try {
+    if (!productQrScanner) {
+      productQrScanner = new Html5Qrcode("product-qr-reader");
+    }
+
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras?.length) {
+      scanQrError.value = "Không tìm thấy camera.";
+      return;
+    }
+
+    await productQrScanner.start(
+      { deviceId: { exact: cameras[0].id } },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      async (decodedText) => {
+        await onProductQrDecoded(decodedText);
+      }
+    );
+  } catch (e) {
+    console.error(e);
+    scanQrError.value = "Không mở được camera hoặc bị chặn quyền.";
+  }
+}
+
+async function stopProductQr() {
+  try {
+    if (productQrScanner && (await productQrScanner.getState()) === 2) {
+      await productQrScanner.stop();
+      await productQrScanner.clear();
+    }
+  } catch (_) {}
+}
+
+async function onProductQrDecoded(decodedText) {
+  try {
+    const code = String(decodedText || "").trim();
+    if (!code) return;
+
+    await stopProductQr();
+
+    if (!allProducts.value.length) {
+      await fetchAllProducts();
+    }
+
+    let found = allProducts.value.find(
+      (x) => String(x.code || "").toLowerCase() === code.toLowerCase()
+    );
+
+    if (!found) {
+      const res = await getDetailByCode(code);
+      found = mapSpct(res.data);
+    }
+
+    await chooseProduct(found);
+    showScanQrModal.value = false;
+  } catch (e) {
+    console.error(e);
+    scanQrError.value = "Không tìm thấy sản phẩm theo mã QR.";
+    await startProductQr();
+  }
 }
 
 function genUniqueMaHoaDon() {
@@ -2087,7 +2199,8 @@ const backdropOpen = computed(
     showProductModal.value ||
     showCustomerModal.value ||
     showAddressModal.value ||
-    showQrPayModal.value,
+    showQrPayModal.value ||
+    showScanQrModal.value,
 );
 
 const anyModalOpen = computed(
@@ -2096,6 +2209,7 @@ const anyModalOpen = computed(
     showCustomerModal.value ||
     showAddressModal.value ||
     showQrPayModal.value ||
+    showScanQrModal.value ||
     showPreCheckoutModal.value ||
     showPaymentConfirmModal.value,
 );
@@ -2104,11 +2218,15 @@ watch(anyModalOpen, (open) => {
   document.body.classList.toggle("modal-open", open);
 });
 
-function closeBackdropModal() {
+async function closeBackdropModal() {
   showProductModal.value = false;
   showCustomerModal.value = false;
   showAddressModal.value = false;
   showQrPayModal.value = false;
+
+  if (showScanQrModal.value) {
+    await closeScanQrModal();
+  }
 }
 
 const allProducts = ref([]);
@@ -4462,6 +4580,7 @@ function onKeydown(e) {
   if (e.key !== "Escape") return;
   if (showPaymentConfirmModal.value) return resolvePaymentConfirm(false);
   if (showPreCheckoutModal.value) return resolvePreCheckout(false);
+  if (showScanQrModal.value) return closeScanQrModal();
   if (backdropOpen.value) closeBackdropModal();
 }
 
@@ -4653,6 +4772,8 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  void stopProductQr();
+
   window.removeEventListener("beforeunload", saveDraftsNow);
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener("focus", queueRefreshWhenVisible);
@@ -5348,4 +5469,44 @@ onBeforeUnmount(() => {
     text-align: left;
   }
 }
+
+.qr-scan-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1062;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.qr-scan-dialog {
+  width: min(720px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.qr-scan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.qr-scan-body {
+  padding: 16px 18px 18px;
+}
+
+.qr-reader-box {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
 </style>

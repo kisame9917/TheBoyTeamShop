@@ -7,7 +7,7 @@
       </div>
 
       <div class="d-flex gap-2 flex-wrap">
-        <button class="btn btn-outline-secondary btn-sm" @click="showQrModal = true">
+        <button class="btn btn-outline-secondary btn-sm" @click="openQrModal">
           <i class="bi bi-qr-code-scan me-1"></i>Quét QR
         </button>
         <button class="btn btn-outline-primary btn-sm" @click="showExportModal = true">
@@ -161,6 +161,7 @@
             <th class="text-center">Số lượng tồn</th>
             <th class="text-center">Giá bán</th>
             <th class="text-center">Trạng thái</th>
+            <th class="text-center">QR biến thể</th>
             <th class="text-center">Hành động</th>
           </tr>
           </thead>
@@ -208,6 +209,28 @@
             </td>
 
             <td class="text-center">
+              <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                <button
+                  class="btn btn-outline-dark btn-sm"
+                  type="button"
+                  title="Xem QR"
+                  @click="previewVariantQr(v)"
+                >
+                  <i class="bi bi-qr-code me-1"></i>Xem QR
+                </button>
+
+                <button
+                  class="btn btn-outline-success btn-sm"
+                  type="button"
+                  title="Tải PNG"
+                  @click="downloadVariantQr(v)"
+                >
+                  <i class="bi bi-download me-1"></i>Tải PNG
+                </button>
+              </div>
+            </td>
+
+            <td class="text-center">
               <div class="d-flex justify-content-center align-items-center gap-2">
                 <button
                     class="btn btn-outline-warning btn-sm"
@@ -231,11 +254,11 @@
 
           <tr v-if="loading">
             <!-- ✅ colspan tăng 1 -->
-            <td colspan="11" class="text-center py-4">Đang tải dữ liệu...</td>
+            <td colspan="12" class="text-center py-4">Đang tải dữ liệu...</td>
           </tr>
           <tr v-if="!loading && pagedItems.length === 0">
             <!-- ✅ colspan tăng 1 -->
-            <td colspan="11" class="text-center py-4">Không có dữ liệu</td>
+            <td colspan="12" class="text-center py-4">Không có dữ liệu</td>
           </tr>
           </tbody>
         </table>
@@ -296,6 +319,69 @@
     </div>
 
     <!-- (Các modal giữ nguyên như bạn, mình không sửa) -->
+  </div>
+
+
+  <div v-if="showQrModal" class="modal-overlay" @click.self="closeQrModal">
+    <div class="modal-box qr-modal-box">
+      <div class="modal-head">
+        <h6 class="mb-0">Quét QR sản phẩm / biến thể</h6>
+        <button class="btn-close" type="button" @click="closeQrModal"></button>
+      </div>
+
+      <div class="modal-body p-3">
+        <div class="small text-muted mb-3">
+          Quét <b>mã sản phẩm</b> để lọc ra toàn bộ biến thể của sản phẩm đó, hoặc quét <b>mã SP chi tiết</b> để lọc đúng 1 biến thể.
+        </div>
+
+        <div id="variant-qr-reader" class="qr-reader-box mb-3"></div>
+
+        <label class="form-label small fw-semibold">Hoặc dán mã</label>
+        <div class="d-flex gap-2">
+          <input
+            v-model.trim="qrManualInput"
+            type="text"
+            class="form-control"
+            placeholder="Nhập mã sản phẩm hoặc mã SP chi tiết..."
+            @keyup.enter="applyManualQr"
+          />
+          <button class="btn btn-primary btn-sm" type="button" @click="applyManualQr">
+            Áp dụng
+          </button>
+        </div>
+
+        <div v-if="qrErrorMessage" class="text-danger small mt-3">
+          {{ qrErrorMessage }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showQrPreviewModal" class="modal-overlay" @click.self="closeQrPreviewModal">
+    <div class="modal-box qr-preview-modal">
+      <div class="modal-head">
+        <h6 class="mb-0">QR biến thể</h6>
+        <button class="btn-close" type="button" @click="closeQrPreviewModal"></button>
+      </div>
+
+      <div class="modal-body p-3 text-center">
+        <div class="small text-muted mb-2">Mã SP chi tiết</div>
+        <div class="fw-semibold mb-3">{{ qrPreviewCode || '—' }}</div>
+
+        <div v-if="qrPreviewUrl" class="qr-preview-frame">
+          <img :src="qrPreviewUrl" alt="QR biến thể" class="qr-preview-image" />
+        </div>
+
+        <div v-else class="text-muted small py-4">Đang tạo mã QR...</div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-secondary btn-sm" type="button" @click="closeQrPreviewModal">Đóng</button>
+        <button class="btn btn-success btn-sm" type="button" @click="downloadVariantQr(qrPreviewVariant)" :disabled="!qrPreviewVariant">
+          Tải PNG
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Edit Modal -->
@@ -403,9 +489,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { emitTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 import { useRouter } from 'vue-router'
+import { Html5Qrcode } from 'html5-qrcode'
+import QRCode from 'qrcode'
 import { getAllDetails, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
 import attributeService from '../../services/attributeService'
 import { useToast } from '../../composables/useToast'
@@ -451,6 +539,14 @@ const pendingNext = ref(false)
 const toggleLoading = ref(false)
 
 const showEditModal = ref(false)
+const qrManualInput = ref('')
+const qrErrorMessage = ref('')
+const showQrPreviewModal = ref(false)
+const qrPreviewUrl = ref('')
+const qrPreviewCode = ref('')
+const qrPreviewVariant = ref(null)
+let variantQrScanner = null
+
 const editingVariant = reactive({
   id: null,
   idSanPham: null,
@@ -465,9 +561,160 @@ const editingVariant = reactive({
   maSanPhamChiTiet: ''
 })
 
+function normalizeQrValue(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function buildVariantQrText(variant) {
+  return String(variant?.maSanPhamChiTiet || '').trim()
+}
+
+async function makeVariantQrDataUrl(variant, width = 320) {
+  const text = buildVariantQrText(variant)
+  if (!text) throw new Error('Biến thể chưa có mã SP chi tiết')
+
+  return QRCode.toDataURL(text, {
+    width,
+    margin: 1
+  })
+}
+
+async function previewVariantQr(variant) {
+  try {
+    qrPreviewVariant.value = variant
+    qrPreviewCode.value = buildVariantQrText(variant)
+    qrPreviewUrl.value = await makeVariantQrDataUrl(variant, 320)
+    showQrPreviewModal.value = true
+  } catch (e) {
+    console.error(e)
+    error('Không tạo được mã QR cho biến thể')
+  }
+}
+
+function closeQrPreviewModal() {
+  showQrPreviewModal.value = false
+  qrPreviewUrl.value = ''
+  qrPreviewCode.value = ''
+  qrPreviewVariant.value = null
+}
+
+async function downloadVariantQr(variant) {
+  try {
+    const text = buildVariantQrText(variant)
+    if (!text) {
+      error('Biến thể chưa có mã SP chi tiết')
+      return
+    }
+
+    const url = await makeVariantQrDataUrl(variant, 800)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${text}.png`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    success(`Đã tải QR của ${text}`)
+  } catch (e) {
+    console.error(e)
+    error('Không tải được mã QR')
+  }
+}
+
+async function openQrModal() {
+  showQrModal.value = true
+  qrErrorMessage.value = ''
+  qrManualInput.value = ''
+  await nextTick()
+  await startVariantQr()
+}
+
+async function closeQrModal() {
+  await stopVariantQr()
+  showQrModal.value = false
+}
+
+async function startVariantQr() {
+  try {
+    if (!variantQrScanner) {
+      variantQrScanner = new Html5Qrcode('variant-qr-reader')
+    }
+
+    const cameras = await Html5Qrcode.getCameras()
+    if (!cameras?.length) {
+      qrErrorMessage.value = 'Không tìm thấy camera.'
+      return
+    }
+
+    await variantQrScanner.start(
+      { deviceId: { exact: cameras[0].id } },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      async (decodedText) => {
+        await applyQrCode(decodedText)
+      }
+    )
+  } catch (e) {
+    console.error(e)
+    qrErrorMessage.value = 'Không mở được camera hoặc bị chặn quyền.'
+  }
+}
+
+async function stopVariantQr() {
+  try {
+    if (variantQrScanner && (await variantQrScanner.getState()) === 2) {
+      await variantQrScanner.stop()
+      await variantQrScanner.clear()
+    }
+  } catch (_) {}
+}
+
+async function applyQrCode(rawValue) {
+  const code = normalizeQrValue(rawValue)
+  if (!code) {
+    qrErrorMessage.value = 'Mã QR không hợp lệ.'
+    return
+  }
+
+  const exactVariant = allItems.value.find(
+    (v) => normalizeQrValue(v.maSanPhamChiTiet) === code
+  )
+
+  if (exactVariant) {
+    filters.keyword = exactVariant.maSanPhamChiTiet || ''
+    currentPage.value = 0
+    pageInput.value = 1
+    await closeQrModal()
+    success(`Đã lọc theo biến thể ${exactVariant.maSanPhamChiTiet}`)
+    return
+  }
+
+  const productVariants = allItems.value.filter(
+    (v) => normalizeQrValue(v.maSanPham) === code
+  )
+
+  if (productVariants.length > 0) {
+    filters.keyword = productVariants[0].maSanPham || ''
+    currentPage.value = 0
+    pageInput.value = 1
+    await closeQrModal()
+    success(`Đã lọc ${productVariants.length} biến thể của mã sản phẩm ${productVariants[0].maSanPham}`)
+    return
+  }
+
+  qrErrorMessage.value = 'Không tìm thấy sản phẩm hoặc biến thể theo mã QR.'
+}
+
+async function applyManualQr() {
+  await applyQrCode(qrManualInput.value)
+}
+
 onMounted(() => {
   loadAttributes()
   loadData()
+})
+
+onBeforeUnmount(() => {
+  void stopVariantQr()
+  closeQrPreviewModal()
 })
 
 async function loadAttributes() {
@@ -1051,6 +1298,40 @@ function onPriceBlur(e) {
   border-radius: 6px;
   background: #f3f4f6;
   color: #6b7280;
+}
+
+.qr-modal-box {
+  width: min(720px, calc(100% - 24px));
+}
+
+.qr-reader-box {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.qr-preview-modal {
+  width: 440px;
+}
+
+.qr-preview-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+}
+
+.qr-preview-image {
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 .color-dot {

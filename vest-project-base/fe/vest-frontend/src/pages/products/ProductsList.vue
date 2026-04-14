@@ -298,16 +298,54 @@
 
       <p v-if="error" class="error-msg">{{ error }}</p>
     </div>
+
+  <div v-if="showScanQrModal" class="scan-modal-overlay" @click.self="closeScanQrModal">
+    <div class="scan-modal-box">
+      <div class="scan-modal-head">
+        <h5 class="mb-0">Quét QR sản phẩm</h5>
+        <button type="button" class="btn-close" @click="closeScanQrModal"></button>
+      </div>
+
+      <div class="scan-modal-body">
+        <div class="scan-modal-note">
+          Quét <b>mã sản phẩm</b> hoặc <b>mã biến thể</b>. Quét xong sẽ mở đúng trang chi tiết sản phẩm.
+        </div>
+
+        <div id="product-list-qr-reader" class="qr-reader-box"></div>
+
+        <div class="mt-3">
+          <label class="form-label">Hoặc dán mã</label>
+          <div class="d-flex gap-2">
+            <input
+              v-model.trim="scanManualInput"
+              type="text"
+              class="form-input"
+              placeholder="Nhập mã sản phẩm hoặc mã biến thể..."
+              @keyup.enter="applyManualQr"
+            />
+            <button class="btn btn-primary btn-sm" type="button" @click="applyManualQr">
+              Áp dụng
+            </button>
+          </div>
+        </div>
+
+        <p v-if="scanQrError" class="scan-error mb-0 mt-3">{{ scanQrError }}</p>
+      </div>
+    </div>
+  </div>
+
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, reactive, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, reactive, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
+import { Html5Qrcode } from 'html5-qrcode'
 
 import attributeService from '../../services/attributeService'
 import { listSanPham, getGiaMaxDb } from '../../services/sanPhamApi'
+import { getAllDetails } from '../../services/sanPhamChiTietApi'
 
 const router = useRouter()
 
@@ -400,7 +438,128 @@ function toggleSelectAllVisible(checked) {
 /** Actions */
 const createProduct = () => router.push('/products/add')
 const goDetail = (id) => router.push(`/products/${id}`)
-const scanQr = () => console.log('scan qr')
+
+const showScanQrModal = ref(false)
+const scanQrError = ref('')
+const scanManualInput = ref('')
+const allVariantIndex = ref([])
+let productQrScanner = null
+
+function normalizeQrValue(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+async function ensureVariantIndexLoaded() {
+  if (allVariantIndex.value.length) return
+
+  const firstRes = await getAllDetails(0, 100)
+  const firstData = firstRes?.data || {}
+
+  const mapVariantIndex = (item) => ({
+    id: item.id,
+    idSanPham: item.idSanPham ?? item.sanPhamId ?? item.id_san_pham ?? null,
+    maSanPham: item.maSanPham ?? item.maSP ?? item.ma_san_pham ?? '',
+    maSanPhamChiTiet: item.maSanPhamChiTiet ?? item.maSPCT ?? item.ma_san_pham_chi_tiet ?? '',
+    tenSanPham: item.tenSanPham ?? item.ten ?? ''
+  })
+
+  let variants = (firstData.content || []).map(mapVariantIndex)
+  const pages = Number(firstData.totalPages || 1)
+
+  for (let page = 1; page < pages; page++) {
+    const res = await getAllDetails(page, 100)
+    const data = res?.data || {}
+    variants.push(...(data.content || []).map(mapVariantIndex))
+  }
+
+  allVariantIndex.value = variants
+}
+
+async function openScanQrModal() {
+  showScanQrModal.value = true
+  scanQrError.value = ''
+  scanManualInput.value = ''
+  await nextTick()
+  await startProductQr()
+}
+
+async function closeScanQrModal() {
+  await stopProductQr()
+  showScanQrModal.value = false
+}
+
+async function startProductQr() {
+  try {
+    if (!productQrScanner) {
+      productQrScanner = new Html5Qrcode('product-list-qr-reader')
+    }
+
+    const cameras = await Html5Qrcode.getCameras()
+    if (!cameras?.length) {
+      scanQrError.value = 'Không tìm thấy camera.'
+      return
+    }
+
+    await productQrScanner.start(
+      { deviceId: { exact: cameras[0].id } },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      async (decodedText) => {
+        await handleScannedProductCode(decodedText)
+      }
+    )
+  } catch (e) {
+    console.error(e)
+    scanQrError.value = 'Không mở được camera hoặc bị chặn quyền.'
+  }
+}
+
+async function stopProductQr() {
+  try {
+    if (productQrScanner && (await productQrScanner.getState()) === 2) {
+      await productQrScanner.stop()
+      await productQrScanner.clear()
+    }
+  } catch (_) {}
+}
+
+async function handleScannedProductCode(rawValue) {
+  const code = normalizeQrValue(rawValue)
+  if (!code) {
+    scanQrError.value = 'Mã QR không hợp lệ.'
+    return
+  }
+
+  try {
+    await ensureVariantIndexLoaded()
+
+    const byVariant = allVariantIndex.value.find(
+      (v) => normalizeQrValue(v.maSanPhamChiTiet) === code
+    )
+
+    const byProduct = allVariantIndex.value.find(
+      (v) => normalizeQrValue(v.maSanPham) === code
+    )
+
+    const target = byVariant || byProduct
+
+    if (!target?.idSanPham) {
+      scanQrError.value = 'Không tìm thấy sản phẩm phù hợp với mã QR.'
+      return
+    }
+
+    await closeScanQrModal()
+    goDetail(target.idSanPham)
+  } catch (e) {
+    console.error(e)
+    scanQrError.value = 'Không xử lý được mã QR.'
+  }
+}
+
+async function applyManualQr() {
+  await handleScannedProductCode(scanManualInput.value)
+}
+
+const scanQr = () => openScanQrModal()
 
 /** Price helpers */
 function formatPrice(val) {
@@ -634,6 +793,10 @@ onMounted(async () => {
   clampMaxPrice()
   reload()
 })
+
+onBeforeUnmount(() => {
+  void stopProductQr()
+})
 </script>
 
 <style scoped>
@@ -843,6 +1006,59 @@ onMounted(async () => {
 .paging-page { width: 120px !important; }
 .paging-size { width: 170px !important; }
 .error-msg { color: #ef4444; margin-top: 10px; text-align: center; }
+
+
+.scan-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.scan-modal-box {
+  width: min(720px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.scan-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.scan-modal-body {
+  padding: 16px 18px 18px;
+}
+
+.scan-modal-note {
+  color: #4b5563;
+  font-size: 0.925rem;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.qr-reader-box {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.scan-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+}
 
 @media (max-width: 1100px) {
   .page-top { flex-direction: column; align-items: flex-start; }
