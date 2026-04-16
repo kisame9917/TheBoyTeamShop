@@ -1506,7 +1506,7 @@
         </div>
       </div>
 
-      <div
+<div
   v-if="showQrPayModal"
   class="modal fade show"
   tabindex="-1"
@@ -1514,11 +1514,10 @@
   aria-modal="true"
   style="display: block; z-index: 1065"
 >
-  <div class="modal-dialog modal-md modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered qr-pay-dialog">
     <div class="modal-content qr-pay-modal">
       <div class="modal-header qr-pay-header">
         <div>
-          <div class="qr-pay-eyebrow">VNPAY Sandbox</div>
           <h5 class="modal-title fw-bold mb-1">Thanh toán bằng QR</h5>
           <div class="qr-pay-subtitle">
             Quét mã hoặc chuyển sang trang thanh toán
@@ -1557,22 +1556,17 @@
               alt="QR Pay"
               class="qr-image"
             />
-            <div v-else class="text-muted small py-5">Đang tải QR...</div>
+            <div v-else class="text-muted small py-5 text-center">
+              Đang tải QR...
+            </div>
           </div>
 
           <div class="qr-stage-caption">
             <div class="qr-stage-title">Quét mã để thanh toán</div>
-            <div class="qr-stage-note">
-              Hệ thống mô phỏng giao diện thanh toán VNPAY Sandbox
-            </div>
           </div>
         </div>
 
         <div class="qr-pay-info-card">
-          <div class="qr-pay-info-row">
-            <span class="qr-pay-info-label">Cổng thanh toán</span>
-            <span class="qr-pay-info-value">VNPAY Sandbox</span>
-          </div>
           <div class="qr-pay-info-row qr-pay-info-row-top">
             <span class="qr-pay-info-label">Nội dung đơn</span>
             <span class="qr-pay-info-value font-monospace qr-pay-code">
@@ -1593,14 +1587,6 @@
 
       <div class="modal-footer qr-pay-footer">
         <button
-          class="btn qr-btn qr-btn-secondary"
-          type="button"
-          @click="closeQrPay"
-        >
-          Đóng
-        </button>
-
-        <button
           class="btn qr-btn qr-btn-primary"
           type="button"
           @click="goToSandboxPayment"
@@ -1616,53 +1602,70 @@
         >
           Thanh toán thành công
         </button>
+
+        <button
+          class="btn qr-btn qr-btn-secondary"
+          type="button"
+          @click="closeQrPay"
+        >
+          Đóng
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-      <div
-        v-if="showPaymentConfirmModal"
-        class="modal fade show"
-        tabindex="-1"
-        role="dialog"
-        aria-modal="true"
-        style="display: block; z-index: 1068"
-      >
-        <div class="modal-dialog modal-md modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title fw-bold">Xác nhận thanh toán</h5>
-              <button
-                type="button"
-                class="btn-close"
-                @click="resolvePaymentConfirm(false)"
-              ></button>
-            </div>
+<div
+  v-if="showPaymentConfirmModal"
+  class="modal-backdrop fade show payment-confirm-backdrop"
+  style="z-index: 1067"
+></div>
 
-            <div class="modal-body">
-              <div class="fw-semibold">{{ paymentConfirmText }}</div>
-            </div>
+<div
+  v-if="showPaymentConfirmModal"
+  class="modal fade show"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  style="display: block; z-index: 1068"
+>
+  <div class="modal-dialog modal-dialog-centered payment-confirm-dialog">
+    <div class="modal-content payment-confirm-modal">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Xác nhận thanh toán</h5>
+        <button
+          type="button"
+          class="btn-close"
+          @click="resolvePaymentConfirm(false)"
+        ></button>
+      </div>
 
-            <div class="modal-footer">
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                @click="resolvePaymentConfirm(false)"
-              >
-                Hủy
-              </button>
-              <button
-                class="btn btn-success"
-                type="button"
-                @click="resolvePaymentConfirm(true)"
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
+      <div class="modal-body">
+        <div class="fw-semibold payment-confirm-text">
+          {{ paymentConfirmText }}
         </div>
       </div>
+
+      <div class="modal-footer payment-confirm-footer">
+        <button
+          class="btn btn-outline-secondary payment-confirm-cancel-btn"
+          type="button"
+          @click="resolvePaymentConfirm(false)"
+        >
+          Hủy
+        </button>
+
+        <button
+          class="btn btn-success payment-confirm-ok-btn"
+          type="button"
+          @click="resolvePaymentConfirm(true)"
+        >
+          Xác nhận
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
       <div
         v-if="showPreCheckoutModal"
@@ -2193,14 +2196,13 @@ const showAddressModal = ref(false);
 const showQrPayModal = ref(false);
 const showPreCheckoutModal = ref(false);
 const showPaymentConfirmModal = ref(false);
-
 const backdropOpen = computed(
   () =>
     showProductModal.value ||
     showCustomerModal.value ||
     showAddressModal.value ||
     showQrPayModal.value ||
-    showScanQrModal.value,
+    showScanQrModal.value
 );
 
 const anyModalOpen = computed(
@@ -2211,7 +2213,7 @@ const anyModalOpen = computed(
     showQrPayModal.value ||
     showScanQrModal.value ||
     showPreCheckoutModal.value ||
-    showPaymentConfirmModal.value,
+    showPaymentConfirmModal.value
 );
 
 watch(anyModalOpen, (open) => {
@@ -4309,8 +4311,8 @@ async function openQrPay() {
   o.paymentMethod = "QR";
 
   const sandboxUrl = "https://sandbox.vnpayment.vn/apis/vnpay-demo/";
-  qrContent.value = `VNPAY Sandbox • ${o.maHoaDon}`;
-  qrNoteDraft.value = `VNPAY sandbox - ${o.maHoaDon}`;
+  qrContent.value = `${o.maHoaDon}`;
+  qrNoteDraft.value = `${o.maHoaDon}`;
   qrImg.value = `https://quickchart.io/qr?text=${encodeURIComponent(sandboxUrl)}&size=320`;
 
   showQrPayModal.value = true;
@@ -5508,5 +5510,285 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: #000;
 }
+.qr-pay-dialog {
+  max-width: 720px;
+  width: min(720px, calc(100vw - 32px));
+  margin: 1rem auto;
+}
 
+.qr-pay-modal {
+  border: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+}
+
+.qr-pay-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(90deg, #ffffff 0%, #f3fff8 100%);
+}
+
+.qr-pay-subtitle {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.qr-pay-body {
+  padding: 16px 18px;
+}
+
+.qr-pay-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.qr-pay-meta-card,
+.qr-pay-amount-card {
+  border: 1px solid #dde3ea;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  min-width: 0;
+}
+
+.qr-pay-meta-label {
+  font-size: 12px;
+  color: #7b8794;
+  margin-bottom: 6px;
+}
+
+.qr-pay-meta-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.qr-pay-amount {
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #e03131;
+  word-break: break-word;
+}
+
+.qr-stage {
+  position: relative;
+  border: 1px solid #e3e8ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.qr-stage-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 60%);
+}
+
+.qr-frame {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.qr-stage-caption {
+  margin-top: 10px;
+}
+
+.qr-stage-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.qr-pay-info-card {
+  border: 1px solid #e3e8ef;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.qr-pay-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.qr-pay-info-label {
+  font-size: 13px;
+  color: #6b7280;
+  flex: 0 0 auto;
+}
+
+.qr-pay-info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: right;
+}
+
+.qr-pay-code {
+  word-break: break-all;
+}
+
+.qr-pay-input-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.qr-pay-input {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.qr-pay-footer {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 14px 18px 18px;
+  border-top: 0;
+  background: #fff;
+}
+
+.qr-btn {
+  min-height: 46px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  flex: 1 1 180px;
+}
+
+.qr-btn-primary {
+  background: #2f6fed;
+  border-color: #2f6fed;
+  color: #fff;
+}
+
+.qr-btn-primary:hover {
+  background: #255ed0;
+  border-color: #255ed0;
+  color: #fff;
+}
+
+.qr-btn-success {
+  background: #1db954;
+  border-color: #1db954;
+  color: #fff;
+}
+
+.qr-btn-success:hover {
+  background: #19a14a;
+  border-color: #19a14a;
+  color: #fff;
+}
+
+.qr-btn-secondary {
+  background: #f3f4f6;
+  border-color: #f3f4f6;
+  color: #374151;
+}
+
+.qr-btn-secondary:hover {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.payment-confirm-dialog {
+  max-width: 420px;
+  width: min(420px, calc(100vw - 32px));
+  margin: 1rem auto;
+}
+
+.payment-confirm-modal {
+  border: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.payment-confirm-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1f2937;
+}
+
+.payment-confirm-footer {
+  gap: 10px;
+}
+
+.payment-confirm-cancel-btn,
+.payment-confirm-ok-btn {
+  min-width: 96px;
+  min-height: 40px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .qr-pay-dialog {
+    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
+  }
+
+  .qr-pay-top {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-pay-amount {
+    font-size: 26px;
+  }
+
+  .qr-frame {
+    min-height: 220px;
+  }
+
+  .qr-image {
+    width: 190px;
+  }
+
+  .qr-pay-footer {
+    flex-direction: column;
+  }
+
+  .qr-btn {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .payment-confirm-dialog {
+    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
+  }
+}
 </style>
