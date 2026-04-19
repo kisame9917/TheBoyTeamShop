@@ -10,8 +10,10 @@ import com.vestshop.dto.request.LoginRequest;
 import com.vestshop.dto.request.ResetPasswordOtpRequest;
 import com.vestshop.dto.response.ClientLoginResponse;
 import com.vestshop.dto.response.KhachHangResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -27,8 +29,12 @@ public class ClientAuthController {
     private final KhachHangRepository khRepo;
     private final KhachHangService khachHangService;
 
+    @Value("${app.client-frontend-url:http://localhost:5174}")
+    private String clientFrontendUrl;
+
     @GetMapping("/google")
-    public void googleLogin(HttpServletResponse response) throws IOException {
+    public void googleLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        request.getSession(true).setAttribute("oauth2_frontend_url", clientFrontendUrl);
         response.sendRedirect("/oauth2/authorization/google");
     }
 

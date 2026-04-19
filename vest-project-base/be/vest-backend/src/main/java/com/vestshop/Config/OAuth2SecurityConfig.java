@@ -1,6 +1,7 @@
 package com.vestshop.Config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -16,6 +17,9 @@ public class OAuth2SecurityConfig {
 
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String defaultFrontendUrl;
+
     @Bean
     public SecurityFilterChain oauth2Chain(HttpSecurity http) throws Exception {
         http
@@ -28,7 +32,16 @@ public class OAuth2SecurityConfig {
                         .successHandler(oAuth2LoginSuccessHandler)
                         .failureHandler((request, response, exception) -> {
                             exception.printStackTrace();
-                            response.sendRedirect("http://localhost:5173/login?error=oauth2_failed");
+
+                            String targetFrontendUrl = (String) request.getSession()
+                                    .getAttribute("oauth2_frontend_url");
+
+                            if (targetFrontendUrl == null || targetFrontendUrl.isBlank()) {
+                                targetFrontendUrl = defaultFrontendUrl;
+                            }
+
+                            request.getSession().removeAttribute("oauth2_frontend_url");
+                            response.sendRedirect(targetFrontendUrl + "/login?error=oauth2_failed");
                         })
                 );
 

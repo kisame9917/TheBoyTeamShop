@@ -41,27 +41,32 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         OAuth2User oauthUser = (OAuth2User) authentication.getPrincipal();
 
         String email = oauthUser.getAttribute("email");
-        String name  = oauthUser.getAttribute("name");
+        String name = oauthUser.getAttribute("name");
+
+        String targetFrontendUrl = (String) request.getSession()
+                .getAttribute("oauth2_frontend_url");
+
+        if (targetFrontendUrl == null || targetFrontendUrl.isBlank()) {
+            targetFrontendUrl = frontendUrl;
+        }
+
+        request.getSession().removeAttribute("oauth2_frontend_url");
 
         if (email == null || email.isBlank()) {
-            response.sendRedirect(frontendUrl + "/login?error=missing_email");
+            response.sendRedirect(targetFrontendUrl + "/login?error=missing_email");
             return;
         }
 
-        // ✅ ĐÚNG: findOrCreate trả về TargetUser (có target + username)
         GoogleUserProvisionService.TargetUser targetUser =
                 googleUserProvisionService.findOrCreate(email, name);
 
-        // ✅ load UserDetails theo targetUser.target()
         UserDetails userDetails = (targetUser.target() == GoogleUserProvisionService.LoginTarget.CLIENT)
                 ? clientUserDetailsService.loadUserByUsername(targetUser.username())
                 : nhanVienUserDetailsService.loadUserByUsername(targetUser.username());
 
-        // generate JWT
         String token = jwtService.generateToken(userDetails);
 
-        // redirect FE
-        String redirectUrl = frontendUrl + "/oauth2/redirect?token=" +
+        String redirectUrl = targetFrontendUrl + "/oauth2/redirect?token=" +
                 URLEncoder.encode(token, StandardCharsets.UTF_8);
 
         response.sendRedirect(redirectUrl);
