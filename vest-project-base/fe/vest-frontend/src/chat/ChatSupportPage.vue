@@ -19,24 +19,6 @@
             <span class="queue-badge">{{ waitingCount }} chờ</span>
           </div>
 
-          <div class="main-tabs">
-            <button
-              class="main-tab"
-              :class="{ active: mainTab === 'CUSTOMER' }"
-              @click="mainTab = 'CUSTOMER'"
-            >
-              <span>Khách hàng</span>
-            </button>
-
-            <button
-              class="main-tab"
-              :class="{ active: mainTab === 'INTERNAL' }"
-              @click="mainTab = 'INTERNAL'"
-            >
-              <span>Nội bộ</span>
-            </button>
-          </div>
-
           <div class="sub-tabs">
             <button
               class="sub-tab"
@@ -53,14 +35,6 @@
             >
               <span>Chờ nhận</span>
             </button>
-
-            <button
-              class="sub-tab"
-              :class="{ active: subTab === 'CLOSED' }"
-              @click="subTab = 'CLOSED'"
-            >
-              <span>Đã đóng</span>
-            </button>
           </div>
 
           <div v-if="filteredConversations.length === 0" class="hint">
@@ -74,20 +48,15 @@
               class="conv-item list-style"
               :class="{
                 active: c.conversationId === conversationId,
-                urgent: c.needsHuman,
-                closed: c.status === 'CLOSED'
+                urgent: c.needsHuman
               }"
               @click="openConversation(c.conversationId)"
             >
               <div class="conv-top">
                 <div class="customer-name">{{ c.customerName }}</div>
 
-                <span v-if="c.status === 'CLOSED'" class="status-chip closed-chip">
-                  Đã đóng
-                </span>
-
                 <span
-                  v-else-if="c.needsHuman"
+                  v-if="c.needsHuman"
                   class="status-chip waiting"
                 >
                   Chờ tiếp nhận
@@ -116,9 +85,9 @@
                 </span>
               </div>
 
-              <div v-if="c.needsHuman && c.status !== 'CLOSED'" class="conv-actions">
+              <div v-if="c.needsHuman" class="conv-actions">
                 <button class="take-btn" @click.stop="takeConversation(c)">
-                  Chat tiếp nhận
+                   Tiếp nhận
                 </button>
               </div>
             </button>
@@ -144,14 +113,7 @@
 
           <div v-if="activeConversation" class="chat-top-right">
             <span
-              v-if="activeConversation.status === 'CLOSED'"
-              class="status-chip closed-chip"
-            >
-              Đã đóng
-            </span>
-
-            <span
-              v-else-if="activeConversation.needsHuman"
+              v-if="activeConversation.needsHuman"
               class="status-chip waiting"
             >
               Chờ tiếp nhận
@@ -170,14 +132,6 @@
             >
               Đã tiếp nhận
             </span>
-
-            <button
-              v-if="activeConversation.status !== 'CLOSED'"
-              class="close-btn"
-              @click="closeConversation"
-            >
-              Đóng
-            </button>
           </div>
         </div>
 
@@ -221,14 +175,14 @@
         <div class="input">
           <input
             v-model="input"
-            :disabled="!canSend || activeConversation?.status === 'CLOSED'"
+            :disabled="!canSend"
             placeholder="Nhập trả lời..."
             @keyup.enter="send"
           />
           <button
             class="btn"
             @click="send"
-            :disabled="!canSend || activeConversation?.status === 'CLOSED'"
+            :disabled="!canSend"
           >
             Gửi
           </button>
@@ -329,9 +283,7 @@ const filteredConversations = computed(() => {
 
   if (subTab.value === "PENDING") {
     list = list.filter((c) => c.needsHuman && c.status !== "CLOSED");
-  } else if (subTab.value === "CLOSED") {
-    list = list.filter((c) => c.status === "CLOSED");
-  } else if (subTab.value === "ACTIVE") {
+  } else {
     list = list.filter((c) => c.status !== "CLOSED");
   }
 
@@ -494,16 +446,11 @@ function upsertConversationFromMessage(msg) {
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : unread + 1,
-    needsHuman:
-      msg.status === "CLOSED"
-        ? false
-        : isHumanSupportRequest(msg.content),
+    needsHuman: isHumanSupportRequest(msg.content),
     status: msg.status ?? current.status,
     handledByAI: msg.senderType === "BOT" ? true : current.handledByAI,
     isTaken:
-      msg.status === "CLOSED"
-        ? current.isTaken
-        : msg.senderType === "ADMIN"
+      msg.senderType === "ADMIN"
         ? true
         : current.isTaken,
     takenByName:
@@ -606,14 +553,8 @@ function subscribeRoom(id) {
       current.lastAt = msg.createdAt;
       current.customerName =
         current.customerName || msg.customerName || "Khách vãng lai";
-
-      if (msg.status === "CLOSED") {
-        current.status = "CLOSED";
-        current.needsHuman = false;
-        current.unreadCount = 0;
-      } else {
-        current.needsHuman = isHumanSupportRequest(msg.content);
-      }
+      current.status = msg.status ?? current.status;
+      current.needsHuman = isHumanSupportRequest(msg.content);
 
       if (msg.senderType === "BOT") {
         current.handledByAI = true;
@@ -625,12 +566,10 @@ function subscribeRoom(id) {
         current.needsHuman = false;
       }
 
-      if (current.status !== "CLOSED") {
-        current.unreadCount =
-          msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
-            ? Number(current.unreadCount || 0) + 1
-            : 0;
-      }
+      current.unreadCount =
+        msg.senderType === "CLIENT" && String(conversationId.value) !== String(id)
+          ? Number(current.unreadCount || 0) + 1
+          : 0;
     }
   });
 }
@@ -659,7 +598,6 @@ function send() {
   if (!content) return;
   if (!conversationId.value) return;
   if (!stomp?.connected) return;
-  if (activeConversation.value?.status === "CLOSED") return;
 
   stomp.publish({
     destination: "/app/chat.send",
@@ -687,7 +625,6 @@ async function takeConversation(c) {
   await openConversation(c.conversationId);
 
   if (!stomp?.connected) return;
-  if (c.status === "CLOSED") return;
 
   const message = `${adminTakeMessageName.value} sẽ hỗ trợ anh/chị từ bây giờ ạ. Anh/chị cần em hỗ trợ gì thêm không?`;
 
@@ -710,50 +647,6 @@ async function takeConversation(c) {
     conversations.value[idx].isTaken = true;
     conversations.value[idx].takenByName = adminLabel.value;
     conversations.value[idx].unreadCount = 0;
-  }
-}
-
-async function closeConversation() {
-  if (!conversationId.value) return;
-
-  const closingId = conversationId.value;
-
-  const idx = conversations.value.findIndex(
-    (x) => String(x.conversationId) === String(closingId)
-  );
-  if (idx === -1) return;
-
-  const closingText = `Cuộc trò chuyện đã được kết thúc. ${adminTakeMessageName.value} cảm ơn anh/chị ạ.`;
-
-  if (stomp?.connected) {
-    stomp.publish({
-      destination: "/app/chat.send",
-      body: JSON.stringify({
-        conversationId: closingId,
-        senderType: "ADMIN",
-        senderId: adminId.value,
-        content: closingText,
-        status: "CLOSED",
-      }),
-    });
-  }
-
-  conversations.value[idx].status = "CLOSED";
-  conversations.value[idx].needsHuman = false;
-  conversations.value[idx].isTaken = true;
-  conversations.value[idx].takenByName =
-    conversations.value[idx].takenByName || adminLabel.value;
-  conversations.value[idx].lastMessage = closingText;
-  conversations.value[idx].lastAt = new Date().toISOString();
-  conversations.value[idx].unreadCount = 0;
-
-  const justClosedId = conversationId.value;
-  subTab.value = "CLOSED";
-
-  try {
-    await axios.patch(`${API}/api/chat/conversations/${justClosedId}/close`);
-  } catch (e) {
-    console.warn("Close conversation API failed:", e?.message || e);
   }
 }
 
@@ -924,7 +817,7 @@ onBeforeUnmount(() => {
 
 .sub-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   margin: 0 14px;
   padding-bottom: 6px;
   border-bottom: 1px solid #e2e8f0;
@@ -999,10 +892,6 @@ onBeforeUnmount(() => {
 
 .conv-item.list-style.urgent {
   background: #f8fbff;
-}
-
-.conv-item.list-style.closed {
-  opacity: 0.92;
 }
 
 .conv-top {
@@ -1104,12 +993,6 @@ onBeforeUnmount(() => {
   border-color: #bfdbfe;
 }
 
-.status-chip.closed-chip {
-  background: #e2e8f0;
-  color: #475569;
-  border-color: #cbd5e1;
-}
-
 .handler-line {
   margin-top: 4px;
   font-size: 12px;
@@ -1163,22 +1046,6 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: #2954b8;
   font-weight: 700;
-}
-
-.close-btn {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #334155;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.close-btn:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
 }
 
 .messages {
