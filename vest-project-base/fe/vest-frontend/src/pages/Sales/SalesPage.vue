@@ -2682,6 +2682,8 @@ async function chooseProduct(p) {
 
   await setQtyByInput(idx, Number(o.cart[idx].qty || 0) + 1);
   toastShow(`Đã thêm ${p.code}`, "success");
+
+  await revalidateActiveOrderVoucher({ showModal: false });
 }
 
 const subTotal = computed(() => {
@@ -2715,6 +2717,28 @@ function mapCustomer(x) {
     address: addr,
     raw: x,
   };
+}
+
+function getCustomerScopedVouchers(order, vouchers) {
+  const customerId = order?.customer?.id ?? null;
+  return (vouchers || []).filter((v) =>
+    voucherBelongsToCustomer(v, customerId),
+  );
+}
+
+function getVoucherEntriesForOrder(order, vouchers) {
+  const scoped = getCustomerScopedVouchers(order, vouchers);
+
+  const st = order
+    ? order.cart.reduce(
+        (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
+        0,
+      )
+    : 0;
+
+  return scoped
+    .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
+    .sort((a, b) => b.discount - a.discount);
 }
 
 async function fetchCustomersAll() {
@@ -3371,7 +3395,10 @@ async function loadVouchersByCustomer(customerId) {
     const res = await http.get("/api/pgg/pos", {
       params: { khachHangId: customerId ?? null },
     });
-    return (res.data || []).map(normalizeVoucher);
+
+    return (res.data || [])
+      .map(normalizeVoucher)
+      .filter((v) => voucherBelongsToCustomer(v, customerId));
   } catch (e) {
     console.error(e);
     return [];
@@ -3585,12 +3612,15 @@ watch(
 );
 
 const voucherSuggestions = computed(() => {
+  const o = activeOrder.value;
+  const cid = o?.customer?.id ?? null;
   const st = subTotal.value;
   if (st <= 0) return [];
 
   const bestNow = bestEligibleVoucherEntry.value?.discount || 0;
 
   return activeOrderVouchers.value
+    .filter((v) => voucherBelongsToCustomer(v, cid))
     .filter(
       (v) =>
         v?.trang_thai &&
@@ -3906,10 +3936,6 @@ function evaluateVoucherState(order, orderVouchers) {
 
   const best = getBestVoucherForOrder(order, orderVouchers);
 
-  // Không có voucher hiện tại và cũng không có snapshot để đối chiếu
-  if (!order.pggId && !snapshot) {
-    return { status: "no_voucher" };
-  }
 
   // ƯU TIÊN: trước đó từng có voucher, giờ voucher đó biến mất
   if (snapshot && !snapshotVoucher) {
@@ -3935,6 +3961,8 @@ function evaluateVoucherState(order, orderVouchers) {
     };
   }
 
+
+
   // Nếu đang ở mode best và chưa có pggId nhưng đã có voucher phù hợp
   if (!order.pggId && order.voucherMode === "best" && best?.voucher) {
     return {
@@ -3945,6 +3973,10 @@ function evaluateVoucherState(order, orderVouchers) {
       snapshot,
       subtotal,
     };
+  }
+
+  if (!order.pggId && !snapshot) {
+    return { status: "no_voucher" };
   }
 
   const checkingVoucher = currentVoucher || snapshotVoucher;

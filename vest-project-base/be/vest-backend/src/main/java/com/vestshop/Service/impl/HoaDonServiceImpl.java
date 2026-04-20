@@ -193,6 +193,14 @@ public class HoaDonServiceImpl implements HoaDonService {
 
             if (Boolean.FALSE.equals(pgg.getTrangThai())) throw new IllegalArgumentException("Voucher đã bị tắt");
 
+            LocalDateTime now = LocalDateTime.now();
+            if (pgg.getNgayBatDau() != null && now.isBefore(pgg.getNgayBatDau())) {
+                throw new IllegalArgumentException("Voucher chưa tới thời gian áp dụng");
+            }
+            if (pgg.getNgayKetThuc() != null && now.isAfter(pgg.getNgayKetThuc())) {
+                throw new IllegalArgumentException("Voucher đã hết hạn");
+            }
+
             Integer slVoucher = pgg.getSoLuong();
             if (slVoucher != null && slVoucher <= 0) throw new IllegalArgumentException("Voucher đã hết lượt");
 
@@ -214,11 +222,6 @@ public class HoaDonServiceImpl implements HoaDonService {
             }
 
             if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
-
-            if (pgg.getSoLuong() != null) {
-                pgg.setSoLuong(pgg.getSoLuong() - 1);
-                phieuGiamGiaRepository.save(pgg);
-            }
 
             hd.setPhieuGiamGia(pgg);
 
@@ -288,6 +291,10 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
 
         hoaDonRepository.save(hd);
+
+        if (shouldConsumeVoucherOnCheckout(hd)) {
+            consumeVoucherIfNeeded(hd);
+        }
 
         for (SanPhamChiTiet spct : spcts) {
             int sl = buyMap.get(spct.getId());
@@ -629,6 +636,14 @@ public class HoaDonServiceImpl implements HoaDonService {
             throw new IllegalArgumentException("Yêu cầu hủy chỉ có thể xác nhận hủy hoặc từ chối hủy");
         }
 
+        if (shouldConsumeVoucherOnStatusTransition(hd, oldSt, newSt)) {
+            consumeVoucherIfNeeded(hd);
+        }
+
+        if (shouldRollbackVoucherOnStatusTransition(hd, oldSt, newSt)) {
+            rollbackVoucherIfNeeded(hd);
+        }
+
         if (isOnlineConfirmTransition(hd, oldSt, newSt)) {
             truTonKhoKhiXacNhan(hd);
         }
@@ -934,6 +949,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             hd.setTongTienGiam(BigDecimal.ZERO);
             hd.setTongTienSauGiam(BigDecimal.ZERO);
             hd.setPhiVanChuyen(BigDecimal.ZERO);
+            hd.setPhieuGiamGia(null);
             hoaDonRepository.save(hd);
 
             HoaDonDetailResponse res = buildDetail(hd);
@@ -963,10 +979,16 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         BigDecimal tongTienGiam = BigDecimal.ZERO;
         Long voucherId = req.getIdPhieuGiamGia() != null ? req.getIdPhieuGiamGia() : req.getPggId();
+        hd.setPhieuGiamGia(null);
 
         if (voucherId != null) {
             PhieuGiamGia pgg = phieuGiamGiaRepository.findById(voucherId).orElse(null);
-            if (pgg != null && !Boolean.FALSE.equals(pgg.getTrangThai())) {
+            LocalDateTime now = LocalDateTime.now();
+            if (pgg != null
+                    && !Boolean.FALSE.equals(pgg.getTrangThai())
+                    && (pgg.getNgayBatDau() == null || !now.isBefore(pgg.getNgayBatDau()))
+                    && (pgg.getNgayKetThuc() == null || !now.isAfter(pgg.getNgayKetThuc()))
+                    && (pgg.getSoLuong() == null || pgg.getSoLuong() > 0)) {
                 BigDecimal min = pgg.getDonHangToiThieu() == null ? BigDecimal.ZERO : pgg.getDonHangToiThieu();
                 if (tongTien.compareTo(min) >= 0) {
                     BigDecimal pt = pgg.getGiaTriPhanTram();
@@ -988,7 +1010,6 @@ public class HoaDonServiceImpl implements HoaDonService {
         } else {
             int p = req.getGiamThuCongPercent() == null ? 0 : Math.max(0, Math.min(100, req.getGiamThuCongPercent()));
             tongTienGiam = tongTien.multiply(BigDecimal.valueOf(p)).divide(BigDecimal.valueOf(100));
-            hd.setPhieuGiamGia(null);
         }
 
         if (tongTienGiam.compareTo(tongTien) > 0) tongTienGiam = tongTien;
@@ -1032,6 +1053,66 @@ public class HoaDonServiceImpl implements HoaDonService {
         HoaDonDetailResponse res = buildDetail(hd);
         posRealtimeService.pushUpsert(res);
         return res;
+    }
+
+    private boolean shouldConsumeVoucherOnCheckout(HoaDon hd) {
+        if (hd == null || hd.getPhieuGiamGia() == null) return false;
+        return !Boolean.TRUE.equals(hd.getLoaiDon())
+                && Objects.equals(hd.getTrangThaiDon(), TrangThaiDonHang.HOAN_THANH.getCode());
+    }
+
+    private boolean shouldConsumeVoucherOnStatusTransition(HoaDon hd, TrangThaiDonHang oldSt, TrangThaiDonHang newSt) {
+        if (hd == null || hd.getPhieuGiamGia() == null) return false;
+        if (!Boolean.TRUE.equals(hd.getLoaiDon())) return false;
+        return oldSt == TrangThaiDonHang.CHO_XAC_NHAN
+                && newSt == TrangThaiDonHang.DA_XAC_NHAN;
+    }
+
+    private boolean shouldRollbackVoucherOnStatusTransition(HoaDon hd, TrangThaiDonHang oldSt, TrangThaiDonHang newSt) {
+        if (hd == null || hd.getPhieuGiamGia() == null) return false;
+        return newSt == TrangThaiDonHang.DA_HUY && wasVoucherConsumed(hd, oldSt);
+    }
+
+    private boolean wasVoucherConsumed(HoaDon hd, TrangThaiDonHang st) {
+        if (hd == null || hd.getPhieuGiamGia() == null || st == null) return false;
+
+        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
+            return st == TrangThaiDonHang.DA_XAC_NHAN
+                    || st == TrangThaiDonHang.DANG_GIAO
+                    || st == TrangThaiDonHang.DA_GIAO
+                    || st == TrangThaiDonHang.HOAN_THANH;
+        }
+
+        return st == TrangThaiDonHang.HOAN_THANH;
+    }
+
+    private void consumeVoucherIfNeeded(HoaDon hd) {
+        if (hd == null || hd.getPhieuGiamGia() == null || hd.getPhieuGiamGia().getId() == null) return;
+
+        PhieuGiamGia pgg = phieuGiamGiaRepository.findById(hd.getPhieuGiamGia().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Voucher không tồn tại"));
+
+        Integer soLuong = pgg.getSoLuong();
+        if (soLuong == null) return;
+        if (soLuong <= 0) {
+            throw new IllegalArgumentException("Voucher đã hết lượt");
+        }
+
+        pgg.setSoLuong(soLuong - 1);
+        pgg.setNgayCapNhat(LocalDateTime.now());
+        phieuGiamGiaRepository.save(pgg);
+    }
+
+    private void rollbackVoucherIfNeeded(HoaDon hd) {
+        if (hd == null || hd.getPhieuGiamGia() == null || hd.getPhieuGiamGia().getId() == null) return;
+
+        PhieuGiamGia pgg = phieuGiamGiaRepository.findById(hd.getPhieuGiamGia().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Voucher không tồn tại"));
+
+        Integer soLuong = pgg.getSoLuong();
+        pgg.setSoLuong(soLuong == null ? 1 : soLuong + 1);
+        pgg.setNgayCapNhat(LocalDateTime.now());
+        phieuGiamGiaRepository.save(pgg);
     }
 
     private void truTonKhoKhiDangGiao(HoaDon hd) {
