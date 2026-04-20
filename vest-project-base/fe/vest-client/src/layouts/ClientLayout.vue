@@ -296,7 +296,7 @@ function logout() {
   sessionStorage.removeItem('USER_NAME');
 
   syncAuth();
-  router.push('/login');
+  router.push('/homepage');
 }
 
 function handleClickOutside(e) {
