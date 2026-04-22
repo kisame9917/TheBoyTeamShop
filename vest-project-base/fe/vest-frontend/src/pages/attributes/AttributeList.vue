@@ -402,7 +402,13 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await attributeService.getAllList(type.value)
-    items.value = Array.isArray(res.data) ? res.data : []
+    const raw = Array.isArray(res.data) ? res.data : []
+
+    items.value = [...raw].sort((a, b) => {
+      const aId = Number(a?.id || 0)
+      const bId = Number(b?.id || 0)
+      return bId - aId
+    })
   } catch (e) {
     console.error(e)
     error('Không thể tải dữ liệu')
@@ -453,7 +459,6 @@ async function submitForm() {
   validateTenLive()
   if (formErrors.ten) return
 
-  // chuẩn hoá
   const raw = String(form.ten ?? '')
   const clean = isSize.value ? raw.trim() : normalizeSpaces(raw).trim()
 
@@ -469,10 +474,13 @@ async function submitForm() {
     if (modalMode.value === 'create') {
       await attributeService.create(type.value, payload)
       success(`Thêm ${title.value} thành công`)
+      currentPage.value = 1
+      pageInput.value = 1
     } else {
       await attributeService.update(type.value, form.id, payload)
       success(`Cập nhật ${title.value} thành công`)
     }
+
     closeModal()
     await fetchData()
   } catch (e) {

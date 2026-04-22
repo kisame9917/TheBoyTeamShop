@@ -1042,14 +1042,25 @@ async function confirmAddModal() {
 
   try {
     const ma = genNextAttrCode(addModal.typeCode, list)
-    const res = await attributeService.create(addModal.typeCode, { ma, ten, trangThai: true })
+    const res = await attributeService.create(addModal.typeCode, {
+      ma,
+      ten,
+      trangThai: true
+    })
+
     const created = res?.data
     if (!created?.id) throw new Error('Create failed')
 
     const reload = await attributeService.getAllList(addModal.typeCode)
-    attributes[addModal.listKey] = pickActiveOrAll(reload.data || [])
+    const nextList = pickActiveOrAll(reload.data || [])
 
-    if (addModal.productKey) product[addModal.productKey] = created.id
+    attributes[addModal.listKey] = [...nextList].sort(
+      (a, b) => Number(b?.id || 0) - Number(a?.id || 0)
+    )
+
+    if (addModal.productKey) {
+      product[addModal.productKey] = created.id
+    }
 
     showToast(`Đã thêm "${ten}"`)
     closeAddModal()
