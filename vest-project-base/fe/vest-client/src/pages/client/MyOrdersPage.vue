@@ -348,7 +348,9 @@
 
     <div class="mock-modal__footer">
       <button class="btn btn-light" type="button" @click="shippingModalOpen = false">Đóng</button>
-      <button class="btn btn-primary" type="button" @click="submitShippingMock">Lưu thay đổi</button>
+      <button class="btn btn-primary" type="button" :disabled="shippingSaving" @click="submitShipping">
+        {{ shippingSaving ? "Đang lưu..." : "Lưu thay đổi" }}
+      </button>
     </div>
   </div>
 </div>
@@ -404,7 +406,9 @@
 
     <div class="mock-modal__footer">
       <button class="btn btn-light" type="button" @click="itemsModalOpen = false">Đóng</button>
-      <button class="btn btn-dark" type="button" @click="submitItemsMock">Lưu thay đổi</button>
+      <button class="btn btn-dark" type="button" :disabled="itemsSaving" @click="submitItems">
+        {{ itemsSaving ? "Đang lưu..." : "Lưu thay đổi" }}
+      </button>
     </div>
   </div>
   
@@ -414,8 +418,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { getMyOrderDetail, getMyOrders, cancelMyOrder } from "../../services/Api";
-import ConfirmModal from "../../components/common/ConfirmModal.vue";
+import { getMyOrderDetail, getMyOrders, cancelMyOrder, updateMyOrderShipping, updateMyOrderItems } from "../../services/Api";
 import ChatWidget from '../../components/ClientChatWidget.vue';
 import {
   canCancelOrder,
@@ -447,6 +450,8 @@ const shippingForm = ref({
 });
 
 const itemDrafts = ref([]);
+const shippingSaving = ref(false);
+const itemsSaving = ref(false);
 
 const canCancelSelected = computed(() => canCancelOrder(selectedOrder.value));
 const canEditShippingSelected = computed(() => canEditShipping(selectedOrder.value));
@@ -563,9 +568,7 @@ async function confirmCancelOrder() {
     cancelNote.value = "";
 
     syncSelectedIntoList();
-    window.alert("Gửi yêu cầu hủy đơn thành công.");
   } catch (error) {
-    window.alert(error?.message || "Hủy đơn thất bại");
   }
 }
 
@@ -585,29 +588,37 @@ function openShippingModal() {
   shippingModalOpen.value = true;
 }
 
-function submitShippingMock() {
+function closeShippingModal() {
+  shippingModalOpen.value = false;
+}
+
+async function submitShipping() {
   if (!selectedOrder.value) return;
 
-  const nextOrder = {
-    ...selectedOrder.value,
-    tenNguoiNhanHang: shippingForm.value.tenNguoiNhanHang,
-    soDienThoaiNhanHang: shippingForm.value.soDienThoaiNhanHang,
-    ghiChu: shippingForm.value.ghiChu,
-  };
+  try {
+    shippingSaving.value = true;
 
-  // COD: cho sửa full địa chỉ
-  if (isSelectedOrderCod.value) {
-    nextOrder.diaChiNhanHangChiTiet = shippingForm.value.diaChiNhanHangChiTiet;
-    nextOrder.phuongXaNhanHang = shippingForm.value.phuongXaNhanHang;
-    nextOrder.quanHuyenNhanHang = shippingForm.value.quanHuyenNhanHang;
-    nextOrder.tinhThanhNhanHang = shippingForm.value.tinhThanhNhanHang;
+    const payload = {
+      tenNguoiNhanHang: shippingForm.value.tenNguoiNhanHang,
+      soDienThoaiNhanHang: shippingForm.value.soDienThoaiNhanHang,
+      diaChiNhanHangChiTiet: shippingForm.value.diaChiNhanHangChiTiet,
+      phuongXaNhanHang: shippingForm.value.phuongXaNhanHang,
+      quanHuyenNhanHang: shippingForm.value.quanHuyenNhanHang,
+      tinhThanhNhanHang: shippingForm.value.tinhThanhNhanHang,
+      ghiChu: shippingForm.value.ghiChu,
+    };
+
+    const { data } = await updateMyOrderShipping(selectedOrder.value.id, payload);
+    selectedOrder.value = data;
+    closeShippingModal();
+    syncSelectedIntoList();
+    window.alert("Cập nhật giao hàng thành công.");
+  } catch (e) {
+    console.error(e);
+    window.alert(e?.response?.data?.message || e?.message || "Cập nhật giao hàng thất bại");
+  } finally {
+    shippingSaving.value = false;
   }
-
-  selectedOrder.value = nextOrder;
-  shippingModalOpen.value = false;
-  syncSelectedIntoList();
-
-  window.alert("Đã cập nhật thông tin giao hàng ở FE (mock).");
 }
 
 function openItemsModal() {
@@ -664,7 +675,11 @@ function recalcOrderTotals(orderLike) {
   };
 }
 
-function submitItemsMock() {
+function closeItemsModal() {
+  itemsModalOpen.value = false;
+}
+
+async function submitItems() {
   if (!selectedOrder.value) return;
 
   if (!itemDrafts.value.length) {
@@ -672,22 +687,26 @@ function submitItemsMock() {
     return;
   }
 
-  const normalizedItems = itemDrafts.value.map((item) => ({
-    ...item,
-    soLuong: Number(item.soLuong || 0),
-    donGia: Number(item.donGia || 0),
-    thanhTien: Number(item.donGia || 0) * Number(item.soLuong || 0),
-  }));
+  try {
+    itemsSaving.value = true;
 
-  selectedOrder.value = recalcOrderTotals({
-    ...selectedOrder.value,
-    items: normalizedItems,
-  });
+    const payload = {
+      items: itemDrafts.value.map((x) => ({
+        idSanPhamChiTiet: x.idSanPhamChiTiet,
+        soLuong: Number(x.soLuong),
+      })),
+    };
 
-  itemsModalOpen.value = false;
-  syncSelectedIntoList();
+    const { data } = await updateMyOrderItems(selectedOrder.value.id, payload);
+    selectedOrder.value = data;
+    closeItemsModal();
+    syncSelectedIntoList();
 
-  window.alert("Đã cập nhật sản phẩm trong đơn ở FE (mock).");
+  } catch (e) {
+    console.error(e);
+  } finally {
+    itemsSaving.value = false;
+  }
 }
 
 async function loadOrders() {

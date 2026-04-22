@@ -72,3 +72,11 @@ export async function cancelMyOrder(orderId, payload) {
 
   return data;
 }
+
+export function updateMyOrderShipping(orderId, payload) {
+  return clientApi.patch(`/api/client/orders/my/${orderId}/shipping-info`, payload);
+}
+
+export function updateMyOrderItems(orderId, payload) {
+  return clientApi.patch(`/api/client/orders/my/${orderId}/items`, payload);
+}
