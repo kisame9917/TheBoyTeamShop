@@ -347,8 +347,10 @@
                   class="calendar-cell"
                   :class="{
       today: d.isToday,
-      'calendar-cell-locked': isShiftStartedForDate(ca.id, d.date)
+      'calendar-cell-locked': isShiftStartedForDate(ca.id, d.date),
+      'calendar-cell-clickable': canAddToCell(ca.id, d.date)
     }"
+                  @click="onCalendarCellClick(ca.id, d.date)"
               >
                 <!-- Có nhân viên -->
                 <div
@@ -356,7 +358,7 @@
                     class="emp-badge"
                     :class="{ 'emp-badge-disabled': isShiftStartedForDate(ca.id, d.date) }"
                     :title="isShiftStartedForDate(ca.id, d.date) ? 'Ca đã qua giờ bắt đầu' : 'Bấm để sửa'"
-                    @click="openAssignedFromCalendar(ca.id, d.date)"
+                    @click.stop="openAssignedFromCalendar(ca.id, d.date)"
                 >
                   <img
                       v-if="resolveAvatarUrl(getPrimaryAssignment(ca.id, d.date))"
@@ -377,22 +379,16 @@
                   </div>
                 </div>
 
-                <!-- Ô trống và còn hiệu lực -->
+                <!-- Ô trống còn hợp lệ -->
                 <button
                     v-else-if="canAddToCell(ca.id, d.date)"
                     class="btn btn-outline-primary btn-sm add-btn add-btn-center"
                     type="button"
                     title="Thêm nhân viên vào ca"
-                    @click="openModalFromCalendar(ca.id, d.date)"
+                    @click.stop="openModalFromCalendar(ca.id, d.date)"
                 >
                   <i class="bi bi-plus-lg"></i>
                 </button>
-
-                <!-- Ô quá khứ / ca đã qua -->
-                <div v-else class="calendar-cell-disabled-note">
-                  <i class="bi bi-lock me-1"></i>
-                  Đã qua
-                </div>
               </td>
             </tr>
             </tbody>
@@ -1145,18 +1141,13 @@ function getPrimaryAssignment(caId, dateIso) {
 }
 
 function canAddToCell(caId, dateIso) {
-  function canAddToCell(caId, dateIso) {
-    if (getPrimaryAssignment(caId, dateIso)) return false;
-    if (isShiftStartedForDate(caId, dateIso)) return false;
-    return true;
-  }
+  if (getPrimaryAssignment(caId, dateIso)) return false;
+  if (isShiftStartedForDate(caId, dateIso)) return false;
+  return true;
 }
 
 function openModalFromCalendar(caId, dateIso) {
-  if (isShiftStartedForDate(caId, dateIso)) {
-    toast.error("Không thể thêm lịch cho ca đã qua giờ bắt đầu.");
-    return;
-  }
+  if (isShiftStartedForDate(caId, dateIso)) return;
 
   isEdit.value = false;
   editingId.value = null;
@@ -1170,17 +1161,31 @@ function openModalFromCalendar(caId, dateIso) {
   showModal.value = true;
 }
 
+function onCalendarCellClick(caId, dateIso) {
+  if (!canAddToCell(caId, dateIso)) return;
+  openModalFromCalendar(caId, dateIso);
+}
+
 function openAssignedFromCalendar(caId, dateIso) {
   const item = getPrimaryAssignment(caId, dateIso);
   if (!item) return;
 
-  if (isShiftStartedForDate(caId, dateIso)) {
-    toast.error("Không thể chỉnh sửa ca đã qua giờ bắt đầu.");
-    return;
-  }
+  if (isShiftStartedForDate(caId, dateIso)) return;
 
   openModal(item);
 }
+
+// function openAssignedFromCalendar(caId, dateIso) {
+//   const item = getPrimaryAssignment(caId, dateIso);
+//   if (!item) return;
+//
+//   if (isShiftStartedForDate(caId, dateIso)) {
+//     toast.error("Không thể chỉnh sửa ca đã qua giờ bắt đầu.");
+//     return;
+//   }
+//
+//   openModal(item);
+// }
 
 // ====================== ACTIONS ======================
 function resetFilters() {
@@ -2143,21 +2148,11 @@ async function submitBulkAssign() {
 }
 
 .calendar-cell-locked {
-  background: #f8f9fa;
+  background: #f3f4f6;
 }
 
-.calendar-cell-disabled-note {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 12px;
-  font-weight: 700;
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
+.calendar-cell-clickable {
+  cursor: pointer;
 }
 
 .emp-badge-disabled {
