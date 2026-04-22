@@ -32,6 +32,17 @@
             </div>
 
             <div class="checkout-card__body">
+              <div v-if="isLoggedInCustomer" class="checkout-address-toolbar">
+                <button
+                    type="button"
+                    class="btn-select-address"
+                    @click="openAddressModal"
+                    :disabled="profileLoading"
+                >
+                  <i class="bi bi-geo-alt me-2"></i>
+                  {{ profileLoading ? "Đang tải địa chỉ..." : "Chọn địa chỉ" }}
+                </button>
+              </div>
               <div class="row g-3">
                 <div class="col-12">
                   <label class="form-label">
@@ -791,6 +802,80 @@
       </div>
     </div>
   </div>
+  <div
+      v-if="showAddressModal"
+      class="confirm-backdrop"
+      @click.self="showAddressModal = false"
+  >
+    <div class="voucher-modal">
+      <div class="voucher-modal__header">
+        <h5>Chọn địa chỉ giao hàng</h5>
+        <button
+            type="button"
+            class="voucher-modal__close"
+            @click="showAddressModal = false"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="voucher-modal__body">
+        <div v-if="savedAddresses.length === 0" class="text-muted">
+          Tài khoản này chưa có địa chỉ nào.
+        </div>
+
+        <label
+            v-for="addr in savedAddresses"
+            :key="addr.id"
+            class="address-item"
+            :class="{ active: selectedAddressId === addr.id }"
+        >
+          <input
+              v-model="selectedAddressId"
+              :value="addr.id"
+              type="radio"
+              hidden
+          />
+
+          <div class="address-item__left">
+            <div class="address-item__name">
+              {{ addr.tenNguoiNhan || "Chưa có tên người nhận" }}
+              <span v-if="addr.soDienThoai"> - {{ addr.soDienThoai }}</span>
+            </div>
+
+            <div class="address-item__text">
+              {{ formatSavedAddress(addr) }}
+            </div>
+
+            <div v-if="addr.laMacDinh" class="address-item__badge">
+              Mặc định
+            </div>
+          </div>
+
+          <div class="address-item__check">
+            <span v-if="selectedAddressId === addr.id">✔</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="voucher-modal__footer">
+        <button
+            type="button"
+            class="btn btn-secondary"
+            @click="showAddressModal = false"
+        >
+          Đóng
+        </button>
+        <button
+            type="button"
+            class="btn btn-danger"
+            @click="confirmAddressSelection"
+        >
+          Chọn địa chỉ này
+        </button>
+      </div>
+    </div>
+  </div>
   <div class="app-toast-wrap">
     <transition name="fade">
       <div
@@ -875,10 +960,12 @@ import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ghnLogo from "../../assets/ghn.webp.webp";
-import vnUnitsData from "../../assets/vn_units.json"; // sửa path nếu file của bạn nằm chỗ khác
+// import vnUnitsData from "../../assets/vn_units.json"; // sửa path nếu file của bạn nằm chỗ khác
 import ChatWidget from '../../components/ClientChatWidget.vue';
+import { getClientProfile, getClientAddresses } from "../../services/Api";
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
+
 
 const provinces = ref([]);
 const wards = ref([]);
@@ -886,6 +973,16 @@ const vestUser = JSON.parse(localStorage.getItem("vest_user") || "null");
 const currentCustomerId = Number(vestUser?.id || 0) || null;
 const provinceLoading = ref(false);
 const wardLoading = ref(false);
+const authToken =
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
+
+const isLoggedInCustomer = !!currentCustomerId && !!authToken;
+const profileLoading = ref(false);
+const showAddressModal = ref(false);
+const savedAddresses = ref([]);
+const selectedAddressId = ref(null);
 const form = reactive({
   fullName: "",
   phone: "",
@@ -1355,21 +1452,32 @@ function confirmVoucherSelection() {
   showVoucherModal.value = false;
 }
 
+function normalizeProvinceList(data) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+      }))
+      .filter((item) => item.code != null && item.name);
+}
+
+function normalizeWardList(data) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+        provinceCode: item?.province_code ?? item?.provinceCode ?? null,
+      }))
+      .filter((item) => item.code != null && item.name);
+}
+
 async function fetchProvinces() {
   try {
     provinceLoading.value = true;
-
-    provinces.value = (Array.isArray(vnUnitsData) ? vnUnitsData : []).map(
-      (p) => ({
-        code: p.Code,
-        name: p.FullName,
-        wards: (p.Wards || []).map((w) => ({
-          code: w.Code,
-          name: w.FullName,
-          provinceCode: w.ProvinceCode,
-        })),
-      }),
-    );
+    const res = await fetch("https://provinces.open-api.vn/api/v2/p/");
+    if (!res.ok) throw new Error("Load province failed");
+    const data = await res.json();
+    provinces.value = normalizeProvinceList(data);
   } catch (error) {
     console.error("fetchProvinces error:", error);
     provinces.value = [];
@@ -1386,12 +1494,10 @@ async function fetchWardsByProvince(provinceCode) {
 
   try {
     wardLoading.value = true;
-
-    const province = provinces.value.find(
-      (p) => String(p.code) === String(provinceCode),
-    );
-
-    wards.value = province?.wards || [];
+    const res = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${provinceCode}`);
+    if (!res.ok) throw new Error("Load wards failed");
+    const data = await res.json();
+    wards.value = normalizeWardList(data);
   } catch (error) {
     console.error("fetchWardsByProvince error:", error);
     wards.value = [];
@@ -1410,6 +1516,131 @@ async function onProvinceChange() {
   if (form.province) {
     await fetchWardsByProvince(form.province);
   }
+}
+
+function normalizeText(value) {
+  return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+}
+
+function findProvinceByName(name) {
+  const normalized = normalizeText(name);
+  return (
+      provinces.value.find((item) => normalizeText(item.name) === normalized) ||
+      null
+  );
+}
+
+function findWardByName(name) {
+  const normalized = normalizeText(name);
+  return (
+      wards.value.find((item) => normalizeText(item.name) === normalized) || null
+  );
+}
+
+function formatSavedAddress(addr) {
+  return [addr?.diaChiChiTiet, addr?.phuongXa, addr?.tinhThanh, addr?.quocGia]
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .join(", ");
+}
+
+async function fillCheckoutFormFromAddress(addressData = {}, profileData = {}) {
+  form.fullName =
+      addressData?.tenNguoiNhan ||
+      profileData?.tenKhachHang ||
+      form.fullName ||
+      "";
+  form.phone =
+      addressData?.soDienThoai || profileData?.soDienThoai || form.phone || "";
+  form.email = profileData?.email || form.email || "";
+  form.address = addressData?.diaChiChiTiet || "";
+
+  const matchedProvince = findProvinceByName(addressData?.tinhThanh);
+  form.province = matchedProvince?.code || "";
+  form.ward = "";
+  wards.value = [];
+
+  if (matchedProvince?.code) {
+    await fetchWardsByProvince(matchedProvince.code);
+
+    const matchedWard = findWardByName(addressData?.phuongXa);
+    form.ward = matchedWard?.code || "";
+  }
+}
+
+async function loadCheckoutProfileAndAddresses() {
+  if (!isLoggedInCustomer) return;
+
+  profileLoading.value = true;
+
+  try {
+    const [profileRes, addressRes] = await Promise.all([
+      getClientProfile(),
+      getClientAddresses(),
+    ]);
+
+    const profileData = profileRes?.data || {};
+    const addressList = Array.isArray(addressRes?.data) ? addressRes.data : [];
+
+    savedAddresses.value = addressList;
+
+    form.email = profileData?.email || form.email || "";
+
+    const pickedAddress =
+        addressList.find((item) => item?.laMacDinh) ||
+        addressList[0] ||
+        profileData?.diaChiMacDinh ||
+        null;
+
+    if (pickedAddress) {
+      selectedAddressId.value = pickedAddress.id || null;
+      await fillCheckoutFormFromAddress(pickedAddress, profileData);
+    } else {
+      form.fullName = profileData?.tenKhachHang || form.fullName || "";
+      form.phone = profileData?.soDienThoai || form.phone || "";
+    }
+  } catch (error) {
+    console.error("loadCheckoutProfileAndAddresses error:", error);
+  } finally {
+    profileLoading.value = false;
+  }
+}
+
+function openAddressModal() {
+  if (!isLoggedInCustomer) return;
+
+  if (!selectedAddressId.value) {
+    selectedAddressId.value =
+        savedAddresses.value.find((item) => item?.laMacDinh)?.id ||
+        savedAddresses.value[0]?.id ||
+        null;
+  }
+
+  showAddressModal.value = true;
+}
+
+async function confirmAddressSelection() {
+  const picked = savedAddresses.value.find(
+      (item) => item.id === selectedAddressId.value
+  );
+
+  if (!picked) {
+    showAddressModal.value = false;
+    return;
+  }
+
+  await fillCheckoutFormFromAddress(picked, {
+    email: form.email,
+    tenKhachHang: picked.tenNguoiNhan,
+    soDienThoai: picked.soDienThoai,
+  });
+
+  showAddressModal.value = false;
 }
 
 function money(v) {
@@ -1978,8 +2209,14 @@ function onImgError(e) {
 
 onMounted(async () => {
   await Promise.all([fetchProvinces(), loadVouchers()]);
+
+  if (isLoggedInCustomer) {
+    await loadCheckoutProfileAndAddresses();
+  }
+
   syncAppliedVoucher();
 });
+
 async function printInvoice() {
   if (!invoiceData.value.items.length) {
     showToast("Chưa có sản phẩm để in hóa đơn", "warning");
@@ -3014,5 +3251,90 @@ async function printInvoice() {
   height: 18px;
   width: auto;
   object-fit: contain;
+}
+
+.checkout-address-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.btn-select-address {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d8dfec;
+  border-radius: 14px;
+  background: #fff;
+  color: #000f51;
+  font-weight: 750;
+  transition: all 0.2s ease;
+}
+
+.btn-select-address:hover:not(:disabled) {
+  border-color: #001a72;
+  background: #f8fbff;
+}
+
+.btn-select-address:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.address-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.address-item + .address-item {
+  margin-top: 12px;
+}
+
+.address-item.active {
+  border-color: #001a72;
+  background: #f8fbff;
+  box-shadow: 0 10px 24px rgba(0, 15, 81, 0.08);
+}
+
+.address-item__left {
+  flex: 1;
+}
+
+.address-item__name {
+  font-weight: 750;
+  color: var(--text);
+}
+
+.address-item__text {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.address-item__badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.address-item__check {
+  min-width: 20px;
+  text-align: right;
+  font-weight: 800;
+  color: #001a72;
 }
 </style>

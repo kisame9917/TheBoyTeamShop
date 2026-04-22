@@ -345,25 +345,18 @@
                   v-for="d in calendarDays"
                   :key="d.date"
                   class="calendar-cell"
-                  :class="{ today: d.isToday }"
+                  :class="{
+      today: d.isToday,
+      'calendar-cell-locked': isShiftStartedForDate(ca.id, d.date)
+    }"
               >
-                <!-- Ô trống: + ở giữa ô -->
-                <button
-                    v-if="canAddToCell(ca.id, d.date)"
-                    class="btn btn-outline-primary btn-sm add-btn add-btn-center"
-                    type="button"
-                    title="Thêm nhân viên vào ca"
-                    @click="openModalFromCalendar(ca.id, d.date)"
-                >
-                  <i class="bi bi-plus-lg"></i>
-                </button>
-
                 <!-- Có nhân viên -->
                 <div
-                    v-else
+                    v-if="getPrimaryAssignment(ca.id, d.date)"
                     class="emp-badge"
-                    title="Bấm để sửa"
-                    @click="openModal(getPrimaryAssignment(ca.id, d.date))"
+                    :class="{ 'emp-badge-disabled': isShiftStartedForDate(ca.id, d.date) }"
+                    :title="isShiftStartedForDate(ca.id, d.date) ? 'Ca đã qua giờ bắt đầu' : 'Bấm để sửa'"
+                    @click="openAssignedFromCalendar(ca.id, d.date)"
                 >
                   <img
                       v-if="resolveAvatarUrl(getPrimaryAssignment(ca.id, d.date))"
@@ -382,6 +375,23 @@
                   <div class="emp-badge-code">
                     {{ getPrimaryAssignment(ca.id, d.date)?.maNhanVien || "" }}
                   </div>
+                </div>
+
+                <!-- Ô trống và còn hiệu lực -->
+                <button
+                    v-else-if="canAddToCell(ca.id, d.date)"
+                    class="btn btn-outline-primary btn-sm add-btn add-btn-center"
+                    type="button"
+                    title="Thêm nhân viên vào ca"
+                    @click="openModalFromCalendar(ca.id, d.date)"
+                >
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+
+                <!-- Ô quá khứ / ca đã qua -->
+                <div v-else class="calendar-cell-disabled-note">
+                  <i class="bi bi-lock me-1"></i>
+                  Đã qua
                 </div>
               </td>
             </tr>
@@ -441,7 +451,12 @@
                 :disabled="lockShiftDate && !isEdit"
             >
               <option :value="null" disabled>-- Chọn ca mẫu --</option>
-              <option v-for="ca in templates" :key="ca.id" :value="ca.id">
+              <option
+                  v-for="ca in templates"
+                  :key="ca.id"
+                  :value="ca.id"
+                  :disabled="!isEdit && isShiftStartedForDate(ca, form.ngayLamViec)"
+              >
                 {{ ca.tenCa }} ({{ formatTime(ca.gioBatDau) }} - {{ formatTime(ca.gioKetThuc) }})
               </option>
             </select>
@@ -455,6 +470,7 @@
                 class="form-control"
                 required
                 :disabled="lockShiftDate && !isEdit"
+                :min="!isEdit ? todayIso : null"
             />
           </div>
 
@@ -523,13 +539,13 @@
 
                   <div class="mt-3" v-if="bulk.mode === 'week'">
                     <label class="form-label fw-bold small">Chọn ngày mốc (tự lấy T2–CN)</label>
-                    <input v-model="bulk.anchorDate" type="date" class="form-control" />
+                    <input v-model="bulk.anchorDate" type="date" class="form-control" :min="todayIso" />
                     <div class="form-text text-muted">Tuần từ {{ bulkWeekStart }} đến {{ bulkWeekEnd }}</div>
                   </div>
 
                   <div class="mt-3" v-else>
                     <label class="form-label fw-bold small">Chọn tháng</label>
-                    <input v-model="bulk.month" type="month" class="form-control" />
+                    <input v-model="bulk.month" type="month" class="form-control" :min="currentMonthIso" />
                     <div class="form-text text-muted">Tháng {{ bulk.month }}</div>
                   </div>
                 </div>
@@ -665,7 +681,7 @@
                   </div>
 
                   <!-- Report -->
-                 
+
                 </div>
               </div>
             </div>
@@ -693,8 +709,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
-import shiftApi from "@/services/shiftApi";
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";import shiftApi from "@/services/shiftApi";
 import * as nhanVienApi from "@/services/nhanVienApi";
 import { useToast } from "@/composables/useToast";
 import * as XLSX from "xlsx";
@@ -743,17 +758,30 @@ const selectableStaffList = computed(() => {
 });
 
 // ====================== FILTERS (SHARED: list + calendar) ======================
-const today = new Date();
-const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+const nowRef = ref(new Date());
+let nowTimer = null;
+
 const toDateStr = (d) =>
     new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+
+const today = computed(() => nowRef.value);
+const todayIso = computed(() => toDateStr(nowRef.value));
+const currentMonthIso = computed(() => todayIso.value.slice(0, 7));
+
+const firstDay = computed(() => {
+  const d = today.value;
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+});
+const lastDay = computed(() => {
+  const d = today.value;
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+});
 
 const filters = reactive({
   keyword: "",
   shiftId: null,
-  from: toDateStr(firstDay), // list only
-  to: toDateStr(lastDay), // list only
+  from: toDateStr(firstDay.value), // list only
+  to: toDateStr(lastDay.value), // list only
 });
 
 const fromPickerRef = ref(null);
@@ -766,6 +794,47 @@ const isoToLocalDate = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d);
 };
+
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function combineDateAndTime(dateIso, timeStr) {
+  if (!dateIso || !timeStr) return null;
+
+  const [y, m, d] = String(dateIso).split("-").map(Number);
+  const [hh = 0, mm = 0, ss = 0] = String(timeStr).split(":").map(Number);
+
+  return new Date(y, m - 1, d, hh, mm, ss, 0);
+}
+
+function findTemplateById(id) {
+  return (templates.value || []).find((x) => x.id === id) || null;
+}
+
+function isPastDate(dateIso) {
+  if (!dateIso) return false;
+  const picked = startOfDay(isoToLocalDate(dateIso));
+  const todayStart = startOfDay(nowRef.value);
+  return picked < todayStart;
+}
+
+function isShiftStartedForDate(caOrId, dateIso) {
+  if (!dateIso || !caOrId) return false;
+
+  if (isPastDate(dateIso)) return true;
+  if (dateIso !== todayIso.value) return false;
+
+  const ca = typeof caOrId === "object" ? caOrId : findTemplateById(caOrId);
+  if (!ca?.gioBatDau) return false;
+
+  const shiftStart = combineDateAndTime(dateIso, ca.gioBatDau);
+  if (!shiftStart) return false;
+
+  return shiftStart < nowRef.value;
+}
 
 function openFromPicker() {
   fromPickerInstance?.open();
@@ -851,7 +920,7 @@ const selectedIds = ref([]);
 
 // ====================== CALENDAR (WEEK) ======================
 const calendarAnchor = ref(toDateStr(new Date()));
-const todayIso = toDateStr(new Date());
+
 
 function startOfWeekISO(iso) {
   const d = isoToLocalDate(iso);
@@ -938,6 +1007,10 @@ watch(viewMode, async (m) => {
 });
 
 onMounted(async () => {
+  nowTimer = setInterval(() => {
+    nowRef.value = new Date();
+  }, 30000);
+
   // default calendar => do not init pickers now
   if (viewMode.value === "list") {
     await nextTick();
@@ -948,6 +1021,10 @@ onMounted(async () => {
   else loadSchedule();
 
   loadResources();
+});
+
+onBeforeUnmount(() => {
+  if (nowTimer) clearInterval(nowTimer);
 });
 
 async function loadSchedule() {
@@ -1068,10 +1145,19 @@ function getPrimaryAssignment(caId, dateIso) {
 }
 
 function canAddToCell(caId, dateIso) {
-  return !getPrimaryAssignment(caId, dateIso);
+  function canAddToCell(caId, dateIso) {
+    if (getPrimaryAssignment(caId, dateIso)) return false;
+    if (isShiftStartedForDate(caId, dateIso)) return false;
+    return true;
+  }
 }
 
 function openModalFromCalendar(caId, dateIso) {
+  if (isShiftStartedForDate(caId, dateIso)) {
+    toast.error("Không thể thêm lịch cho ca đã qua giờ bắt đầu.");
+    return;
+  }
+
   isEdit.value = false;
   editingId.value = null;
   lockShiftDate.value = true;
@@ -1082,6 +1168,18 @@ function openModalFromCalendar(caId, dateIso) {
   form.ghiChu = "";
 
   showModal.value = true;
+}
+
+function openAssignedFromCalendar(caId, dateIso) {
+  const item = getPrimaryAssignment(caId, dateIso);
+  if (!item) return;
+
+  if (isShiftStartedForDate(caId, dateIso)) {
+    toast.error("Không thể chỉnh sửa ca đã qua giờ bắt đầu.");
+    return;
+  }
+
+  openModal(item);
 }
 
 // ====================== ACTIONS ======================
@@ -1128,6 +1226,18 @@ function closeModal() {
 
 async function submitAssign() {
   try {
+    if (!isEdit.value) {
+      if (isPastDate(form.ngayLamViec)) {
+        toast.error("Không thể chọn ngày trong quá khứ.");
+        return;
+      }
+
+      if (isShiftStartedForDate(form.idCaLamViec, form.ngayLamViec)) {
+        toast.error("Không thể tạo lịch cho ca đã qua giờ bắt đầu.");
+        return;
+      }
+    }
+
     if (isEdit.value) {
       await shiftApi.updateSchedule(editingId.value, form);
       toast.success("Cập nhật lịch thành công!");
@@ -1278,7 +1388,11 @@ function openBulkModal() {
 
   // default follow current calendar anchor for convenience
   bulk.mode = "week";
-  bulk.anchorDate = calendarAnchor.value || todayIso;
+  bulk.anchorDate =
+      calendarAnchor.value && !isPastDate(calendarAnchor.value)
+          ? calendarAnchor.value
+          : todayIso;
+
   bulk.month = (bulk.anchorDate || todayIso).slice(0, 7);
 
   bulk.idNhanVien = null;
@@ -1389,6 +1503,15 @@ const bulkShiftMap = computed(() => {
 
 function getBulkCellState(dateIso, inMonth) {
   if (!inMonth) return { disabled: true, reason: "" };
+
+  if (isPastDate(dateIso)) {
+    return { disabled: true, reason: "Ngày đã qua" };
+  }
+
+  if (bulk.idCaLamViec && isShiftStartedForDate(bulk.idCaLamViec, dateIso)) {
+    return { disabled: true, reason: "Ca này đã qua giờ bắt đầu" };
+  }
+
   if (!bulk.idCaLamViec) return { disabled: false, reason: "" };
 
   const hit = bulkShiftMap.value[`${bulk.idCaLamViec}_${dateIso}`];
@@ -1398,6 +1521,7 @@ function getBulkCellState(dateIso, inMonth) {
       reason: `Đã có: ${hit.tenNhanVien || ""} ${hit.maNhanVien ? `(${hit.maNhanVien})` : ""}`.trim(),
     };
   }
+
   return { disabled: false, reason: "" };
 }
 
@@ -1517,42 +1641,52 @@ async function submitBulkAssign() {
   let failed = 0;
   const failedDetails = [];
 
-  const dates = [...bulkSelectedDates.value].sort();
+  try {
+    const dates = [...bulkSelectedDates.value].sort();
 
-  for (const dateIso of dates) {
-    const st = getBulkCellState(dateIso, true);
-    if (st.disabled) {
-      skipped++;
-      continue;
+    for (const dateIso of dates) {
+      const st = getBulkCellState(dateIso, true);
+      if (st.disabled) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        await shiftApi.assignSchedule({
+          idNhanVien: bulk.idNhanVien,
+          idCaLamViec: bulk.idCaLamViec,
+          ngayLamViec: dateIso,
+          ghiChu: bulk.ghiChu,
+        });
+        created++;
+      } catch (e) {
+        failed++;
+        failedDetails.push({
+          date: dateIso,
+          message: e?.response?.data?.message || "Không thể thêm (có thể trùng lịch/giờ)",
+        });
+      }
     }
 
-    try {
-      await shiftApi.assignSchedule({
-        idNhanVien: bulk.idNhanVien,
-        idCaLamViec: bulk.idCaLamViec,
-        ngayLamViec: dateIso,
-        ghiChu: bulk.ghiChu,
-      });
-      created++;
-    } catch (e) {
-      failed++;
-      failedDetails.push({
-        date: dateIso,
-        message: e?.response?.data?.message || "Không thể thêm (có thể trùng lịch/giờ)",
-      });
+    bulkReport.value = { created, skipped, failed, failedDetails };
+
+    if (created > 0) {
+      toast.success(`Đã thêm ${created} lịch.`);
+    } else {
+      toast.error("Không thêm được lịch nào.");
     }
+
+    await reloadCurrentView();
+
+    if (created > 0) {
+      closeBulkModal();
+      return;
+    }
+
+    await loadBulkRangeSchedules();
+  } finally {
+    bulkSubmitting.value = false;
   }
-
-  bulkReport.value = { created, skipped, failed, failedDetails };
-
-  if (created > 0) toast.success(`Đã thêm ${created} lịch.`);
-  else toast.error(`Không thêm được lịch nào.`);
-
-  // refresh current view + refresh bulk conflict map
-  await reloadCurrentView();
-  await loadBulkRangeSchedules();
-
-  bulkSubmitting.value = false;
 }
 
 // ====================== END BULK ADD ======================
@@ -2007,4 +2141,34 @@ async function submitBulkAssign() {
   padding-top: 10px;
   border-top: 1px dashed #e9ecef;
 }
+
+.calendar-cell-locked {
+  background: #f8f9fa;
+}
+
+.calendar-cell-disabled-note {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.emp-badge-disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  border-left-color: #94a3b8;
+}
+
+.emp-badge-disabled:hover {
+  border-color: #e9ecef;
+  border-left-color: #94a3b8;
+}
 </style>
+Đang hiển thị 2aOboQROTP3lhl8xQdg6SxC5gGFmRB12TFMXYAoy.

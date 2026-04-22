@@ -7,4 +7,5 @@ public interface EmailService {
     void sendNewNhanVienCredentials(String toEmail, String tenNhanVien, String taiKhoan, String matKhau);
     void sendResetPasswordOtp(String to, String tenNhanVien, String otp);
     void sendShippingOrderConfirmation(String toEmail, String tenNguoiNhan, HoaDonDetailResponse order);
+    void sendNewKhachHangCredentials(String toEmail, String tenKhachHang, String taiKhoan, String matKhau);
 }

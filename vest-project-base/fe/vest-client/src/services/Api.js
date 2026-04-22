@@ -37,6 +37,10 @@ export function getClientProfile() {
   return clientApi.get("/api/client/auth/me");
 }
 
+export function getClientAddresses() {
+  return clientApi.get("/api/client/auth/me/dia-chi");
+}
+
 export function updateClientProfile(payload) {
   return clientApi.put("/api/client/auth/me", payload);
 }

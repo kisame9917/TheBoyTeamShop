@@ -297,32 +297,31 @@
 
         <div class="col-12 col-md-6">
           <label class="form-label">Tỉnh / Thành</label>
-          <input
-            v-model.trim="shippingForm.tinhThanhNhanHang"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
+          <select
+              v-model="shippingForm.tinhThanhNhanHang"
+              class="form-select"
+              :disabled="!isSelectedOrderCod || provinceLoading"
+              @change="onShippingProvinceChange"
+          >
+            <option value="">{{ provinceLoading ? "Đang tải tỉnh/thành..." : "Chọn tỉnh/thành phố" }}</option>
+            <option v-for="province in provinces" :key="province.code" :value="province.name">
+              {{ province.name }}
+            </option>
+          </select>
         </div>
 
         <div class="col-12 col-md-6">
-          <label class="form-label">Quận / Huyện</label>
-          <input
-            v-model.trim="shippingForm.quanHuyenNhanHang"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">Phường / Xã</label>
-          <input
-            v-model.trim="shippingForm.phuongXaNhanHang"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
+          <label class="form-label">Phường / Xã / Đặc khu</label>
+          <select
+              v-model="shippingForm.phuongXaNhanHang"
+              class="form-select"
+              :disabled="!isSelectedOrderCod || !shippingForm.tinhThanhNhanHang || wardLoading"
+          >
+            <option value="">{{ wardLoading ? "Đang tải phường/xã..." : "Chọn phường/xã/đặc khu" }}</option>
+            <option v-for="ward in wards" :key="ward.code" :value="ward.name">
+              {{ ward.name }}
+            </option>
+          </select>
         </div>
 
         <div class="col-12 col-md-6">
@@ -441,10 +440,15 @@ const shippingForm = ref({
   soDienThoaiNhanHang: "",
   diaChiNhanHangChiTiet: "",
   phuongXaNhanHang: "",
-  quanHuyenNhanHang: "",
+  quanHuyenNhanHang: null,
   tinhThanhNhanHang: "",
   ghiChu: "",
 });
+
+const provinces = ref([]);
+const wards = ref([]);
+const provinceLoading = ref(false);
+const wardLoading = ref(false);
 
 const itemDrafts = ref([]);
 
@@ -462,6 +466,64 @@ const filterOptions = [
   { label: "Hoàn thành", value: 4 },
   { label: "Đã hủy", value: 5 },
 ];
+
+function normalizeProvinceList(data = []) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({ code: item?.code, name: item?.name }))
+      .filter((item) => item.code != null && item.name);
+}
+
+function normalizeWardList(data = []) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+        provinceCode: item?.province_code ?? item?.provinceCode ?? null,
+      }))
+      .filter((item) => item.code != null && item.name);
+}
+
+async function loadProvinces() {
+  provinceLoading.value = true;
+  try {
+    const res = await fetch("https://provinces.open-api.vn/api/v2/p/");
+    if (!res.ok) throw new Error("Không tải được tỉnh/thành");
+    const data = await res.json();
+    provinces.value = normalizeProvinceList(data);
+  } catch (error) {
+    provinces.value = [];
+  } finally {
+    provinceLoading.value = false;
+  }
+}
+
+async function loadWardsByProvinceName(provinceName) {
+  const province = provinces.value.find((item) => item.name === provinceName);
+  if (!province?.code) {
+    wards.value = [];
+    return;
+  }
+
+  wardLoading.value = true;
+  try {
+    const res = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${province.code}`);
+    if (!res.ok) throw new Error("Không tải được phường/xã");
+    const data = await res.json();
+    wards.value = normalizeWardList(data);
+  } catch (error) {
+    wards.value = [];
+  } finally {
+    wardLoading.value = false;
+  }
+}
+
+async function onShippingProvinceChange() {
+  shippingForm.value.quanHuyenNhanHang = null;
+  shippingForm.value.phuongXaNhanHang = "";
+  wards.value = [];
+  if (!shippingForm.value.tinhThanhNhanHang) return;
+  await loadWardsByProvinceName(shippingForm.value.tinhThanhNhanHang);
+}
 
 const filteredOrders = computed(() => {
   if (activeFilter.value === "ALL") return orders.value;
@@ -483,11 +545,10 @@ function fullAddress(o) {
   return [
     o?.diaChiNhanHangChiTiet,
     o?.phuongXaNhanHang,
-    o?.quanHuyenNhanHang,
     o?.tinhThanhNhanHang,
   ]
-    .filter(Boolean)
-    .join(", ");
+      .filter(Boolean)
+      .join(", ");
 }
 
 function statusClass(code) {
@@ -577,7 +638,7 @@ function openShippingModal() {
     soDienThoaiNhanHang: selectedOrder.value.soDienThoaiNhanHang || "",
     diaChiNhanHangChiTiet: selectedOrder.value.diaChiNhanHangChiTiet || "",
     phuongXaNhanHang: selectedOrder.value.phuongXaNhanHang || "",
-    quanHuyenNhanHang: selectedOrder.value.quanHuyenNhanHang || "",
+    quanHuyenNhanHang: null,
     tinhThanhNhanHang: selectedOrder.value.tinhThanhNhanHang || "",
     ghiChu: selectedOrder.value.ghiChu || "",
   };
@@ -599,7 +660,7 @@ function submitShippingMock() {
   if (isSelectedOrderCod.value) {
     nextOrder.diaChiNhanHangChiTiet = shippingForm.value.diaChiNhanHangChiTiet;
     nextOrder.phuongXaNhanHang = shippingForm.value.phuongXaNhanHang;
-    nextOrder.quanHuyenNhanHang = shippingForm.value.quanHuyenNhanHang;
+    nextOrder.quanHuyenNhanHang = null;
     nextOrder.tinhThanhNhanHang = shippingForm.value.tinhThanhNhanHang;
   }
 
@@ -724,7 +785,10 @@ async function viewDetail(id) {
   }
 }
 
-onMounted(loadOrders);
+onMounted(async () => {
+  await loadProvinces();
+  await loadOrders();
+});
 </script>
 
 <style scoped>

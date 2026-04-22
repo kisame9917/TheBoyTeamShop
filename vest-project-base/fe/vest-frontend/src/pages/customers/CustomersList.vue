@@ -780,7 +780,7 @@ const addrModal = reactive({
 });
 
 function formatDiaChiText(a) {
-  const parts = [a?.diaChiChiTiet, a?.phuongXa, a?.quanHuyen, a?.tinhThanh, a?.quocGia]
+  const parts = [a?.diaChiChiTiet, a?.phuongXa, a?.tinhThanh, a?.quocGia]
       .map((x) => String(x || "").trim())
       .filter(Boolean);
   return parts.join(", ");

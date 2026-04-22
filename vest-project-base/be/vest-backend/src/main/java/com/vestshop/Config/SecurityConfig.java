@@ -59,8 +59,6 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // backoffice / bán hàng tại quầy
-                        .requestMatchers("/api/hoa-don/drafts/pos-active").permitAll()
-                        .requestMatchers("/api/hoa-don/*").permitAll()
                         .requestMatchers("/api/hoa-don/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/ca-lam-viec/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")

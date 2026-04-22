@@ -104,31 +104,45 @@
                   <label class="form-label">SĐT người nhận</label>
                   <input v-model.trim="form.sdtNguoiNhan" type="text" class="form-control" placeholder="Số điện thoại người nhận" />
                 </div>
-
-                <div class="col-md-4">
-                  <label class="form-label">Tỉnh / Thành phố</label>
-                  <input v-model.trim="form.tinhThanh" type="text" class="form-control" placeholder="Ví dụ: Hà Nội" />
-                </div>
-
-                <div class="col-md-4">
-                  <label class="form-label">Quận / Huyện</label>
-                  <input v-model.trim="form.quanHuyen" type="text" class="form-control" placeholder="Ví dụ: Cầu Giấy" />
-                </div>
-
-                <div class="col-md-4">
-                  <label class="form-label">Phường / Xã</label>
-                  <input v-model.trim="form.phuongXa" type="text" class="form-control" placeholder="Ví dụ: Dịch Vọng" />
-                </div>
-
-                <div class="col-md-8">
-                  <label class="form-label">Địa chỉ chi tiết</label>
-                  <input v-model.trim="form.diaChiChiTiet" type="text" class="form-control" placeholder="Số nhà, tên đường..." />
-                </div>
-
                 <div class="col-md-4">
                   <label class="form-label">Quốc gia</label>
                   <input v-model.trim="form.quocGia" type="text" class="form-control" placeholder="Việt Nam" />
                 </div>
+                <div class="col-md-4">
+                  <label class="form-label">Tỉnh / Thành phố</label>
+                  <select
+                      v-model="form.tinhThanh"
+                      class="form-select"
+                      :disabled="provinceLoading"
+                      @change="onProvinceChange"
+                  >
+                    <option value="">{{ provinceLoading ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố' }}</option>
+                    <option v-for="province in provinces" :key="province.code" :value="province.name">
+                      {{ province.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label">Phường / Xã / Đặc khu</label>
+                  <select
+                      v-model="form.phuongXa"
+                      class="form-select"
+                      :disabled="!form.tinhThanh || wardLoading"
+                  >
+                    <option value="">{{ wardLoading ? 'Đang tải phường/xã...' : 'Chọn phường/xã/đặc khu' }}</option>
+                    <option v-for="ward in wards" :key="ward.code" :value="ward.name">
+                      {{ ward.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-12">
+                  <label class="form-label">Địa chỉ chi tiết</label>
+                  <input v-model.trim="form.diaChiChiTiet" type="text" class="form-control" placeholder="Số nhà, tên đường..." />
+                </div>
+
+
 
                 <div class="col-12 d-flex flex-wrap gap-3 pt-3">
                   <button class="btn btn-primary px-4" type="submit" :disabled="saving">
@@ -159,7 +173,10 @@ const error = ref('');
 const successMessage = ref('');
 const profile = ref({});
 const gioiTinhValue = ref('');
-
+const provinces = ref([]);
+const wards = ref([]);
+const provinceLoading = ref(false);
+const wardLoading = ref(false);
 const form = reactive({
   id: null,
   maKhachHang: '',
@@ -171,7 +188,7 @@ const form = reactive({
   tenNguoiNhan: '',
   sdtNguoiNhan: '',
   tinhThanh: '',
-  quanHuyen: '',
+  quanHuyen: null,
   phuongXa: '',
   diaChiChiTiet: '',
   quocGia: 'Việt Nam',
@@ -183,11 +200,69 @@ const avatarText = computed(() => {
 });
 
 const fullAddress = computed(() => {
-  return [form.diaChiChiTiet, form.phuongXa, form.quanHuyen, form.tinhThanh, form.quocGia]
-    .map((item) => (item || '').trim())
-    .filter(Boolean)
-    .join(', ');
+  return [form.diaChiChiTiet, form.phuongXa, form.tinhThanh, form.quocGia]
+      .map((item) => (item || '').trim())
+      .filter(Boolean)
+      .join(', ');
 });
+
+function normalizeProvinceList(data = []) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({ code: item?.code, name: item?.name }))
+      .filter((item) => item.code != null && item.name);
+}
+
+function normalizeWardList(data = []) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+        provinceCode: item?.province_code ?? item?.provinceCode ?? null,
+      }))
+      .filter((item) => item.code != null && item.name);
+}
+
+async function loadProvinces() {
+  provinceLoading.value = true;
+  try {
+    const res = await fetch('https://provinces.open-api.vn/api/v2/p/');
+    if (!res.ok) throw new Error('Không tải được tỉnh/thành');
+    const data = await res.json();
+    provinces.value = normalizeProvinceList(data);
+  } catch (err) {
+    provinces.value = [];
+  } finally {
+    provinceLoading.value = false;
+  }
+}
+
+async function loadWardsByProvinceName(provinceName) {
+  const province = provinces.value.find((item) => item.name === provinceName);
+  if (!province?.code) {
+    wards.value = [];
+    return;
+  }
+
+  wardLoading.value = true;
+  try {
+    const res = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${province.code}`);
+    if (!res.ok) throw new Error('Không tải được phường/xã');
+    const data = await res.json();
+    wards.value = normalizeWardList(data);
+  } catch (err) {
+    wards.value = [];
+  } finally {
+    wardLoading.value = false;
+  }
+}
+
+async function onProvinceChange() {
+  form.quanHuyen = null;
+  form.phuongXa = '';
+  wards.value = [];
+  if (!form.tinhThanh) return;
+  await loadWardsByProvinceName(form.tinhThanh);
+}
 
 function fillForm(data = {}) {
   profile.value = data;
@@ -201,7 +276,7 @@ function fillForm(data = {}) {
   form.tenNguoiNhan = data.tenNguoiNhan || data.diaChiMacDinh?.tenNguoiNhan || '';
   form.sdtNguoiNhan = data.sdtNguoiNhan || data.diaChiMacDinh?.soDienThoai || '';
   form.tinhThanh = data.tinhThanh || data.diaChiMacDinh?.tinhThanh || '';
-  form.quanHuyen = data.quanHuyen || data.diaChiMacDinh?.quanHuyen || '';
+  form.quanHuyen = null;
   form.phuongXa = data.phuongXa || data.diaChiMacDinh?.phuongXa || '';
   form.diaChiChiTiet = data.diaChiChiTiet || data.diaChiMacDinh?.diaChiChiTiet || '';
   form.quocGia = data.quocGia || data.diaChiMacDinh?.quocGia || 'Việt Nam';
@@ -250,6 +325,9 @@ async function loadProfile() {
   try {
     const { data } = await getClientProfile();
     fillForm(data || {});
+    if (form.tinhThanh) {
+      await loadWardsByProvinceName(form.tinhThanh);
+    }
     syncProfileToStorage(data || {});
   } catch (err) {
     error.value = err?.response?.data?.message || err?.response?.data?.error || 'Không tải được hồ sơ khách hàng.';
@@ -273,7 +351,7 @@ async function submitProfile() {
       tenNguoiNhan: form.tenNguoiNhan || null,
       sdtNguoiNhan: form.sdtNguoiNhan || null,
       tinhThanh: form.tinhThanh || null,
-      quanHuyen: form.quanHuyen || null,
+      quanHuyen: null,
       phuongXa: form.phuongXa || null,
       diaChiChiTiet: form.diaChiChiTiet || null,
       quocGia: form.quocGia || null,
@@ -281,6 +359,9 @@ async function submitProfile() {
 
     const { data } = await updateClientProfile(payload);
     fillForm(data || {});
+    if (form.tinhThanh) {
+      await loadWardsByProvinceName(form.tinhThanh);
+    }
     syncProfileToStorage(data || {});
     successMessage.value = 'Cập nhật hồ sơ thành công.';
   } catch (err) {
@@ -290,7 +371,10 @@ async function submitProfile() {
   }
 }
 
-onMounted(loadProfile);
+onMounted(async () => {
+  await loadProvinces();
+  await loadProfile();
+});
 </script>
 
 <style scoped>

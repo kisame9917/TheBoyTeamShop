@@ -194,24 +194,29 @@
 
           <div class="form-group">
             <label>Tỉnh/Thành phố <span class="req">*</span></label>
-            <select class="form-input" v-model="addrModal.form.tinhThanh" @change="onAddrProvinceChange" :disabled="isViewLocked">
-              <option value="">-- Chọn Tỉnh/Thành phố --</option>
+            <select
+                class="form-input"
+                v-model="addrModal.form.tinhThanh"
+                @change="onAddrProvinceChange"
+                :disabled="isViewLocked || provinceLoading"
+            >
+              <option value="">
+                {{ provinceLoading ? "Đang tải tỉnh/thành..." : "-- Chọn Tỉnh/Thành phố --" }}
+              </option>
               <option v-for="p in provinces" :key="p.code" :value="p.name">{{ p.name }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label>Quận/Huyện <span class="req">*</span></label>
-            <select class="form-input" v-model="addrModal.form.quanHuyen" @change="onAddrDistrictChange" :disabled="isViewLocked || addrDistricts.length === 0">
-              <option value="">-- Chọn Quận/Huyện --</option>
-              <option v-for="d in addrDistricts" :key="d.code" :value="d.name">{{ d.name }}</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Phường/Xã <span class="req">*</span></label>
-            <select class="form-input" v-model="addrModal.form.phuongXa" :disabled="isViewLocked || addrWards.length === 0">
-              <option value="">-- Chọn Phường/Xã --</option>
+            <label>Phường/Xã/Đặc khu <span class="req">*</span></label>
+            <select
+                class="form-input"
+                v-model="addrModal.form.phuongXa"
+                :disabled="isViewLocked || !addrModal.form.tinhThanh || wardLoading"
+            >
+              <option value="">
+                {{ wardLoading ? "Đang tải phường/xã..." : "-- Chọn Phường/Xã/Đặc khu --" }}
+              </option>
               <option v-for="w in addrWards" :key="w.code" :value="w.name">{{ w.name }}</option>
             </select>
           </div>
@@ -439,34 +444,72 @@ function onFileChange(e) {
 
 // ===== address data (provinces) =====
 const provinces = ref([]);
-const addrDistricts = ref([]);
 const addrWards = ref([]);
+const provinceLoading = ref(false);
+const wardLoading = ref(false);
+
+function normalizeProvinceList(data) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+      }))
+      .filter((item) => item.code != null && item.name);
+}
+
+function normalizeWardList(data) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+        provinceCode: item?.province_code ?? item?.provinceCode ?? null,
+      }))
+      .filter((item) => item.code != null && item.name);
+}
 
 async function loadProvinces() {
+  provinceLoading.value = true;
   try {
-    const res = await fetch("https://provinces.open-api.vn/api/?depth=3");
+    const res = await fetch("https://provinces.open-api.vn/api/v2/p/");
     if (!res.ok) throw new Error("Load province failed");
     const data = await res.json();
-    provinces.value = Array.isArray(data) ? data : [];
+    provinces.value = normalizeProvinceList(data);
   } catch (e) {
     console.warn("API Tỉnh thành lỗi, dùng data rỗng");
     provinces.value = [];
+  } finally {
+    provinceLoading.value = false;
   }
 }
 
-function onAddrProvinceChange() {
-  const p = provinces.value.find((x) => x.name === addrModal.form.tinhThanh);
-  addrDistricts.value = p?.districts || [];
-  addrModal.form.quanHuyen = "";
-  addrModal.form.phuongXa = "";
-  addrWards.value = [];
+async function loadWardsByProvinceName(provinceName) {
+  const province = provinces.value.find((x) => x.name === provinceName);
+  if (!province?.code) {
+    addrWards.value = [];
+    return;
+  }
+
+  wardLoading.value = true;
+  try {
+    const res = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${province.code}`);
+    if (!res.ok) throw new Error("Load wards failed");
+    const data = await res.json();
+    addrWards.value = normalizeWardList(data);
+  } catch (e) {
+    console.warn("API Phường/Xã lỗi, dùng data rỗng");
+    addrWards.value = [];
+  } finally {
+    wardLoading.value = false;
+  }
 }
 
-function onAddrDistrictChange() {
-  const p = provinces.value.find((x) => x.name === addrModal.form.tinhThanh);
-  const d = (p?.districts || []).find((x) => x.name === addrModal.form.quanHuyen);
-  addrWards.value = d?.wards || [];
+async function onAddrProvinceChange() {
+  addrModal.form.quanHuyen = null;
   addrModal.form.phuongXa = "";
+  addrWards.value = [];
+
+  if (!addrModal.form.tinhThanh) return;
+  await loadWardsByProvinceName(addrModal.form.tinhThanh);
 }
 
 // ===== utils =====
@@ -495,6 +538,9 @@ function isDigitsOnly(v) {
 function validate() {
   if (!String(form.tenKhachHang || "").trim()) return "Tên khách hàng không được để trống";
   if (!String(form.soDienThoai || "").trim() || !isDigitsOnly(form.soDienThoai)) return "Số điện thoại phải là số";
+  if (!isEdit.value && !String(form.email || "").trim()) {
+    return "Email không được để trống để gửi tài khoản và mật khẩu";
+  }
   return "";
 }
 
@@ -549,7 +595,7 @@ const selectedDiaChiId = ref(null);
 const addrBusy = ref(false);
 
 function formatDiaChiText(a) {
-  const parts = [a?.diaChiChiTiet, a?.phuongXa, a?.quanHuyen, a?.tinhThanh, a?.quocGia]
+  const parts = [a?.diaChiChiTiet, a?.phuongXa, a?.tinhThanh, a?.quocGia]
       .map((x) => String(x || "").trim())
       .filter(Boolean);
   return parts.join(", ");
@@ -626,7 +672,7 @@ const addrModal = reactive({
     tenNguoiNhan: "",
     soDienThoai: "",
     tinhThanh: "",
-    quanHuyen: "",
+    quanHuyen: null,
     phuongXa: "",
     diaChiChiTiet: "",
     quocGia: "Việt Nam",
@@ -639,13 +685,12 @@ function resetAddrForm() {
     tenNguoiNhan: "",
     soDienThoai: "",
     tinhThanh: "",
-    quanHuyen: "",
+    quanHuyen: null,
     phuongXa: "",
     diaChiChiTiet: "",
     quocGia: "Việt Nam",
     isDefault: false,
   });
-  addrDistricts.value = [];
   addrWards.value = [];
 }
 
@@ -664,21 +709,22 @@ function openEditDiaChi(a) {
   addrModal.mode = "edit";
   addrModal.editingId = a.id;
   addrModal.loading = false;
+
   Object.assign(addrModal.form, {
     tenNguoiNhan: a.tenNguoiNhan || "",
     soDienThoai: a.soDienThoai || "",
     tinhThanh: a.tinhThanh || "",
-    quanHuyen: a.quanHuyen || "",
+    quanHuyen: null,
     phuongXa: a.phuongXa || "",
     diaChiChiTiet: a.diaChiChiTiet || "",
     quocGia: a.quocGia || "Việt Nam",
     isDefault: !!a.laMacDinh,
   });
-  onAddrProvinceChange();
-  addrModal.form.quanHuyen = a.quanHuyen || "";
-  onAddrDistrictChange();
-  addrModal.form.phuongXa = a.phuongXa || "";
+
   addrModal.open = true;
+  loadWardsByProvinceName(addrModal.form.tinhThanh).then(() => {
+    addrModal.form.phuongXa = a.phuongXa || "";
+  });
 }
 
 // ✅ FIX: cho phép đóng modal sau khi lưu thành công dù đang loading
@@ -693,8 +739,7 @@ function validateAddrForm() {
   if (!String(addrModal.form.tenNguoiNhan || "").trim()) return "Vui lòng nhập tên người nhận";
   if (!String(addrModal.form.soDienThoai || "").trim() || !isDigitsOnly(addrModal.form.soDienThoai)) return "SĐT người nhận phải là số";
   if (!String(addrModal.form.tinhThanh || "").trim()) return "Vui lòng chọn Tỉnh/Thành phố";
-  if (!String(addrModal.form.quanHuyen || "").trim()) return "Vui lòng chọn Quận/Huyện";
-  if (!String(addrModal.form.phuongXa || "").trim()) return "Vui lòng chọn Phường/Xã";
+  if (!String(addrModal.form.phuongXa || "").trim()) return "Vui lòng chọn Phường/Xã/Đặc khu";
   if (!String(addrModal.form.diaChiChiTiet || "").trim()) return "Vui lòng nhập địa chỉ chi tiết";
   return "";
 }
@@ -707,7 +752,7 @@ async function doSaveDiaChi() {
       tenNguoiNhan: String(addrModal.form.tenNguoiNhan || "").trim(),
       soDienThoai: String(addrModal.form.soDienThoai || "").trim(),
       tinhThanh: addrModal.form.tinhThanh,
-      quanHuyen: addrModal.form.quanHuyen,
+      quanHuyen: null,
       phuongXa: addrModal.form.phuongXa,
       diaChiChiTiet: String(addrModal.form.diaChiChiTiet || "").trim(),
       quocGia: addrModal.form.quocGia || "Việt Nam",
@@ -859,7 +904,6 @@ async function doSubmit() {
     };
 
     if (!isEdit.value) {
-      payload.matKhau = "123456";
       const res = await http.post("/api/khach-hang", payload);
       const created = res?.data || null;
       const newId = created?.id;
@@ -871,7 +915,7 @@ async function doSubmit() {
             tenNguoiNhan: a.tenNguoiNhan,
             soDienThoai: a.soDienThoai,
             tinhThanh: a.tinhThanh,
-            quanHuyen: a.quanHuyen,
+            quanHuyen: null,
             phuongXa: a.phuongXa,
             diaChiChiTiet: a.diaChiChiTiet,
             quocGia: a.quocGia || "Việt Nam",
@@ -890,7 +934,7 @@ async function doSubmit() {
         if (picked?.id) await apiSetDefaultDiaChi(newId, picked.id);
       }
 
-      toast.success("Thêm mới thành công!");
+      toast.success("Thêm mới thành công! Tài khoản và mật khẩu đã được gửi qua email.");
       goBack();
       return;
     }

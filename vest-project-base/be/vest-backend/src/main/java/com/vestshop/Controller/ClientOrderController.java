@@ -10,7 +10,6 @@ import com.vestshop.Repository.HoaDonChiTietRepository;
 import com.vestshop.Repository.HoaDonRepository;
 import com.vestshop.Repository.KhachHangRepository;
 import com.vestshop.common.TrangThaiDonHang;
-import com.vestshop.dto.request.ClientOrderUpdateItemsRequest;
 import com.vestshop.dto.response.ClientMyOrderSummaryResponse;
 import com.vestshop.dto.response.OnlineOrderLookupResponse;
 import lombok.RequiredArgsConstructor;
@@ -89,21 +88,6 @@ public class ClientOrderController {
 
         return ResponseEntity.ok(
                 clientOrderMutationService.updateMyOrderShipping(id, authentication.getName(), request)
-        );
-    }
-
-
-    @PatchMapping("/my/{id}/items")
-    @Transactional
-    public ResponseEntity<OnlineOrderLookupResponse> updateMyOrderItems(@PathVariable Long id,
-                                                                        @RequestBody ClientOrderUpdateItemsRequest request,
-                                                                        Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập");
-        }
-
-        return ResponseEntity.ok(
-                clientOrderMutationService.updateMyOrderItems(id, authentication.getName(), request)
         );
     }
 
@@ -193,7 +177,6 @@ public class ClientOrderController {
                     }
 
                     return OnlineOrderLookupResponse.Item.builder()
-                            .idHoaDonChiTiet(ct.getId())
                             .idSanPhamChiTiet(spct == null ? null : spct.getId())
                             .maSanPhamChiTiet(spct == null ? null : spct.getMaSanPhamChiTiet())
                             .tenSanPham(tenSanPham)

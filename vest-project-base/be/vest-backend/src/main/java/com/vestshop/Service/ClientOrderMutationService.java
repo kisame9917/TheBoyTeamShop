@@ -1,7 +1,6 @@
 package com.vestshop.Service;
 
 import com.vestshop.dto.request.ClientOrderCancelRequest;
-import com.vestshop.dto.request.ClientOrderUpdateItemsRequest;
 import com.vestshop.dto.request.ClientOrderUpdateShippingRequest;
 import com.vestshop.dto.response.OnlineOrderLookupResponse;
 
@@ -14,8 +13,4 @@ public interface ClientOrderMutationService {
     OnlineOrderLookupResponse updateMyOrderShipping(Long orderId,
                                                     String principal,
                                                     ClientOrderUpdateShippingRequest request);
-
-    OnlineOrderLookupResponse updateMyOrderItems(Long orderId,
-                                                 String principal,
-                                                 ClientOrderUpdateItemsRequest request);
 }

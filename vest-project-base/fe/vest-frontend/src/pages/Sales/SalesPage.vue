@@ -1398,27 +1398,26 @@
                   <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Tỉnh/Thành phố</label>
                     <v-select
-                      :options="provinces"
-                      label="provinceName"
-                      :reduce="(p) => p.provinceId"
-                      v-model="activeOrder.ghnProvinceId"
-                      :clearable="true"
-                      :searchable="true"
-                      :disabled="provincesLoading"
-                      placeholder="Chọn tỉnh/thành"
-                      @update:modelValue="onProvinceChange"
+                        :options="provinces"
+                        label="provinceName"
+                        :reduce="(p) => p.provinceId"
+                        v-model="addressDraft.provinceId"
+                        :clearable="true"
+                        :searchable="true"
+                        :disabled="provincesLoading"
+                        placeholder="Chọn tỉnh/thành"
+                        @update:modelValue="onAddressProvinceChange"
                     />
 
                     <v-select
-                      :options="wards"
-                      label="wardName"
-                      :reduce="(w) => w.wardCode"
-                      v-model="activeOrder.ghnWardCode"
-                      :clearable="true"
-                      :searchable="true"
-                      :disabled="!activeOrder.ghnProvinceId || wardsLoading"
-                      placeholder="Chọn phường/xã"
-                      @update:modelValue="onWardChange"
+                        :options="addressDraftWards"
+                        label="wardName"
+                        :reduce="(w) => w.wardCode"
+                        v-model="addressDraft.wardCode"
+                        :clearable="true"
+                        :searchable="true"
+                        :disabled="!addressDraft.provinceId || wardsLoading"
+                        placeholder="Chọn phường/xã"
                     />
                   </div>
 
@@ -2726,20 +2725,6 @@ function getCustomerScopedVouchers(order, vouchers) {
   );
 }
 
-function getVoucherEntriesForOrder(order, vouchers) {
-  const scoped = getCustomerScopedVouchers(order, vouchers);
-
-  const st = order
-    ? order.cart.reduce(
-        (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
-        0,
-      )
-    : 0;
-
-  return scoped
-    .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
-    .sort((a, b) => b.discount - a.discount);
-}
 
 async function fetchCustomersAll() {
   if (customerLoading.value) return;
@@ -2844,31 +2829,15 @@ async function chooseCustomer(c) {
     email: c.email,
     address: c.address,
   };
+
   o.customerDraft.phone = c.phone || "";
   o.customerDraft.email = c.email || "";
-  if (!String(o.diaChi || "").trim()) o.diaChi = c.address || "";
 
-  if (!Array.isArray(o.addressBook) || o.addressBook.length === 0) {
-    o.addressBook = c.address
-      ? [
-          {
-            id: Date.now(),
-            receiverName: c.name || "",
-            phone: c.phone || "",
-            provinceId: null,
-            wardCode: "",
-            detail: c.address || "",
-            fullAddress: c.address || "",
-            isDefault: true,
-          },
-        ]
-      : [];
+  if (!String(o.diaChi || "").trim()) {
+    o.diaChi = c.address || "";
   }
 
-  if (!o.selectedAddressId && o.addressBook.length > 0) {
-    o.selectedAddressId =
-      o.addressBook.find((x) => x.isDefault)?.id ?? o.addressBook[0].id;
-  }
+  await loadCustomerAddressBook(o.customer);
 
   closeCustomerModal();
   await reloadActiveOrderVouchers({ showModal: true });
@@ -2883,6 +2852,22 @@ async function chooseWalkInCustomer() {
   o.diaChi = "";
   o.addressBook = [];
   o.selectedAddressId = null;
+
+  o.tenNguoiNhanHang = "";
+  o.soDienThoaiNhanHang = "";
+  o.emailNguoiNhanHang = "";
+  o.tinhThanhNhanHang = "";
+  o.quanHuyenNhanHang = "";
+  o.phuongXaNhanHang = "";
+  o.diaChiNhanHangChiTiet = "";
+
+  o.ghnProvinceId = null;
+  o.ghnDistrictId = null;
+  o.ghnWardCode = "";
+
+  o.phiVanChuyen = 0;
+  wards.value = [];
+  resetAddressDraft();
 
   customerKw.value = "";
   customerPage.value = 0;
@@ -2929,11 +2914,14 @@ function resetAddressDraft() {
   addressDraft.makeDefault = false;
 }
 
-function openAddressModal() {
+async function openAddressModal() {
   const o = activeOrder.value;
-  if (!o?.customer?.id)
+  if (!o?.customer?.id) {
     return toastShow("Vui lòng chọn khách hàng trước", "warning");
+  }
+
   showCustomerModal.value = false;
+  await loadCustomerAddressBook(o.customer);
   showAddressModal.value = true;
 }
 
@@ -2941,7 +2929,7 @@ function closeAddressModal() {
   showAddressModal.value = false;
 }
 
-function pickAddress(addressId) {
+async function pickAddress(addressId) {
   const o = activeOrder.value;
   if (!o) return;
 
@@ -2954,24 +2942,31 @@ function pickAddress(addressId) {
   o.emailNguoiNhanHang = o.customerDraft.email || "";
   o.diaChi = addr.fullAddress || "";
 
-  o.ghnProvinceId = addr.provinceId ? String(addr.provinceId) : null;
-  o.ghnWardCode = addr.wardCode ? String(addr.wardCode) : "";
-  o.diaChiNhanHangChiTiet = addr.detail || "";
+  const resolvedProvinceId =
+      addr.provinceId || resolveProvinceIdByName(addr.provinceName);
+
+  o.ghnProvinceId = resolvedProvinceId ? String(resolvedProvinceId) : null;
   o.quanHuyenNhanHang = "";
+  o.diaChiNhanHangChiTiet = addr.detail || "";
 
   const province = findProvinceById(o.ghnProvinceId);
-  o.tinhThanhNhanHang = province?.provinceName || "";
+  o.tinhThanhNhanHang = province?.provinceName || addr.provinceName || "";
 
   wards.value = (province?.wards || []).map((w) => ({
     wardCode: w.wardCode,
     wardName: w.wardName,
   }));
 
+  const resolvedWardCode =
+      addr.wardCode || resolveWardCodeByName(o.ghnProvinceId, addr.wardName);
+
+  o.ghnWardCode = resolvedWardCode ? String(resolvedWardCode) : "";
+
   const ward = findWardByCode(o.ghnProvinceId, o.ghnWardCode);
-  o.phuongXaNhanHang = ward?.wardName || "";
+  o.phuongXaNhanHang = ward?.wardName || addr.wardName || "";
 
   closeAddressModal();
-  refreshShipFee();
+  await refreshShipFee();
   toastShow("Đã chọn địa chỉ", "success");
 }
 
@@ -3022,7 +3017,9 @@ function saveNewAddress() {
     receiverName: addressDraft.receiverName.trim(),
     phone: addressDraft.phone.trim(),
     provinceId: String(addressDraft.provinceId),
+    provinceName,
     wardCode: String(addressDraft.wardCode),
+    wardName,
     detail: addressDraft.detail.trim(),
     fullAddress,
     isDefault: !!addressDraft.makeDefault,
@@ -3052,6 +3049,107 @@ function wardNameByCodeByProvince(provinceId, wardCode) {
     province?.wards?.find((w) => String(w.wardCode) === String(wardCode))
       ?.wardName || ""
   );
+}
+
+function normalizeText(value) {
+  return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+}
+
+function resolveProvinceIdByName(provinceName) {
+  const normalized = normalizeText(provinceName);
+  const province = provinceLookup.value.find(
+      (item) => normalizeText(item.provinceName) === normalized,
+  );
+  return province ? String(province.provinceId) : null;
+}
+
+function resolveWardCodeByName(provinceId, wardName) {
+  if (!provinceId || !wardName) return "";
+  const province = findProvinceById(provinceId);
+  if (!province) return "";
+
+  const normalized = normalizeText(wardName);
+  const ward = (province.wards || []).find(
+      (item) => normalizeText(item.wardName) === normalized,
+  );
+
+  return ward ? String(ward.wardCode) : "";
+}
+
+function buildFallbackAddressBook(customer) {
+  if (!customer?.address) return [];
+
+  return [
+    {
+      id: Date.now(),
+      receiverName: customer.name || "",
+      phone: customer.phone || "",
+      provinceId: null,
+      provinceName: "",
+      wardCode: "",
+      wardName: "",
+      detail: customer.address || "",
+      fullAddress: customer.address || "",
+      isDefault: true,
+    },
+  ];
+}
+
+function mapCustomerAddress(raw, customer) {
+  const provinceName = String(raw?.tinhThanh || "").trim();
+  const wardName = String(raw?.phuongXa || "").trim();
+  const detail = String(raw?.diaChiChiTiet || "").trim();
+
+  const provinceId = resolveProvinceIdByName(provinceName);
+  const wardCode = resolveWardCodeByName(provinceId, wardName);
+
+  const fullAddress = [detail, wardName, provinceName, raw?.quocGia]
+      .map((x) => String(x || "").trim())
+      .filter(Boolean)
+      .join(", ");
+
+  return {
+    id: raw?.id ?? Date.now() + Math.random(),
+    receiverName: raw?.tenNguoiNhan || customer?.name || "",
+    phone: raw?.soDienThoai || customer?.phone || "",
+    provinceId,
+    provinceName,
+    wardCode,
+    wardName,
+    detail,
+    fullAddress,
+    isDefault: !!raw?.laMacDinh,
+  };
+}
+
+async function loadCustomerAddressBook(customer) {
+  const o = activeOrder.value;
+  if (!o?.customer?.id) return;
+
+  try {
+    const res = await http.get(`/api/khach-hang/${customer.id}/dia-chi`);
+    const rows = Array.isArray(res?.data) ? res.data : [];
+
+    o.addressBook = rows.map((item) => mapCustomerAddress(item, customer));
+
+    if (!o.addressBook.length) {
+      o.addressBook = buildFallbackAddressBook(customer);
+    }
+
+    const defaultAddr =
+        o.addressBook.find((item) => item.isDefault) || o.addressBook[0] || null;
+
+    o.selectedAddressId = defaultAddr?.id ?? null;
+  } catch (e) {
+    console.error("loadCustomerAddressBook error:", e);
+    o.addressBook = buildFallbackAddressBook(customer);
+    o.selectedAddressId = o.addressBook[0]?.id ?? null;
+  }
 }
 
 const provinces = ref([]);
@@ -3516,18 +3614,18 @@ function keepVoucherWaitingForBest(o) {
   // giữ snapshot để biết trước đó user từng có mã
 }
 
-// function getVoucherEntriesForOrder(order, vouchers) {
-//   const st = order
-//     ? order.cart.reduce(
-//         (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
-//         0,
-//       )
-//     : 0;
+function getVoucherEntriesForOrder(order, vouchers) {
+  const st = order
+    ? order.cart.reduce(
+        (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
+        0,
+      )
+    : 0;
 
-//   return vouchers
-//     .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
-//     .sort((a, b) => b.discount - a.discount);
-// }
+  return vouchers
+    .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
+    .sort((a, b) => b.discount - a.discount);
+}
 
 const eligibleVoucherEntries = computed(() =>
   getVoucherEntriesForOrder(
@@ -4333,28 +4431,21 @@ async function runVoucherPrecheckFlow() {
 
 async function openQrPay() {
   const o = activeOrder.value;
-  if (!o?.dbId) return;
+  if (!o) return;
 
   const err = validateCheckout(o);
   if (err && !String(err).includes("Khách thanh toán chưa đủ")) {
     return toastShow(err, "warning");
   }
 
-  try {
-    const { data } = await hoaDonApi.generateQr(o.dbId);
+  o.paymentMethod = "QR";
 
-    o.paymentMethod = "QR";
-    qrContent.value = data.transferContent || o.maHoaDon || "";
-    qrNoteDraft.value = data.transferContent || o.maHoaDon || "";
-    qrImg.value = data.qrCode || data.qrImageUrl || "";
+  const sandboxUrl = "https://sandbox.vnpayment.vn/apis/vnpay-demo/";
+  qrContent.value = `${o.maHoaDon}`;
+  qrNoteDraft.value = `${o.maHoaDon}`;
+  qrImg.value = `https://quickchart.io/qr?text=${encodeURIComponent(sandboxUrl)}&size=320`;
 
-    showQrPayModal.value = true;
-  } catch (e) {
-    toastShow(
-      e?.response?.data?.message || "Không tạo được QR thanh toán",
-      "danger"
-    );
-  }
+  showQrPayModal.value = true;
 }
 
 function closeQrPay() {

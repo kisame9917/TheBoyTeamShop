@@ -67,7 +67,4 @@ export default {
   // createPos(payload) {
   //   return http.post(`${BASE}/pos`, payload);
   // },
-  generateQr(id) {
-  return http.post(`${BASE}/draft/${id}/generate-qr`);
-}
 };

@@ -17,7 +17,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import com.vestshop.Entity.DiaChiKhachHang;
+import com.vestshop.Repository.DiaChiKhachHangRepository;
+import com.vestshop.dto.response.DiaChiKhachHangResponse;
+import java.util.List;
 import java.io.IOException;
 
 @RestController
@@ -28,6 +31,7 @@ public class ClientAuthController {
     private final ClientAuthService clientAuthService;
     private final KhachHangRepository khRepo;
     private final KhachHangService khachHangService;
+    private final DiaChiKhachHangRepository diaChiKhachHangRepository;
 
     @Value("${app.client-frontend-url:http://localhost:5174}")
     private String clientFrontendUrl;
@@ -43,6 +47,53 @@ public class ClientAuthController {
 
         return khRepo.findByTaiKhoan(taiKhoan)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+    }
+//    private DiaChiKhachHangResponse mapDiaChi(DiaChiKhachHang d) {
+//        if (d == null) return null;
+//
+//        return DiaChiKhachHangResponse.builder()
+//                .id(d.getId())
+//                .idKhachHang(d.getKhachHang() != null ? d.getKhachHang().getId() : null)
+//                .tenNguoiNhan(d.getTenNguoiNhan())
+//                .soDienThoai(d.getSoDienThoai())
+//                .diaChiChiTiet(d.getDiaChiChiTiet())
+//                .phuongXa(d.getPhuongXa())
+//                .quanHuyen(d.getQuanHuyen())
+//                .tinhThanh(d.getTinhThanh())
+//                .quocGia(d.getQuocGia())
+//                .laMacDinh(d.getLaMacDinh())
+//                .trangThai(d.getTrangThai())
+//                .build();
+//    }
+@GetMapping("/me/dia-chi")
+public ResponseEntity<List<DiaChiKhachHangResponse>> myAddresses(Authentication authentication) {
+    KhachHang kh = getCurrentCustomer(authentication);
+
+    List<DiaChiKhachHangResponse> result = diaChiKhachHangRepository
+            .findByKhachHangIdAndTrangThaiTrueOrderByLaMacDinhDescIdDesc(kh.getId())
+            .stream()
+            .map(this::mapDiaChi)
+            .toList();
+
+    return ResponseEntity.ok(result);
+}
+
+    private DiaChiKhachHangResponse mapDiaChi(DiaChiKhachHang d) {
+        if (d == null) return null;
+
+        return DiaChiKhachHangResponse.builder()
+                .id(d.getId())
+                .idKhachHang(d.getKhachHang() != null ? d.getKhachHang().getId() : null)
+                .tenNguoiNhan(d.getTenNguoiNhan())
+                .soDienThoai(d.getSoDienThoai())
+                .diaChiChiTiet(d.getDiaChiChiTiet())
+                .phuongXa(d.getPhuongXa())
+                .quanHuyen(d.getQuanHuyen())
+                .tinhThanh(d.getTinhThanh())
+                .quocGia(d.getQuocGia())
+                .laMacDinh(d.getLaMacDinh())
+                .trangThai(d.getTrangThai())
+                .build();
     }
 
     @GetMapping("/me")

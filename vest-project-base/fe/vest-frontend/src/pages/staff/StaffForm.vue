@@ -144,31 +144,16 @@
             </div>
 
             <div class="col-12 col-lg-6">
-              <label class="form-label">Quận/Huyện</label>
-              <select
-                  class="form-select"
-                  v-model="addr.districtCode"
-                  @change="onDistrictChange"
-                  :disabled="!addr.provinceCode"
-              >
-                <option value="">-- Chọn Quận/Huyện --</option>
-                <option v-for="d in districts" :key="d.code" :value="String(d.code)">
-                  {{ d.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <label class="form-label">Xã/Phường</label>
-              <select class="form-select" v-model="addr.wardCode" :disabled="!addr.districtCode">
-                <option value="">-- Chọn Xã/Phường --</option>
+              <label class="form-label">Phường/Xã/Đặc khu</label>
+              <select class="form-select" v-model="addr.wardCode" :disabled="!addr.provinceCode">
+                <option value="">-- Chọn Phường/Xã/Đặc khu --</option>
                 <option v-for="w in wards" :key="w.code" :value="String(w.code)">
                   {{ w.name }}
                 </option>
               </select>
             </div>
 
-            <div class="col-12">
+            <div class="col-12 col-lg-6">
               <label class="form-label">Tên đường</label>
               <input class="form-control" v-model="addr.detail" placeholder="Số nhà, tên đường..." />
             </div>
@@ -699,51 +684,69 @@ async function onAvatarFileChange(e) {
 }
 
 const provinces = ref([])
-const districts = ref([])
 const wards = ref([])
 const addr = reactive({
   provinceCode: '',
-  districtCode: '',
   wardCode: '',
   detail: ''
 })
 
+function normalizeProvinceList(data) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+      }))
+      .filter((item) => item.code != null && item.name)
+}
+
+function normalizeWardList(data) {
+  return (Array.isArray(data) ? data : [])
+      .map((item) => ({
+        code: item?.code,
+        name: item?.name,
+        provinceCode: item?.province_code ?? item?.provinceCode ?? null,
+      }))
+      .filter((item) => item.code != null && item.name)
+}
+
 async function fetchProvinces() {
-  const r = await fetch('https://provinces.open-api.vn/api/p/')
-  provinces.value = await r.json()
-}
-async function fetchDistricts(provinceCode) {
-  const r = await fetch('https://provinces.open-api.vn/api/p/' + provinceCode + '?depth=2')
+  const r = await fetch('https://provinces.open-api.vn/api/v2/p/')
+  if (!r.ok) throw new Error('Không tải được tỉnh/thành')
   const data = await r.json()
-  districts.value = data?.districts || []
+  provinces.value = normalizeProvinceList(data)
 }
-async function fetchWards(districtCode) {
-  const r = await fetch('https://provinces.open-api.vn/api/d/' + districtCode + '?depth=2')
+
+async function fetchWardsByProvince(provinceCode) {
+  if (!provinceCode) {
+    wards.value = []
+    return
+  }
+
+  const r = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${provinceCode}`)
+  if (!r.ok) throw new Error('Không tải được phường/xã')
   const data = await r.json()
-  wards.value = data?.wards || []
+  wards.value = normalizeWardList(data)
 }
+
 async function onProvinceChange() {
-  addr.districtCode = ''
   addr.wardCode = ''
   wards.value = []
-  if (addr.provinceCode) await fetchDistricts(addr.provinceCode)
-  else districts.value = []
-}
-async function onDistrictChange() {
-  addr.wardCode = ''
-  if (addr.districtCode) await fetchWards(addr.districtCode)
-  else wards.value = []
+
+  if (addr.provinceCode) {
+    await fetchWardsByProvince(addr.provinceCode)
+  }
 }
 
 function buildDiaChi() {
   const p = provinces.value.find(x => String(x.code) === String(addr.provinceCode))
-  const d = districts.value.find(x => String(x.code) === String(addr.districtCode))
   const w = wards.value.find(x => String(x.code) === String(addr.wardCode))
+
   const parts = []
   if (addr.detail?.trim()) parts.push(addr.detail.trim())
   if (w?.name) parts.push(w.name)
-  if (d?.name) parts.push(d.name)
   if (p?.name) parts.push(p.name)
+
   return parts.join(', ')
 }
 
@@ -753,30 +756,30 @@ function normalizeText(s) {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/đ/g, 'd')
-      .replace(/\b(thanh pho|tp|tinh|quan|huyen|thi xa|thi tran|xa|phuong)\b/g, '')
+      .replace(/\b(thanh pho|tp|tinh|quan|huyen|thi xa|thi tran|xa|phuong|dac khu)\b/g, '')
       .replace(/\s+/g, ' ')
       .trim()
 }
 
 async function prefillAddressFromDiaChi(diaChi) {
-  const parts = String(diaChi || '')
+  const raw = String(diaChi || '').trim()
+  const parts = raw
       .split(',')
       .map(x => String(x).trim())
       .filter(Boolean)
 
-  if (parts.length < 4) {
-    addr.detail = parts[0] || String(diaChi || '').trim()
+  addr.provinceCode = ''
+  addr.wardCode = ''
+  addr.detail = ''
+  wards.value = []
+
+  if (parts.length < 2) {
+    addr.detail = raw
     return
   }
 
   const provinceName = parts[parts.length - 1]
-  const districtName = parts[parts.length - 2]
-  const wardName = parts[parts.length - 3]
-  const detail = parts.slice(0, parts.length - 3).join(', ')
-
   const normProvince = normalizeText(provinceName)
-  const normDistrict = normalizeText(districtName)
-  const normWard = normalizeText(wardName)
 
   const p = provinces.value.find(x => {
     const n = normalizeText(x.name)
@@ -784,36 +787,37 @@ async function prefillAddressFromDiaChi(diaChi) {
   })
 
   if (!p) {
-    addr.detail = detail || parts[0] || ''
+    addr.detail = raw
     return
   }
 
   addr.provinceCode = String(p.code)
-  await fetchDistricts(addr.provinceCode)
+  await fetchWardsByProvince(addr.provinceCode)
 
-  const d = districts.value.find(x => {
-    const n = normalizeText(x.name)
-    return n === normDistrict || n.includes(normDistrict) || normDistrict.includes(n)
-  })
+  const wardCandidates = []
+  if (parts.length >= 2) wardCandidates.push(parts[parts.length - 2]) // kiểu mới
+  if (parts.length >= 3) wardCandidates.push(parts[parts.length - 3]) // kiểu cũ có quận/huyện
 
-  if (!d) {
-    addr.detail = detail
-    return
+  let pickedWard = null
+  for (const candidate of wardCandidates) {
+    const normCandidate = normalizeText(candidate)
+    const found = wards.value.find(x => {
+      const n = normalizeText(x.name)
+      return n === normCandidate || n.includes(normCandidate) || normCandidate.includes(n)
+    })
+    if (found) {
+      pickedWard = found
+      break
+    }
   }
 
-  addr.districtCode = String(d.code)
-  await fetchWards(addr.districtCode)
-
-  const w = wards.value.find(x => {
-    const n = normalizeText(x.name)
-    return n === normWard || n.includes(normWard) || normWard.includes(n)
-  })
-
-  if (w) {
-    addr.wardCode = String(w.code)
+  if (pickedWard) {
+    addr.wardCode = String(pickedWard.code)
   }
 
-  addr.detail = detail
+  const detailCut = pickedWard ? (parts.length >= 3 ? 2 : 1) : 1
+  const detailParts = parts.slice(0, Math.max(parts.length - detailCut - 1, 0))
+  addr.detail = detailParts.join(', ') || parts[0] || ''
 }
 
 function unwrapList(data) {
@@ -921,8 +925,8 @@ function validateForm() {
   if (!String(form.soDienThoai || '').trim() || !isDigitsOnly(form.soDienThoai)) return 'Số điện thoại phải là số'
   if (!form.ngaySinh || !isAtLeast18(form.ngaySinh)) return 'Nhân viên phải đủ 18 tuổi'
 
-  if (!addr.provinceCode || !addr.districtCode || !addr.wardCode || !String(addr.detail || '').trim()) {
-    return 'Vui lòng chọn đầy đủ Tỉnh/Quận/Xã và nhập tên đường'
+  if (!addr.provinceCode || !addr.wardCode || !String(addr.detail || '').trim()) {
+    return 'Vui lòng chọn đầy đủ Tỉnh/Thành, Phường/Xã/Đặc khu và nhập tên đường'
   }
 
   return ''

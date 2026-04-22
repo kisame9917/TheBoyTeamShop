@@ -38,6 +38,8 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username:}")
     private String smtpUsername;
 
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Override
     public void sendShippingOrderConfirmation(String toEmail, String tenNguoiNhan, HoaDonDetailResponse order) {
@@ -294,6 +296,12 @@ public class EmailServiceImpl implements EmailService {
         return (from == null || from.isBlank()) ? smtpUsername : from;
     }
 
+    private String buildClientLoginUrl() {
+        String base = frontendUrl == null ? "" : frontendUrl.trim();
+        if (base.isEmpty()) return "http://localhost:5173/login";
+        return base.endsWith("/") ? base + "login" : base + "/login";
+    }
+
 
     // ✅ HÀM DÙNG CHUNG (HTML + plain fallback)
     private void sendRichEmail(String to, String subject, String plainText, String html) {
@@ -435,7 +443,133 @@ public class EmailServiceImpl implements EmailService {
         sendRichEmail(toEmail.trim(), subject, plain, html);
     }
 
+    @Override
+    public void sendNewKhachHangCredentials(String toEmail, String tenKhachHang, String taiKhoan, String matKhau) {
+        if (toEmail == null || toEmail.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không được để trống để gửi thông tin tài khoản");
+        }
 
+        String subject = "[VestShop] Tài khoản khách hàng của bạn đã được tạo";
+        String safeName = (tenKhachHang == null || tenKhachHang.isBlank()) ? "bạn" : tenKhachHang.trim();
+        String safeUsername = escapeHtml(taiKhoan);
+        String safePassword = escapeHtml(matKhau);
+        String loginUrl = buildClientLoginUrl();
+
+        String html = """
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Thông tin tài khoản khách hàng</title>
+        </head>
+        <body style="margin:0;padding:0;background:#eef2ff;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+          <div style="width:100%%;background:#eef2ff;padding:32px 16px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%" style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:22px;overflow:hidden;box-shadow:0 18px 42px rgba(15,23,42,0.10);">
+              
+              <tr>
+                <td style="background:linear-gradient(135deg,#000f51 0%%,#1d4ed8 100%%);padding:30px 34px;color:#ffffff;">
+                  <div style="font-size:13px;letter-spacing:1.2px;opacity:0.88;text-transform:uppercase;">VestShop</div>
+                  <div style="font-size:28px;font-weight:800;margin-top:10px;line-height:1.25;">
+                    Tài khoản khách hàng đã được tạo
+                  </div>
+                  <div style="font-size:14px;opacity:0.92;margin-top:10px;line-height:1.6;">
+                    Hệ thống đã tạo tài khoản mua sắm cho bạn. Thông tin đăng nhập nằm ngay bên dưới.
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:34px;">
+                  <p style="margin:0 0 16px;font-size:15px;line-height:1.8;">
+                    Xin chào <strong>%s</strong>,
+                  </p>
+
+                  <p style="margin:0 0 20px;font-size:15px;line-height:1.8;color:#374151;">
+                    Tài khoản khách hàng của bạn đã được tạo thành công trên hệ thống <strong>VestShop</strong>.
+                    Bạn có thể dùng tài khoản này để đăng nhập, theo dõi đơn hàng và mua sắm trực tuyến.
+                  </p>
+
+                  <div style="border:1px solid #dbeafe;background:linear-gradient(180deg,#f8fbff 0%%,#eef4ff 100%%);border-radius:18px;padding:22px;margin:24px 0;">
+                    <div style="font-size:14px;color:#64748b;margin-bottom:14px;font-weight:600;">
+                      Thông tin đăng nhập
+                    </div>
+
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                      <tr>
+                        <td style="padding:12px 0;border-bottom:1px solid #dbeafe;width:150px;font-size:14px;color:#64748b;">
+                          Tài khoản
+                        </td>
+                        <td style="padding:12px 0;border-bottom:1px solid #dbeafe;font-size:16px;font-weight:700;color:#0f172a;">
+                          %s
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:12px 0;font-size:14px;color:#64748b;">
+                          Mật khẩu
+                        </td>
+                        <td style="padding:12px 0;font-size:16px;font-weight:700;color:#dc2626;letter-spacing:0.4px;">
+                          %s
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div style="margin:24px 0 22px;text-align:center;">
+                    <a href="%s" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#2563eb 0%%,#1d4ed8 100%%);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;border-radius:14px;box-shadow:0 10px 24px rgba(37,99,235,0.24);">
+                      Đăng nhập ngay
+                    </a>
+                  </div>
+
+                  <div style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:14px;padding:16px 18px;margin:20px 0;font-size:14px;line-height:1.7;">
+                    <strong>Lưu ý bảo mật:</strong> Vì đây là mật khẩu được hệ thống tạo tự động, bạn nên đổi mật khẩu sau lần đăng nhập đầu tiên để bảo vệ tài khoản tốt hơn.
+                  </div>
+
+                  <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px 18px;margin:20px 0;font-size:14px;line-height:1.7;color:#475569;">
+                    <div style="font-weight:700;color:#0f172a;margin-bottom:6px;">Đường dẫn đăng nhập</div>
+                    <div>%s</div>
+                  </div>
+
+                  <p style="margin:20px 0 0;font-size:14px;line-height:1.8;color:#4b5563;">
+                    Nếu bạn không yêu cầu tạo tài khoản này, vui lòng liên hệ cửa hàng để được hỗ trợ.
+                  </p>
+
+                  <p style="margin:24px 0 0;font-size:14px;line-height:1.8;color:#374151;">
+                    Trân trọng,<br/>
+                    <strong>VestShop Team</strong>
+                  </p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:18px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.7;color:#6b7280;text-align:center;">
+                  Đây là email được gửi tự động từ hệ thống VestShop. Vui lòng không trả lời email này.
+                </td>
+              </tr>
+            </table>
+          </div>
+        </body>
+        </html>
+        """.formatted(
+                escapeHtml(safeName),
+                safeUsername,
+                safePassword,
+                escapeHtml(loginUrl),
+                escapeHtml(loginUrl)
+        );
+
+        String plain = "Xin chào " + safeName + "\n\n"
+                + "Tài khoản khách hàng của bạn đã được tạo trên hệ thống VestShop.\n\n"
+                + "Thông tin đăng nhập:\n"
+                + "- Tài khoản: " + taiKhoan + "\n"
+                + "- Mật khẩu: " + matKhau + "\n\n"
+                + "Đăng nhập tại: " + loginUrl + "\n\n"
+                + "Khuyến nghị: Hãy đổi mật khẩu sau lần đăng nhập đầu tiên.\n\n"
+                + "Trân trọng,\nVestShop Team\n\n"
+                + "Đây là email tự động, vui lòng không trả lời.";
+
+        sendRichEmail(toEmail.trim(), subject, plain, html);
+    }
 
     @Override
     public void sendResetPasswordOtp(String to, String tenNhanVien, String otp) {

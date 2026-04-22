@@ -22,6 +22,12 @@ public class DiaChiKhachHangController {
     private final KhachHangRepository khachHangRepository;
     private final DiaChiKhachHangRepository diaChiKhachHangRepository;
 
+    private String trimToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     private DiaChiKhachHangResponse map(DiaChiKhachHang d) {
         if (d == null) return null;
         return DiaChiKhachHangResponse.builder()
@@ -130,14 +136,15 @@ public class DiaChiKhachHangController {
     }
 
     private void applyBody(DiaChiKhachHang target, DiaChiKhachHang body, boolean isCreate) {
-        target.setTenNguoiNhan(body.getTenNguoiNhan());
-        target.setSoDienThoai(body.getSoDienThoai());
-        target.setDiaChiChiTiet(body.getDiaChiChiTiet());
-        target.setPhuongXa(body.getPhuongXa());
-        target.setQuanHuyen(body.getQuanHuyen());
-        target.setTinhThanh(body.getTinhThanh());
-        target.setQuocGia(body.getQuocGia() != null ? body.getQuocGia() : "Việt Nam");
+        target.setTenNguoiNhan(trimToNull(body.getTenNguoiNhan()));
+        target.setSoDienThoai(trimToNull(body.getSoDienThoai()));
+        target.setDiaChiChiTiet(trimToNull(body.getDiaChiChiTiet()));
+        target.setPhuongXa(trimToNull(body.getPhuongXa()));
+        target.setQuanHuyen(null);
+        target.setTinhThanh(trimToNull(body.getTinhThanh()));
 
+        String quocGia = trimToNull(body.getQuocGia());
+        target.setQuocGia(quocGia != null ? quocGia : "Việt Nam");
         target.setTrangThai(body.getTrangThai() != null ? body.getTrangThai() : Boolean.TRUE);
 
         if (isCreate) {

@@ -11,11 +11,13 @@ import com.vestshop.dto.request.DiaChiKhachHangRequest;
 import com.vestshop.dto.request.KhachHangRequest;
 import com.vestshop.dto.response.DiaChiKhachHangResponse;
 import com.vestshop.dto.response.KhachHangResponse;
+import com.vestshop.Service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.vestshop.Service.EmailService;
+import com.vestshop.Util.CredentialUtil;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -26,6 +28,7 @@ public class KhachHangServiceImpl implements KhachHangService {
     private final KhachHangRepository khachHangRepository;
     private final DiaChiKhachHangRepository diaChiKhachHangRepository;
     private final CloudinaryMediaStorageService mediaStorageService;
+    private final EmailService emailService;
 
     private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
     private static final String MA_PREFIX_DEFAULT = "KH";
@@ -149,8 +152,8 @@ public class KhachHangServiceImpl implements KhachHangService {
     @Override
     @Transactional
     public KhachHangResponse create(KhachHangRequest request) {
-        if (request.getMatKhau() == null || request.getMatKhau().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không được để trống để gửi thông tin tài khoản");
         }
         if (request.getTaiKhoan() == null || request.getTaiKhoan().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Tài khoản không được để trống");
@@ -162,8 +165,7 @@ public class KhachHangServiceImpl implements KhachHangService {
         if (khachHangRepository.existsByTaiKhoan(request.getTaiKhoan())) {
             throw new ApiException(HttpStatus.CONFLICT, "Tài khoản đã tồn tại");
         }
-        if (request.getEmail() != null && !request.getEmail().isBlank()
-                && khachHangRepository.existsByEmail(request.getEmail())) {
+        if (khachHangRepository.existsByEmail(request.getEmail())) {
             throw new ApiException(HttpStatus.CONFLICT, "Email đã tồn tại");
         }
         if (request.getSoDienThoai() != null && !request.getSoDienThoai().isBlank()
@@ -174,27 +176,36 @@ public class KhachHangServiceImpl implements KhachHangService {
         String ma = getNextMaKhachHang(MA_PREFIX_DEFAULT);
         LocalDateTime now = LocalDateTime.now();
 
+        String generatedTaiKhoan = request.getTaiKhoan().trim();
+        String generatedMatKhau = CredentialUtil.generateRandomPassword(10);
+
         KhachHang kh = new KhachHang();
         kh.setMaKhachHang(ma);
         kh.setTenKhachHang(request.getTenKhachHang());
         kh.setGioiTinh(request.getGioiTinh());
-        kh.setEmail(request.getEmail());
+        kh.setEmail(request.getEmail().trim());
         kh.setSoDienThoai(request.getSoDienThoai());
-        kh.setNgaySinh(request.getNgaySinh()); // ✅ ADD
-        kh.setTaiKhoan(request.getTaiKhoan());
-        kh.setMatKhau(request.getMatKhau());
+        kh.setNgaySinh(request.getNgaySinh());
+        kh.setTaiKhoan(generatedTaiKhoan);
+        kh.setMatKhau(generatedMatKhau);
         kh.setNgayTao(now);
         kh.setNgayCapNhat(now);
         kh.setTrangThai(request.getTrangThai() != null ? request.getTrangThai() : Boolean.TRUE);
+
         var mediaAvatar = mediaStorageService.getOptional(request.getMediaAvatarId());
         kh.setMediaAvatar(mediaAvatar);
         kh.setAnhDaiDien(normalizeAvatar(mediaStorageService.resolveUrl(mediaAvatar, request.getAnhDaiDien())));
 
         kh = khachHangRepository.save(kh);
 
-        // ✅ NEW: nếu FE gửi diaChiList / diaChiMacDinhId -> xử lý multi-address
-        // ✅ OLD: nếu FE gửi kiểu cũ -> upsert default
         syncAddresses(kh, request);
+
+        emailService.sendNewKhachHangCredentials(
+                kh.getEmail().trim(),
+                kh.getTenKhachHang(),
+                generatedTaiKhoan,
+                generatedMatKhau
+        );
 
         return mapToResponse(kh);
     }
@@ -330,7 +341,6 @@ public class KhachHangServiceImpl implements KhachHangService {
         if (tenNguoiNhan == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu tên người nhận");
         if (soDienThoai == null || !isDigitsOnly(soDienThoai)) throw new ApiException(HttpStatus.BAD_REQUEST, "SĐT người nhận phải là số");
         if (tinhThanh == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Tỉnh/Thành phố");
-        if (quanHuyen == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Quận/Huyện");
         if (phuongXa == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Phường/Xã");
         if (diaChiChiTiet == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu địa chỉ chi tiết");
         if (quocGia == null) quocGia = "Việt Nam";
@@ -340,7 +350,7 @@ public class KhachHangServiceImpl implements KhachHangService {
         dc.setTenNguoiNhan(tenNguoiNhan);
         dc.setSoDienThoai(soDienThoai);
         dc.setTinhThanh(tinhThanh);
-        dc.setQuanHuyen(quanHuyen);
+        dc.setQuanHuyen(null);
         dc.setPhuongXa(phuongXa);
         dc.setDiaChiChiTiet(diaChiChiTiet);
         dc.setQuocGia(quocGia);
@@ -456,14 +466,13 @@ public class KhachHangServiceImpl implements KhachHangService {
                 if (tenNguoiNhan == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu tên người nhận");
                 if (soDienThoai == null || !isDigitsOnly(soDienThoai)) throw new ApiException(HttpStatus.BAD_REQUEST, "SĐT người nhận phải là số");
                 if (tinhThanh == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Tỉnh/Thành phố");
-                if (quanHuyen == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Quận/Huyện");
                 if (phuongXa == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu Phường/Xã");
                 if (diaChiChiTiet == null) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu địa chỉ chi tiết");
 
                 entity.setTenNguoiNhan(tenNguoiNhan);
                 entity.setSoDienThoai(soDienThoai);
                 entity.setTinhThanh(tinhThanh);
-                entity.setQuanHuyen(quanHuyen);
+                entity.setQuanHuyen(null);
                 entity.setPhuongXa(phuongXa);
                 entity.setDiaChiChiTiet(diaChiChiTiet);
                 entity.setQuocGia(quocGia);
@@ -549,7 +558,7 @@ public class KhachHangServiceImpl implements KhachHangService {
 
         if (diaChiChiTiet != null) dc.setDiaChiChiTiet(diaChiChiTiet);
         if (phuongXa != null)      dc.setPhuongXa(phuongXa);
-        if (quanHuyen != null)     dc.setQuanHuyen(quanHuyen);
+        if (quanHuyen != null)
         if (tinhThanh != null)     dc.setTinhThanh(tinhThanh);
 
         if (quocGia != null) {
