@@ -69,22 +69,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _showQr() async {
-    try {
-      final order = await _orderService.getOrderDetail(_order.id);
+  try {
+    final order = await _orderService.getOrderDetail(_order.id);
 
+    if (!mounted) return;
+
+    final removed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PaymentQrDialog(order: order),
+    );
+
+    if (removed == true) {
       if (!mounted) return;
 
-      showDialog(
-        context: context,
-        builder: (_) => PaymentQrDialog(order: order),
-      );
-    } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không lấy được QR: $e')),
+        const SnackBar(content: Text('Đã ghi nhận thanh toán realtime')),
       );
+
+      Navigator.pop(context, true);
     }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Không lấy được QR: $e')),
+    );
   }
+}
 
   Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(

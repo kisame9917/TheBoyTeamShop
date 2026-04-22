@@ -1,10 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/api_constants.dart';
+import '../../core/network/ws_client.dart';
 import '../../data/models/order_model.dart';
 
-class PaymentQrDialog extends StatelessWidget {
+class PaymentQrDialog extends StatefulWidget {
   final OrderModel order;
 
   const PaymentQrDialog({
@@ -12,12 +15,66 @@ class PaymentQrDialog extends StatelessWidget {
     required this.order,
   });
 
+  @override
+  State<PaymentQrDialog> createState() => _PaymentQrDialogState();
+}
+
+class _PaymentQrDialogState extends State<PaymentQrDialog> {
+  late final WsClient _wsClient;
+
+  @override
+  void initState() {
+    super.initState();
+    _wsClient = WsClient();
+    _connectRealtime();
+  }
+
+  @override
+  void dispose() {
+    _wsClient.disconnect();
+    super.dispose();
+  }
+
+  void _connectRealtime() {
+    _wsClient.connect(
+      url: ApiConstants.wsUrl,
+      onConnect: (_) {
+        _wsClient.subscribe(
+          destination: '/topic/pos-orders',
+          callback: (frame) {
+            try {
+              final body = frame?.body;
+              if (body == null || body.isEmpty) return;
+
+              final Map<String, dynamic> json =
+                  jsonDecode(body) as Map<String, dynamic>;
+
+              final type = json['type']?.toString();
+              final rawId = json['hoaDonId'];
+              final int? hoaDonId =
+                  rawId is int ? rawId : int.tryParse('$rawId');
+
+              if (!mounted || hoaDonId == null) return;
+
+              // Khi đơn tại quầy bị remove realtime sau thanh toán xong
+              if (type == 'REMOVE' && hoaDonId == widget.order.id) {
+                Navigator.of(context).pop(true);
+              }
+            } catch (e) {
+              debugPrint('QR realtime parse error: $e');
+            }
+          },
+        );
+      },
+    );
+  }
+
   String? get qrData {
-    if (order.qrCode != null && order.qrCode!.trim().isNotEmpty) {
-      return order.qrCode;
+    if (widget.order.qrCode != null && widget.order.qrCode!.trim().isNotEmpty) {
+      return widget.order.qrCode;
     }
 
-    for (final tx in order.giaoDichThanhToan) {
+    for (final tx in widget.order.giaoDichThanhToan) {
       final value = tx.duLieuQr;
       if (value != null && value.trim().isNotEmpty) {
         return value;
@@ -83,23 +140,32 @@ class PaymentQrDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, false),
                     icon: const Icon(Icons.close),
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
-                'Mã HD: ${order.maHoaDon}',
+                'Mã HD: ${widget.order.maHoaDon}',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 8),
               Text(
-                'Số tiền: ${order.tongTienSauGiam.toStringAsFixed(0)} đ',
+                'Số tiền: ${widget.order.tongTienSauGiam.toStringAsFixed(0)} đ',
                 style: const TextStyle(
                   fontSize: 18,
                   color: Colors.red,
                   fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Sẽ tự đóng khi thanh toán được ghi nhận realtime',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
@@ -147,13 +213,26 @@ class PaymentQrDialog extends StatelessWidget {
                       ),
               ),
               const SizedBox(height: 16),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 10),
+                  Text('Đang chờ thanh toán realtime...'),
+                ],
+              ),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(context, false),
                   child: const Text('Đóng'),
                 ),
-              )
+              ),
             ],
           ),
         ),

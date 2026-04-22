@@ -3516,18 +3516,18 @@ function keepVoucherWaitingForBest(o) {
   // giữ snapshot để biết trước đó user từng có mã
 }
 
-function getVoucherEntriesForOrder(order, vouchers) {
-  const st = order
-    ? order.cart.reduce(
-        (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
-        0,
-      )
-    : 0;
+// function getVoucherEntriesForOrder(order, vouchers) {
+//   const st = order
+//     ? order.cart.reduce(
+//         (s, it) => s + (Number(it.price) || 0) * (Number(it.qty) || 0),
+//         0,
+//       )
+//     : 0;
 
-  return vouchers
-    .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
-    .sort((a, b) => b.discount - a.discount);
-}
+//   return vouchers
+//     .map((v) => ({ v, discount: calcVoucherDiscount(st, v) }))
+//     .sort((a, b) => b.discount - a.discount);
+// }
 
 const eligibleVoucherEntries = computed(() =>
   getVoucherEntriesForOrder(
@@ -4333,21 +4333,28 @@ async function runVoucherPrecheckFlow() {
 
 async function openQrPay() {
   const o = activeOrder.value;
-  if (!o) return;
+  if (!o?.dbId) return;
 
   const err = validateCheckout(o);
   if (err && !String(err).includes("Khách thanh toán chưa đủ")) {
     return toastShow(err, "warning");
   }
 
-  o.paymentMethod = "QR";
+  try {
+    const { data } = await hoaDonApi.generateQr(o.dbId);
 
-  const sandboxUrl = "https://sandbox.vnpayment.vn/apis/vnpay-demo/";
-  qrContent.value = `${o.maHoaDon}`;
-  qrNoteDraft.value = `${o.maHoaDon}`;
-  qrImg.value = `https://quickchart.io/qr?text=${encodeURIComponent(sandboxUrl)}&size=320`;
+    o.paymentMethod = "QR";
+    qrContent.value = data.transferContent || o.maHoaDon || "";
+    qrNoteDraft.value = data.transferContent || o.maHoaDon || "";
+    qrImg.value = data.qrCode || data.qrImageUrl || "";
 
-  showQrPayModal.value = true;
+    showQrPayModal.value = true;
+  } catch (e) {
+    toastShow(
+      e?.response?.data?.message || "Không tạo được QR thanh toán",
+      "danger"
+    );
+  }
 }
 
 function closeQrPay() {
