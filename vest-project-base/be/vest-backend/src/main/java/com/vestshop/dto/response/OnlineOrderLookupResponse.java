@@ -49,6 +49,7 @@ public class OnlineOrderLookupResponse {
     @AllArgsConstructor
     @Builder
     public static class Item {
+        private Long idHoaDonChiTiet;
         private Long idSanPhamChiTiet;
         private String maSanPhamChiTiet;
         private String tenSanPham;
