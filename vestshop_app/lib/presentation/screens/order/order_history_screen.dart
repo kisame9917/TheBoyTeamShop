@@ -12,14 +12,13 @@ class OrderHistoryScreen extends StatefulWidget {
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      final p = context.read<OrderProvider>();
-      p.loadOrders();
-      p.connectRealtime();
-    });
-  }
+void initState() {
+  super.initState();
+  Future.microtask(() {
+    final p = context.read<OrderProvider>();
+    p.startRealtimeOnly();
+  });
+}
 
   @override
   void dispose() {
