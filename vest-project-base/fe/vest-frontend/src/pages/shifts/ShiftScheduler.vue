@@ -665,22 +665,7 @@
                   </div>
 
                   <!-- Report -->
-                  <div v-if="bulkReport" class="bulk-report">
-                    <div class="d-flex flex-wrap gap-2">
-                      <span class="badge bg-success">Thành công: {{ bulkReport.created }}</span>
-                      <span class="badge bg-secondary">Bỏ qua: {{ bulkReport.skipped }}</span>
-                      <span class="badge bg-danger">Lỗi: {{ bulkReport.failed }}</span>
-                    </div>
-
-                    <div v-if="bulkReport.failedDetails.length" class="mt-2 small">
-                      <div class="fw-semibold mb-1">Chi tiết lỗi (tối đa 8 dòng):</div>
-                      <ul class="mb-0 ps-3">
-                        <li v-for="(x, i) in bulkReport.failedDetails.slice(0, 8)" :key="i">
-                          {{ formatDate(x.date) }}: {{ x.message }}
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
+                 
                 </div>
               </div>
             </div>
@@ -1560,8 +1545,8 @@ async function submitBulkAssign() {
 
   bulkReport.value = { created, skipped, failed, failedDetails };
 
-  if (created > 0) toast.success(`Đã thêm ${created} lịch. Bỏ qua ${skipped}. Lỗi ${failed}.`);
-  else toast.error(`Không thêm được lịch nào. Bỏ qua ${skipped}. Lỗi ${failed}.`);
+  if (created > 0) toast.success(`Đã thêm ${created} lịch.`);
+  else toast.error(`Không thêm được lịch nào.`);
 
   // refresh current view + refresh bulk conflict map
   await reloadCurrentView();
