@@ -94,4 +94,10 @@ Future<void> loadOrders() async {
     _wsClient.disconnect();
     super.dispose();
   }
+  void startRealtimeOnly() {
+  orders = [];
+  isLoading = false;
+  _safeNotify();
+  connectRealtime();
+}
 }
