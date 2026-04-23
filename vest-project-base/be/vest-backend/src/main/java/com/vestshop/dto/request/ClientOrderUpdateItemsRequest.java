@@ -10,11 +10,11 @@ import java.util.List;
 public class ClientOrderUpdateItemsRequest {
 
     private List<Item> items;
-
     @Getter
     @Setter
     public static class Item {
         private Long idSanPhamChiTiet;
+
         private Integer soLuong;
     }
 }
