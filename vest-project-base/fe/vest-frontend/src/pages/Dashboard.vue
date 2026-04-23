@@ -44,27 +44,43 @@
         </div>
       </div>
 
-      <div class="status-bar">
-        <div class="status-chip wait">
-          <span class="pill"><i class="bi bi-hourglass-split me-2"></i>Chờ xử lý</span>
-          <div class="qty"><span class="num">12</span>  </div>
-        </div>
+   <div class="status-bar">
+  <div class="status-chip wait">
+    <span class="pill">
+      <i class="bi bi-hourglass-split me-2"></i>Chờ xác nhận
+    </span>
+    <div class="qty">
+      <span class="num">{{ dashboardStats.choXacNhan }}</span>
+    </div>
+  </div>
 
-        <div class="status-chip ship">
-          <span class="pill"><i class="bi bi-truck me-2"></i>Đang giao</span>
-          <div class="qty"><span class="num">8</span></div>
-        </div>
+  <div class="status-chip ship">
+    <span class="pill">
+      <i class="bi bi-truck me-2"></i>Đang giao
+    </span>
+    <div class="qty">
+      <span class="num">{{ dashboardStats.dangGiao }}</span>
+    </div>
+  </div>
 
-        <div class="status-chip paid">
-          <span class="pill"><i class="bi bi-check2-circle me-2"></i>Đã hoàn thành</span>
-          <div class="qty"><span class="num">25</span></div>
-        </div>
+  <div class="status-chip paid">
+    <span class="pill">
+      <i class="bi bi-check2-circle me-2"></i>Đã hoàn thành
+    </span>
+    <div class="qty">
+      <span class="num">{{ dashboardStats.hoanThanh }}</span>
+    </div>
+  </div>
 
-        <div class="status-chip cancel">
-          <span class="pill"><i class="bi bi-x-circle me-2"></i>Đã hủy</span>
-          <div class="qty"><span class="num">2</span></div>
-        </div>
-      </div>
+  <div class="status-chip cancel">
+    <span class="pill">
+      <i class="bi bi-x-circle me-2"></i>Đã hủy
+    </span>
+    <div class="qty">
+      <span class="num">{{ dashboardStats.daHuy }}</span>
+    </div>
+  </div>
+</div>
     </div>
 
     <!-- Giới thiệu -->
@@ -102,6 +118,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import hoaDonApi from "@/services/hoaDonApi";
 
 /** ✅ mỗi ảnh 1 biến khác nhau */
 import vest1 from "@/images/ao-vest-den-1.jpg";
@@ -120,7 +137,24 @@ const slides = [
   { src: vest5, alt: "Vest 5" },
   { src: vest6, alt: "Vest 6" },
 ];
+const STATUS = {
+  CHO_XAC_NHAN: 0,
+  DA_XAC_NHAN: 8,
+  DANG_XU_LY: 1,
+  DANG_GIAO: 2,
+  DA_GIAO: 3,
+  HOAN_THANH: 4,
+  DA_HUY: 5,
+  DA_HOAN: 7,
+  YEU_CAU_HUY: 9,
+};
 
+const dashboardStats = ref({
+  choXacNhan: 0,
+  dangGiao: 0,
+  hoanThanh: 0,
+  daHuy: 0,
+});
 const perPage = 3;
 const pageIndex = ref(0);
 
@@ -162,6 +196,37 @@ function stop() {
     timer = null;
   }
 }
+async function countByStatus(statusCode) {
+  const res = await hoaDonApi.search({
+    page: 0,
+    size: 1,
+    trangThaiDon: statusCode,
+    sortBy: "ngayTao",
+    sortDir: "desc",
+  });
+
+  return Number(res?.data?.totalElements || 0);
+}
+
+async function fetchDashboardStats() {
+  try {
+    const [choXacNhan, dangGiao, hoanThanh, daHuy] = await Promise.all([
+      countByStatus(STATUS.CHO_XAC_NHAN),
+      countByStatus(STATUS.DANG_GIAO),
+      countByStatus(STATUS.HOAN_THANH),
+      countByStatus(STATUS.DA_HUY),
+    ]);
+
+    dashboardStats.value = {
+      choXacNhan,
+      dangGiao,
+      hoanThanh,
+      daHuy,
+    };
+  } catch (e) {
+    console.error("Không tải được thống kê trạng thái đơn hàng", e);
+  }
+}
 function pause() {
   stop();
 }
@@ -169,7 +234,10 @@ function resume() {
   start();
 }
 
-onMounted(start);
+onMounted(() => {
+  start();
+  fetchDashboardStats();
+});
 onBeforeUnmount(stop);
 </script>
 
@@ -433,5 +501,19 @@ onBeforeUnmount(stop);
   .tile {
     height: 280px;
   }
+}
+.status-chip.confirm,
+.status-chip.process,
+.status-chip.ship,
+.status-chip.delivered {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.status-chip.refund {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #047857;
 }
 </style>

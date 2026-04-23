@@ -103,9 +103,9 @@
           <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="nav-link">
             Vest nam
           </router-link>
-          <router-link :to="{ name: 'Search', query: { cat: 'giam-gia' } }" class="nav-link">
-            Giảm giá
-          </router-link>
+          <router-link :to="{ name: 'Discount' }" class="nav-link">
+  Giảm giá
+</router-link>
          <router-link :to="{ name: 'Contact' }" class="nav-link">
   Liên hệ
 </router-link>
@@ -146,9 +146,9 @@
                 </router-link>
               </li>
               <li>
-                <router-link :to="{ name: 'Search', query: { cat: 'giam-gia' } }" class="footer-link">
-                  Giảm giá
-                </router-link>
+               <router-link :to="{ name: 'Discount' }" class="nav-link">
+  Giảm giá
+</router-link>
               </li>
             </ul>
           </div>
@@ -296,7 +296,7 @@ function logout() {
   sessionStorage.removeItem('USER_NAME');
 
   syncAuth();
-  router.push('/homepage');
+  router.push({ name: 'Home' });
 }
 
 function handleClickOutside(e) {

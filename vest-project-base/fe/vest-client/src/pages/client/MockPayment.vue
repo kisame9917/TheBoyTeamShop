@@ -154,7 +154,8 @@
               <div class="gateway-note mt-4">
                 <i class="bi bi-lock-fill"></i>
                 <span>
-                  Thông tin thanh toán được mã hóa và bảo mật trong suốt giao dịch.
+                  Thông tin thanh toán được mã hóa và bảo mật trong suốt giao
+                  dịch.
                 </span>
               </div>
 
@@ -210,7 +211,7 @@
         <span>{{ toast.message }}</span>
       </div>
     </transition>
-   <ChatWidget />
+    <ChatWidget />
   </div>
 </template>
 
@@ -218,24 +219,26 @@
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
-import ChatWidget from '../../components/ClientChatWidget.vue';
+import ChatWidget from "../../components/ClientChatWidget.vue";
 const route = useRoute();
 const router = useRouter();
 const cart = useCart();
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 const loading = ref(false);
 const error = ref("");
 const successMessage = ref("");
 
 const orderId = route.query.orderId ? String(route.query.orderId) : "";
-const method = route.query.method ? String(route.query.method).toUpperCase() : "";
+const method = route.query.method
+  ? String(route.query.method).toUpperCase()
+  : "";
 const amount = Number(route.query.amount || 0);
 const maHoaDon = route.query.maHoaDon ? String(route.query.maHoaDon) : "";
 
 const selectedBank = ref("NCB");
-const note = ref("Đã thanh toán giả lập thành công");
+const note = ref("Đã thanh toán thành công");
 
 const fakeBanks = [
   { value: "NCB", label: "NCB" },
@@ -308,18 +311,13 @@ function showToast(message, type = "success") {
 
 function buildFakeNote() {
   if (method === "VNPAY") {
-    return note.value?.trim() || `Thanh toán VNPAY giả lập thành công qua ${selectedBank.value}`;
+    return (
+      note.value?.trim() ||
+      `Thanh toán VNPAY thành công qua ${selectedBank.value}`
+    );
   }
 
-  if (method === "MOMO") {
-    return note.value?.trim() || "Thanh toán MoMo giả lập thành công";
-  }
-
-  if (method === "CARD") {
-    return note.value?.trim() || "Thanh toán thẻ giả lập thành công";
-  }
-
-  return note.value?.trim() || "Thanh toán online giả lập thành công";
+  return note.value?.trim() || "Thanh toán online thành công";
 }
 
 function clearCheckoutCart() {
@@ -349,10 +347,7 @@ function buildSuccessUrl() {
     total: amount || 0,
   };
 
-  sessionStorage.setItem(
-    "checkout_success_data",
-    JSON.stringify(successData)
-  );
+  sessionStorage.setItem("checkout_success_data", JSON.stringify(successData));
 
   const params = new URLSearchParams();
   params.set("orderId", orderId);
@@ -375,6 +370,7 @@ async function confirmSuccess() {
       maGiaoDich: generatedTransactionCode.value,
       soTien: amount || 0,
       ghiChu: buildFakeNote(),
+      paymentGateway: method || "BANK_QR",
     };
 
     const response = await fetch(
@@ -394,16 +390,16 @@ async function confirmSuccess() {
       throw new Error(data?.message || "Xác nhận thanh toán thất bại");
     }
 
-    successMessage.value = "Thanh toán thành công";
-    showToast("Thanh toán thành công", "success");
-
     clearCheckoutCart();
+
+    successMessage.value = data?.message || "Thanh toán thành công";
+    showToast(successMessage.value, "success");
 
     const successUrl = buildSuccessUrl();
 
     setTimeout(() => {
-      window.location.replace(successUrl);
-    }, 400);
+      router.replace(successUrl);
+    }, 800);
   } catch (e) {
     error.value = e?.message || "Có lỗi khi giả lập thanh toán";
     showToast(error.value, "warning");
