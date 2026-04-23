@@ -107,47 +107,47 @@
           </div>
 
           <div v-else-if="selectedOrder" class="detail-box">
-           <div class="detail-head">
-  <div>
-    <div class="detail-code">Mã đơn: {{ selectedOrder.maHoaDon }}</div>
-    <div class="detail-date">Đặt lúc: {{ formatDate(selectedOrder.ngayTao) }}</div>
-  </div>
+            <div class="detail-head">
+              <div>
+                <div class="detail-code">Mã đơn: {{ selectedOrder.maHoaDon }}</div>
+                <div class="detail-date">Đặt lúc: {{ formatDate(selectedOrder.ngayTao) }}</div>
+              </div>
 
-  <div class="detail-actions">
-    <span class="status-badge" :class="statusClass(selectedOrder.trangThaiDon)">
-      {{ selectedOrder.tenTrangThaiDon }}
-    </span>
+              <div class="detail-actions">
+                <span class="status-badge" :class="statusClass(selectedOrder.trangThaiDon)">
+                  {{ selectedOrder.tenTrangThaiDon }}
+                </span>
 
-    <div class="action-row">
-      <button
-        v-if="canCancelSelected"
-        class="btn btn-outline-danger btn-sm"
-        type="button"
-        @click="openCancelModal"
-      >
-        Hủy đơn
-      </button>
+                <div class="action-row">
+                  <button
+                    v-if="canCancelSelected"
+                    class="btn btn-outline-danger btn-sm"
+                    type="button"
+                    @click="openCancelModal"
+                  >
+                    Hủy đơn
+                  </button>
 
-      <button
-        v-if="canEditShippingSelected"
-        class="btn btn-outline-primary btn-sm"
-        type="button"
-        @click="openShippingModal"
-      >
-        Sửa giao hàng
-      </button>
+                  <button
+                    v-if="canEditShippingSelected"
+                    class="btn btn-outline-primary btn-sm"
+                    type="button"
+                    @click="openShippingModal"
+                  >
+                    Sửa giao hàng
+                  </button>
 
-      <button
-        v-if="canEditItemsSelected"
-        class="btn btn-dark btn-sm"
-        type="button"
-        @click="openItemsModal"
-      >
-        Sửa sản phẩm
-      </button>
-    </div>
-  </div>
-</div>
+                  <button
+                    v-if="canEditItemsSelected"
+                    class="btn btn-dark btn-sm"
+                    type="button"
+                    @click="openItemsModal"
+                  >
+                    Sửa sản phẩm
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <div class="row g-4 mt-1">
               <div class="col-12">
@@ -255,183 +255,176 @@
     </div>
   </div>
 
-<div v-if="cancelModalOpen" class="mock-modal-overlay" @click.self="cancelModalOpen = false">
-  <div class="mock-modal">
-    <div class="mock-modal__header">
-      <div class="mock-modal__title">Yêu cầu hủy đơn</div>
-      <button class="mock-modal__close" type="button" @click="cancelModalOpen = false">×</button>
-    </div>
-
-    <div class="mock-modal__body">
-      <div class="mb-3">
-        <label class="form-label">Lý do hủy đơn</label>
-        <input
-          v-model.trim="cancelReason"
-          type="text"
-          class="form-control"
-          placeholder="Ví dụ: Tôi muốn đổi sang mẫu khác"
-        />
+  <div v-if="cancelModalOpen" class="mock-modal-overlay" @click.self="cancelModalOpen = false">
+    <div class="mock-modal">
+      <div class="mock-modal__header">
+        <div class="mock-modal__title">Yêu cầu hủy đơn</div>
+        <button class="mock-modal__close" type="button" @click="cancelModalOpen = false">×</button>
       </div>
 
-      <div>
-        <label class="form-label">Ghi chú thêm</label>
-        <textarea
-          v-model.trim="cancelNote"
-          class="form-control"
-          rows="3"
-          placeholder="Nhập ghi chú nếu có"
-        ></textarea>
-      </div>
-    </div>
+      <div class="mock-modal__body">
+        <div class="mb-3">
+          <label class="form-label">Lý do hủy đơn</label>
+          <input
+            v-model.trim="cancelReason"
+            type="text"
+            class="form-control"
+            placeholder="Ví dụ: Tôi muốn đổi sang mẫu khác"
+          />
+        </div>
 
-    <div class="mock-modal__footer">
-      <button class="btn btn-light" type="button" @click="cancelModalOpen = false">Đóng</button>
-      <button class="btn btn-danger" type="button" @click="confirmCancelOrder">Gửi yêu cầu hủy</button>
+        <div>
+          <label class="form-label">Ghi chú thêm</label>
+          <textarea
+            v-model.trim="cancelNote"
+            class="form-control"
+            rows="3"
+            placeholder="Nhập ghi chú nếu có"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="mock-modal__footer">
+        <button class="btn btn-light" type="button" @click="cancelModalOpen = false">Đóng</button>
+        <button class="btn btn-danger" type="button" @click="confirmCancelOrder">Gửi yêu cầu hủy</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div v-if="shippingModalOpen" class="mock-modal-overlay" @click.self="shippingModalOpen = false">
-  <div class="mock-modal">
-    <div class="mock-modal__header">
-      <div class="mock-modal__title">Sửa thông tin giao hàng</div>
-      <button class="mock-modal__close" type="button" @click="shippingModalOpen = false">×</button>
-    </div>
+  <div v-if="shippingModalOpen" class="mock-modal-overlay" @click.self="shippingModalOpen = false">
+    <div class="mock-modal">
+      <div class="mock-modal__header">
+        <div class="mock-modal__title">Sửa thông tin giao hàng</div>
+        <button class="mock-modal__close" type="button" @click="shippingModalOpen = false">×</button>
+      </div>
 
-    <div class="mock-modal__body">
-      <div class="row g-3">
-        <div class="col-12 col-md-6">
-          <label class="form-label">Người nhận</label>
-          <input v-model.trim="shippingForm.tenNguoiNhanHang" class="form-control" type="text" />
+      <div class="mock-modal__body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Người nhận</label>
+            <input v-model.trim="shippingForm.tenNguoiNhanHang" class="form-control" type="text" />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">SĐT người nhận</label>
+            <input v-model.trim="shippingForm.soDienThoaiNhanHang" class="form-control" type="text" />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Tỉnh / Thành</label>
+            <input
+              v-model.trim="shippingForm.tinhThanhNhanHang"
+              class="form-control"
+              type="text"
+              :disabled="!isSelectedOrderCod"
+            />
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Phường / Xã</label>
+            <input
+              v-model.trim="shippingForm.phuongXaNhanHang"
+              class="form-control"
+              type="text"
+              :disabled="!isSelectedOrderCod"
+            />
+          </div>
+
+          <div class="col-12 ">
+            <label class="form-label">Địa chỉ chi tiết</label>
+            <input
+              v-model.trim="shippingForm.diaChiNhanHangChiTiet"
+              class="form-control"
+              type="text"
+              :disabled="!isSelectedOrderCod"
+            />
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Ghi chú</label>
+            <textarea v-model.trim="shippingForm.ghiChu" class="form-control" rows="3"></textarea>
+          </div>
         </div>
 
-        <div class="col-12 col-md-6">
-          <label class="form-label">SĐT người nhận</label>
-          <input v-model.trim="shippingForm.soDienThoaiNhanHang" class="form-control" type="text" />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">Tỉnh / Thành</label>
-          <input
-            v-model.trim="shippingForm.tinhThanhNhanHang"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">Quận / Huyện</label>
-          <input
-            v-model.trim="shippingForm.quanHuyenNhanHang"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">Phường / Xã</label>
-          <input
-            v-model.trim="shippingForm.phuongXaNhanHang"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">Địa chỉ chi tiết</label>
-          <input
-            v-model.trim="shippingForm.diaChiNhanHangChiTiet"
-            class="form-control"
-            type="text"
-            :disabled="!isSelectedOrderCod"
-          />
-        </div>
-
-        <div class="col-12">
-          <label class="form-label">Ghi chú</label>
-          <textarea v-model.trim="shippingForm.ghiChu" class="form-control" rows="3"></textarea>
+        <div v-if="!isSelectedOrderCod" class="alert alert-warning mt-3 mb-0">
+          Đơn chuyển khoản/QR: trước mắt FE chỉ cho sửa tên, SĐT và ghi chú. Địa chỉ đang khóa.
         </div>
       </div>
 
-      <div v-if="!isSelectedOrderCod" class="alert alert-warning mt-3 mb-0">
-        Đơn chuyển khoản/QR: trước mắt FE chỉ cho sửa tên, SĐT và ghi chú. Địa chỉ đang khóa.
+      <div class="mock-modal__footer">
+        <button class="btn btn-light" type="button" @click="shippingModalOpen = false">Đóng</button>
+        <button class="btn btn-primary" type="button" :disabled="shippingSaving" @click="submitShipping">
+          {{ shippingSaving ? "Đang lưu..." : "Lưu thay đổi" }}
+        </button>
       </div>
-    </div>
-
-    <div class="mock-modal__footer">
-      <button class="btn btn-light" type="button" @click="shippingModalOpen = false">Đóng</button>
-      <button class="btn btn-primary" type="button" @click="submitShippingMock">Lưu thay đổi</button>
     </div>
   </div>
-</div>
 
-<div v-if="itemsModalOpen" class="mock-modal-overlay" @click.self="itemsModalOpen = false">
-  <div class="mock-modal mock-modal--wide">
-    <div class="mock-modal__header">
-      <div class="mock-modal__title">Sửa sản phẩm trong đơn</div>
-      <button class="mock-modal__close" type="button" @click="itemsModalOpen = false">×</button>
-    </div>
+  <div v-if="itemsModalOpen" class="mock-modal-overlay" @click.self="itemsModalOpen = false">
+    <div class="mock-modal mock-modal--wide">
+      <div class="mock-modal__header">
+        <div class="mock-modal__title">Sửa sản phẩm trong đơn</div>
+        <button class="mock-modal__close" type="button" @click="itemsModalOpen = false">×</button>
+      </div>
 
-    <div class="mock-modal__body">
-      <div v-if="!itemDrafts.length" class="text-muted">Không có sản phẩm.</div>
+      <div class="mock-modal__body">
+        <div v-if="!itemDrafts.length" class="text-muted">Không có sản phẩm.</div>
 
-      <div v-else class="draft-item-list">
-        <div
-          v-for="(item, index) in itemDrafts"
-          :key="item.idSanPhamChiTiet || item.maSanPhamChiTiet || index"
-          class="draft-item-row"
-        >
-          <img
-            :src="normalizeImg(item.anhDaiDien)"
-            alt="Ảnh sản phẩm"
-            class="draft-item-image"
-            @error="onImgError"
-          />
+        <div v-else class="draft-item-list">
+          <div
+            v-for="(item, index) in itemDrafts"
+            :key="item.idSanPhamChiTiet || item.maSanPhamChiTiet || index"
+            class="draft-item-row"
+          >
+            <img
+              :src="normalizeImg(item.anhDaiDien)"
+              alt="Ảnh sản phẩm"
+              class="draft-item-image"
+              @error="onImgError"
+            />
 
-          <div class="draft-item-content">
-            <div class="draft-item-name">{{ item.tenSanPham || "Sản phẩm" }}</div>
-            <div class="draft-item-meta">
-              <span v-if="item.mauSac">Màu: {{ item.mauSac }}</span>
-              <span v-if="item.kichCo"> / Size: {{ item.kichCo }}</span>
+            <div class="draft-item-content">
+              <div class="draft-item-name">{{ item.tenSanPham || "Sản phẩm" }}</div>
+              <div class="draft-item-meta">
+                <span v-if="item.mauSac">Màu: {{ item.mauSac }}</span>
+                <span v-if="item.kichCo"> / Size: {{ item.kichCo }}</span>
+              </div>
+              <div class="draft-item-meta">Đơn giá: {{ money(item.donGia) }} đ</div>
             </div>
-            <div class="draft-item-meta">Đơn giá: {{ money(item.donGia) }} đ</div>
-          </div>
 
-          <div class="draft-qty-box">
-            <button class="btn btn-outline-secondary btn-sm" type="button" @click="decreaseQty(item)">-</button>
-            <span class="draft-qty">{{ item.soLuong }}</span>
-            <button class="btn btn-outline-secondary btn-sm" type="button" @click="increaseQty(item)">+</button>
-          </div>
+            <div class="draft-qty-box">
+              <button class="btn btn-outline-secondary btn-sm" type="button" @click="decreaseQty(item)">-</button>
+              <span class="draft-qty">{{ item.soLuong }}</span>
+              <button class="btn btn-outline-secondary btn-sm" type="button" @click="increaseQty(item)">+</button>
+            </div>
 
-          <div class="draft-item-price">
-            <strong>{{ money(item.thanhTien) }} đ</strong>
-          </div>
+            <div class="draft-item-price">
+              <strong>{{ money(item.thanhTien) }} đ</strong>
+            </div>
 
-          <button class="btn btn-outline-danger btn-sm" type="button" @click="removeDraftItem(index)">
-            Xóa
-          </button>
+            <button class="btn btn-outline-danger btn-sm" type="button" @click="removeDraftItem(index)">
+              Xóa
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="mock-modal__footer">
-      <button class="btn btn-light" type="button" @click="itemsModalOpen = false">Đóng</button>
-      <button class="btn btn-dark" type="button" @click="submitItemsMock">Lưu thay đổi</button>
+      <div class="mock-modal__footer">
+        <button class="btn btn-light" type="button" @click="itemsModalOpen = false">Đóng</button>
+        <button class="btn btn-dark" type="button" :disabled="itemsSaving" @click="submitItems">
+          {{ itemsSaving ? "Đang lưu..." : "Lưu thay đổi" }}
+        </button>
+      </div>
     </div>
   </div>
-  
-</div>
-<ChatWidget />
+
+  <ChatWidget />
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { getMyOrderDetail, getMyOrders, cancelMyOrder } from "../../services/Api";
-import ConfirmModal from "../../components/common/ConfirmModal.vue";
-import ChatWidget from '../../components/ClientChatWidget.vue';
+import { getMyOrderDetail, getMyOrders, cancelMyOrder, updateMyOrderShipping, updateMyOrderItems } from "../../services/Api";
+import ChatWidget from "../../components/ClientChatWidget.vue";
 import {
   canCancelOrder,
   canEditShipping,
@@ -442,6 +435,8 @@ import {
 const loading = ref(true);
 const detailLoading = ref(false);
 const errorMessage = ref("");
+const pageMessage = ref("");
+const pageMessageType = ref("success");
 const orders = ref([]);
 const selectedOrder = ref(null);
 const selectedOrderId = ref(null);
@@ -456,12 +451,13 @@ const shippingForm = ref({
   soDienThoaiNhanHang: "",
   diaChiNhanHangChiTiet: "",
   phuongXaNhanHang: "",
-  quanHuyenNhanHang: "",
   tinhThanhNhanHang: "",
   ghiChu: "",
 });
 
 const itemDrafts = ref([]);
+const shippingSaving = ref(false);
+const itemsSaving = ref(false);
 
 const canCancelSelected = computed(() => canCancelOrder(selectedOrder.value));
 const canEditShippingSelected = computed(() => canEditShipping(selectedOrder.value));
@@ -483,6 +479,19 @@ const filteredOrders = computed(() => {
   return orders.value.filter((x) => Number(x.trangThaiDon) === Number(activeFilter.value));
 });
 
+let messageTimer = null;
+
+function showMessage(message, type = "success") {
+  pageMessage.value = message;
+  pageMessageType.value = type;
+
+  if (messageTimer) clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => {
+    pageMessage.value = "";
+    pageMessageType.value = "success";
+  }, 3000);
+}
+
 function money(value) {
   return new Intl.NumberFormat("vi-VN").format(Number(value || 0));
 }
@@ -498,7 +507,6 @@ function fullAddress(o) {
   return [
     o?.diaChiNhanHangChiTiet,
     o?.phuongXaNhanHang,
-    o?.quanHuyenNhanHang,
     o?.tinhThanhNhanHang,
   ]
     .filter(Boolean)
@@ -578,9 +586,9 @@ async function confirmCancelOrder() {
     cancelNote.value = "";
 
     syncSelectedIntoList();
-    window.alert("Gửi yêu cầu hủy đơn thành công.");
+    showMessage("Gửi yêu cầu hủy đơn thành công.", "success");
   } catch (error) {
-    window.alert(error?.message || "Hủy đơn thất bại");
+    showMessage(error?.response?.data?.message || error?.message || "Hủy đơn thất bại", "danger");
   }
 }
 
@@ -592,7 +600,6 @@ function openShippingModal() {
     soDienThoaiNhanHang: selectedOrder.value.soDienThoaiNhanHang || "",
     diaChiNhanHangChiTiet: selectedOrder.value.diaChiNhanHangChiTiet || "",
     phuongXaNhanHang: selectedOrder.value.phuongXaNhanHang || "",
-    quanHuyenNhanHang: selectedOrder.value.quanHuyenNhanHang || "",
     tinhThanhNhanHang: selectedOrder.value.tinhThanhNhanHang || "",
     ghiChu: selectedOrder.value.ghiChu || "",
   };
@@ -600,29 +607,36 @@ function openShippingModal() {
   shippingModalOpen.value = true;
 }
 
-function submitShippingMock() {
+function closeShippingModal() {
+  shippingModalOpen.value = false;
+}
+
+async function submitShipping() {
   if (!selectedOrder.value) return;
 
-  const nextOrder = {
-    ...selectedOrder.value,
-    tenNguoiNhanHang: shippingForm.value.tenNguoiNhanHang,
-    soDienThoaiNhanHang: shippingForm.value.soDienThoaiNhanHang,
-    ghiChu: shippingForm.value.ghiChu,
-  };
+  try {
+    shippingSaving.value = true;
 
-  // COD: cho sửa full địa chỉ
-  if (isSelectedOrderCod.value) {
-    nextOrder.diaChiNhanHangChiTiet = shippingForm.value.diaChiNhanHangChiTiet;
-    nextOrder.phuongXaNhanHang = shippingForm.value.phuongXaNhanHang;
-    nextOrder.quanHuyenNhanHang = shippingForm.value.quanHuyenNhanHang;
-    nextOrder.tinhThanhNhanHang = shippingForm.value.tinhThanhNhanHang;
+    const payload = {
+      tenNguoiNhanHang: shippingForm.value.tenNguoiNhanHang,
+      soDienThoaiNhanHang: shippingForm.value.soDienThoaiNhanHang,
+      diaChiNhanHangChiTiet: shippingForm.value.diaChiNhanHangChiTiet,
+      phuongXaNhanHang: shippingForm.value.phuongXaNhanHang,
+      tinhThanhNhanHang: shippingForm.value.tinhThanhNhanHang,
+      ghiChu: shippingForm.value.ghiChu,
+    };
+
+    const { data } = await updateMyOrderShipping(selectedOrder.value.id, payload);
+    selectedOrder.value = data;
+    closeShippingModal();
+    syncSelectedIntoList();
+    showMessage("Cập nhật giao hàng thành công.", "success");
+  } catch (e) {
+    console.error(e);
+    showMessage(e?.response?.data?.message || e?.message || "Cập nhật giao hàng thất bại", "danger");
+  } finally {
+    shippingSaving.value = false;
   }
-
-  selectedOrder.value = nextOrder;
-  shippingModalOpen.value = false;
-  syncSelectedIntoList();
-
-  window.alert("Đã cập nhật thông tin giao hàng ở FE (mock).");
 }
 
 function openItemsModal() {
@@ -656,7 +670,7 @@ function decreaseQty(item) {
 
 function removeDraftItem(index) {
   if (itemDrafts.value.length <= 1) {
-    window.alert("Đơn hàng phải còn ít nhất 1 sản phẩm.");
+    showMessage("Đơn hàng phải còn ít nhất 1 sản phẩm.", "warning");
     return;
   }
 
@@ -679,30 +693,39 @@ function recalcOrderTotals(orderLike) {
   };
 }
 
-function submitItemsMock() {
+function closeItemsModal() {
+  itemsModalOpen.value = false;
+}
+
+async function submitItems() {
   if (!selectedOrder.value) return;
 
   if (!itemDrafts.value.length) {
-    window.alert("Đơn hàng không được rỗng.");
+    showMessage("Đơn hàng không được rỗng.", "warning");
     return;
   }
 
-  const normalizedItems = itemDrafts.value.map((item) => ({
-    ...item,
-    soLuong: Number(item.soLuong || 0),
-    donGia: Number(item.donGia || 0),
-    thanhTien: Number(item.donGia || 0) * Number(item.soLuong || 0),
-  }));
+  try {
+    itemsSaving.value = true;
 
-  selectedOrder.value = recalcOrderTotals({
-    ...selectedOrder.value,
-    items: normalizedItems,
-  });
+    const payload = {
+      items: itemDrafts.value.map((x) => ({
+        idSanPhamChiTiet: x.idSanPhamChiTiet,
+        soLuong: Number(x.soLuong),
+      })),
+    };
 
-  itemsModalOpen.value = false;
-  syncSelectedIntoList();
-
-  window.alert("Đã cập nhật sản phẩm trong đơn ở FE (mock).");
+    const { data } = await updateMyOrderItems(selectedOrder.value.id, payload);
+    selectedOrder.value = data;
+    closeItemsModal();
+    syncSelectedIntoList();
+    showMessage("Cập nhật sản phẩm thành công.", "success");
+  } catch (e) {
+    console.error(e);
+    showMessage(e?.response?.data?.message || e?.message || "Cập nhật sản phẩm thất bại", "danger");
+  } finally {
+    itemsSaving.value = false;
+  }
 }
 
 async function loadOrders() {
