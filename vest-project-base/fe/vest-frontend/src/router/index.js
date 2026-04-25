@@ -76,13 +76,19 @@ const routes = [
     component: BlankLayout,
     children: [{ path: "", name: "otp", component: OtpVerify, meta: { public: true } }],
   },
+{
+  path: "/pos-mock-payment",
+  name: "pos-mock-payment",
+  component: () => import("../pages/Sales/PosMockPayment.vue"),
+  meta: { public: true },
+},
 
-  // ====== APP (Private) ======
-  {
-    path: "/",
-    component: DefaultLayout,
-    meta: { requiresAuth: true },
-    children: [
+// ====== APP (Private) ======
+{
+  path: "/",
+  component: DefaultLayout,
+  meta: { requiresAuth: true },
+  children: [
       // ✅ STAFF + ADMIN
       { path: "dashboard", name: "dashboard", component: Dashboard, meta: { roles: ["ADMIN", "STAFF"] } },
       // ⚠️ Windows/Linux phân biệt hoa thường -> folder là pages/Sales
@@ -143,7 +149,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory("/pos/"),
   routes,
 });
 

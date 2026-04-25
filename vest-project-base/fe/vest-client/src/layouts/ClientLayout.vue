@@ -12,18 +12,18 @@
           <div class="search-bar w-50">
             <div class="input-group">
               <input
-                  v-model="keyword"
-                  @keyup.enter="doSearch"
-                  type="text"
-                  class="form-control bg-light border-0"
-                  placeholder="Tìm kiếm vest nam..."
-                  aria-label="Tìm kiếm"
+                v-model="keyword"
+                @keyup.enter="doSearch"
+                type="text"
+                class="form-control bg-light border-0"
+                placeholder="Tìm kiếm vest nam..."
+                aria-label="Tìm kiếm"
               />
               <button
-                  class="btn btn-primary btn-search"
-                  type="button"
-                  aria-label="Tìm kiếm"
-                  @click="doSearch"
+                class="btn btn-primary btn-search"
+                type="button"
+                aria-label="Tìm kiếm"
+                @click="doSearch"
               >
                 <i class="bi bi-search"></i>
               </button>
@@ -33,27 +33,31 @@
           <div class="header-icons d-flex gap-3 fs-5 align-items-center">
             <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
               <button
-                  class="user-btn text-white"
-                  type="button"
-                  @click.stop="toggleUserMenu"
-                  aria-label="Tài khoản"
+                class="user-btn text-white"
+                type="button"
+                @click.stop="toggleUserMenu"
+                aria-label="Tài khoản"
               >
                 <i class="bi bi-person"></i>
                 <span class="user-name">{{ userName }}</span>
                 <i class="bi bi-caret-down-fill caret"></i>
               </button>
-<div v-if="userMenuOpen" class="user-menu">
-  <div class="user-menu-header">{{ userName }}</div>
-  <button class="user-menu-item" type="button" @click="openProfile">
-    Hồ sơ
-  </button>
-  <button class="user-menu-item" type="button" @click="openMyOrders">
-    Đơn hàng của tôi
-  </button>
-  <button class="user-menu-item danger" type="button" @click="logout">
-    Đăng xuất
-  </button>
-</div>
+
+              <div v-if="userMenuOpen" class="user-menu">
+                <div class="user-menu-header">{{ userName }}</div>
+
+                <button class="user-menu-item" type="button" @click="openProfile">
+                  Hồ sơ
+                </button>
+
+                <button class="user-menu-item" type="button" @click="openMyOrders">
+                  Đơn hàng của tôi
+                </button>
+
+                <button class="user-menu-item danger" type="button" @click="logout">
+                  Đăng xuất
+                </button>
+              </div>
             </div>
 
             <router-link v-else to="/login" class="text-white" aria-label="Tài khoản">
@@ -66,25 +70,25 @@
 
             <div class="cart-wrap" ref="cartWrap">
               <button
-                  class="cart-trigger text-white position-relative"
-                  type="button"
-                  aria-label="Giỏ hàng"
-                  @click.stop="toggleCart"
+                class="cart-trigger text-white position-relative"
+                type="button"
+                aria-label="Giỏ hàng"
+                @click.stop="toggleCart"
               >
                 <i class="bi bi-bag"></i>
                 <span
-                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary cart-badge"
                 >
                   {{ totalQty }}
                 </span>
               </button>
 
               <CartMiniModal
-                  v-if="cartOpen"
-                  class="cart-mini"
-                  @close="closeCart"
-                  @view-cart="goToCart"
-                  @checkout="checkout"
+                v-if="cartOpen"
+                class="cart-mini"
+                @close="closeCart"
+                @view-cart="goToCart"
+                @checkout="checkout"
               />
             </div>
           </div>
@@ -93,25 +97,23 @@
 
       <nav class="nav-menu py-2 bg-light-blue">
         <div class="container d-flex justify-content-center gap-4">
-          <router-link to="/shop" class="nav-link">Cửa hàng</router-link>
-<!--          <router-link :to="{ name: 'Search', query: { cat: 'bo-vest-nam' } }" class="nav-link">-->
-<!--            Bộ vest nam-->
-<!--          </router-link>-->
-<!--          <router-link :to="{ name: 'Search', query: { cat: 'trang-phuc' } }" class="nav-link">-->
-<!--            Trang phục-->
-<!--          </router-link>-->
+          <router-link to="/" class="nav-link">Cửa hàng</router-link>
+
           <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="nav-link">
             Vest nam
           </router-link>
-          <router-link :to="{ name: 'Search', query: { cat: 'giam-gia' } }" class="nav-link">
+
+          <router-link :to="{ name: 'Discount' }" class="nav-link">
             Giảm giá
           </router-link>
-         <router-link :to="{ name: 'Contact' }" class="nav-link">
-  Liên hệ
-</router-link>
+
+          <router-link :to="{ name: 'Contact' }" class="nav-link">
+            Liên hệ
+          </router-link>
+
           <router-link :to="{ name: 'OrderLookup' }" class="nav-link">
-  TRA CỨU ĐƠN HÀNG
-</router-link>
+            TRA CỨU ĐƠN HÀNG
+          </router-link>
         </div>
       </nav>
     </div>
@@ -139,14 +141,20 @@
           <div class="col-lg-2 col-md-3 col-6 mb-4 text-white">
             <h6 class="fw-bold mb-3 text-white">Danh mục</h6>
             <ul class="list-unstyled">
-              <li><router-link to="/shop" class="footer-link">Cửa hàng</router-link></li>
+              <li>
+                <router-link to="/shop" class="footer-link">
+                  Cửa hàng
+                </router-link>
+              </li>
+
               <li>
                 <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="footer-link">
                   Vest nam
                 </router-link>
               </li>
+
               <li>
-                <router-link :to="{ name: 'Search', query: { cat: 'giam-gia' } }" class="footer-link">
+                <router-link :to="{ name: 'Discount' }" class="nav-link">
                   Giảm giá
                 </router-link>
               </li>
@@ -168,16 +176,19 @@
                   <i class="bi bi-facebook"></i>
                 </a>
               </li>
+
               <li>
                 <a href="#" class="footer-link footer-icon" aria-label="Instagram" @click.prevent>
                   <i class="bi bi-instagram"></i>
                 </a>
               </li>
+
               <li>
                 <a href="#" class="footer-link footer-icon" aria-label="YouTube" @click.prevent>
                   <i class="bi bi-youtube"></i>
                 </a>
               </li>
+
               <li>
                 <a href="#" class="footer-link footer-icon" aria-label="TikTok" @click.prevent>
                   <i class="bi bi-tiktok"></i>
@@ -190,7 +201,6 @@
               <li><span class="payment-badge" title="Thanh toán khi nhận hàng">COD</span></li>
               <li><span class="payment-badge" title="Thẻ nội địa / Internet Banking">ATM</span></li>
               <li><span class="payment-badge" title="Visa">VISA</span></li>
-<!--              <li><span class="payment-badge" title="JCB">JCB</span></li>-->
             </ul>
           </div>
         </div>
@@ -202,11 +212,11 @@
     </footer>
 
     <CartAddedToast
-        :open="cartToast.open"
-        :item-name="cartToast.itemName"
-        :image="cartToast.image"
-        :qty="cartToast.qty"
-        @view-cart="goToCart"
+      :open="cartToast.open"
+      :item-name="cartToast.itemName"
+      :image="cartToast.image"
+      :qty="cartToast.qty"
+      @view-cart="goToCart"
     />
   </div>
 </template>
@@ -262,15 +272,15 @@ const userName = ref('Khách hàng');
 
 function syncAuth() {
   const token =
-      localStorage.getItem('USER_ACCESS_TOKEN') ||
-      sessionStorage.getItem('USER_ACCESS_TOKEN');
+    localStorage.getItem('USER_ACCESS_TOKEN') ||
+    sessionStorage.getItem('USER_ACCESS_TOKEN');
 
   isLoggedIn.value = !!token;
 
   userName.value =
-      localStorage.getItem('USER_NAME') ||
-      sessionStorage.getItem('USER_NAME') ||
-      'Khách hàng';
+    localStorage.getItem('USER_NAME') ||
+    sessionStorage.getItem('USER_NAME') ||
+    'Khách hàng';
 }
 
 function toggleUserMenu() {
@@ -282,9 +292,10 @@ function openProfile() {
   userMenuOpen.value = false;
   router.push({ name: 'ClientProfile' });
 }
+
 function openMyOrders() {
   userMenuOpen.value = false;
-  router.push({ name: "MyOrders" });
+  router.push({ name: 'MyOrders' });
 }
 
 function logout() {
@@ -296,7 +307,7 @@ function logout() {
   sessionStorage.removeItem('USER_NAME');
 
   syncAuth();
-  router.push('/homepage');
+  router.push({ name: 'Home' });
 }
 
 function handleClickOutside(e) {
@@ -319,6 +330,7 @@ const cartToast = ref({
   image: '',
   qty: 1,
 });
+
 let cartToastTimer = null;
 
 function handleCartAdded(event) {
@@ -352,6 +364,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
   window.removeEventListener('storage', handleStorageChange);
   window.removeEventListener(CART_ADDED_EVENT, handleCartAdded);
+
   if (cartToastTimer) {
     clearTimeout(cartToastTimer);
     cartToastTimer = null;
@@ -506,7 +519,7 @@ onBeforeUnmount(() => {
 }
 
 .nav-link:hover,
-.nav-link.router-link-active {
+.nav-link.router-link-exact-active {
   color: #0d6efd;
 }
 

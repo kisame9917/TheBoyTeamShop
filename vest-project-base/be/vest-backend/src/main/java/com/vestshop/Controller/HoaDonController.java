@@ -133,4 +133,28 @@ public class HoaDonController {
     public ResponseEntity<HoaDonDetailResponse> generateQr(@PathVariable Long id) {
         return ResponseEntity.ok(hoaDonService.generatePosQr(id));
     }
+    @PostMapping("/draft/{id}/pos-qr/init")
+    public ResponseEntity<PosQrInitResponse> initPosQr(
+            @PathVariable Long id,
+            @RequestBody(required = false) PosQrInitRequest req
+    ) {
+        return ResponseEntity.ok(hoaDonService.initPosQrPayment(id, req));
+    }
+
+    @PostMapping("/draft/{id}/pos-qr/confirm")
+    public ResponseEntity<PosQrConfirmResponse> confirmPosQr(
+            @PathVariable Long id,
+            @RequestBody PosQrConfirmRequest req
+    ) {
+        return ResponseEntity.ok(hoaDonService.confirmPosQrPayment(id, req));
+    }
+
+    @GetMapping("/draft/{id}/pos-qr/status")
+    public ResponseEntity<PosQrStatusResponse> getPosQrStatus(
+            @PathVariable Long id,
+            @RequestParam(required = false) String requestCode
+    ) {
+        return ResponseEntity.ok(hoaDonService.getPosQrPaymentStatus(id, requestCode));
+    }
+
 }

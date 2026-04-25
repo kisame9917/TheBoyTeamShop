@@ -1,7 +1,6 @@
 package com.vestshop.Service.impl;
 
 import com.vestshop.Entity.*;
-import com.vestshop.Exception.BadRequestException;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.EmailService;
 import com.vestshop.Service.HoaDonService;
@@ -232,18 +231,25 @@ public class HoaDonServiceImpl implements HoaDonService {
             tongTienGiam = tongTien.multiply(BigDecimal.valueOf(p)).divide(BigDecimal.valueOf(100));
             hd.setPhieuGiamGia(null);
         }
-
         BigDecimal tongTienSauGiam = tongTien.subtract(tongTienGiam);
         if (tongTienSauGiam.compareTo(BigDecimal.ZERO) < 0) tongTienSauGiam = BigDecimal.ZERO;
-
-        BigDecimal paid = req.getPaid() == null ? BigDecimal.ZERO : req.getPaid();
-        if (paid.compareTo(tongTienSauGiam) < 0) throw new IllegalArgumentException("Khách thanh toán chưa đủ");
-        BigDecimal tienThua = paid.subtract(tongTienSauGiam);
-        if (tienThua.compareTo(BigDecimal.ZERO) < 0) tienThua = BigDecimal.ZERO;
 
         boolean isShip = Boolean.TRUE.equals(req.getLoaiDon());
         hd.setLoaiDon(isShip);
         hd.setPhiVanChuyen(req.getPhiVanChuyen() == null ? BigDecimal.ZERO : req.getPhiVanChuyen());
+
+        BigDecimal tongCanThu = tongTienSauGiam.add(
+                isShip
+                        ? (req.getPhiVanChuyen() == null ? BigDecimal.ZERO : req.getPhiVanChuyen())
+                        : BigDecimal.ZERO
+        );
+
+        BigDecimal paid = req.getPaid() == null ? BigDecimal.ZERO : req.getPaid();
+        if (paid.compareTo(tongCanThu) < 0) {
+            throw new IllegalArgumentException("Khách thanh toán chưa đủ");
+        }
+        BigDecimal tienThua = paid.subtract(tongCanThu);
+        if (tienThua.compareTo(BigDecimal.ZERO) < 0) tienThua = BigDecimal.ZERO;
 
         if (req.getIdKhachHang() != null) {
             KhachHang kh = khachHangRepository.findById(req.getIdKhachHang())
@@ -280,18 +286,20 @@ public class HoaDonServiceImpl implements HoaDonService {
         hd.setTongTienSauGiam(tongTienSauGiam);
 
         if (isShip) {
-            hd.setTrangThaiDon(0);
+            hd.setTrangThaiDon(8); // DA_XAC_NHAN
         } else {
-            hd.setTrangThaiDon(4);
+            hd.setTrangThaiDon(4); // HOAN_THANH
         }
-
         hd.setNgayCapNhat(LocalDateTime.now());
 
         NhanVien nv = getCurrentNhanVien();
         hd.setNhanVien(nv);
         hd.setNguoiCapNhat(nv != null ? nv.getTenNhanVien() : currentUser());
 
-        hoaDonRepository.save(hd);
+        log.info("CHECKOUT_DRAFT hoaDonId={}, isShip={}, trangThaiDon={}",
+                hoaDonId, isShip, hd.getTrangThaiDon());
+
+        hoaDonRepository.saveAndFlush(hd);
 
         if (shouldConsumeVoucherOnCheckout(hd)) {
             consumeVoucherIfNeeded(hd);
@@ -311,8 +319,16 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         LichSuHoaDon ls = new LichSuHoaDon();
         ls.setHoaDon(hd);
-        ls.setHanhDong("Thanh toán hóa đơn nháp");
-        ls.setGhiChu("POS checkout draft");
+        ls.setHanhDong(
+                isShip
+                        ? TrangThaiDonHang.DA_XAC_NHAN.name()
+                        : TrangThaiDonHang.HOAN_THANH.name()
+        );
+        ls.setGhiChu(
+                isShip
+                        ? "POS checkout - đơn giao hàng đã xác nhận"
+                        : "POS checkout - hoàn thành tại quầy"
+        );
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
         lichSuHoaDonRepository.save(ls);
@@ -335,13 +351,27 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         if (pttt == null) {
-            boolean isCk = (maGd != null && maGd.toUpperCase().startsWith("QR-"))
-                    || (req.getGhiChuThanhToan() != null && req.getGhiChuThanhToan().toUpperCase().contains("QR"));
+            String upperMaGd = maGd == null ? "" : maGd.toUpperCase();
+            String upperNote = req.getGhiChuThanhToan() == null ? "" : req.getGhiChuThanhToan().toUpperCase();
+
+            boolean isCk =
+                    upperMaGd.startsWith("QR-")
+                            || upperMaGd.startsWith("VNPAY-")
+                            || upperMaGd.contains("BANK")
+                            || upperMaGd.contains("CK")
+                            || upperNote.contains("QR")
+                            || upperNote.contains("VNPAY")
+                            || upperNote.contains("CHUYEN KHOAN")
+                            || upperNote.contains("CHUYỂN KHOẢN");
 
             if (isCk) {
-                pttt = phuongThucThanhToanRepository.findFirstByHinhThucAndTrangThaiTrue(2).orElse(null);
+                pttt = phuongThucThanhToanRepository
+                        .findFirstByHinhThucAndTrangThaiTrue(2)
+                        .orElse(null);
             } else {
-                pttt = phuongThucThanhToanRepository.findFirstByHinhThucAndTrangThaiTrue(1).orElse(null);
+                pttt = phuongThucThanhToanRepository
+                        .findFirstByHinhThucAndTrangThaiTrue(1)
+                        .orElse(null);
             }
         }
 
@@ -491,7 +521,8 @@ public class HoaDonServiceImpl implements HoaDonService {
         Page<HoaDon> page = hoaDonRepository.findAll(spec, pageable);
 
         return page.map(hd -> {
-            TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
+            Integer effectiveStatus = resolveEffectiveTrangThaiDon(hd);
+            TrangThaiDonHang st = TrangThaiDonHang.fromCode(effectiveStatus);
             NhanVien nv = hd.getNhanVien();
 
             String tenNhanVien =
@@ -507,8 +538,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                     .id(hd.getId())
                     .maHoaDon(hd.getMaHoaDon())
                     .trangThai(hd.getTrangThai())
-                    .trangThaiDon(hd.getTrangThaiDon())
-                    .tenTrangThaiDon(st.getTen())
+                    .trangThaiDon(effectiveStatus)
+                    .tenTrangThaiDon(st != null ? st.getTen() : null)
                     .loaiDon(hd.getLoaiDon())
                     .tongTienSauGiam(hd.getTongTienSauGiam())
                     .tenKhachHang(hd.getTenKhachHang())
@@ -645,7 +676,8 @@ public class HoaDonServiceImpl implements HoaDonService {
             rollbackVoucherIfNeeded(hd);
         }
 
-        if (isOnlineConfirmTransition(hd, oldSt, newSt)) {
+        if (newSt == TrangThaiDonHang.DA_XAC_NHAN
+                && oldSt != TrangThaiDonHang.DA_XAC_NHAN) {
             truTonKhoKhiXacNhan(hd);
         }
 
@@ -727,12 +759,6 @@ public class HoaDonServiceImpl implements HoaDonService {
                 && newSt == TrangThaiDonHang.HOAN_THANH;
     }
 
-    private boolean isOnlineConfirmTransition(HoaDon hd, TrangThaiDonHang oldSt, TrangThaiDonHang newSt) {
-        if (hd == null || !Boolean.TRUE.equals(hd.getLoaiDon())) return false;
-        if (oldSt != TrangThaiDonHang.CHO_XAC_NHAN) return false;
-
-        return newSt == TrangThaiDonHang.DA_XAC_NHAN;
-    }
 
     private void truTonKhoKhiXacNhan(HoaDon hd) {
         List<HoaDonChiTiet> cts = hoaDonChiTietRepository.findAllByHoaDon_Id(hd.getId());
@@ -857,7 +883,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                     .build();
         }).collect(Collectors.toList());
 
-        TrangThaiDonHang st = TrangThaiDonHang.fromCode(hd.getTrangThaiDon());
+        Integer effectiveStatus = resolveEffectiveTrangThaiDon(hd);
+        TrangThaiDonHang st = TrangThaiDonHang.fromCode(effectiveStatus);
         NhanVien nv = hd.getNhanVien();
 
         String maNhanVien =
@@ -876,8 +903,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .maNhanVien(maNhanVien)
                 .tenNhanVien(tenNhanVien)
                 .idPhieuGiamGia(hd.getPhieuGiamGia() == null ? null : hd.getPhieuGiamGia().getId())
-                .trangThaiDon(hd.getTrangThaiDon())
-                .tenTrangThaiDon(st.getTen())
+                .trangThaiDon(effectiveStatus)
+                .tenTrangThaiDon(st != null ? st.getTen() : null)
                 .loaiDon(hd.getLoaiDon())
                 .phiVanChuyen(hd.getPhiVanChuyen())
                 .tongTien(hd.getTongTien())
@@ -1058,8 +1085,18 @@ public class HoaDonServiceImpl implements HoaDonService {
 
     private boolean shouldConsumeVoucherOnCheckout(HoaDon hd) {
         if (hd == null || hd.getPhieuGiamGia() == null) return false;
-        return !Boolean.TRUE.equals(hd.getLoaiDon())
-                && Objects.equals(hd.getTrangThaiDon(), TrangThaiDonHang.HOAN_THANH.getCode());
+
+        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
+            return Objects.equals(
+                    hd.getTrangThaiDon(),
+                    TrangThaiDonHang.DA_XAC_NHAN.getCode()
+            );
+        }
+
+        return Objects.equals(
+                hd.getTrangThaiDon(),
+                TrangThaiDonHang.HOAN_THANH.getCode()
+        );
     }
 
     private boolean shouldConsumeVoucherOnStatusTransition(HoaDon hd, TrangThaiDonHang oldSt, TrangThaiDonHang newSt) {
@@ -1180,49 +1217,238 @@ public class HoaDonServiceImpl implements HoaDonService {
                 || st == TrangThaiDonHang.DA_GIAO
                 || st == TrangThaiDonHang.HOAN_THANH;
     }
+    private Integer mapHistoryActionToStatusCode(String hanhDong) {
+        if (hanhDong == null || hanhDong.isBlank()) return null;
+
+        return switch (hanhDong) {
+            case "CHO_XAC_NHAN" -> TrangThaiDonHang.CHO_XAC_NHAN.getCode();
+            case "DA_XAC_NHAN", "XAC_NHAN_DON" -> TrangThaiDonHang.DA_XAC_NHAN.getCode();
+            case "DANG_XU_LY" -> TrangThaiDonHang.DANG_XU_LY.getCode();
+            case "DANG_GIAO" -> TrangThaiDonHang.DANG_GIAO.getCode();
+            case "DA_GIAO" -> TrangThaiDonHang.DA_GIAO.getCode();
+            case "HOAN_THANH" -> TrangThaiDonHang.HOAN_THANH.getCode();
+            case "DA_HUY" -> TrangThaiDonHang.DA_HUY.getCode();
+            case "YEU_CAU_HUY", "KHACH_HANG_YEU_CAU_HUY_DON" -> TrangThaiDonHang.YEU_CAU_HUY.getCode();
+            case "DA_HOAN", "XAC_NHAN_HOAN_TIEN" -> TrangThaiDonHang.DA_HOAN.getCode();
+            default -> null;
+        };
+    }
+
+    private Integer resolveEffectiveTrangThaiDon(HoaDon hd) {
+        if (hd == null || hd.getId() == null) return null;
+
+        Integer raw = hd.getTrangThaiDon();
+
+        Optional<LichSuHoaDon> latestHistory =
+                lichSuHoaDonRepository.findTopByHoaDon_IdAndTrangThaiTrueOrderByThoiGianDesc(hd.getId());
+
+        Integer fromHistory = latestHistory
+                .map(LichSuHoaDon::getHanhDong)
+                .map(this::mapHistoryActionToStatusCode)
+                .orElse(null);
+
+        return fromHistory != null ? fromHistory : raw;
+    }
+    private BigDecimal resolvePosPayable(HoaDon hd) {
+        BigDecimal tongSauGiam = hd.getTongTienSauGiam() == null ? BigDecimal.ZERO : hd.getTongTienSauGiam();
+        BigDecimal phiShip = Boolean.TRUE.equals(hd.getLoaiDon())
+                ? (hd.getPhiVanChuyen() == null ? BigDecimal.ZERO : hd.getPhiVanChuyen())
+                : BigDecimal.ZERO;
+        return tongSauGiam.add(phiShip);
+    }
     @Override
     @Transactional
-    public HoaDonDetailResponse generatePosQr(Long id) {
-        HoaDon hd = hoaDonRepository.findById(id)
-                .orElseThrow(() -> new BadRequestException("Không tìm thấy hóa đơn"));
+    public PosQrInitResponse initPosQrPayment(Long hoaDonId, PosQrInitRequest req) {
+        HoaDon hd = hoaDonRepository.findById(hoaDonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hóa đơn không tồn tại"));
 
-        if (!Boolean.TRUE.equals(hd.getTrangThai())) {
-            throw new BadRequestException("Hóa đơn không còn hoạt động");
+        if (hd.getTrangThaiDon() == null || hd.getTrangThaiDon() != 0) {
+            throw new IllegalArgumentException("Chỉ hỗ trợ QR cho hóa đơn nháp POS");
         }
 
-        if (hd.getTongTienSauGiam() == null || hd.getTongTienSauGiam().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BadRequestException("Số tiền thanh toán không hợp lệ");
+        BigDecimal amount = resolvePosPayable(hd);
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Hóa đơn chưa có giá trị thanh toán");
         }
 
-        String transferContent = "VEST " + hd.getMaHoaDon();
-        String qrImageUrl = "/images/static-qr-techcombank.png";
-
-        hd.setQrCode(qrImageUrl);
-        hoaDonRepository.save(hd);
+        String requestCode = "POSQR-" + hd.getMaHoaDon() + "-" + System.currentTimeMillis();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = now.plusMinutes(15);
 
         PhuongThucThanhToan pttt = phuongThucThanhToanRepository
-                .findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue("QR")
-                .orElseGet(() -> phuongThucThanhToanRepository
-                        .findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue("CK")
-                        .orElseThrow(() -> new BadRequestException("Không tìm thấy phương thức thanh toán QR/Chuyển khoản")));
+                .findFirstByHinhThucAndTrangThaiTrue(2)
+                .orElse(null);
 
-        GiaoDichThanhToan gdtt = giaoDichThanhToanRepository
-                .findFirstByHoaDon_IdOrderByIdDesc(id)
-                .orElse(new GiaoDichThanhToan());
+        String paymentUrl =
+                "/pos-mock-payment" +
+                        "?orderId=" + hd.getId() +
+                        "&requestCode=" + requestCode +
+                        "&method=BANK_QR" +
+                        "&amount=" + amount +
+                        "&maHoaDon=" + hd.getMaHoaDon();
 
-        gdtt.setHoaDon(hd);
-        gdtt.setPhuongThucThanhToan(pttt);
-        gdtt.setSoTien(hd.getTongTienSauGiam());
-        gdtt.setDuLieuQr(qrImageUrl);
-        gdtt.setGhiChu(transferContent);
-        gdtt.setTrangThai(false);
-        gdtt.setThoiGianCapNhat(LocalDateTime.now());
-        if (gdtt.getThoiGianTao() == null) {
-            gdtt.setThoiGianTao(LocalDateTime.now());
+        GiaoDichThanhToan gd = new GiaoDichThanhToan();
+        gd.setHoaDon(hd);
+        gd.setPhuongThucThanhToan(pttt);
+        gd.setSoTien(amount);
+        gd.setMaYeuCau(requestCode);
+        gd.setMaThamChieu(requestCode);
+        gd.setDuLieuQr(paymentUrl);
+        gd.setThoiHan(expiresAt);
+        gd.setThoiGianTao(now);
+        gd.setThoiGianCapNhat(now);
+        gd.setGhiChu("POS_QR_PENDING");
+        gd.setTrangThai(true);
+
+        giaoDichThanhToanRepository.save(gd);
+
+        return PosQrInitResponse.builder()
+                .hoaDonId(hd.getId())
+                .maHoaDon(hd.getMaHoaDon())
+                .requestCode(requestCode)
+                .amount(amount)
+                .paymentUrl(paymentUrl)
+                .expiresAt(expiresAt)
+                .build();
+    }
+    @Override
+    @Transactional
+    public PosQrConfirmResponse confirmPosQrPayment(Long hoaDonId, PosQrConfirmRequest req) {
+        HoaDon hd = hoaDonRepository.findById(hoaDonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hóa đơn không tồn tại"));
+
+        GiaoDichThanhToan gd = null;
+
+        if (req.getRequestCode() != null && !req.getRequestCode().isBlank()) {
+            gd = giaoDichThanhToanRepository
+                    .findFirstByHoaDon_IdAndMaYeuCauAndTrangThaiTrueOrderByIdDesc(hoaDonId, req.getRequestCode())
+                    .orElse(null);
         }
 
-        giaoDichThanhToanRepository.save(gdtt);
+        if (gd == null) {
+            gd = giaoDichThanhToanRepository
+                    .findFirstByHoaDon_IdAndTrangThaiTrueAndMaGiaoDichIsNullOrderByIdDesc(hoaDonId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giao dịch POS QR đang chờ"));
+        }
 
-        return getDetailById(id);
+        if (gd.getThoiHan() != null && LocalDateTime.now().isAfter(gd.getThoiHan())) {
+            throw new IllegalArgumentException("Giao dịch QR đã hết hạn");
+        }
+
+        if (gd.getMaGiaoDich() == null || gd.getMaGiaoDich().isBlank()) {
+            gd.setMaGiaoDich(
+                    (req.getMaGiaoDich() != null && !req.getMaGiaoDich().isBlank())
+                            ? req.getMaGiaoDich().trim()
+                            : "PAY" + System.currentTimeMillis()
+            );
+        }
+
+        gd.setMaGiaoDichNgoai(req.getPaymentGateway());
+        gd.setGhiChu(
+                (req.getGhiChu() != null && !req.getGhiChu().isBlank())
+                        ? req.getGhiChu().trim()
+                        : "POS_QR_CONFIRMED"
+        );
+        gd.setThoiGianCapNhat(LocalDateTime.now());
+
+        giaoDichThanhToanRepository.save(gd);
+        hd.setNgayCapNhat(LocalDateTime.now());
+
+        if (Boolean.TRUE.equals(hd.getLoaiDon())) {
+            hd.setTrangThaiDon(TrangThaiDonHang.DA_XAC_NHAN.getCode());
+            truTonKhoKhiXacNhan(hd);
+        } else {
+            hd.setTrangThaiDon(TrangThaiDonHang.HOAN_THANH.getCode());
+        }
+
+        hoaDonRepository.save(hd);
+
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setHoaDon(hd);
+        ls.setHanhDong(Boolean.TRUE.equals(hd.getLoaiDon())
+                ? TrangThaiDonHang.DA_XAC_NHAN.name()
+                : TrangThaiDonHang.HOAN_THANH.name());
+        ls.setGhiChu(
+                (req.getGhiChu() != null && !req.getGhiChu().isBlank())
+                        ? req.getGhiChu().trim()
+                        : "POS QR thanh toán thành công"
+        );
+        ls.setThoiGian(LocalDateTime.now());
+        ls.setTrangThai(true);
+        lichSuHoaDonRepository.save(ls);
+
+        LichSuThanhToan payHis = new LichSuThanhToan();
+        payHis.setHoaDon(hd);
+        payHis.setMaGiaoDich(gd.getMaGiaoDich());
+        payHis.setSoTien(gd.getSoTien());
+        payHis.setNgayThanhToan(LocalDateTime.now());
+        payHis.setGhiChu(
+                (req.getGhiChu() != null && !req.getGhiChu().isBlank())
+                        ? req.getGhiChu().trim()
+                        : "POS QR thanh toán thành công"
+        );
+        payHis.setTrangThai(true);
+
+        if (gd.getPhuongThucThanhToan() != null) {
+            payHis.setPhuongThucThanhToan(gd.getPhuongThucThanhToan());
+            payHis.setHinhThucThanhToan(gd.getPhuongThucThanhToan().getTenPhuongThucThanhToan());
+        } else {
+            payHis.setHinhThucThanhToan("QR");
+        }
+
+        lichSuThanhToanRepository.save(payHis);
+
+        posRealtimeService.pushRemove(hd.getId());
+        return PosQrConfirmResponse.builder()
+                .hoaDonId(hd.getId())
+                .maHoaDon(hd.getMaHoaDon())
+                .requestCode(gd.getMaYeuCau())
+                .maGiaoDich(gd.getMaGiaoDich())
+                .soTien(gd.getSoTien())
+                .paid(true)
+                .message("Xác nhận thanh toán POS QR thành công")
+                .build();
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public PosQrStatusResponse getPosQrPaymentStatus(Long hoaDonId, String requestCode) {
+        HoaDon hd = hoaDonRepository.findById(hoaDonId)
+                .orElseThrow(() -> new IllegalArgumentException("Hóa đơn không tồn tại"));
+
+        GiaoDichThanhToan gd = null;
+
+        if (requestCode != null && !requestCode.isBlank()) {
+            gd = giaoDichThanhToanRepository
+                    .findFirstByHoaDon_IdAndMaYeuCauAndTrangThaiTrueOrderByIdDesc(hoaDonId, requestCode)
+                    .orElse(null);
+        }
+
+        if (gd == null) {
+            gd = giaoDichThanhToanRepository
+                    .findFirstByHoaDon_IdOrderByIdDesc(hoaDonId)
+                    .orElse(null);
+        }
+
+        if (gd == null) {
+            return PosQrStatusResponse.builder()
+                    .hoaDonId(hd.getId())
+                    .maHoaDon(hd.getMaHoaDon())
+                    .pending(false)
+                    .paid(false)
+                    .build();
+        }
+
+        boolean paid = gd.getMaGiaoDich() != null && !gd.getMaGiaoDich().isBlank();
+
+        return PosQrStatusResponse.builder()
+                .hoaDonId(hd.getId())
+                .maHoaDon(hd.getMaHoaDon())
+                .requestCode(gd.getMaYeuCau())
+                .pending(!paid)
+                .paid(paid)
+                .maGiaoDich(gd.getMaGiaoDich())
+                .soTien(gd.getSoTien())
+                .expiresAt(gd.getThoiHan())
+                .build();
     }
 }

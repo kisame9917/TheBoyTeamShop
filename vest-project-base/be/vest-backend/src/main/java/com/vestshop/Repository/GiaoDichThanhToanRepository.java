@@ -59,4 +59,14 @@ public interface GiaoDichThanhToanRepository extends JpaRepository<GiaoDichThanh
     BigDecimal sumKhacTienMatByHoaDonCreatedRange(@Param("from") LocalDateTime from,
                                                   @Param("to") LocalDateTime to,
                                                   @Param("status") Integer status);
+    Optional<GiaoDichThanhToan> findFirstByHoaDon_IdAndMaYeuCauAndTrangThaiTrueOrderByIdDesc(
+            Long hoaDonId,
+            String maYeuCau
+    );
+
+    Optional<GiaoDichThanhToan> findFirstByHoaDon_IdAndTrangThaiTrueAndMaGiaoDichIsNullOrderByIdDesc(
+            Long hoaDonId
+    );
+
+
 }

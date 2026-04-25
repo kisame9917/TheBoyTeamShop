@@ -1,42 +1,33 @@
 package com.vestshop.Service.impl;
-import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ThreadLocalRandom;
-import com.vestshop.Entity.GiaoDichThanhToan;
-import com.vestshop.Entity.HoaDon;
-import com.vestshop.Entity.HoaDonChiTiet;
-import com.vestshop.Entity.KhachHang;
-import com.vestshop.Entity.LichSuThanhToan;
-import com.vestshop.Entity.PhieuGiamGia;
-import com.vestshop.Entity.PhuongThucThanhToan;
-import com.vestshop.Entity.SanPhamChiTiet;
+
+import com.vestshop.Entity.*;
 import com.vestshop.Exception.BadRequestException;
-import com.vestshop.Repository.GiaoDichThanhToanRepository;
-import com.vestshop.Repository.HoaDonChiTietRepository;
-import com.vestshop.Repository.HoaDonRepository;
-import com.vestshop.Repository.KhachHangRepository;
-import com.vestshop.Repository.LichSuThanhToanRepository;
-import com.vestshop.Repository.PhieuGiamGiaRepository;
-import com.vestshop.Repository.PhuongThucThanhToanRepository;
-import com.vestshop.Repository.SanPhamChiTietRepository;
+import com.vestshop.Repository.*;
+import com.vestshop.Service.EmailService;
 import com.vestshop.Service.OnlineCheckoutService;
+import com.vestshop.common.TrangThaiDonHang;
 import com.vestshop.dto.request.ConfirmPaymentRequest;
 import com.vestshop.dto.request.OnlineCheckoutItemRequest;
 import com.vestshop.dto.request.OnlineCheckoutRequest;
-import com.vestshop.dto.response.ApiMessageResponse;
-import com.vestshop.dto.response.OnlineCheckoutResponse;
+import com.vestshop.dto.response.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.vestshop.common.TrangThaiDonHang;
-import com.vestshop.dto.response.OnlineOrderLookupResponse;
-import java.util.List;
+import org.springframework.util.StringUtils;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Random;
-import com.vestshop.Service.EmailService;
-import com.vestshop.dto.response.HoaDonDetailResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
@@ -50,7 +41,17 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
     private final PhieuGiamGiaRepository phieuGiamGiaRepository;
     private final PhuongThucThanhToanRepository phuongThucThanhToanRepository;
     private final EmailService emailService;
+    @Value("${vnpay.tmn-code}")
+    private String vnpTmnCode;
 
+    @Value("${vnpay.hash-secret}")
+    private String vnpHashSecret;
+
+    @Value("${vnpay.pay-url}")
+    private String vnpPayUrl;
+
+    @Value("${vnpay.return-url}")
+    private String vnpReturnUrl;
     public OnlineCheckoutServiceImpl(HoaDonRepository hoaDonRepository,
                                      HoaDonChiTietRepository hoaDonChiTietRepository,
                                      SanPhamChiTietRepository sanPhamChiTietRepository,
@@ -179,7 +180,7 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             response.setPaymentStatus("PENDING");
             response.setAmount(savedHoaDon.getTongTienSauGiam());
             response.setPaymentUrl(
-                    "http://localhost:5173/mock-payment"
+                    "/mock-payment"
                             + "?orderId=" + savedHoaDon.getId()
                             + "&method=" + paymentMethod
                             + "&amount=" + savedHoaDon.getTongTienSauGiam()
@@ -632,5 +633,147 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
         }
 
         return null;
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public OnlinePaymentStatusResponse getPaymentStatus(Long orderId) {
+        HoaDon hoaDon = hoaDonRepository.findById(orderId)
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy hóa đơn"));
+
+        GiaoDichThanhToan gdtt = giaoDichThanhToanRepository
+                .findFirstByHoaDon_IdOrderByIdDesc(orderId)
+                .orElse(null);
+
+        boolean paid = gdtt != null && Boolean.TRUE.equals(gdtt.getTrangThai());
+
+        String paymentStatus;
+        if (paid) {
+            paymentStatus = "PAID";
+        } else if (gdtt != null) {
+            paymentStatus = "PENDING";
+        } else {
+            paymentStatus = "UNPAID";
+        }
+
+        return OnlinePaymentStatusResponse.builder()
+                .orderId(hoaDon.getId())
+                .paymentStatus(paymentStatus)
+                .paid(paid)
+                .message(paid ? "Thanh toán thành công" : "Chưa thanh toán")
+                .maGiaoDich(gdtt != null ? gdtt.getMaGiaoDich() : null)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCheckoutResponse createVnpayPaymentUrl(Long orderId) {
+        HoaDon hoaDon = hoaDonRepository.findById(orderId)
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy hóa đơn"));
+
+        BigDecimal amount = defaultBigDecimal(hoaDon.getTongTienSauGiam());
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Số tiền thanh toán không hợp lệ");
+        }
+
+        String paymentUrl = buildVnpayPaymentUrl(hoaDon);
+
+        OnlineCheckoutResponse response = new OnlineCheckoutResponse();
+        response.setSuccess(true);
+        response.setMessage("Tạo link VNPAY thành công");
+        response.setOrderId(hoaDon.getId());
+        response.setMaHoaDon(hoaDon.getMaHoaDon());
+        response.setTrangThaiDon(hoaDon.getTrangThaiDon());
+        response.setPaymentMethod("VNPAY");
+        response.setPaymentStatus("PENDING");
+        response.setAmount(amount);
+        response.setPaymentUrl(paymentUrl);
+
+        return response;
+    }
+
+    private String buildQuery(Map<String, String> params, boolean encodeValue) {
+        return params.entrySet().stream()
+                .filter(e -> StringUtils.hasText(e.getValue()))
+                .map(e -> e.getKey() + "=" + (encodeValue ? urlEncode(e.getValue()) : e.getValue()))
+                .collect(Collectors.joining("&"));
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+
+    private String buildVnpayPaymentUrl(HoaDon hoaDon) {
+        TimeZone timeZone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
+        Calendar calendar = Calendar.getInstance(timeZone);
+
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        formatter.setTimeZone(timeZone);
+
+        String createDate = formatter.format(calendar.getTime());
+        calendar.add(Calendar.MINUTE, 15);
+        String expireDate = formatter.format(calendar.getTime());
+
+        long amount = defaultBigDecimal(hoaDon.getTongTienSauGiam()).longValue() * 100L;
+
+        Map<String, String> vnpParams = new TreeMap<>();
+        vnpParams.put("vnp_Version", "2.1.0");
+        vnpParams.put("vnp_Command", "pay");
+        vnpParams.put("vnp_TmnCode", vnpTmnCode);
+        vnpParams.put("vnp_Amount", String.valueOf(amount));
+        vnpParams.put("vnp_CurrCode", "VND");
+        vnpParams.put("vnp_TxnRef", String.valueOf(hoaDon.getId()));
+        vnpParams.put("vnp_OrderInfo", "Thanh toan don hang " + hoaDon.getMaHoaDon());
+        vnpParams.put("vnp_OrderType", "other");
+        vnpParams.put("vnp_Locale", "vn");
+        vnpParams.put("vnp_ReturnUrl", vnpReturnUrl);
+        vnpParams.put("vnp_IpAddr", "127.0.0.1");
+        vnpParams.put("vnp_CreateDate", createDate);
+        vnpParams.put("vnp_ExpireDate", expireDate);
+
+        StringBuilder hashData = new StringBuilder();
+        StringBuilder query = new StringBuilder();
+
+        for (Map.Entry<String, String> entry : vnpParams.entrySet()) {
+            String fieldName = entry.getKey();
+            String fieldValue = entry.getValue();
+
+            if (fieldValue != null && !fieldValue.isEmpty()) {
+                String encodedFieldName = URLEncoder.encode(fieldName, StandardCharsets.US_ASCII);
+                String encodedFieldValue = URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII);
+
+                if (hashData.length() > 0) {
+                    hashData.append('&');
+                    query.append('&');
+                }
+
+                hashData.append(encodedFieldName).append('=').append(encodedFieldValue);
+                query.append(encodedFieldName).append('=').append(encodedFieldValue);
+            }
+        }
+
+        String secureHash = hmacSHA512(vnpHashSecret, hashData.toString());
+
+        return vnpPayUrl + "?" + query + "&vnp_SecureHash=" + secureHash;
+    }
+
+    private String hmacSHA512(String key, String data) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA512");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(
+                    key.getBytes(StandardCharsets.UTF_8),
+                    "HmacSHA512"
+            );
+            mac.init(secretKeySpec);
+            byte[] bytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hash = new StringBuilder();
+            for (byte b : bytes) {
+                hash.append(String.format("%02x", b & 0xff));
+            }
+            return hash.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể tạo chữ ký VNPAY", e);
+        }
     }
 }

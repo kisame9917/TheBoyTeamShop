@@ -585,22 +585,25 @@ function autoApplyFilters(delay = 450) {
 function statusBadgeClass(code) {
   const c = Number(code);
 
-  if (c === STATUS.HOAN_THANH) return "text-bg-success";
-  if (c === STATUS.DA_GIAO) return "text-bg-primary";
-  if (c === STATUS.DA_XAC_NHAN) return "text-bg-primary";
-  if (c === STATUS.DANG_GIAO) return "text-bg-info";
-  if (c === STATUS.DA_HUY) return "text-bg-secondary";
-  if (c === STATUS.DA_HOAN) return "text-bg-success";
-  if (c === STATUS.YEU_CAU_HUY) return "text-bg-warning text-dark";
-  if (c === STATUS.CHO_XAC_NHAN || c === STATUS.DANG_XU_LY) {
-    return "text-bg-warning text-dark";
+  if (c === STATUS.CHO_XAC_NHAN) return "status-gray";
+
+  if (
+    c === STATUS.DA_XAC_NHAN ||
+    c === STATUS.DANG_XU_LY ||
+    c === STATUS.DANG_GIAO ||
+    c === STATUS.DA_GIAO
+  ) {
+    return "status-orange";
   }
-  
-  
 
-  return "text-bg-secondary";
+  if (c === STATUS.HOAN_THANH) return "text-bg-success";
+  if (c === STATUS.DA_HOAN) return "text-bg-success";
+
+  if (c === STATUS.YEU_CAU_HUY) return "status-orange";
+  if (c === STATUS.DA_HUY) return "text-bg-dark";
+
+  return "status-gray";
 }
-
 function formatCurrency(v) {
   const n = Number(v ?? 0);
   return n.toLocaleString("vi-VN") + " đ";
@@ -1588,5 +1591,16 @@ onBeforeUnmount(() => {
   min-width: 110px;
   display: inline-block;
   text-align: center;
+}
+.status-gray {
+  background: #6c757d !important;
+  color: #fff !important;
+  border-color: #6c757d !important;
+}
+
+.status-orange {
+  background: #fd7e14 !important;
+  color: #fff !important;
+  border-color: #fd7e14 !important;
 }
 </style>

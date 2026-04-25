@@ -9,22 +9,25 @@ import SearchPage from "../pages/client/SearchPage.vue";
 import ProductDetail from "../pages/client/ProductDetail.vue";
 import MockPaymentPage from "../pages/client/MockPayment.vue";
 
+// Pages (auth)
+import Login from "../pages/auth/Login.vue";
+
+const DiscountPage = () => import("../pages/client/DiscountPage.vue");
 const CartPage = () => import("../pages/client/CartPage.vue");
 const ContactPage = () => import("../pages/client/ContactPage.vue");
 const MyOrdersPage = () => import("../pages/client/MyOrdersPage.vue");
 const ProfilePage = () => import("../pages/client/ProfilePage.vue");
+const CheckoutPage = () => import("../pages/client/CheckoutPage.vue");
+const OrderLookupPage = () => import("../pages/client/OrderLookupPage.vue");
+const CheckoutSuccessPage = () =>
+  import("../pages/client/CheckoutSuccessPage.vue");
+const VnpayReturnPage = () => import("../pages/client/VnpayReturn.vue");
 
-// Pages (auth)
-import Login from "../pages/auth/Login.vue";
-
+// OAuth / auth pages
 const OAuth2Redirect = () => import("../pages/OAuth2Redirect.vue");
 const ForgotPassword = () => import("../pages/auth/ForgotPassword.vue");
 const OtpVerify = () => import("../pages/auth/OtpVerify.vue");
 const ResetPasswordOtp = () => import("../pages/auth/ResetPasswordOtp.vue");
-
-const CheckoutPage = () => import("../pages/client/CheckoutPage.vue");
-const OrderLookupPage = () => import("../pages/client/OrderLookupPage.vue");
-const CheckoutSuccessPage = () => import("../pages/client/CheckoutSuccessPage.vue");
 
 const routes = [
   {
@@ -34,10 +37,29 @@ const routes = [
       { path: "", name: "Home", component: HomePage },
       { path: "shop", name: "Shop", component: SearchPage },
       { path: "search", name: "Search", component: SearchPage },
+      { path: "giam-gia", name: "Discount", component: DiscountPage },
       { path: "cart", name: "Cart", component: CartPage },
-      { path: "product/:id", name: "ProductDetail", component: ProductDetail, props: true },
-      { path: "checkout", name: "Checkout", component: CheckoutPage },
-      { path: "checkout/success", name: "CheckoutSuccess", component: CheckoutSuccessPage },
+      {
+        path: "product/:id",
+        name: "ProductDetail",
+        component: ProductDetail,
+        props: true,
+      },
+      {
+        path: "checkout",
+        name: "Checkout",
+        component: CheckoutPage,
+      },
+      {
+        path: "checkout/success",
+        name: "CheckoutSuccess",
+        component: CheckoutSuccessPage,
+      },
+      {
+        path: "mock-payment",
+        name: "MockPayment",
+        component: MockPaymentPage,
+      },
       {
         path: "ho-so",
         name: "ClientProfile",
@@ -50,19 +72,55 @@ const routes = [
         component: MyOrdersPage,
         meta: { requiresClientAuth: true },
       },
-      { path: "contact", name: "Contact", component: ContactPage },
-      { path: "tra-cuu-don-hang", name: "OrderLookup", component: OrderLookupPage },
-      { path: "mock-payment", name: "MockPayment", component: MockPaymentPage },
+      {
+        path: "contact",
+        name: "Contact",
+        component: ContactPage,
+      },
+      {
+        path: "tra-cuu-don-hang",
+        name: "OrderLookup",
+        component: OrderLookupPage,
+      },
     ],
   },
 
-  { path: "/login", name: "Login", component: Login },
-  { path: "/oauth2/redirect", name: "OAuth2Redirect", component: OAuth2Redirect },
-  { path: "/forgot-password", name: "ForgotPassword", component: ForgotPassword },
-  { path: "/otp-verify", name: "OtpVerify", component: OtpVerify },
-  { path: "/reset-password-otp", name: "ResetPasswordOtp", component: ResetPasswordOtp },
+  {
+    path: "/checkout/vnpay-return",
+    name: "VnpayReturn",
+    component: VnpayReturnPage,
+  },
 
-  { path: "/:pathMatch(.*)*", redirect: "/" },
+  {
+    path: "/login",
+    name: "Login",
+    component: Login,
+  },
+  {
+    path: "/oauth2/redirect",
+    name: "OAuth2Redirect",
+    component: OAuth2Redirect,
+  },
+  {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: ForgotPassword,
+  },
+  {
+    path: "/otp-verify",
+    name: "OtpVerify",
+    component: OtpVerify,
+  },
+  {
+    path: "/reset-password-otp",
+    name: "ResetPasswordOtp",
+    component: ResetPasswordOtp,
+  },
+
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
+  },
 ];
 
 const router = createRouter({
@@ -79,8 +137,14 @@ router.beforeEach((to, from, next) => {
     !!sessionStorage.getItem("USER_ACCESS_TOKEN") ||
     !!localStorage.getItem("vest_token");
 
-  if (to.matched.some((record) => record.meta.requiresClientAuth) && !hasToken) {
-    next({ name: "Login", query: { redirect: to.fullPath } });
+  if (
+    to.matched.some((record) => record.meta.requiresClientAuth) &&
+    !hasToken
+  ) {
+    next({
+      name: "Login",
+      query: { redirect: to.fullPath },
+    });
     return;
   }
 

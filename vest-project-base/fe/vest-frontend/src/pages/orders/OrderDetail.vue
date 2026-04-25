@@ -129,9 +129,9 @@
 
               <span
                 class="badge order-badge"
-                :class="statusBadgeClass(hd?.trangThaiDon)"
+                :class="statusBadgeClass(currentStatus)"
               >
-                {{ statusLabel(hd?.trangThaiDon) }}
+                {{ statusLabel(currentStatus) }}
               </span>
 
               <span class="badge order-type-badge">
@@ -283,7 +283,7 @@
         <div class="summary-grid mt-3">
           <div class="summary-item">
             <div class="text-muted medium">Trạng thái hiện tại</div>
-            <div class="fw-semibold">{{ statusLabel(hd?.trangThaiDon) }}</div>
+            <div class="fw-semibold">{{ statusLabel(currentStatus) }}</div>
           </div>
           <div class="summary-item">
             <div class="text-muted medium">Số SP</div>
@@ -565,7 +565,7 @@
             <div class="mb-2">
               Trạng thái hiện tại:
               <span class="badge bg-secondary">{{
-                statusLabel(hd?.trangThaiDon)
+                statusLabel(currentStatus)
               }}</span>
               <i class="bi bi-arrow-right mx-2"></i>
               Trạng thái mới:
@@ -589,7 +589,7 @@
             </button>
             <button
               type="button"
-              class="btn btn-primary text-dark"
+              class="btn btn-primary text-white"
               :disabled="actionSubmitting"
               @click="confirmDoAction"
             >
@@ -638,7 +638,7 @@
               </div>
               <div class="row2">
                 <div>In lúc: {{ formatTimeOnlyVN(new Date()) }}</div>
-                <div>Loại: {{ hd?.loaiDon ? "Online" : "Tại quầy" }}</div>
+                <div>Loại: {{ orderTypeText }}</div>
               </div>
 
               <div class="mt6">Khách: {{ hd?.tenKhachHang || "Khách lẻ" }}</div>
@@ -732,7 +732,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -784,30 +783,33 @@ function statusLabel(code) {
 }
 function statusBadgeClass(code) {
   if (code === null || code === undefined || code === "") {
-    return "text-bg-secondary";
+    return "status-gray";
   }
 
   switch (Number(code)) {
+    case STATUS.CHO_XAC_NHAN:
+      return "status-gray";
+
+    case STATUS.DA_XAC_NHAN:
+    case STATUS.DANG_XU_LY:
+    case STATUS.DANG_GIAO:
+    case STATUS.DA_GIAO:
+      return "status-orange";
+
     case STATUS.HOAN_THANH:
       return "text-bg-success";
-    case STATUS.DA_GIAO:
-      return "text-bg-primary";
-    case STATUS.DA_XAC_NHAN:
-      return "text-bg-primary";
-    case STATUS.DANG_GIAO:
-      return "text-bg-info";
-    case STATUS.DANG_XU_LY:
-      return "text-bg-warning text-dark";
-    case STATUS.CHO_XAC_NHAN:
-      return "text-bg-secondary";
+
     case STATUS.YEU_CAU_HUY:
-      return "text-bg-warning text-dark";
+      return "status-orange";
+
     case STATUS.DA_HOAN:
       return "text-bg-success";
+
     case STATUS.DA_HUY:
       return "text-bg-dark";
+
     default:
-      return "text-bg-secondary";
+      return "status-gray";
   }
 }
 
@@ -852,7 +854,7 @@ async function fetchDetail() {
     currentPage.value = 1;
   } catch (e) {
     console.error(e);
-   toast.error("Không tải được chi tiết hóa đơn!");
+    toast.error("Không tải được chi tiết hóa đơn!");
   }
 }
 
@@ -860,12 +862,53 @@ function goBack() {
   router.back();
 }
 
-/** ====== COMPUTEDS ====== */
-const currentStatus = computed(() => Number(hd.value?.trangThaiDon ?? -1));
+const currentStatus = computed(() => {
+  const raw = Number(hd.value?.trangThaiDon ?? -1);
+  const validCodes = activeFlow.value;
+
+  if (validCodes.includes(raw)) return raw;
+
+  const actionMap = {
+    CHO_XAC_NHAN: STATUS.CHO_XAC_NHAN,
+    DA_XAC_NHAN: STATUS.DA_XAC_NHAN,
+    XAC_NHAN_DON: STATUS.DA_XAC_NHAN,
+    DANG_XU_LY: STATUS.DANG_XU_LY,
+    DANG_GIAO: STATUS.DANG_GIAO,
+    DA_GIAO: STATUS.DA_GIAO,
+    HOAN_THANH: STATUS.HOAN_THANH,
+  };
+
+  const history = [...(hd.value?.lichSuHoaDon || [])]
+    .sort((a, b) => new Date(a.thoiGian) - new Date(b.thoiGian))
+    .map((h) => actionMap[h.hanhDong])
+    .filter((code) => validCodes.includes(code));
+
+  return history.at(-1) ?? raw;
+});
+
+const isPosShipOrder = computed(() => {
+  const v = hd.value || {};
+  return (
+    !!v.loaiDon &&
+    !!v.maNhanVien &&
+    String(v.maNhanVien).toUpperCase() !== "SYSTEM"
+  );
+});
+
+const isOnlineShipOrder = computed(() => {
+  const v = hd.value || {};
+  return (
+    !!v.loaiDon &&
+    (!v.maNhanVien || String(v.maNhanVien).toUpperCase() === "SYSTEM")
+  );
+});
 
 const orderTypeText = computed(() => {
-  return hd.value?.loaiDon ? "Đơn hàng Online" : "Đơn hàng Tại quầy";
+  if (isPosShipOrder.value) return "Đơn hàng Tại quầy - giao hàng";
+  if (isOnlineShipOrder.value) return "Đơn hàng Online";
+  return "Đơn hàng Tại quầy";
 });
+
 const isShipOrder = computed(() => !!hd.value?.loaiDon);
 
 const receiverName = computed(() => {
@@ -1007,17 +1050,27 @@ const staffRole = computed(() => {
     (v?.loaiDon ? "Hệ thống" : "-")
   );
 });
+const FLOW_POS_SHIP = [
+  STATUS.DA_XAC_NHAN,
+  STATUS.DANG_XU_LY,
+  STATUS.DANG_GIAO,
+  STATUS.DA_GIAO,
+  STATUS.HOAN_THANH,
+];
+
 const FLOW_SHIP_ONLINE = [
   STATUS.CHO_XAC_NHAN,
   STATUS.DA_XAC_NHAN,
+  STATUS.DANG_XU_LY,
   STATUS.DANG_GIAO,
   STATUS.DA_GIAO,
   STATUS.HOAN_THANH,
 ];
 
 const activeFlow = computed(() => {
-  if (!isShipOrder.value) return [STATUS.HOAN_THANH];
-  return FLOW_SHIP_ONLINE;
+  if (isPosShipOrder.value) return FLOW_POS_SHIP;
+  if (isOnlineShipOrder.value) return FLOW_SHIP_ONLINE;
+  return [STATUS.HOAN_THANH];
 });
 
 const nextStatus = computed(() => {
@@ -1517,7 +1570,7 @@ function printInvoice() {
   w.onafterprint = () => w.close();
   w.print();
 
- toast.success("Đã mở cửa sổ in / lưu PDF!");
+  toast.success("Đã mở cửa sổ in / lưu PDF!");
 }
 
 function openRefundModal() {
@@ -1532,7 +1585,6 @@ function openRefundModal() {
     actionType: "refund",
   });
 }
-
 
 /** Mount */
 onMounted(async () => {
@@ -2192,5 +2244,16 @@ h6.mb-0 {
     width: 100%;
     text-align: left;
   }
+}
+.status-gray {
+  background: #6c757d !important;
+  color: #fff !important;
+  border-color: #6c757d !important;
+}
+
+.status-orange {
+  background: #fd7e14 !important;
+  color: #fff !important;
+  border-color: #fd7e14 !important;
 }
 </style>

@@ -27,22 +27,22 @@
       <div class="row g-4">
         <div class="col-lg-7">
           <section class="checkout-card mb-4">
-            <div class="checkout-card__header">
+            <div class="checkout-card__header checkout-card__header--address">
               <span>1. Địa chỉ giao hàng</span>
+
+              <button
+                v-if="isLoggedInCustomer"
+                type="button"
+                class="btn-select-address"
+                @click="openAddressModal"
+                :disabled="profileLoading"
+              >
+                <i class="bi bi-geo-alt me-2"></i>
+                {{ profileLoading ? "Đang tải địa chỉ..." : "Chọn địa chỉ" }}
+              </button>
             </div>
 
             <div class="checkout-card__body">
-              <div v-if="isLoggedInCustomer" class="checkout-address-toolbar">
-                <button
-                    type="button"
-                    class="btn-select-address"
-                    @click="openAddressModal"
-                    :disabled="profileLoading"
-                >
-                  <i class="bi bi-geo-alt me-2"></i>
-                  {{ profileLoading ? "Đang tải địa chỉ..." : "Chọn địa chỉ" }}
-                </button>
-              </div>
               <div class="row g-3">
                 <div class="col-12">
                   <label class="form-label">
@@ -73,6 +73,7 @@
                     {{ errors.phone }}
                   </div>
                 </div>
+
                 <div class="col-12">
                   <label class="form-label">
                     Email <span class="req">*</span>
@@ -88,56 +89,64 @@
                   </div>
                 </div>
 
-               <div class="col-md-6">
-  <label class="form-label">
-    Tỉnh/Thành phố <span class="req">*</span>
-  </label>
-  <select
-    v-model="form.province"
-    class="form-select input-ui"
-    :disabled="provinceLoading"
-    @change="onProvinceChange"
-  >
-    <option value="">
-      {{ provinceLoading ? "Đang tải tỉnh/thành..." : "Chọn tỉnh/thành phố" }}
-    </option>
-    <option
-      v-for="province in provinces"
-      :key="province.code"
-      :value="province.code"
-    >
-      {{ province.name }}
-    </option>
-  </select>
-  <div v-if="errors.province" class="text-danger small mt-1">
-    {{ errors.province }}
-  </div>
-</div>
+                <div class="col-md-6">
+                  <label class="form-label">
+                    Tỉnh/Thành phố <span class="req">*</span>
+                  </label>
+                  <select
+                    v-model="form.province"
+                    class="form-select input-ui"
+                    :disabled="provinceLoading"
+                    @change="onProvinceChange"
+                  >
+                    <option value="">
+                      {{
+                        provinceLoading
+                          ? "Đang tải tỉnh/thành..."
+                          : "Chọn tỉnh/thành phố"
+                      }}
+                    </option>
+                    <option
+                      v-for="province in provinces"
+                      :key="province.code"
+                      :value="province.code"
+                    >
+                      {{ province.name }}
+                    </option>
+                  </select>
+                  <div v-if="errors.province" class="text-danger small mt-1">
+                    {{ errors.province }}
+                  </div>
+                </div>
 
-<div class="col-md-6">
-  <label class="form-label">
-    Phường/Xã/Đặc khu <span class="req">*</span>
-  </label>
-  <select
-    v-model="form.ward"
-    class="form-select input-ui"
-    :disabled="!form.province || wardLoading"
-  >
-    <option value="">
-      {{ wardLoading ? "Đang tải phường/xã..." : "Chọn phường/xã/đặc khu" }}
-    </option>
-    <option
-      v-for="ward in wards"
-      :key="ward.code"
-      :value="ward.code"
-    >
-      {{ ward.name }}
-    </option>
-  </select>
-  <div v-if="errors.ward" class="text-danger small mt-1">
-    {{ errors.ward }}
-  </div>
-</div>
+                <div class="col-md-6">
+                  <label class="form-label">
+                    Phường/Xã/Đặc khu <span class="req">*</span>
+                  </label>
+                  <select
+                    v-model="form.ward"
+                    class="form-select input-ui"
+                    :disabled="!form.province || wardLoading"
+                  >
+                    <option value="">
+                      {{
+                        wardLoading
+                          ? "Đang tải phường/xã..."
+                          : "Chọn phường/xã/đặc khu"
+                      }}
+                    </option>
+                    <option
+                      v-for="ward in wards"
+                      :key="ward.code"
+                      :value="ward.code"
+                    >
+                      {{ ward.name }}
+                    </option>
+                  </select>
+                  <div v-if="errors.ward" class="text-danger small mt-1">
+                    {{ errors.ward }}
+                  </div>
+                </div>
 
                 <div class="col-md-6">
                   <label class="form-label">
@@ -169,7 +178,56 @@
 
           <section class="checkout-card mb-4">
             <div class="checkout-card__header">
-              <span>2. Vận chuyển</span>
+              <span>2. Áp dụng mã giảm giá</span>
+            </div>
+
+            <div class="checkout-card__body">
+              <div class="coupon-box">
+                <input
+                  :value="appliedVoucherDisplay"
+                  class="form-control input-ui"
+                  placeholder="Chưa có mã giảm giá phù hợp"
+                  readonly
+                />
+                <button
+                  class="coupon-btn"
+                  type="button"
+                  @click="openVoucherModal"
+                  :disabled="eligibleVoucherEntries.length === 0"
+                >
+                  Chọn
+                </button>
+              </div>
+              <div
+                v-if="appliedVoucherEntry"
+                class="small mt-2"
+                :class="
+                  appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
+                    ? 'text-primary'
+                    : 'text-primary'
+                "
+              >
+                <template
+                  v-if="
+                    appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
+                  "
+                >
+                  Áp dụng mã tốt nhất:
+                </template>
+                <template v-else> Đang áp dụng: </template>
+                <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
+                - giảm {{ money(appliedVoucherEntry.discount) }} đ
+              </div>
+
+              <div v-else class="small text-muted mt-2">
+                Không có phiếu giảm giá phù hợp với đơn hàng này.
+              </div>
+            </div>
+          </section>
+
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>3. Vận chuyển</span>
             </div>
 
             <div class="checkout-card__body">
@@ -192,7 +250,7 @@
 
           <section class="checkout-card mb-4">
             <div class="checkout-card__header">
-              <span>3. Phương thức thanh toán</span>
+              <span>4. Phương thức thanh toán</span>
             </div>
 
             <div class="checkout-card__body">
@@ -240,55 +298,6 @@
 
               <div v-if="errors.paymentMethod" class="text-danger small mt-2">
                 {{ errors.paymentMethod }}
-              </div>
-            </div>
-          </section>
-
-          <section class="checkout-card mb-4">
-            <div class="checkout-card__header">
-              <span>4. Áp dụng mã giảm giá</span>
-            </div>
-
-            <div class="checkout-card__body">
-              <div class="coupon-box">
-                <input
-                  :value="appliedVoucherDisplay"
-                  class="form-control input-ui"
-                  placeholder="Chưa có mã giảm giá phù hợp"
-                  readonly
-                />
-                <button
-                  class="coupon-btn"
-                  type="button"
-                  @click="openVoucherModal"
-                  :disabled="eligibleVoucherEntries.length === 0"
-                >
-                  Chọn
-                </button>
-              </div>
-              <div
-                v-if="appliedVoucherEntry"
-                class="small mt-2"
-                :class="
-                  appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
-                    ? 'text-primary'
-                    : 'text-primary'
-                "
-              >
-                <template
-                  v-if="
-                    appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
-                  "
-                >
-                  Áp dụng mã tốt nhất:
-                </template>
-                <template v-else> Đang áp dụng: </template>
-                <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
-                - giảm {{ money(appliedVoucherEntry.discount) }} đ
-              </div>
-
-              <div v-else class="small text-muted mt-2">
-                Không có phiếu giảm giá phù hợp với đơn hàng này.
               </div>
             </div>
           </section>
@@ -388,17 +397,18 @@
                       type="checkbox"
                       class="form-check-input me-2"
                     />
-                    <span>Xuất file PDF sau khi đặt hàng</span>
+                    <span>Xuất hóa đơn sau khi đặt hàng</span>
                   </label>
 
                   <button
-                    class="btn-preview-pdf"
+                    class="btn btn-outline-success btn-sm checkout-print-btn"
                     type="button"
                     :disabled="cartItems.length === 0"
                     @click="printInvoice"
+                    title="Tải hóa đơn"
                   >
-                    <i class="bi bi-printer me-2"></i>
-                    Xuất PDF / In tạm tính
+                    <i class="bi bi-printer me-1"></i>
+                    Tải hóa đơn
                   </button>
                 </div>
                 <div
@@ -455,7 +465,7 @@
       <div v-if="showQrModal" class="qr-backdrop" @click.self="closeQrModal">
         <div class="qr-modal">
           <div class="qr-modal-header">
-            <h5 class="mb-0">Thanh toán chuyển khoản QR</h5>
+            <h5 class="mb-0">Quét QR để thanh toán</h5>
             <button
               class="btn-close"
               type="button"
@@ -479,42 +489,27 @@
                 <div v-else class="qr-placeholder">Chưa có ảnh QR</div>
               </div>
 
-              <div class="qr-info">
-                <div><b>Mã đơn:</b> {{ qrData.maHoaDon || "-" }}</div>
-                <div>
-                  <b>Ngân hàng:</b> {{ qrData.bankName || "Techcombank" }}
+              <div class="qr-info-card">
+                <div class="qr-info-row">
+                  <span class="qr-info-label">Mã đơn</span>
+                  <span class="qr-info-value">{{ qrData.maHoaDon || "-" }}</span>
                 </div>
-                <div>
-                  <b>Chủ tài khoản:</b> {{ qrData.bankAccountName || "-" }}
-                </div>
-                <div>
-                  <b>Số tài khoản:</b> {{ qrData.bankAccountNo || "-" }}
-                </div>
-                <div>
-                  <b>Số tiền:</b> {{ money(qrData.amount || safeGrandTotal) }} đ
-                </div>
-                <div>
-                  <b>Nội dung CK:</b> {{ qrData.transferContent || "-" }}
+
+                <div class="qr-info-row qr-info-row--amount">
+                  <span class="qr-info-label">Số tiền</span>
+                  <span class="qr-amount"
+                    >{{ money(qrData.amount || safeGrandTotal) }} đ</span
+                  >
                 </div>
               </div>
 
               <div class="mt-3">
-                <label class="form-label">Mã giao dịch (nếu có)</label>
-                <input
-                  v-model="qrForm.maGiaoDich"
-                  type="text"
-                  class="form-control input-ui"
-                  placeholder="Ví dụ: TCB123456789"
-                />
-              </div>
-
-              <div class="mt-3">
-                <label class="form-label">Ghi chú xác nhận</label>
+                <label class="form-label qr-form-label">Ghi chú xác nhận</label>
                 <textarea
                   v-model="qrForm.ghiChu"
-                  class="form-control input-ui textarea-ui"
+                  class="form-control input-ui qr-note-textarea"
                   rows="3"
-                  placeholder="Khách đã chuyển khoản"
+                  placeholder="Khách đã thanh toán"
                 ></textarea>
               </div>
             </template>
@@ -559,7 +554,7 @@
                   <label class="form-label">Ghi chú xác nhận</label>
                   <textarea
                     v-model="qrForm.ghiChu"
-                    class="form-control input-ui textarea-ui"
+                    class="form-control input-ui qr-note-textarea"
                     rows="3"
                     placeholder="Đã thanh toán online thành công"
                   ></textarea>
@@ -580,26 +575,12 @@
             <button class="btn-qr-close" type="button" @click="closeQrModal">
               Đóng
             </button>
-
-            <button
-              class="btn-qr-confirm"
-              type="button"
-              :disabled="confirmingQr"
-              @click="confirmQrPayment"
-            >
-              {{
-                confirmingQr
-                  ? "ĐANG XÁC NHẬN..."
-                  : form.paymentMethod === "bank_qr"
-                    ? "Tôi đã chuyển khoản"
-                    : "Tôi đã thanh toán thành công"
-              }}
-            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
+
   <!-- Modal xác nhận đặt hàng -->
   <div
     v-if="showConfirmModal"
@@ -672,6 +653,7 @@
       <div class="success-note">Đang chuyển sang trang kết quả đơn hàng...</div>
     </div>
   </div>
+
   <div
     v-if="showVoucherModal"
     class="confirm-backdrop"
@@ -794,7 +776,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-danger"
+          class="btn btn-success"
           @click="confirmVoucherSelection"
         >
           Áp dụng
@@ -802,18 +784,19 @@
       </div>
     </div>
   </div>
+
   <div
-      v-if="showAddressModal"
-      class="confirm-backdrop"
-      @click.self="showAddressModal = false"
+    v-if="showAddressModal"
+    class="confirm-backdrop"
+    @click.self="showAddressModal = false"
   >
     <div class="voucher-modal">
       <div class="voucher-modal__header">
         <h5>Chọn địa chỉ giao hàng</h5>
         <button
-            type="button"
-            class="voucher-modal__close"
-            @click="showAddressModal = false"
+          type="button"
+          class="voucher-modal__close"
+          @click="showAddressModal = false"
         >
           ×
         </button>
@@ -825,16 +808,16 @@
         </div>
 
         <label
-            v-for="addr in savedAddresses"
-            :key="addr.id"
-            class="address-item"
-            :class="{ active: selectedAddressId === addr.id }"
+          v-for="addr in savedAddresses"
+          :key="addr.id"
+          class="address-item"
+          :class="{ active: selectedAddressId === addr.id }"
         >
           <input
-              v-model="selectedAddressId"
-              :value="addr.id"
-              type="radio"
-              hidden
+            v-model="selectedAddressId"
+            :value="addr.id"
+            type="radio"
+            hidden
           />
 
           <div class="address-item__left">
@@ -860,22 +843,162 @@
 
       <div class="voucher-modal__footer">
         <button
-            type="button"
-            class="btn btn-secondary"
-            @click="showAddressModal = false"
+          type="button"
+          class="btn btn-secondary"
+          @click="showAddressModal = false"
         >
           Đóng
         </button>
         <button
-            type="button"
-            class="btn btn-danger"
-            @click="confirmAddressSelection"
+          type="button"
+          class="btn btn-danger"
+          @click="confirmAddressSelection"
         >
           Chọn địa chỉ này
         </button>
       </div>
     </div>
   </div>
+  <!-- Modal xem trước hóa đơn in nhiệt -->
+  <div
+    v-if="showInvoicePreviewModal"
+  class="receipt-backdrop"
+  @click.self="closeInvoicePreviewModal"
+>
+  <div class="receipt-modal">
+    <div class="receipt-modal__header">
+      <h5>Xem trước hóa đơn (in nhiệt)</h5>
+      <button
+        type="button"
+        class="receipt-modal__close"
+        @click="closeInvoicePreviewModal"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="receipt-modal__body">
+      <div id="checkout-thermal-receipt" class="thermal-receipt">
+        <div class="receipt-center receipt-store">VEST SHOP</div>
+        <div class="receipt-center">37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy</div>
+        <div class="receipt-center">Hà Nội, Việt Nam</div>
+        <div class="receipt-center">Hotline: 0968038313</div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-center receipt-title">HÓA ĐƠN BÁN HÀNG</div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-row">
+          <span>Ngày: {{ formatReceiptDate(invoiceData.createdAt) }}</span>
+          <span>Số: {{ invoiceData.maHoaDon }}</span>
+        </div>
+
+        <div class="receipt-row">
+          <span>In lúc: {{ formatReceiptTime(invoiceData.createdAt) }}</span>
+          <span>Loại: {{ invoiceData.paymentLabel || "-" }}</span>
+        </div>
+
+        <div class="receipt-info">
+          <div>Khách: {{ invoiceData.customerName || "Khách lẻ" }}</div>
+          <div>SĐT: {{ invoiceData.phone || "-" }}</div>
+          <div>Đ/c: {{ invoiceData.address || "-" }}</div>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-table receipt-table-head">
+          <div>Tên hàng</div>
+          <div class="receipt-text-center">SL</div>
+          <div class="receipt-text-end">Tiền</div>
+        </div>
+
+        <div
+          v-for="it in invoiceData.items"
+          :key="it.key"
+          class="receipt-product"
+        >
+          <div class="receipt-table">
+            <div class="receipt-product-name">{{ it.name }}</div>
+            <div class="receipt-text-center">{{ it.qty }}</div>
+            <div class="receipt-text-end">{{ money(it.total) }} đ</div>
+          </div>
+
+          <div v-if="it.variantText" class="receipt-product-meta">
+            {{ it.variantText }}
+          </div>
+
+          <div class="receipt-product-meta">
+            ĐG: {{ money(it.price) }} đ
+          </div>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-total-row">
+          <span>Tổng tiền</span>
+          <span>{{ money(invoiceData.subtotal) }} đ</span>
+        </div>
+
+        <div class="receipt-total-row">
+          <span>Giảm giá</span>
+          <span>{{ money(invoiceData.discount) }} đ</span>
+        </div>
+
+        <div class="receipt-total-row">
+          <span>Phí vận chuyển</span>
+          <span>{{ money(invoiceData.shippingFee) }} đ</span>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-total-row receipt-grand-total">
+          <span>TỔNG THANH TOÁN</span>
+          <span>{{ money(invoiceData.total) }} đ</span>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-center mt-2">
+          <img
+            v-if="invoiceQrDataUrl"
+            :src="invoiceQrDataUrl"
+            alt="QR hóa đơn"
+            class="receipt-qr"
+          />
+        </div>
+
+        <div class="receipt-center receipt-qr-note">
+          Quét để tra cứu: {{ invoiceData.maHoaDon }}
+        </div>
+
+        <div class="receipt-center receipt-thank">
+          Cảm ơn quý khách!
+        </div>
+      </div>
+    </div>
+
+    <div class="receipt-modal__footer">
+      <button
+        type="button"
+        class="btn btn-light receipt-close-btn"
+        @click="closeInvoicePreviewModal"
+      >
+        Đóng
+      </button>
+
+      <button
+        type="button"
+        class="btn receipt-download-btn"
+        @click="downloadInvoicePdf"
+      >
+        Tải hóa đơn
+      </button>
+    </div>
+  </div>
+  </div>
+
   <div class="app-toast-wrap">
     <transition name="fade">
       <div
@@ -898,74 +1021,34 @@
     </transition>
   </div>
 
-  <div ref="printAreaRef" class="invoice-print-area">
-    <div class="receipt">
-      <div class="center bold big">HÓA ĐƠN TẠM TÍNH</div>
-      <div class="center small muted">Mã đơn: {{ invoiceData.maHoaDon }}</div>
-      <div class="center small muted">{{ invoiceData.createdAt }}</div>
+  <div ref="printAreaRef" class="invoice-print-area"></div>
 
-      <div class="hr"></div>
-
-      <div class="mt2"><b>Khách hàng:</b> {{ invoiceData.customerName }}</div>
-      <div class="mt2"><b>SĐT:</b> {{ invoiceData.phone }}</div>
-      <div class="mt2"><b>Địa chỉ:</b> {{ invoiceData.address }}</div>
-      <div class="mt2"><b>Thanh toán:</b> {{ invoiceData.paymentLabel }}</div>
-      <div class="mt2"><b>Ghi chú:</b> {{ invoiceData.note }}</div>
-
-      <div class="hr"></div>
-
-      <div class="items-head bold">
-        <div class="w-name">Sản phẩm</div>
-        <div class="w-qty right">SL</div>
-        <div class="w-price right">Tiền</div>
-      </div>
-
-      <div class="item mt6" v-for="it in invoiceData.items" :key="it.key">
-        <div class="w-name">
-          <div>{{ it.name }}</div>
-          <div class="small muted">{{ it.variantText }}</div>
-        </div>
-        <div class="w-qty right">{{ it.qty }}</div>
-        <div class="w-price right">{{ money(it.total) }}</div>
-      </div>
-
-      <div class="hr"></div>
-
-      <div class="row2">
-        <span>Tạm tính</span>
-        <span>{{ money(invoiceData.subtotal) }}</span>
-      </div>
-      <div class="row2">
-        <span>Vận chuyển</span>
-        <span>{{ money(invoiceData.shippingFee) }}</span>
-      </div>
-      <div class="row2">
-        <span>Giảm giá</span>
-        <span>-{{ money(invoiceData.discount) }}</span>
-      </div>
-      <div class="row2 bold mt6">
-        <span>Thành tiền</span>
-        <span>{{ money(invoiceData.total) }}</span>
-      </div>
-
-      <div class="hr"></div>
-      <div class="center small mt8">Cảm ơn quý khách đã mua hàng!</div>
-    </div>
-     <ChatWidget />
-  </div>
+  <ChatWidget />
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
+import {
+  reactive,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ghnLogo from "../../assets/ghn.webp.webp";
-// import vnUnitsData from "../../assets/vn_units.json"; // sửa path nếu file của bạn nằm chỗ khác
-import ChatWidget from '../../components/ClientChatWidget.vue';
+import vnUnitsData from "../../assets/vn_units.json";
+import ChatWidget from "../../components/ClientChatWidget.vue";
 import { getClientProfile, getClientAddresses } from "../../services/Api";
+import QRCode from "qrcode";
+
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
-
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const PUBLIC_WEB_ORIGIN =
+  import.meta.env.VITE_PUBLIC_WEB_ORIGIN || window.location.origin;
 
 const provinces = ref([]);
 const wards = ref([]);
@@ -973,16 +1056,18 @@ const vestUser = JSON.parse(localStorage.getItem("vest_user") || "null");
 const currentCustomerId = Number(vestUser?.id || 0) || null;
 const provinceLoading = ref(false);
 const wardLoading = ref(false);
+
 const authToken =
-    localStorage.getItem("USER_ACCESS_TOKEN") ||
-    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
-    localStorage.getItem("vest_token");
+  localStorage.getItem("USER_ACCESS_TOKEN") ||
+  sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+  localStorage.getItem("vest_token");
 
 const isLoggedInCustomer = !!currentCustomerId && !!authToken;
 const profileLoading = ref(false);
 const showAddressModal = ref(false);
 const savedAddresses = ref([]);
 const selectedAddressId = ref(null);
+
 const form = reactive({
   fullName: "",
   phone: "",
@@ -995,6 +1080,7 @@ const form = reactive({
   paymentMethod: "cod",
   invoice: false,
 });
+
 const paymentOptions = [
   {
     value: "cod",
@@ -1005,34 +1091,17 @@ const paymentOptions = [
   },
   {
     value: "bank_qr",
-    title: "Chuyển khoản QR ngân hàng",
-    desc: "Quét QR và chuyển khoản trực tiếp từ app ngân hàng.",
-    badge: "Phổ biến",
-    helper: "Sau khi tạo đơn, hệ thống sẽ hiển thị QR và thông tin nhận tiền.",
+    title: "Quét QR thanh toán",
+    desc: "Quét mã QR để mở trang thanh toán giả lập.",
+    badge: "Nhanh",
+    helper: "Quét QR bằng điện thoại để mở mock-payment và thanh toán.",
   },
   {
     value: "vnpay",
     title: "VNPAY",
     desc: "ATM nội địa / QR / Internet Banking.",
     badge: "Nhanh",
-    helper:
-      "FE đã sẵn flow mở cổng VNPAY. Backend chỉ cần trả paymentUrl là chạy thật.",
-  },
-  {
-    value: "momo",
-    title: "Ví MoMo",
-    desc: "Thanh toán nhanh qua ví điện tử MoMo.",
-    badge: "Ví điện tử",
-    helper:
-      "FE đã sẵn flow mở MoMo. Backend chỉ cần trả paymentUrl là chạy thật.",
-  },
-  {
-    value: "card",
-    title: "Thẻ tín dụng / ghi nợ",
-    desc: "Visa / MasterCard / JCB.",
-    badge: "Quốc tế",
-    helper:
-      "FE đã sẵn flow thanh toán thẻ. Backend chỉ cần trả paymentUrl là chạy thật.",
+    helper: "Chuyển hướng sang trang thanh toán của VNPAY",
   },
 ];
 
@@ -1047,37 +1116,14 @@ const gatewayInstruction = computed(() => {
   if (form.paymentMethod === "vnpay") {
     return "Bạn sẽ được chuyển sang cổng thanh toán VNPAY để hoàn tất giao dịch.";
   }
-  if (form.paymentMethod === "momo") {
-    return "Bạn sẽ được chuyển sang ví MoMo để xác nhận thanh toán.";
-  }
-  if (form.paymentMethod === "card") {
-    return "Bạn sẽ được chuyển sang cổng thanh toán thẻ an toàn để nhập thông tin thẻ.";
-  }
+
   return "Quét mã QR và nhập mã giao dịch để xác nhận.";
 });
-const paymentUiHint = computed(() => {
-  if (form.paymentMethod === "cod") {
-    return "Thanh toán khi nhận hàng.";
-  }
-  if (form.paymentMethod === "bank_qr") {
-    return "Quét mã QR để chuyển khoản nhanh.";
-  }
-  if (form.paymentMethod === "vnpay") {
-    return "Thanh toán an toàn qua cổng VNPAY.";
-  }
-  if (form.paymentMethod === "momo") {
-    return "Thanh toán nhanh bằng ví MoMo.";
-  }
-  if (form.paymentMethod === "card") {
-    return "Thanh toán bằng thẻ tín dụng hoặc ghi nợ.";
-  }
-  return "Vui lòng chọn phương thức thanh toán.";
-});
+
 const vouchers = ref([]);
 const showVoucherModal = ref(false);
-
-const selectedVoucherId = ref(null); // đang tick trong modal
-const appliedVoucherId = ref(null); // đang áp dụng thật
+const selectedVoucherId = ref(null);
+const appliedVoucherId = ref(null);
 const discount = ref(0);
 const loading = ref(false);
 
@@ -1102,6 +1148,8 @@ const confirmSubmitting = ref(false);
 
 const showSuccessModal = ref(false);
 const successMessage = ref("");
+const showInvoicePreviewModal = ref(false);
+const invoiceQrDataUrl = ref("");
 const qrData = reactive({
   orderId: null,
   maHoaDon: "",
@@ -1117,7 +1165,7 @@ const qrData = reactive({
 
 const qrForm = reactive({
   maGiaoDich: "",
-  ghiChu: "Khách đã chuyển khoản",
+  ghiChu: "Khách đã thanh toán",
 });
 
 const errors = reactive({
@@ -1132,6 +1180,7 @@ const errors = reactive({
   items: "",
   general: "",
 });
+
 const selectedProvince = computed(() => {
   return (
     provinces.value.find((p) => String(p.code) === String(form.province)) ||
@@ -1173,6 +1222,7 @@ const safeSubtotal = computed(() => {
     return sum + price * qty;
   }, 0);
 });
+
 function normalizeKhIds(raw) {
   if (!raw) return null;
 
@@ -1201,6 +1251,7 @@ function normalizeKhIds(raw) {
 
   return null;
 }
+
 function validateEmail(value) {
   if (!value?.trim()) return "Vui lòng nhập email";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1277,6 +1328,7 @@ const safeGrandTotal = computed(() => {
     (Number(discount.value) || 0)
   );
 });
+
 const fullDeliveryAddress = computed(() => {
   return [
     form.address?.trim(),
@@ -1345,12 +1397,13 @@ function showToast(message, type = "success") {
     toast.show = false;
   }, 2800);
 }
+
 async function loadVouchers() {
   try {
-    const customerId = null; // nếu có user login thì thay bằng id thật
+    const customerId = null;
     const url = customerId
-      ? `http://localhost:8080/api/pgg/pos?khachHangId=${customerId}`
-      : "http://localhost:8080/api/pgg/pos";
+      ? `${API_BASE}/api/pgg/pos?khachHangId=${customerId}`
+      : `${API_BASE}/api/pgg/pos`;
 
     const res = await fetch(url);
     const data = await res.json();
@@ -1367,6 +1420,7 @@ const eligibleVoucherEntries = computed(() => {
     .filter((x) => x.discount > 0)
     .sort((a, b) => b.discount - a.discount);
 });
+
 const publicEligibleVoucherEntries = computed(() => {
   return eligibleVoucherEntries.value.filter(
     (x) => x.v.loai_phieu === "CONG_KHAI",
@@ -1378,6 +1432,7 @@ const personalEligibleVoucherEntries = computed(() => {
     (x) => x.v.loai_phieu === "CA_NHAN",
   );
 });
+
 const bestEligibleVoucherEntry = computed(() => {
   return eligibleVoucherEntries.value[0] || null;
 });
@@ -1452,32 +1507,21 @@ function confirmVoucherSelection() {
   showVoucherModal.value = false;
 }
 
-function normalizeProvinceList(data) {
-  return (Array.isArray(data) ? data : [])
-      .map((item) => ({
-        code: item?.code,
-        name: item?.name,
-      }))
-      .filter((item) => item.code != null && item.name);
-}
-
-function normalizeWardList(data) {
-  return (Array.isArray(data) ? data : [])
-      .map((item) => ({
-        code: item?.code,
-        name: item?.name,
-        provinceCode: item?.province_code ?? item?.provinceCode ?? null,
-      }))
-      .filter((item) => item.code != null && item.name);
-}
-
 async function fetchProvinces() {
   try {
     provinceLoading.value = true;
-    const res = await fetch("https://provinces.open-api.vn/api/v2/p/");
-    if (!res.ok) throw new Error("Load province failed");
-    const data = await res.json();
-    provinces.value = normalizeProvinceList(data);
+
+    provinces.value = (Array.isArray(vnUnitsData) ? vnUnitsData : []).map(
+      (p) => ({
+        code: p.Code,
+        name: p.FullName,
+        wards: (p.Wards || []).map((w) => ({
+          code: w.Code,
+          name: w.FullName,
+          provinceCode: w.ProvinceCode,
+        })),
+      }),
+    );
   } catch (error) {
     console.error("fetchProvinces error:", error);
     provinces.value = [];
@@ -1494,10 +1538,12 @@ async function fetchWardsByProvince(provinceCode) {
 
   try {
     wardLoading.value = true;
-    const res = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${provinceCode}`);
-    if (!res.ok) throw new Error("Load wards failed");
-    const data = await res.json();
-    wards.value = normalizeWardList(data);
+
+    const province = provinces.value.find(
+      (p) => String(p.code) === String(provinceCode),
+    );
+
+    wards.value = province?.wards || [];
   } catch (error) {
     console.error("fetchWardsByProvince error:", error);
     wards.value = [];
@@ -1506,57 +1552,50 @@ async function fetchWardsByProvince(provinceCode) {
   }
 }
 
-async function onProvinceChange() {
-  form.ward = "";
-  wards.value = [];
-
-  errors.province = "";
-  errors.ward = "";
-
-  if (form.province) {
-    await fetchWardsByProvince(form.province);
-  }
-}
-
 function normalizeText(value) {
   return String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function findProvinceByName(name) {
   const normalized = normalizeText(name);
   return (
-      provinces.value.find((item) => normalizeText(item.name) === normalized) ||
-      null
+    provinces.value.find((item) => normalizeText(item.name) === normalized) ||
+    null
   );
 }
 
 function findWardByName(name) {
   const normalized = normalizeText(name);
   return (
-      wards.value.find((item) => normalizeText(item.name) === normalized) || null
+    wards.value.find((item) => normalizeText(item.name) === normalized) || null
   );
 }
 
 function formatSavedAddress(addr) {
   return [addr?.diaChiChiTiet, addr?.phuongXa, addr?.tinhThanh, addr?.quocGia]
-      .map((item) => String(item || "").trim())
-      .filter(Boolean)
-      .join(", ");
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .join(", ");
 }
 
 async function fillCheckoutFormFromAddress(addressData = {}, profileData = {}) {
   form.fullName =
-      addressData?.tenNguoiNhan ||
-      profileData?.tenKhachHang ||
-      form.fullName ||
-      "";
+    addressData?.tenNguoiNhan ||
+    profileData?.tenKhachHang ||
+    form.fullName ||
+    "";
+
   form.phone =
-      addressData?.soDienThoai || profileData?.soDienThoai || form.phone || "";
+    addressData?.soDienThoai ||
+    profileData?.soDienThoai ||
+    form.phone ||
+    "";
+
   form.email = profileData?.email || form.email || "";
   form.address = addressData?.diaChiChiTiet || "";
 
@@ -1588,14 +1627,13 @@ async function loadCheckoutProfileAndAddresses() {
     const addressList = Array.isArray(addressRes?.data) ? addressRes.data : [];
 
     savedAddresses.value = addressList;
-
     form.email = profileData?.email || form.email || "";
 
     const pickedAddress =
-        addressList.find((item) => item?.laMacDinh) ||
-        addressList[0] ||
-        profileData?.diaChiMacDinh ||
-        null;
+      addressList.find((item) => item?.laMacDinh) ||
+      addressList[0] ||
+      profileData?.diaChiMacDinh ||
+      null;
 
     if (pickedAddress) {
       selectedAddressId.value = pickedAddress.id || null;
@@ -1616,9 +1654,9 @@ function openAddressModal() {
 
   if (!selectedAddressId.value) {
     selectedAddressId.value =
-        savedAddresses.value.find((item) => item?.laMacDinh)?.id ||
-        savedAddresses.value[0]?.id ||
-        null;
+      savedAddresses.value.find((item) => item?.laMacDinh)?.id ||
+      savedAddresses.value[0]?.id ||
+      null;
   }
 
   showAddressModal.value = true;
@@ -1626,7 +1664,7 @@ function openAddressModal() {
 
 async function confirmAddressSelection() {
   const picked = savedAddresses.value.find(
-      (item) => item.id === selectedAddressId.value
+    (item) => item.id === selectedAddressId.value,
   );
 
   if (!picked) {
@@ -1641,6 +1679,18 @@ async function confirmAddressSelection() {
   });
 
   showAddressModal.value = false;
+}
+
+async function onProvinceChange() {
+  form.ward = "";
+  wards.value = [];
+
+  errors.province = "";
+  errors.ward = "";
+
+  if (form.province) {
+    await fetchWardsByProvince(form.province);
+  }
 }
 
 function money(v) {
@@ -1664,7 +1714,7 @@ function validateFullName(value) {
 function validatePhone(value) {
   if (!value?.trim()) return "Vui lòng nhập số điện thoại";
   const normalized = value.trim();
-  const phoneRegex = /^(0|\\+84)[0-9]{9,10}$/;
+  const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
   if (!phoneRegex.test(normalized)) return "Số điện thoại không hợp lệ";
   return "";
 }
@@ -1693,7 +1743,7 @@ function validateShippingMethod(value) {
 }
 
 function validatePaymentMethod(value) {
-  const allowed = ["cod", "bank_qr", "vnpay", "momo", "card"];
+  const allowed = ["cod", "bank_qr", "vnpay"];
   if (!allowed.includes(value)) return "Phương thức thanh toán không hợp lệ";
   return "";
 }
@@ -1764,6 +1814,7 @@ watch(
     errors.phone = validatePhone(v);
   },
 );
+
 watch(
   () => form.email,
   (v) => {
@@ -1867,7 +1918,7 @@ async function checkoutApi(payload) {
     sessionStorage.getItem("USER_ACCESS_TOKEN") ||
     localStorage.getItem("vest_token");
 
-  const response = await fetch("http://localhost:8080/api/online-checkout", {
+  const response = await fetch(`${API_BASE}/api/online-checkout`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1888,9 +1939,81 @@ async function checkoutApi(payload) {
   return data;
 }
 
+async function createVnpayPaymentUrlApi(orderId) {
+  const token =
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token");
+
+  const response = await fetch(
+    `${API_BASE}/api/online-checkout/${orderId}/vnpay-payment-url`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const err = new Error(data?.message || "Không tạo được link thanh toán VNPAY");
+    err.raw = data;
+    throw err;
+  }
+
+  return data;
+}
+
+async function redirectToVnpay(orderData) {
+  const orderId = orderData?.orderId || orderData?.id || null;
+
+  if (!orderId) {
+    throw new Error("Không tìm thấy mã đơn hàng để tạo link VNPAY");
+  }
+
+  qrData.orderId = orderId;
+  qrData.maHoaDon =
+    orderData?.maHoaDon || orderData?.orderCode || String(orderId);
+  qrData.amount = Number(orderData?.amount ?? safeGrandTotal.value) || 0;
+  qrData.provider = "vnpay";
+
+  const vnpayData = await createVnpayPaymentUrlApi(orderId);
+
+  qrData.paymentUrl =
+    vnpayData?.paymentUrl ||
+    vnpayData?.vnpayUrl ||
+    vnpayData?.redirectUrl ||
+    "";
+
+  qrData.amount = Number(vnpayData?.amount ?? qrData.amount) || 0;
+
+  if (!qrData.paymentUrl) {
+    throw new Error("Backend chưa trả về link VNPAY");
+  }
+
+  sessionStorage.setItem(
+    "pending_checkout_customer_info",
+    JSON.stringify({
+      orderId,
+      maHoaDon: qrData.maHoaDon,
+      customerName: form.fullName?.trim() || "",
+      phone: form.phone?.trim() || "",
+      email: form.email?.trim() || "",
+      address: fullDeliveryAddress.value || "",
+      paymentMethod: "vnpay",
+      paymentLabel: "VNPAY",
+      total: Number(qrData.amount || 0),
+    }),
+  );
+  window.location.href = qrData.paymentUrl;
+}
+
 async function confirmQrPaymentApi(orderId, payload) {
   const response = await fetch(
-    `http://localhost:8080/api/online-checkout/${orderId}/confirm-payment`,
+    `${API_BASE}/api/online-checkout/${orderId}/confirm-payment`,
     {
       method: "POST",
       headers: {
@@ -1913,9 +2036,11 @@ async function confirmQrPaymentApi(orderId, payload) {
 
 function normalizeQrUrl(url) {
   if (!url) return "";
+  if (url.startsWith("data:image/")) return url;
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `http://localhost:8080${url}`;
 }
+
 function normalizePaymentUrl(url) {
   if (!url) return "";
 
@@ -1927,7 +2052,6 @@ function normalizePaymentUrl(url) {
     try {
       const parsed = new URL(rawUrl);
 
-      // mock-payment là route của FE -> luôn ép về origin hiện tại của FE
       if (parsed.pathname.startsWith("/mock-payment")) {
         return `${frontendOrigin}${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
@@ -1938,72 +2062,67 @@ function normalizePaymentUrl(url) {
     }
   }
 
-  // backend trả path tương đối cho mock-payment
   if (rawUrl.startsWith("/mock-payment")) {
     return `${frontendOrigin}${rawUrl}`;
   }
 
-  // các URL tương đối khác thì giữ backend origin
   return `${backendOrigin}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
 }
 
 function openPaymentGateway() {
-  const paymentUrl = normalizePaymentUrl(qrData.paymentUrl);
+  const url = normalizePaymentUrl(qrData.paymentUrl);
 
-  if (!paymentUrl) {
-    showToast("Không tìm thấy đường dẫn thanh toán", "warning");
+  if (!url) {
+    showToast("Chưa có link thanh toán", "warning");
     return;
   }
 
-  router.push(
-    `/mock-payment?orderId=${encodeURIComponent(qrData.orderId || "")}` +
-      `&method=${encodeURIComponent((form.paymentMethod || "").toUpperCase())}` +
-      `&amount=${encodeURIComponent(qrData.amount || safeGrandTotal.value || 0)}` +
-      `&maHoaDon=${encodeURIComponent(qrData.maHoaDon || "")}` +
-      `&customerName=${encodeURIComponent(form.fullName || "")}` +
-      `&phone=${encodeURIComponent(form.phone || "")}` +
-      `&address=${encodeURIComponent(fullDeliveryAddress.value || "")}`,
-  );
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
-function openQrModal(data) {
+async function buildMockPaymentQr(data) {
+  const paymentUrl =
+    `${PUBLIC_WEB_ORIGIN}/mock-payment` +
+    `?orderId=${encodeURIComponent(data?.orderId || data?.id || "")}` +
+    `&method=${encodeURIComponent("BANK_QR")}` +
+    `&amount=${encodeURIComponent(Number(data?.amount || safeGrandTotal.value || 0))}` +
+    `&maHoaDon=${encodeURIComponent(data?.maHoaDon || data?.orderCode || "")}` +
+    `&customerName=${encodeURIComponent(form.fullName || "")}` +
+    `&phone=${encodeURIComponent(form.phone || "")}` +
+    `&address=${encodeURIComponent(fullDeliveryAddress.value || "")}`;
+
+  const qrImageUrl = await QRCode.toDataURL(paymentUrl, {
+    width: 300,
+    margin: 2,
+  });
+
+  return { paymentUrl, qrImageUrl };
+}
+
+async function openQrModal(data) {
   qrData.orderId = data?.orderId || data?.id || null;
   qrData.maHoaDon = data?.maHoaDon || data?.orderCode || "";
-  qrData.qrImageUrl = data?.qrImageUrl || "";
-  qrData.bankName = data?.bankName || "Techcombank";
-  qrData.bankAccountName = data?.bankAccountName || "";
-  qrData.bankAccountNo = data?.bankAccountNo || "";
-  qrData.transferContent = data?.transferContent || "";
   qrData.amount = Number(data?.amount) || Number(safeGrandTotal.value) || 0;
-  qrData.paymentUrl =
-    data?.paymentUrl || data?.payUrl || data?.redirectUrl || "";
   qrData.provider = form.paymentMethod;
 
-  qrForm.maGiaoDich = "";
-  qrForm.ghiChu =
-    form.paymentMethod === "bank_qr"
-      ? "Khách đã chuyển khoản"
-      : "Khách đã thanh toán online";
+  const mockQr = await buildMockPaymentQr(data);
 
+  qrData.paymentUrl = mockQr.paymentUrl;
+  qrData.qrImageUrl = mockQr.qrImageUrl;
+
+  qrForm.maGiaoDich = "";
+  qrForm.ghiChu = "Khách đã thanh toán";
   qrError.value = "";
   qrSuccessMessage.value = "";
   showQrModal.value = true;
 
-  if (form.paymentMethod === "bank_qr") {
-    showToast(
-      "Đơn hàng đã được tạo. Vui lòng quét QR để chuyển khoản.",
-      "success",
-    );
-  } else {
-    showToast(
-      `Đơn hàng đã được tạo. Tiếp tục thanh toán qua ${selectedPaymentOption.value.title}.`,
-      "success",
-    );
-  }
+  startPaymentPolling();
+  showToast("Đơn hàng đã được tạo. Quét QR để mở trang thanh toán.", "success");
 }
 
 function closeQrModal() {
   if (confirmingQr.value) return;
+  stopPaymentPolling();
   showQrModal.value = false;
   qrError.value = "";
   qrSuccessMessage.value = "";
@@ -2026,7 +2145,7 @@ async function confirmQrPayment() {
       ghiChu:
         qrForm.ghiChu?.trim() ||
         (form.paymentMethod === "bank_qr"
-          ? "Khách đã chuyển khoản"
+          ? "Khách đã thanh toán"
           : "Khách đã thanh toán online"),
       paymentGateway:
         form.paymentMethod === "cod" ? null : form.paymentMethod.toUpperCase(),
@@ -2041,7 +2160,7 @@ async function confirmQrPayment() {
     qrSuccessMessage.value =
       data?.message ||
       (form.paymentMethod === "bank_qr"
-        ? "Chuyển khoản thành công"
+        ? "Thanh toán thành công"
         : "Thanh toán online thành công");
 
     showToast(qrSuccessMessage.value, "success");
@@ -2076,6 +2195,76 @@ async function confirmQrPayment() {
   } finally {
     confirmingQr.value = false;
   }
+}
+
+let paymentPollingTimer = null;
+
+async function getPaymentStatusApi(orderId) {
+  const res = await fetch(
+    `${API_BASE}/api/online-checkout/${orderId}/payment-status`,
+  );
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok)
+    throw new Error(data?.message || "Không lấy được trạng thái thanh toán");
+  return data;
+}
+
+function stopPaymentPolling() {
+  if (paymentPollingTimer) {
+    clearInterval(paymentPollingTimer);
+    paymentPollingTimer = null;
+  }
+}
+
+function handlePaidSuccess(message = "Thanh toán thành công") {
+  stopPaymentPolling();
+
+  if (typeof clearCart === "function") clearCart();
+
+  qrSuccessMessage.value = message;
+  showToast(message, "success");
+  closeQrModal();
+
+  successMessage.value = message;
+  showSuccessModal.value = true;
+
+  saveCheckoutSuccessData({
+    orderId: qrData.orderId || "",
+    maHoaDon: qrData.maHoaDon || "",
+    customerName: form.fullName?.trim() || "",
+    phone: form.phone?.trim() || "",
+    email: form.email?.trim() || "",
+    address: fullDeliveryAddress.value || "",
+    paymentMethod: form.paymentMethod || "",
+    paymentLabel: selectedPaymentOption.value?.title || "Thanh toán online",
+    total: Number(qrData.amount || safeGrandTotal.value || 0),
+  });
+
+  setTimeout(() => {
+    router.push({
+      path: "/checkout/success",
+      query: { orderId: qrData.orderId || "" },
+    });
+  }, 1400);
+}
+
+function startPaymentPolling() {
+  stopPaymentPolling();
+
+  paymentPollingTimer = setInterval(async () => {
+    if (!qrData.orderId) return;
+
+    try {
+      const data = await getPaymentStatusApi(qrData.orderId);
+
+      if (data?.paymentStatus === "PAID" || data?.paid === true) {
+        handlePaidSuccess(data?.message || "Thanh toán thành công");
+      }
+    } catch (err) {
+      console.error("poll payment status error:", err);
+    }
+  }, 3000);
 }
 
 function placeOrder() {
@@ -2131,8 +2320,13 @@ async function submitOrder() {
 
     showConfirmModal.value = false;
 
-    if (form.paymentMethod !== "cod") {
-      openQrModal(data);
+    if (form.paymentMethod === "bank_qr") {
+      await openQrModal(data);
+      return;
+    }
+
+    if (form.paymentMethod === "vnpay") {
+      await redirectToVnpay(data);
       return;
     }
 
@@ -2156,6 +2350,14 @@ async function submitOrder() {
         selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
       total: Number(safeGrandTotal.value || 0),
     });
+
+    if (form.invoice) {
+      setTimeout(async () => {
+        showSuccessModal.value = false;
+        await printInvoice();
+      }, 700);
+      return;
+    }
 
     setTimeout(() => {
       router.push({
@@ -2185,6 +2387,7 @@ function closeConfirmModal() {
 function closeSuccessModal() {
   showSuccessModal.value = false;
 }
+
 function saveCheckoutSuccessData(payload = {}) {
   sessionStorage.setItem(
     "checkout_success_data",
@@ -2217,65 +2420,218 @@ onMounted(async () => {
   syncAppliedVoucher();
 });
 
+onUnmounted(() => {
+  stopPaymentPolling();
+});
+
+function getReceiptDateSource(value) {
+  const d = value ? new Date(value) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+function formatReceiptDate(value) {
+  const d = getReceiptDateSource(value);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function formatReceiptTime(value) {
+  const d = getReceiptDateSource(value);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mi}`;
+}
+
 async function printInvoice() {
   if (!invoiceData.value.items.length) {
-    showToast("Chưa có sản phẩm để in hóa đơn", "warning");
+    showToast("Chưa có sản phẩm để tải hóa đơn", "warning");
     return;
   }
 
+  invoiceQrDataUrl.value = await QRCode.toDataURL(
+    String(invoiceData.value.maHoaDon || "TAM_TINH"),
+    {
+      margin: 1,
+      width: 220,
+    },
+  );
+
+  showInvoicePreviewModal.value = true;
+}
+
+function closeInvoicePreviewModal() {
+  showInvoicePreviewModal.value = false;
+}
+
+async function downloadInvoicePdf() {
   await nextTick();
 
-  const area = printAreaRef.value;
-  if (!area) return;
+  const el = document.getElementById("checkout-thermal-receipt");
+  if (!el) return;
 
-  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH").replace(
-    /\s+/g,
-    "_",
-  );
+  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_");
+
   const w = window.open("", "_blank", "width=420,height=760");
 
   if (!w) {
-    showToast("Trình duyệt đang chặn popup in hóa đơn", "warning");
+    showToast("Trình duyệt đang chặn popup tải hóa đơn", "warning");
     return;
   }
 
+  w.document.open();
   w.document.write(`
+    <!doctype html>
     <html>
       <head>
+        <meta charset="UTF-8" />
         <title>HoaDon_${code}</title>
         <style>
-          body{ margin:0; padding:0; font-family: Arial, sans-serif; }
-          .receipt{ width:80mm; padding:8mm 6mm; }
-          .center{ text-align:center; }
-          .right{ text-align:right; }
-          .bold{ font-weight:700; }
-          .big{ font-size:16px; }
-          .small{ font-size:11px; }
-          .muted{ color:#555; }
-          .hr{ border-top:1px dashed #000; margin:6px 0; }
-          .row2{ display:flex; justify-content:space-between; gap:10px; font-size:12px; }
-          .mt2{ margin-top:2px; font-size:12px; }
-          .mt6{ margin-top:6px; font-size:12px; }
-          .mt8{ margin-top:8px; }
-          .items-head, .item{ display:flex; gap:6px; font-size:12px; }
-          .w-name{ flex: 1; }
-          .w-qty{ width: 10mm; }
-          .w-price{ width: 22mm; }
-          @media print { @page { margin: 0; } }
+          body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #222;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .thermal-receipt {
+            width: 80mm;
+            margin: 0 auto;
+            padding: 8mm 6mm;
+            background: #fff;
+            color: #222;
+            font-size: 12px;
+            line-height: 1.35;
+          }
+
+          .receipt-center {
+            text-align: center;
+          }
+
+          .receipt-store {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+          }
+
+          .receipt-title {
+            font-size: 13px;
+            font-weight: 800;
+          }
+
+          .receipt-dash {
+            border-top: 1px dashed #222;
+            margin: 8px 0;
+          }
+
+          .receipt-row,
+          .receipt-total-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+          }
+
+          .receipt-info {
+            display: grid;
+            gap: 4px;
+            margin-top: 8px;
+          }
+
+          .receipt-table {
+            display: grid;
+            grid-template-columns: 1fr 34px 88px;
+            gap: 6px;
+            align-items: start;
+          }
+
+          .receipt-table-head {
+            font-weight: 800;
+          }
+
+          .receipt-product {
+            margin-top: 6px;
+          }
+
+          .receipt-product-name {
+            font-weight: 800;
+          }
+
+          .receipt-product-meta {
+            color: #333;
+            font-size: 11px;
+            margin-top: 2px;
+          }
+
+          .receipt-text-center {
+            text-align: center;
+          }
+
+          .receipt-text-end {
+            text-align: right;
+          }
+
+          .receipt-grand-total {
+            font-weight: 800;
+            font-size: 13px;
+          }
+
+          .receipt-qr {
+            width: 92px;
+            height: 92px;
+            object-fit: contain;
+          }
+
+          .receipt-qr-note {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #555;
+          }
+
+          .receipt-thank {
+            margin-top: 14px;
+            font-size: 12px;
+          }
+
+          @media print {
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+
+            body {
+              margin: 0;
+            }
+
+            .thermal-receipt {
+              width: 80mm;
+              margin: 0;
+              padding: 6mm;
+            }
+          }
         </style>
       </head>
-      <body>${area.outerHTML}</body>
+      <body>
+        ${el.outerHTML}
+      </body>
     </html>
   `);
 
   w.document.close();
   w.focus();
-  w.onload = () => {
-    w.print();
-  };
-  w.onafterprint = () => w.close();
 
-  showToast("Đã mở cửa sổ in / lưu PDF!", "success");
+  setTimeout(() => {
+    w.print();
+  }, 300);
+
+  w.onafterprint = () => {
+    w.close();
+  };
 }
 </script>
 
@@ -2288,9 +2644,6 @@ async function printInvoice() {
   --border: rgba(15, 23, 42, 0.08);
   background: linear-gradient(180deg, #f5f7fc 0%, #f3f4f8 100%);
   min-height: 100vh;
-}
-
-.checkout {
 }
 
 .checkout-head {
@@ -2340,6 +2693,14 @@ async function printInvoice() {
   font-weight: 750;
   font-size: 16px;
   letter-spacing: 0.2px;
+}
+
+.checkout-card__header--address {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .checkout-card__body,
@@ -2423,6 +2784,87 @@ async function printInvoice() {
   font-weight: 750;
 }
 
+.payment-option {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payment-option + .payment-option {
+  margin-top: 12px;
+}
+
+.payment-option:hover {
+  border-color: #9db4ff;
+  background: #fff;
+}
+
+.payment-option.active {
+  border-color: #001a72;
+  background: #eef2ff;
+  box-shadow: inset 0 0 0 1px rgba(0, 15, 81, 0.12);
+}
+
+.payment-option__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.payment-option__content {
+  min-width: 0;
+}
+
+.payment-option__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.payment-option__title {
+  font-weight: 750;
+  color: var(--text);
+}
+
+.payment-option__desc {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.payment-option__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.payment-helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 14px;
+  color: #475569;
+  font-size: 13px;
+}
+
 .coupon-box {
   display: grid;
   grid-template-columns: 1fr 120px;
@@ -2442,32 +2884,6 @@ async function printInvoice() {
 
 .coupon-btn:hover {
   background: #001a72;
-}
-
-.invoice-row {
-  display: flex;
-  align-items: center;
-  color: var(--text);
-  font-weight: 750;
-}
-
-.btn-order {
-  min-height: 52px;
-  border: none;
-  border-radius: 16px;
-  background: #000f51;
-  color: #fff;
-  font-weight: 750;
-  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
-  transition: all 0.2s ease;
-}
-
-.btn-order:hover:not(:disabled) {
-  background: #001a72;
-}
-
-.btn-order:disabled {
-  opacity: 0.6;
 }
 
 .summary-empty {
@@ -2575,6 +2991,68 @@ async function printInvoice() {
   font-weight: 750;
 }
 
+.summary-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.invoice-row {
+  display: flex;
+  align-items: center;
+  color: var(--text);
+  font-weight: 750;
+}
+
+.btn-preview-pdf {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid #d8dfec;
+  background: #fff;
+  color: var(--text);
+  font-weight: 750;
+  transition: all 0.2s ease;
+}
+
+.btn-preview-pdf:hover:not(:disabled) {
+  border-color: #001a72;
+  color: #001a72;
+  background: #f8fbff;
+}
+
+.btn-preview-pdf:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.voucher-saving-note {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.btn-order {
+  min-height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: #000f51;
+  color: #fff;
+  font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-order:hover:not(:disabled) {
+  background: #001a72;
+}
+
+.btn-order:disabled {
+  opacity: 0.6;
+}
+
 .checkout-benefits {
   padding: 16px 18px;
   display: grid;
@@ -2591,85 +3069,6 @@ async function printInvoice() {
 
 .benefit-item i {
   color: var(--navy);
-}
-
-.qr-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(2, 6, 23, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-  padding: 16px;
-}
-
-.qr-modal {
-  width: 100%;
-  max-width: 520px;
-  background: #fff;
-  border-radius: 22px;
-  overflow: hidden;
-  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.28);
-}
-
-.qr-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 20px;
-  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-2) 100%);
-  color: #fff;
-}
-
-.qr-modal-body {
-  padding: 20px;
-}
-
-.qr-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 0 20px 20px;
-}
-
-.qr-image {
-  max-width: 100%;
-  max-height: 320px;
-  border-radius: 14px;
-}
-
-.qr-placeholder {
-  border: 1px dashed #cbd5e1;
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 32px 16px;
-  color: var(--muted);
-}
-
-.qr-info {
-  display: grid;
-  gap: 8px;
-  color: var(--text);
-  font-size: 14px;
-}
-
-@media (max-width: 991.98px) {
-  .summary-item {
-    flex-direction: column;
-  }
-
-  .summary-item__right {
-    width: 100%;
-    text-align: left;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .coupon-box {
-    grid-template-columns: 1fr;
-  }
 }
 
 .confirm-backdrop,
@@ -2822,41 +3221,7 @@ async function printInvoice() {
   color: #64748b;
   font-size: 14px;
 }
-.btn-qr-close,
-.btn-qr-confirm {
-  min-height: 44px;
-  border-radius: 14px;
-  padding: 0 18px;
-  font-weight: 750;
-  transition: all 0.2s ease;
-}
 
-.btn-qr-close {
-  border: 1px solid #d8dfec;
-  background: #fff;
-  color: #0f172a;
-}
-
-.btn-qr-close:hover {
-  border-color: #001a72;
-  color: #001a72;
-}
-
-.btn-qr-confirm {
-  border: none;
-  background: #000f51;
-  color: #fff;
-  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
-}
-
-.btn-qr-confirm:hover:not(:disabled) {
-  background: #001a72;
-}
-
-.btn-qr-confirm:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 .voucher-modal {
   width: 100%;
   max-width: 560px;
@@ -2927,9 +3292,9 @@ async function printInvoice() {
 }
 
 .voucher-item.active {
-  border-color: #f97316;
-  background: #fff1f2;
-  box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.18);
+  border-color: #9cffc0;
+  background: #e5fbea;
+  box-shadow: inset 0 0 0 1px rgba(178, 236, 177, 0.18);
 }
 
 .voucher-item__left {
@@ -2961,12 +3326,19 @@ async function printInvoice() {
   min-width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #ef4444;
+  background: #bcffbf;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
+}
+
+.voucher-group-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+  margin-bottom: 8px;
 }
 
 .badge-best {
@@ -2979,65 +3351,8 @@ async function printInvoice() {
   font-size: 11px;
   font-weight: 800;
 }
-.payment-option {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 18px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
 
-.payment-option + .payment-option {
-  margin-top: 12px;
-}
-
-.payment-option:hover {
-  border-color: #9db4ff;
-  background: #fff;
-}
-
-.payment-option.active {
-  border-color: #001a72;
-  background: #eef2ff;
-  box-shadow: inset 0 0 0 1px rgba(0, 15, 81, 0.12);
-}
-
-.payment-option__left {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-
-.payment-option__content {
-  min-width: 0;
-}
-
-.payment-option__title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.payment-option__title {
-  font-weight: 750;
-  color: var(--text);
-}
-
-.payment-option__desc {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.payment-option__badge {
+.badge-public {
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
@@ -3046,109 +3361,6 @@ async function printInvoice() {
   color: #1d4ed8;
   font-size: 11px;
   font-weight: 800;
-}
-
-.payment-helper {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px dashed #cbd5e1;
-  background: #f8fafc;
-  border-radius: 14px;
-  color: #475569;
-  font-size: 13px;
-}
-
-.summary-actions {
-  display: grid;
-  gap: 12px;
-}
-
-.btn-preview-pdf {
-  min-height: 46px;
-  border-radius: 14px;
-  border: 1px solid #d8dfec;
-  background: #fff;
-  color: var(--text);
-  font-weight: 750;
-  transition: all 0.2s ease;
-}
-
-.btn-preview-pdf:hover:not(:disabled) {
-  border-color: #001a72;
-  color: #001a72;
-  background: #f8fbff;
-}
-
-.btn-preview-pdf:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.voucher-saving-note {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  color: #9a3412;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.payment-channel-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #eef2ff;
-  color: #1e3a8a;
-  font-weight: 750;
-  font-size: 13px;
-}
-
-.gateway-box {
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.gateway-box__title {
-  color: var(--text);
-  font-size: 16px;
-  font-weight: 750;
-  margin-bottom: 6px;
-}
-
-.gateway-box__desc {
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.gateway-box__meta {
-  margin-top: 12px;
-  display: grid;
-  gap: 8px;
-  color: var(--text);
-  font-size: 14px;
-}
-
-.btn-open-gateway {
-  width: 100%;
-  min-height: 46px;
-  border: none;
-  border-radius: 14px;
-  background: #000f51;
-  color: #fff;
-  font-weight: 750;
-  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
-  transition: all 0.2s ease;
-}
-
-.btn-open-gateway:hover {
-  background: #001a72;
 }
 
 .app-toast-wrap {
@@ -3207,40 +3419,6 @@ async function printInvoice() {
   pointer-events: none;
 }
 
-@media (max-width: 767.98px) {
-  .payment-option {
-    padding: 14px;
-  }
-
-  .app-toast-wrap {
-    left: 16px;
-    right: 16px;
-    top: 16px;
-  }
-
-  .app-toast {
-    min-width: 0;
-    width: 100%;
-    max-width: none;
-  }
-}
-.voucher-group-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #334155;
-  margin-bottom: 8px;
-}
-
-.badge-public {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 11px;
-  font-weight: 800;
-}
 .shipping-line .shipping-label {
   display: inline-flex;
   align-items: center;
@@ -3253,30 +3431,272 @@ async function printInvoice() {
   object-fit: contain;
 }
 
-.checkout-address-toolbar {
+.qr-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 12px;
+  overflow: auto;
+  z-index: 9999;
+}
+
+.qr-modal {
+  width: min(92vw, 620px);
+  max-height: 88vh;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.qr-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(90deg, #000f51 0%, #0f2f98 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.qr-modal-header h5 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.qr-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px 20px 14px;
+}
+
+.qr-modal-footer {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 16px;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid #eef2f7;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.payment-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.qr-image {
+  display: block;
+  width: min(100%, 300px);
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.qr-placeholder {
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 28px 16px;
+  color: #64748b;
+  text-align: center;
+}
+
+.qr-info-card {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8fbff 0%, #fdfdff 100%);
+  border: 1px solid #e4ebf5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.qr-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #dbe4f0;
+}
+
+.qr-info-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.qr-info-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.qr-info-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: right;
+  word-break: break-word;
+}
+
+.qr-info-row--amount {
+  align-items: flex-end;
+}
+
+.qr-amount {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #dc2626;
+  letter-spacing: 0.2px;
+}
+
+.qr-form-label {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.qr-note-textarea {
+  min-height: 88px !important;
+  max-height: 140px;
+  resize: vertical;
+  padding-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  border-radius: 18px;
+}
+
+.qr-modal .form-label {
+  margin-bottom: 6px;
+}
+
+.qr-modal .input-ui {
+  min-height: 44px;
+}
+
+.qr-modal-body .mt-3 {
+  margin-top: 12px !important;
+}
+
+.btn-qr-close {
+  min-width: 110px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 16px;
+  border: 1px solid #d8dfec;
+  background: #fff;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.btn-qr-close:hover {
+  border-color: #001a72;
+  color: #001a72;
+}
+
+.btn-qr-confirm {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: none;
+  background: #000f51;
+  color: #fff;
+  font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-qr-confirm:hover:not(:disabled) {
+  background: #001a72;
+}
+
+.btn-qr-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gateway-box {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.gateway-box__title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 750;
+  margin-bottom: 6px;
+}
+
+.gateway-box__desc {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.gateway-box__meta {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.btn-open-gateway {
+  width: 100%;
+  min-height: 46px;
+  border: none;
+  border-radius: 14px;
+  background: #000f51;
+  color: #fff;
+  font-weight: 750;
+  box-shadow: 0 14px 28px rgba(0, 15, 81, 0.18);
+  transition: all 0.2s ease;
+}
+
+.btn-open-gateway:hover {
+  background: #001a72;
 }
 
 .btn-select-address {
-  min-height: 42px;
-  padding: 0 16px;
-  border: 1px solid #d8dfec;
-  border-radius: 14px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
   background: #fff;
   color: #000f51;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 800;
   transition: all 0.2s ease;
 }
 
 .btn-select-address:hover:not(:disabled) {
-  border-color: #001a72;
-  background: #f8fbff;
+  background: #eef2ff;
+  border-color: #fff;
 }
 
 .btn-select-address:disabled {
-  opacity: 0.65;
+  opacity: 0.75;
   cursor: not-allowed;
 }
 
@@ -3336,5 +3756,300 @@ async function printInvoice() {
   text-align: right;
   font-weight: 800;
   color: #001a72;
+}
+
+@media (max-width: 991.98px) {
+  .summary-item {
+    flex-direction: column;
+  }
+
+  .summary-item__right {
+    width: 100%;
+    text-align: left;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .coupon-box {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-option {
+    padding: 14px;
+  }
+
+  .app-toast-wrap {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+  }
+
+  .app-toast {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .qr-backdrop {
+    padding: 12px;
+  }
+
+  .qr-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    border-radius: 18px;
+  }
+
+  .qr-modal-header {
+    padding: 14px 16px;
+  }
+
+  .qr-modal-header h5 {
+    font-size: 18px;
+  }
+
+  .qr-modal-body {
+    padding: 14px 16px 12px;
+  }
+
+  .qr-modal-footer {
+    padding: 12px 16px 16px;
+    gap: 8px;
+  }
+
+  .qr-image {
+    width: min(100%, 280px);
+    max-width: 280px;
+  }
+
+  .qr-info-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .qr-info-label {
+    font-size: 14px;
+  }
+
+  .qr-info-value {
+    font-size: 16px;
+  }
+
+  .qr-amount {
+    font-size: 24px;
+  }
+
+  .qr-note-textarea {
+    min-height: 78px !important;
+    font-size: 14px;
+  }
+
+  .btn-qr-close,
+  .btn-qr-confirm {
+    min-height: 42px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  .btn-qr-close {
+    min-width: 96px;
+  }
+}
+
+.checkout-print-btn {
+  min-height: 38px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.receipt-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 12px;
+  z-index: 3000;
+}
+
+.receipt-modal {
+  width: min(92vw, 468px);
+  max-height: 92vh;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.receipt-modal__header {
+  min-height: 54px;
+  padding: 0 16px;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.receipt-modal__header h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.receipt-modal__close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: #6c757d;
+  font-size: 18px;
+}
+
+.receipt-modal__close:hover {
+  color: #111;
+}
+
+.receipt-modal__body {
+  padding: 18px 0;
+  overflow: auto;
+  background: #fff;
+}
+
+.thermal-receipt {
+  width: 80mm;
+  margin: 0 auto;
+  padding: 0 6mm;
+  background: #fff;
+  color: #222;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.receipt-center {
+  text-align: center;
+}
+
+.receipt-store {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.receipt-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.receipt-dash {
+  border-top: 1px dashed #222;
+  margin: 8px 0;
+}
+
+.receipt-row,
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.receipt-info {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.receipt-table {
+  display: grid;
+  grid-template-columns: 1fr 34px 88px;
+  gap: 6px;
+  align-items: start;
+}
+
+.receipt-table-head {
+  font-weight: 800;
+}
+
+.receipt-product {
+  margin-top: 6px;
+}
+
+.receipt-product-name {
+  font-weight: 800;
+}
+
+.receipt-product-meta {
+  color: #333;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.receipt-text-center {
+  text-align: center;
+}
+
+.receipt-text-end {
+  text-align: right;
+}
+
+.receipt-grand-total {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.receipt-qr {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+}
+
+.receipt-qr-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #555;
+}
+
+.receipt-thank {
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.receipt-modal__footer {
+  padding: 14px 16px;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fff;
+}
+
+.receipt-close-btn {
+  min-width: 62px;
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+.receipt-download-btn {
+  min-width: 112px;
+  min-height: 36px;
+  border-radius: 6px;
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #111;
+  font-weight: 700;
+}
+
+.receipt-download-btn:hover {
+  background: #ffb300;
+  border-color: #ffb300;
+  color: #111;
 }
 </style>

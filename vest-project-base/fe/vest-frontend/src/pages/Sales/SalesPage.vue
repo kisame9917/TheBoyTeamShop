@@ -1794,6 +1794,13 @@ import { listKhachHang } from "@/services/khachHangApi";
 import { resolveMediaUrl } from "@/utils/media";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
+import QRCode from "qrcode";
+
+const PUBLIC_WEB_ORIGIN =
+  import.meta.env.VITE_PUBLIC_WEB_ORIGIN || window.location.origin;
+const qrRequestCode = ref("");
+let posQrPollTimer = null;
+const qrPaymentUrl = ref("");
 const qrImg = ref("");
 const qrContent = ref("");
 const qrNoteDraft = ref("");
@@ -4440,27 +4447,108 @@ async function openQrPay() {
 
   o.paymentMethod = "QR";
 
-  const sandboxUrl = "https://sandbox.vnpayment.vn/apis/vnpay-demo/";
-  qrContent.value = `${o.maHoaDon}`;
-  qrNoteDraft.value = `${o.maHoaDon}`;
-  qrImg.value = `https://quickchart.io/qr?text=${encodeURIComponent(sandboxUrl)}&size=320`;
+  try {
+    const { data } = await http.post(
+      `/api/hoa-don/draft/${o.dbId || o.id}/pos-qr/init`,
+      { source: "POS" },
+    );
 
-  showQrPayModal.value = true;
+    qrRequestCode.value = data?.requestCode || "";
+    qrPaymentUrl.value = String(data?.paymentUrl || "").startsWith("http")
+      ? data.paymentUrl
+      : `${PUBLIC_WEB_ORIGIN}${data?.paymentUrl || ""}`;
+
+    qrImg.value = await QRCode.toDataURL(qrPaymentUrl.value, {
+      width: 320,
+      margin: 2,
+    });
+
+    qrContent.value = `${o.maHoaDon}`;
+    qrNoteDraft.value = `Khách đã thanh toán - ${o.maHoaDon}`;
+    showQrPayModal.value = true;
+
+    startPosQrPolling();
+  } catch (e) {
+    console.error(e);
+    const msg =
+      e?.response?.data?.message ||
+      e?.response?.data?.error ||
+      "Không khởi tạo được QR thanh toán";
+    toastShow(String(msg), "danger");
+  }
+}
+
+function stopPosQrPolling() {
+  if (posQrPollTimer) {
+    clearInterval(posQrPollTimer);
+    posQrPollTimer = null;
+  }
+}
+
+async function startPosQrPolling() {
+  stopPosQrPolling();
+
+  const o = activeOrder.value;
+  if (!o?.dbId || !qrRequestCode.value) return;
+
+  posQrPollTimer = setInterval(async () => {
+    try {
+      const { data } = await http.get(
+        `/api/hoa-don/draft/${o.dbId}/pos-qr/status`,
+        {
+          params: { requestCode: qrRequestCode.value },
+        },
+      );
+
+      if (data?.paid) {
+        stopPosQrPolling();
+
+        const confirmRes = await http.post(
+          `/api/hoa-don/draft/${o.dbId}/pos-qr/confirm`,
+          {
+            requestCode: qrRequestCode.value,
+            maGiaoDich: data.maGiaoDich || `PAY${Date.now()}`,
+            soTien: Number(grandTotal.value || 0),
+            ghiChu: qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`,
+            paymentGateway: "MOCK-POS-QR",
+          },
+        );
+
+        o.paymentMethod = "QR";
+        o.paid = Number(grandTotal.value || 0);
+        o.maGiaoDich =
+          confirmRes?.data?.maGiaoDich || data.maGiaoDich || `PAY${Date.now()}`;
+        o.ghiChuThanhToan = (
+          qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`
+        ).trim();
+
+        closeQrPay();
+        toastShow("Thanh toán thành công", "success");
+
+        await resetOrderAfterPaid(o);
+      }
+    } catch (e) {
+      console.error("pos qr polling error", e);
+    }
+  }, 2500);
 }
 
 function closeQrPay() {
+  stopPosQrPolling();
   showQrPayModal.value = false;
   qrImg.value = "";
   qrContent.value = "";
+  qrPaymentUrl.value = "";
+  qrRequestCode.value = "";
   qrNoteDraft.value = "";
 }
 
 function goToSandboxPayment() {
-  window.open(
-    "https://sandbox.vnpayment.vn/apis/vnpay-demo/",
-    "_blank",
-    "noopener,noreferrer",
-  );
+  if (!qrPaymentUrl.value) {
+    return toastShow("Không tìm thấy đường dẫn thanh toán", "warning");
+  }
+
+  window.open(qrPaymentUrl.value, "_blank", "noopener,noreferrer");
 }
 
 async function markPaidAndCheckout() {
@@ -4472,15 +4560,37 @@ async function markPaidAndCheckout() {
   );
   if (!ok) return;
 
-  o.paymentMethod = "QR";
-  o.paid = Number(grandTotal.value || 0);
-  o.maGiaoDich = `VNPAY-SANDBOX-${o.maHoaDon}-${Date.now()}`;
-  o.ghiChuThanhToan = (
-    qrNoteDraft.value || `VNPAY sandbox - ${o.maHoaDon}`
-  ).trim();
+  try {
+    const { data } = await http.post(
+      `/api/hoa-don/draft/${o.dbId || o.id}/pos-qr/confirm`,
+      {
+        requestCode: qrRequestCode.value,
+        maGiaoDich: `PAY${Date.now()}`,
+        soTien: Number(grandTotal.value || 0),
+        ghiChu: qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`,
+        paymentGateway: "MOCK-POS-QR",
+      },
+    );
 
-  closeQrPay();
-  await confirmOrder();
+    o.paymentMethod = "QR";
+    o.paid = Number(grandTotal.value || 0);
+    o.maGiaoDich = data?.maGiaoDich || `PAY${Date.now()}`;
+    o.ghiChuThanhToan = (
+      qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`
+    ).trim();
+
+    closeQrPay();
+    toastShow("Thanh toán thành công", "success");
+
+    await resetOrderAfterPaid(o);
+  } catch (e) {
+    console.error(e);
+    const msg =
+      e?.response?.data?.message ||
+      e?.response?.data?.error ||
+      "Xác nhận thanh toán QR thất bại";
+    toastShow(String(msg), "danger");
+  }
 }
 
 function validateCheckout(o) {
@@ -4905,6 +5015,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   void stopProductQr();
+  stopPosQrPolling();
 
   window.removeEventListener("beforeunload", saveDraftsNow);
   window.removeEventListener("keydown", onKeydown);
