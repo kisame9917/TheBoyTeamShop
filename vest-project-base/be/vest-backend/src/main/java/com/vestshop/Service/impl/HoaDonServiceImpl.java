@@ -102,6 +102,11 @@ public class HoaDonServiceImpl implements HoaDonService {
         return buildDetail(hoaDon);
     }
 
+    @Override
+    public HoaDonDetailResponse generatePosQr(Long id) {
+        return null;
+    }
+
     private NhanVien getCurrentNhanVien() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return null;
@@ -1301,7 +1306,11 @@ public class HoaDonServiceImpl implements HoaDonService {
         gd.setTrangThai(true);
 
         giaoDichThanhToanRepository.save(gd);
+        hd.setQrCode(paymentUrl);
+        hd.setNgayCapNhat(now);
+        hoaDonRepository.save(hd);
 
+        posRealtimeService.pushUpsert(buildDetail(hd));
         return PosQrInitResponse.builder()
                 .hoaDonId(hd.getId())
                 .maHoaDon(hd.getMaHoaDon())
