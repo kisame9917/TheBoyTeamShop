@@ -93,7 +93,7 @@
 
       <nav class="nav-menu py-2 bg-light-blue">
         <div class="container d-flex justify-content-center gap-4">
-          <router-link to="/shop" class="nav-link">Cửa hàng</router-link>
+          <router-link to="/" class="nav-link">Cửa hàng</router-link>
 <!--          <router-link :to="{ name: 'Search', query: { cat: 'bo-vest-nam' } }" class="nav-link">-->
 <!--            Bộ vest nam-->
 <!--          </router-link>-->
@@ -506,7 +506,7 @@ onBeforeUnmount(() => {
 }
 
 .nav-link:hover,
-.nav-link.router-link-active {
+.nav-link.router-link-exact-active {
   color: #0d6efd;
 }
 
