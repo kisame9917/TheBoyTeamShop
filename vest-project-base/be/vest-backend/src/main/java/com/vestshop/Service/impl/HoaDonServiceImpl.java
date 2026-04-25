@@ -1,6 +1,7 @@
 package com.vestshop.Service.impl;
 
 import com.vestshop.Entity.*;
+import com.vestshop.Exception.BadRequestException;
 import com.vestshop.Repository.*;
 import com.vestshop.Service.EmailService;
 import com.vestshop.Service.HoaDonService;
@@ -1178,5 +1179,50 @@ public class HoaDonServiceImpl implements HoaDonService {
                 || st == TrangThaiDonHang.DANG_GIAO
                 || st == TrangThaiDonHang.DA_GIAO
                 || st == TrangThaiDonHang.HOAN_THANH;
+    }
+    @Override
+    @Transactional
+    public HoaDonDetailResponse generatePosQr(Long id) {
+        HoaDon hd = hoaDonRepository.findById(id)
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy hóa đơn"));
+
+        if (!Boolean.TRUE.equals(hd.getTrangThai())) {
+            throw new BadRequestException("Hóa đơn không còn hoạt động");
+        }
+
+        if (hd.getTongTienSauGiam() == null || hd.getTongTienSauGiam().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Số tiền thanh toán không hợp lệ");
+        }
+
+        String transferContent = "VEST " + hd.getMaHoaDon();
+        String qrImageUrl = "/images/static-qr-techcombank.png";
+
+        hd.setQrCode(qrImageUrl);
+        hoaDonRepository.save(hd);
+
+        PhuongThucThanhToan pttt = phuongThucThanhToanRepository
+                .findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue("QR")
+                .orElseGet(() -> phuongThucThanhToanRepository
+                        .findFirstByMaPhuongThucThanhToanIgnoreCaseAndTrangThaiTrue("CK")
+                        .orElseThrow(() -> new BadRequestException("Không tìm thấy phương thức thanh toán QR/Chuyển khoản")));
+
+        GiaoDichThanhToan gdtt = giaoDichThanhToanRepository
+                .findFirstByHoaDon_IdOrderByIdDesc(id)
+                .orElse(new GiaoDichThanhToan());
+
+        gdtt.setHoaDon(hd);
+        gdtt.setPhuongThucThanhToan(pttt);
+        gdtt.setSoTien(hd.getTongTienSauGiam());
+        gdtt.setDuLieuQr(qrImageUrl);
+        gdtt.setGhiChu(transferContent);
+        gdtt.setTrangThai(false);
+        gdtt.setThoiGianCapNhat(LocalDateTime.now());
+        if (gdtt.getThoiGianTao() == null) {
+            gdtt.setThoiGianTao(LocalDateTime.now());
+        }
+
+        giaoDichThanhToanRepository.save(gdtt);
+
+        return getDetailById(id);
     }
 }

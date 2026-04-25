@@ -42,4 +42,5 @@ public interface HoaDonService {
     List<HoaDonDetailResponse> getPosDrafts();
     HoaDonDetailResponse syncPosDraft(Long hoaDonId, PosDraftSyncRequest req);
     HoaDonDetailResponse confirmRefund(Long hoaDonId, RefundConfirmRequest request);
+    HoaDonDetailResponse generatePosQr(Long id);
 }

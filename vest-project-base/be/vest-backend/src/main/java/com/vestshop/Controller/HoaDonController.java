@@ -129,4 +129,8 @@ public class HoaDonController {
                                                               @RequestBody RefundConfirmRequest request) {
         return ResponseEntity.ok(hoaDonService.confirmRefund(id, request));
     }
+    @PostMapping("/draft/{id}/generate-qr")
+    public ResponseEntity<HoaDonDetailResponse> generateQr(@PathVariable Long id) {
+        return ResponseEntity.ok(hoaDonService.generatePosQr(id));
+    }
 }
