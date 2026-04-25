@@ -1398,27 +1398,26 @@
                   <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Tỉnh/Thành phố</label>
                     <v-select
-                      :options="provinces"
-                      label="provinceName"
-                      :reduce="(p) => p.provinceId"
-                      v-model="activeOrder.ghnProvinceId"
-                      :clearable="true"
-                      :searchable="true"
-                      :disabled="provincesLoading"
-                      placeholder="Chọn tỉnh/thành"
-                      @update:modelValue="onProvinceChange"
+                        :options="provinces"
+                        label="provinceName"
+                        :reduce="(p) => p.provinceId"
+                        v-model="addressDraft.provinceId"
+                        :clearable="true"
+                        :searchable="true"
+                        :disabled="provincesLoading"
+                        placeholder="Chọn tỉnh/thành"
+                        @update:modelValue="onAddressProvinceChange"
                     />
 
                     <v-select
-                      :options="wards"
-                      label="wardName"
-                      :reduce="(w) => w.wardCode"
-                      v-model="activeOrder.ghnWardCode"
-                      :clearable="true"
-                      :searchable="true"
-                      :disabled="!activeOrder.ghnProvinceId || wardsLoading"
-                      placeholder="Chọn phường/xã"
-                      @update:modelValue="onWardChange"
+                        :options="addressDraftWards"
+                        label="wardName"
+                        :reduce="(w) => w.wardCode"
+                        v-model="addressDraft.wardCode"
+                        :clearable="true"
+                        :searchable="true"
+                        :disabled="!addressDraft.provinceId || wardsLoading"
+                        placeholder="Chọn phường/xã"
                     />
                   </div>
 
@@ -1508,84 +1507,117 @@
 
 <div
   v-if="showQrPayModal"
-  class="qr-backdrop"
-  @click.self="closeQrPay"
-  style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, .45);"
+  class="modal fade show"
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  style="display: block; z-index: 1065"
 >
-  <div class="pos-qr-modal">
-    <div class="pos-qr-header">
-      <div>
-        <div class="pos-qr-title">Thanh toán QR</div>
-        <div class="pos-qr-subtitle">Khách quét mã để thanh toán đơn hàng</div>
-      </div>
-
-      <button
-        class="btn-close"
-        type="button"
-        @click="closeQrPay"
-      ></button>
-    </div>
-
-    <div class="pos-qr-body">
-      <div class="text-center mb-3">
-        <img
-          v-if="qrImg"
-          :src="qrImg"
-          alt="QR thanh toán"
-          class="pos-qr-image"
-        />
-        <div v-else class="text-muted small">Chưa có mã QR</div>
-      </div>
-
-      <div class="pos-qr-info-card">
-        <div class="pos-qr-info-row">
-          <span class="pos-qr-label">Mã đơn</span>
-          <span class="pos-qr-value font-monospace">
-            {{ activeOrder?.maHoaDon || "-" }}
-          </span>
+  <div class="modal-dialog modal-dialog-centered qr-pay-dialog">
+    <div class="modal-content qr-pay-modal">
+      <div class="modal-header qr-pay-header">
+        <div>
+          <h5 class="modal-title fw-bold mb-1">Thanh toán bằng QR</h5>
+          <div class="qr-pay-subtitle">
+            Quét mã hoặc chuyển sang trang thanh toán
+          </div>
         </div>
 
-        <div class="pos-qr-info-row">
-          <span class="pos-qr-label">Số tiền</span>
-          <span class="pos-qr-amount">{{ money(grandTotal) }}</span>
+        <button
+          type="button"
+          class="btn-close"
+          @click="closeQrPay"
+        ></button>
+      </div>
+
+      <div class="modal-body qr-pay-body">
+        <div class="qr-pay-top">
+          <div class="qr-pay-meta-card">
+            <div class="qr-pay-meta-label">Mã hóa đơn</div>
+            <div class="qr-pay-meta-value font-monospace">
+              {{ activeOrder?.maHoaDon }}
+            </div>
+          </div>
+
+          <div class="qr-pay-amount-card">
+            <div class="qr-pay-meta-label">Số tiền thanh toán</div>
+            <div class="qr-pay-amount">{{ money(grandTotal) }}</div>
+          </div>
+        </div>
+
+        <div class="qr-stage">
+          <div class="qr-stage-glow"></div>
+
+          <div class="qr-frame">
+            <img
+              v-if="qrImg"
+              :src="qrImg"
+              alt="QR Pay"
+              class="qr-image"
+            />
+            <div v-else class="text-muted small py-5 text-center">
+              Đang tải QR...
+            </div>
+          </div>
+
+          <div class="qr-stage-caption">
+            <div class="qr-stage-title">Quét mã để thanh toán</div>
+          </div>
+        </div>
+
+        <div class="qr-pay-info-card">
+          <div class="qr-pay-info-row qr-pay-info-row-top">
+            <span class="qr-pay-info-label">Nội dung đơn</span>
+            <span class="qr-pay-info-value font-monospace qr-pay-code">
+              {{ qrContent }}
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label qr-pay-input-label">Ghi chú</label>
+          <input
+            class="form-control qr-pay-input"
+            v-model="qrNoteDraft"
+            placeholder="VD: VNPAY sandbox - HDxxxx"
+          />
         </div>
       </div>
 
-      <div class="mt-3">
-        <label class="form-label pos-qr-note-label">Ghi chú thanh toán</label>
-        <textarea
-          v-model="qrNoteDraft"
-          class="form-control pos-qr-note"
-          rows="2"
-          placeholder="Khách đã thanh toán"
-        ></textarea>
+      <div class="modal-footer qr-pay-footer">
+        <button
+          class="btn qr-btn qr-btn-primary"
+          type="button"
+          @click="goToSandboxPayment"
+        >
+          Chuyển hướng thanh toán
+        </button>
+
+        <button
+          class="btn qr-btn qr-btn-success"
+          type="button"
+          @click="markPaidAndCheckout"
+          :disabled="submitting"
+        >
+          Thanh toán thành công
+        </button>
+
+        <button
+          class="btn qr-btn qr-btn-secondary"
+          type="button"
+          @click="closeQrPay"
+        >
+          Đóng
+        </button>
       </div>
-    </div>
-
-    <div class="pos-qr-footer">
-      <button
-        class="btn pos-qr-confirm-btn"
-        type="button"
-        @click="markPaidAndCheckout"
-        :disabled="submitting"
-      >
-        {{ submitting ? "Đang xử lý..." : "Thanh toán thành công" }}
-      </button>
-
-      <button
-        class="btn pos-qr-close-btn"
-        type="button"
-        @click="closeQrPay"
-      >
-        Đóng
-      </button>
     </div>
   </div>
 </div>
+
 <div
   v-if="showPaymentConfirmModal"
   class="modal-backdrop fade show payment-confirm-backdrop"
-  style="z-index: 10000"
+  style="z-index: 1067"
 ></div>
 
 <div
@@ -1594,7 +1626,7 @@
   tabindex="-1"
   role="dialog"
   aria-modal="true"
-  style="display: block; z-index: 10001"
+  style="display: block; z-index: 1068"
 >
   <div class="modal-dialog modal-dialog-centered payment-confirm-dialog">
     <div class="modal-content payment-confirm-modal">
@@ -2701,7 +2733,6 @@ function getCustomerScopedVouchers(order, vouchers) {
 }
 
 
-
 async function fetchCustomersAll() {
   if (customerLoading.value) return;
   customerLoading.value = true;
@@ -2805,31 +2836,15 @@ async function chooseCustomer(c) {
     email: c.email,
     address: c.address,
   };
+
   o.customerDraft.phone = c.phone || "";
   o.customerDraft.email = c.email || "";
-  if (!String(o.diaChi || "").trim()) o.diaChi = c.address || "";
 
-  if (!Array.isArray(o.addressBook) || o.addressBook.length === 0) {
-    o.addressBook = c.address
-      ? [
-          {
-            id: Date.now(),
-            receiverName: c.name || "",
-            phone: c.phone || "",
-            provinceId: null,
-            wardCode: "",
-            detail: c.address || "",
-            fullAddress: c.address || "",
-            isDefault: true,
-          },
-        ]
-      : [];
+  if (!String(o.diaChi || "").trim()) {
+    o.diaChi = c.address || "";
   }
 
-  if (!o.selectedAddressId && o.addressBook.length > 0) {
-    o.selectedAddressId =
-      o.addressBook.find((x) => x.isDefault)?.id ?? o.addressBook[0].id;
-  }
+  await loadCustomerAddressBook(o.customer);
 
   closeCustomerModal();
   await reloadActiveOrderVouchers({ showModal: true });
@@ -2844,6 +2859,22 @@ async function chooseWalkInCustomer() {
   o.diaChi = "";
   o.addressBook = [];
   o.selectedAddressId = null;
+
+  o.tenNguoiNhanHang = "";
+  o.soDienThoaiNhanHang = "";
+  o.emailNguoiNhanHang = "";
+  o.tinhThanhNhanHang = "";
+  o.quanHuyenNhanHang = "";
+  o.phuongXaNhanHang = "";
+  o.diaChiNhanHangChiTiet = "";
+
+  o.ghnProvinceId = null;
+  o.ghnDistrictId = null;
+  o.ghnWardCode = "";
+
+  o.phiVanChuyen = 0;
+  wards.value = [];
+  resetAddressDraft();
 
   customerKw.value = "";
   customerPage.value = 0;
@@ -2890,11 +2921,14 @@ function resetAddressDraft() {
   addressDraft.makeDefault = false;
 }
 
-function openAddressModal() {
+async function openAddressModal() {
   const o = activeOrder.value;
-  if (!o?.customer?.id)
+  if (!o?.customer?.id) {
     return toastShow("Vui lòng chọn khách hàng trước", "warning");
+  }
+
   showCustomerModal.value = false;
+  await loadCustomerAddressBook(o.customer);
   showAddressModal.value = true;
 }
 
@@ -2902,7 +2936,7 @@ function closeAddressModal() {
   showAddressModal.value = false;
 }
 
-function pickAddress(addressId) {
+async function pickAddress(addressId) {
   const o = activeOrder.value;
   if (!o) return;
 
@@ -2915,24 +2949,31 @@ function pickAddress(addressId) {
   o.emailNguoiNhanHang = o.customerDraft.email || "";
   o.diaChi = addr.fullAddress || "";
 
-  o.ghnProvinceId = addr.provinceId ? String(addr.provinceId) : null;
-  o.ghnWardCode = addr.wardCode ? String(addr.wardCode) : "";
-  o.diaChiNhanHangChiTiet = addr.detail || "";
+  const resolvedProvinceId =
+      addr.provinceId || resolveProvinceIdByName(addr.provinceName);
+
+  o.ghnProvinceId = resolvedProvinceId ? String(resolvedProvinceId) : null;
   o.quanHuyenNhanHang = "";
+  o.diaChiNhanHangChiTiet = addr.detail || "";
 
   const province = findProvinceById(o.ghnProvinceId);
-  o.tinhThanhNhanHang = province?.provinceName || "";
+  o.tinhThanhNhanHang = province?.provinceName || addr.provinceName || "";
 
   wards.value = (province?.wards || []).map((w) => ({
     wardCode: w.wardCode,
     wardName: w.wardName,
   }));
 
+  const resolvedWardCode =
+      addr.wardCode || resolveWardCodeByName(o.ghnProvinceId, addr.wardName);
+
+  o.ghnWardCode = resolvedWardCode ? String(resolvedWardCode) : "";
+
   const ward = findWardByCode(o.ghnProvinceId, o.ghnWardCode);
-  o.phuongXaNhanHang = ward?.wardName || "";
+  o.phuongXaNhanHang = ward?.wardName || addr.wardName || "";
 
   closeAddressModal();
-  refreshShipFee();
+  await refreshShipFee();
   toastShow("Đã chọn địa chỉ", "success");
 }
 
@@ -2983,7 +3024,9 @@ function saveNewAddress() {
     receiverName: addressDraft.receiverName.trim(),
     phone: addressDraft.phone.trim(),
     provinceId: String(addressDraft.provinceId),
+    provinceName,
     wardCode: String(addressDraft.wardCode),
+    wardName,
     detail: addressDraft.detail.trim(),
     fullAddress,
     isDefault: !!addressDraft.makeDefault,
@@ -3013,6 +3056,107 @@ function wardNameByCodeByProvince(provinceId, wardCode) {
     province?.wards?.find((w) => String(w.wardCode) === String(wardCode))
       ?.wardName || ""
   );
+}
+
+function normalizeText(value) {
+  return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+}
+
+function resolveProvinceIdByName(provinceName) {
+  const normalized = normalizeText(provinceName);
+  const province = provinceLookup.value.find(
+      (item) => normalizeText(item.provinceName) === normalized,
+  );
+  return province ? String(province.provinceId) : null;
+}
+
+function resolveWardCodeByName(provinceId, wardName) {
+  if (!provinceId || !wardName) return "";
+  const province = findProvinceById(provinceId);
+  if (!province) return "";
+
+  const normalized = normalizeText(wardName);
+  const ward = (province.wards || []).find(
+      (item) => normalizeText(item.wardName) === normalized,
+  );
+
+  return ward ? String(ward.wardCode) : "";
+}
+
+function buildFallbackAddressBook(customer) {
+  if (!customer?.address) return [];
+
+  return [
+    {
+      id: Date.now(),
+      receiverName: customer.name || "",
+      phone: customer.phone || "",
+      provinceId: null,
+      provinceName: "",
+      wardCode: "",
+      wardName: "",
+      detail: customer.address || "",
+      fullAddress: customer.address || "",
+      isDefault: true,
+    },
+  ];
+}
+
+function mapCustomerAddress(raw, customer) {
+  const provinceName = String(raw?.tinhThanh || "").trim();
+  const wardName = String(raw?.phuongXa || "").trim();
+  const detail = String(raw?.diaChiChiTiet || "").trim();
+
+  const provinceId = resolveProvinceIdByName(provinceName);
+  const wardCode = resolveWardCodeByName(provinceId, wardName);
+
+  const fullAddress = [detail, wardName, provinceName, raw?.quocGia]
+      .map((x) => String(x || "").trim())
+      .filter(Boolean)
+      .join(", ");
+
+  return {
+    id: raw?.id ?? Date.now() + Math.random(),
+    receiverName: raw?.tenNguoiNhan || customer?.name || "",
+    phone: raw?.soDienThoai || customer?.phone || "",
+    provinceId,
+    provinceName,
+    wardCode,
+    wardName,
+    detail,
+    fullAddress,
+    isDefault: !!raw?.laMacDinh,
+  };
+}
+
+async function loadCustomerAddressBook(customer) {
+  const o = activeOrder.value;
+  if (!o?.customer?.id) return;
+
+  try {
+    const res = await http.get(`/api/khach-hang/${customer.id}/dia-chi`);
+    const rows = Array.isArray(res?.data) ? res.data : [];
+
+    o.addressBook = rows.map((item) => mapCustomerAddress(item, customer));
+
+    if (!o.addressBook.length) {
+      o.addressBook = buildFallbackAddressBook(customer);
+    }
+
+    const defaultAddr =
+        o.addressBook.find((item) => item.isDefault) || o.addressBook[0] || null;
+
+    o.selectedAddressId = defaultAddr?.id ?? null;
+  } catch (e) {
+    console.error("loadCustomerAddressBook error:", e);
+    o.addressBook = buildFallbackAddressBook(customer);
+    o.selectedAddressId = o.addressBook[0]?.id ?? null;
+  }
 }
 
 const provinces = ref([]);
@@ -4292,7 +4436,6 @@ async function runVoucherPrecheckFlow() {
   return true;
 }
 
-
 async function openQrPay() {
   const o = activeOrder.value;
   if (!o) return;
@@ -4307,17 +4450,16 @@ async function openQrPay() {
   try {
     const { data } = await http.post(
       `/api/hoa-don/draft/${o.dbId || o.id}/pos-qr/init`,
-      { source: "POS" }
+      { source: "POS" },
     );
 
     qrRequestCode.value = data?.requestCode || "";
-
     qrPaymentUrl.value = String(data?.paymentUrl || "").startsWith("http")
       ? data.paymentUrl
       : `${PUBLIC_WEB_ORIGIN}${data?.paymentUrl || ""}`;
 
     qrImg.value = await QRCode.toDataURL(qrPaymentUrl.value, {
-      width: 300,
+      width: 320,
       margin: 2,
     });
 
@@ -4355,7 +4497,7 @@ async function startPosQrPolling() {
         `/api/hoa-don/draft/${o.dbId}/pos-qr/status`,
         {
           params: { requestCode: qrRequestCode.value },
-        }
+        },
       );
 
       if (data?.paid) {
@@ -4369,7 +4511,7 @@ async function startPosQrPolling() {
             soTien: Number(grandTotal.value || 0),
             ghiChu: qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`,
             paymentGateway: "MOCK-POS-QR",
-          }
+          },
         );
 
         o.paymentMethod = "QR";
@@ -4401,19 +4543,20 @@ function closeQrPay() {
   qrNoteDraft.value = "";
 }
 
-function openMockPaymentPage() {
+function goToSandboxPayment() {
   if (!qrPaymentUrl.value) {
     return toastShow("Không tìm thấy đường dẫn thanh toán", "warning");
   }
 
   window.open(qrPaymentUrl.value, "_blank", "noopener,noreferrer");
 }
+
 async function markPaidAndCheckout() {
   const o = activeOrder.value;
   if (!o) return;
 
   const ok = await openPaymentConfirm(
-    `Xác nhận thanh toán thành công cho hóa đơn ${o.maHoaDon}?`
+    `Xác nhận thanh toán thành công cho hóa đơn ${o.maHoaDon}?`,
   );
   if (!ok) return;
 
@@ -4426,7 +4569,7 @@ async function markPaidAndCheckout() {
         soTien: Number(grandTotal.value || 0),
         ghiChu: qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`,
         paymentGateway: "MOCK-POS-QR",
-      }
+      },
     );
 
     o.paymentMethod = "QR";
@@ -4449,6 +4592,7 @@ async function markPaidAndCheckout() {
     toastShow(String(msg), "danger");
   }
 }
+
 function validateCheckout(o) {
   if (!o) return "Không có đơn hàng đang chọn";
   if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";
@@ -4871,6 +5015,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   void stopProductQr();
+  stopPosQrPolling();
 
   window.removeEventListener("beforeunload", saveDraftsNow);
   window.removeEventListener("keydown", onKeydown);
@@ -5294,374 +5439,597 @@ onBeforeUnmount(() => {
 :deep(.multiselect-placeholder) {
   color: #6c757d;
 }
-/* ===== QR MODAL - SALE PAGE ===== */
-.qr-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(2, 6, 23, 0.62);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 12px;
-  overflow: auto;
-  z-index: 1065;
-}
-
-.qr-modal {
-  width: min(92vw, 620px);
-  max-height: 88vh;
-  background: #fff;
+.qr-pay-modal {
+  border: 0;
   border-radius: 22px;
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.18),
+    0 10px 24px rgba(15, 23, 42, 0.1);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
-.qr-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 20px;
-  background: linear-gradient(90deg, #000f51 0%, #0f2f98 100%);
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.qr-modal-header h5 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
-}
-
-.qr-modal-body {
-  flex: 1 1 auto;
-  overflow-y: auto;
+.qr-pay-header {
   padding: 18px 20px 14px;
+  border-bottom: 1px solid #eef2f7;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
+    #ffffff;
 }
 
-.qr-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 20px 18px;
-  border-top: 1px solid #eef2f7;
-  background: #fff;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-.payment-channel-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #eef2ff;
-  color: #1e3a8a;
-  font-weight: 800;
-  font-size: 14px;
-  margin-bottom: 14px;
-}
-
-.qr-image {
-  display: block;
-  width: min(100%, 300px);
-  max-width: 300px;
-  height: auto;
-  margin: 0 auto;
-  border-radius: 18px;
-  background: #fff;
-}
-
-.qr-placeholder {
-  border: 1px dashed #cbd5e1;
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 28px 16px;
-  color: #64748b;
-  text-align: center;
-}
-
-.qr-info-card {
-  margin-top: 18px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #f8fbff 0%, #fdfdff 100%);
-  border: 1px solid #e4ebf5;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.qr-info-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px dashed #dbe4f0;
-}
-
-.qr-info-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.qr-info-label {
-  font-size: 15px;
+.qr-pay-eyebrow {
+  font-size: 12px;
   font-weight: 700;
-  color: #475569;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2563eb;
+  margin-bottom: 4px;
 }
 
-.qr-info-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: right;
+.qr-pay-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.qr-pay-body {
+  padding: 18px 20px 16px;
+}
+
+.qr-pay-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.qr-pay-meta-card,
+.qr-pay-amount-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.qr-pay-meta-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.qr-pay-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
   word-break: break-word;
 }
 
-.qr-info-row--amount {
-  align-items: flex-end;
-}
-
-.qr-amount {
-  font-size: 30px;
-  line-height: 1.1;
-  font-weight: 900;
+.qr-pay-amount {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
   color: #dc2626;
-  letter-spacing: 0.2px;
 }
 
-.qr-form-label {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.qr-note-textarea {
-  min-height: 88px !important;
-  font-size: 15px;
-  line-height: 1.6;
-  border-radius: 18px;
-  border: 1px solid #dbe2ee;
-  padding: 12px 14px;
-  resize: vertical;
-}
-
-.btn-qr-open,
-.btn-qr-confirm,
-.btn-qr-close {
-  min-height: 46px;
-  min-width: 120px;
-  padding: 0 18px;
-  border-radius: 16px;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.btn-qr-open {
-  border: none;
-  background: #0f2f98;
-  color: #fff;
-}
-
-.btn-qr-open:hover {
-  background: #0b2578;
-}
-
-.btn-qr-confirm {
-  border: none;
-  background: #16a34a;
-  color: #fff;
-}
-
-.btn-qr-confirm:hover {
-  background: #15803d;
-}
-
-.btn-qr-close {
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.btn-qr-close:hover {
-  background: #e5e7eb;
-}
-
-@media (max-width: 767.98px) {
-  .qr-backdrop {
-    padding: 12px;
-  }
-
-  .qr-modal {
-    width: 100%;
-    max-height: calc(100vh - 24px);
-    border-radius: 18px;
-  }
-
-  .qr-modal-header {
-    padding: 14px 16px;
-  }
-
-  .qr-modal-header h5 {
-    font-size: 18px;
-  }
-
-  .qr-modal-body {
-    padding: 14px 16px 12px;
-  }
-
-  .qr-modal-footer {
-    padding: 12px 16px 16px;
-  }
-
-  .qr-image {
-    width: min(100%, 260px);
-    max-width: 260px;
-  }
-
-  .qr-amount {
-    font-size: 24px;
-  }
-
-  .btn-qr-open,
-  .btn-qr-confirm,
-  .btn-qr-close {
-    width: 100%;
-  }
-}
-.pos-qr-modal {
-  width: 420px;
-  max-width: 92vw;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+.qr-stage {
+  position: relative;
+  border-radius: 22px;
+  padding: 20px 16px 16px;
+  background:
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  border: 1px solid #e8eef7;
+  text-align: center;
+  margin-bottom: 16px;
   overflow: hidden;
 }
 
-.pos-qr-header {
+.qr-stage-glow {
+  position: absolute;
+  inset: auto;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18), transparent 70%);
+  pointer-events: none;
+}
+
+.qr-frame {
+  position: relative;
+  z-index: 1;
+  width: 230px;
+  height: 230px;
+  margin: 0 auto 14px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 20px 12px;
-  border-bottom: 1px solid #eef2f7;
+  align-items: center;
+  justify-content: center;
 }
 
-.pos-qr-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.2;
+.qr-image {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  display: block;
 }
 
-.pos-qr-subtitle {
+.qr-stage-caption {
+  position: relative;
+  z-index: 1;
+}
+
+.qr-stage-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.qr-stage-note {
   font-size: 13px;
-  color: #64748b;
+  color: #6b7280;
   margin-top: 4px;
 }
 
-.pos-qr-body {
-  padding: 18px 20px 14px;
+.qr-pay-info-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
-.pos-qr-image {
-  width: 230px;
-  height: 230px;
-  object-fit: contain;
+.qr-pay-info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+}
+
+.qr-pay-info-row-top {
+  border-top: 1px solid #f1f5f9;
+}
+
+.qr-pay-info-label {
+  font-size: 13px;
+  color: #6b7280;
+  min-width: 110px;
+}
+
+.qr-pay-info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  text-align: right;
+}
+
+.qr-pay-code {
+  word-break: break-all;
+}
+
+.qr-pay-input-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.qr-pay-input {
+  min-height: 44px;
+  border-radius: 14px;
+  border-color: #dbe3ee;
+  box-shadow: none;
+}
+
+.qr-pay-input:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+.qr-pay-footer {
+  border-top: 1px solid #eef2f7;
+  padding: 14px 20px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1.3fr;
+  gap: 10px;
+}
+
+.qr-btn {
+  min-height: 46px;
+  border-radius: 14px;
+  font-weight: 700;
+  border: 0;
+}
+
+.qr-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.qr-btn-secondary:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.qr-btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+}
+
+.qr-btn-primary:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.qr-btn-success {
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.22);
+}
+
+.qr-btn-success:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.qr-btn:disabled {
+  opacity: 0.7;
+  transform: none !important;
+  box-shadow: none;
+}
+
+@media (max-width: 576px) {
+  .qr-pay-top {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-pay-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-frame {
+    width: 210px;
+    height: 210px;
+  }
+
+  .qr-image {
+    width: 168px;
+    height: 168px;
+  }
+
+  .qr-pay-info-row {
+    flex-direction: column;
+  }
+
+  .qr-pay-info-value {
+    text-align: left;
+  }
+}
+
+.qr-scan-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1062;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.qr-scan-dialog {
+  width: min(720px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.qr-scan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.qr-scan-body {
+  padding: 16px 18px 18px;
+}
+
+.qr-reader-box {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+.qr-pay-dialog {
+  max-width: 720px;
+  width: min(720px, calc(100vw - 32px));
+  margin: 1rem auto;
+}
+
+.qr-pay-modal {
+  border: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+}
+
+.qr-pay-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(90deg, #ffffff 0%, #f3fff8 100%);
+}
+
+.qr-pay-subtitle {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.qr-pay-body {
+  padding: 16px 18px;
+}
+
+.qr-pay-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.qr-pay-meta-card,
+.qr-pay-amount-card {
+  border: 1px solid #dde3ea;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  min-width: 0;
+}
+
+.qr-pay-meta-label {
+  font-size: 12px;
+  color: #7b8794;
+  margin-bottom: 6px;
+}
+
+.qr-pay-meta-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  word-break: break-all;
+}
+
+.qr-pay-amount {
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #e03131;
+  word-break: break-word;
+}
+
+.qr-stage {
+  position: relative;
+  border: 1px solid #e3e8ef;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.qr-stage-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 60%);
+}
+
+.qr-frame {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.qr-stage-caption {
+  margin-top: 10px;
+}
+
+.qr-stage-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.qr-pay-info-card {
+  border: 1px solid #e3e8ef;
+  border-radius: 14px;
+  padding: 12px 14px;
   background: #fff;
 }
 
-.pos-qr-info-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: #fcfcfd;
-}
-
-.pos-qr-info-row {
+.qr-pay-info-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.pos-qr-info-row + .pos-qr-info-row {
-  margin-top: 10px;
+.qr-pay-info-label {
+  font-size: 13px;
+  color: #6b7280;
+  flex: 0 0 auto;
 }
 
-.pos-qr-label {
-  font-size: 14px;
-  color: #64748b;
-}
-
-.pos-qr-value {
-  font-size: 15px;
+.qr-pay-info-value {
+  font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: #1f2937;
+  text-align: right;
 }
 
-.pos-qr-amount {
-  font-size: 28px;
-  font-weight: 800;
-  color: #dc2626;
-  line-height: 1;
+.qr-pay-code {
+  word-break: break-all;
 }
 
-.pos-qr-note-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: #334155;
-  margin-bottom: 8px;
-}
-
-.pos-qr-note {
-  border-radius: 12px;
-  min-height: 74px;
-  resize: none;
-}
-
-.pos-qr-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0 20px 20px;
-}
-
-.pos-qr-confirm-btn {
-  background: #16a34a;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-weight: 700;
-  padding: 12px 16px;
-}
-
-.pos-qr-confirm-btn:hover:not(:disabled) {
-  background: #15803d;
-  color: #fff;
-}
-
-.pos-qr-close-btn {
-  background: #fff;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+.qr-pay-input-label {
   font-weight: 600;
-  padding: 11px 16px;
+  color: #374151;
 }
 
-.pos-qr-close-btn:hover:not(:disabled) {
-  background: #f8fafc;
+.qr-pay-input {
+  min-height: 44px;
+  border-radius: 12px;
 }
+
+.qr-pay-footer {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 14px 18px 18px;
+  border-top: 0;
+  background: #fff;
+}
+
+.qr-btn {
+  min-height: 46px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  flex: 1 1 180px;
+}
+
+.qr-btn-primary {
+  background: #2f6fed;
+  border-color: #2f6fed;
+  color: #fff;
+}
+
+.qr-btn-primary:hover {
+  background: #255ed0;
+  border-color: #255ed0;
+  color: #fff;
+}
+
+.qr-btn-success {
+  background: #1db954;
+  border-color: #1db954;
+  color: #fff;
+}
+
+.qr-btn-success:hover {
+  background: #19a14a;
+  border-color: #19a14a;
+  color: #fff;
+}
+
+.qr-btn-secondary {
+  background: #f3f4f6;
+  border-color: #f3f4f6;
+  color: #374151;
+}
+
+.qr-btn-secondary:hover {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #1f2937;
+}
+
 .payment-confirm-dialog {
-  z-index: 10001;
+  max-width: 420px;
+  width: min(420px, calc(100vw - 32px));
+  margin: 1rem auto;
 }
 
 .payment-confirm-modal {
-  position: relative;
-  z-index: 10001;
+  border: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.payment-confirm-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1f2937;
+}
+
+.payment-confirm-footer {
+  gap: 10px;
+}
+
+.payment-confirm-cancel-btn,
+.payment-confirm-ok-btn {
+  min-width: 96px;
+  min-height: 40px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .qr-pay-dialog {
+    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
+  }
+
+  .qr-pay-top {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-pay-amount {
+    font-size: 26px;
+  }
+
+  .qr-frame {
+    min-height: 220px;
+  }
+
+  .qr-image {
+    width: 190px;
+  }
+
+  .qr-pay-footer {
+    flex-direction: column;
+  }
+
+  .qr-btn {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .payment-confirm-dialog {
+    max-width: calc(100vw - 20px);
+    width: calc(100vw - 20px);
+  }
 }
 </style>
