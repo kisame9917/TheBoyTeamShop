@@ -27,23 +27,22 @@
       <div class="row g-4">
         <div class="col-lg-7">
           <section class="checkout-card mb-4">
-            <div class="checkout-card__header">
+            <div class="checkout-card__header checkout-card__header--address">
               <span>1. Địa chỉ giao hàng</span>
+
+              <button
+                v-if="isLoggedInCustomer"
+                type="button"
+                class="btn-select-address"
+                @click="openAddressModal"
+                :disabled="profileLoading"
+              >
+                <i class="bi bi-geo-alt me-2"></i>
+                {{ profileLoading ? "Đang tải địa chỉ..." : "Chọn địa chỉ" }}
+              </button>
             </div>
 
             <div class="checkout-card__body">
-              <div v-if="isLoggedInCustomer" class="checkout-address-toolbar">
-                <button
-                  type="button"
-                  class="btn-select-address"
-                  @click="openAddressModal"
-                  :disabled="profileLoading"
-                >
-                  <i class="bi bi-geo-alt me-2"></i>
-                  {{ profileLoading ? "Đang tải địa chỉ..." : "Chọn địa chỉ" }}
-                </button>
-              </div>
-
               <div class="row g-3">
                 <div class="col-12">
                   <label class="form-label">
@@ -74,6 +73,7 @@
                     {{ errors.phone }}
                   </div>
                 </div>
+
                 <div class="col-12">
                   <label class="form-label">
                     Email <span class="req">*</span>
@@ -178,7 +178,56 @@
 
           <section class="checkout-card mb-4">
             <div class="checkout-card__header">
-              <span>2. Vận chuyển</span>
+              <span>2. Áp dụng mã giảm giá</span>
+            </div>
+
+            <div class="checkout-card__body">
+              <div class="coupon-box">
+                <input
+                  :value="appliedVoucherDisplay"
+                  class="form-control input-ui"
+                  placeholder="Chưa có mã giảm giá phù hợp"
+                  readonly
+                />
+                <button
+                  class="coupon-btn"
+                  type="button"
+                  @click="openVoucherModal"
+                  :disabled="eligibleVoucherEntries.length === 0"
+                >
+                  Chọn
+                </button>
+              </div>
+              <div
+                v-if="appliedVoucherEntry"
+                class="small mt-2"
+                :class="
+                  appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
+                    ? 'text-primary'
+                    : 'text-primary'
+                "
+              >
+                <template
+                  v-if="
+                    appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
+                  "
+                >
+                  Áp dụng mã tốt nhất:
+                </template>
+                <template v-else> Đang áp dụng: </template>
+                <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
+                - giảm {{ money(appliedVoucherEntry.discount) }} đ
+              </div>
+
+              <div v-else class="small text-muted mt-2">
+                Không có phiếu giảm giá phù hợp với đơn hàng này.
+              </div>
+            </div>
+          </section>
+
+          <section class="checkout-card mb-4">
+            <div class="checkout-card__header">
+              <span>3. Vận chuyển</span>
             </div>
 
             <div class="checkout-card__body">
@@ -201,7 +250,7 @@
 
           <section class="checkout-card mb-4">
             <div class="checkout-card__header">
-              <span>3. Phương thức thanh toán</span>
+              <span>4. Phương thức thanh toán</span>
             </div>
 
             <div class="checkout-card__body">
@@ -249,55 +298,6 @@
 
               <div v-if="errors.paymentMethod" class="text-danger small mt-2">
                 {{ errors.paymentMethod }}
-              </div>
-            </div>
-          </section>
-
-          <section class="checkout-card mb-4">
-            <div class="checkout-card__header">
-              <span>4. Áp dụng mã giảm giá</span>
-            </div>
-
-            <div class="checkout-card__body">
-              <div class="coupon-box">
-                <input
-                  :value="appliedVoucherDisplay"
-                  class="form-control input-ui"
-                  placeholder="Chưa có mã giảm giá phù hợp"
-                  readonly
-                />
-                <button
-                  class="coupon-btn"
-                  type="button"
-                  @click="openVoucherModal"
-                  :disabled="eligibleVoucherEntries.length === 0"
-                >
-                  Chọn
-                </button>
-              </div>
-              <div
-                v-if="appliedVoucherEntry"
-                class="small mt-2"
-                :class="
-                  appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
-                    ? 'text-primary'
-                    : 'text-primary'
-                "
-              >
-                <template
-                  v-if="
-                    appliedVoucherEntry.v.id === bestEligibleVoucherEntry?.v?.id
-                  "
-                >
-                  Áp dụng mã tốt nhất:
-                </template>
-                <template v-else> Đang áp dụng: </template>
-                <b>{{ appliedVoucherEntry.v.ma_giam_gia }}</b>
-                - giảm {{ money(appliedVoucherEntry.discount) }} đ
-              </div>
-
-              <div v-else class="small text-muted mt-2">
-                Không có phiếu giảm giá phù hợp với đơn hàng này.
               </div>
             </div>
           </section>
@@ -397,17 +397,18 @@
                       type="checkbox"
                       class="form-check-input me-2"
                     />
-                    <span>Xuất file PDF sau khi đặt hàng</span>
+                    <span>Xuất hóa đơn sau khi đặt hàng</span>
                   </label>
 
                   <button
-                    class="btn-preview-pdf"
+                    class="btn btn-outline-success btn-sm checkout-print-btn"
                     type="button"
                     :disabled="cartItems.length === 0"
                     @click="printInvoice"
+                    title="Tải hóa đơn"
                   >
-                    <i class="bi bi-printer me-2"></i>
-                    Xuất PDF / In tạm tính
+                    <i class="bi bi-printer me-1"></i>
+                    Tải hóa đơn
                   </button>
                 </div>
                 <div
@@ -478,38 +479,40 @@
             </div>
 
             <template v-if="form.paymentMethod === 'bank_qr'">
-  <div class="text-center mb-3">
-    <img
-      v-if="qrData.qrImageUrl"
-      :src="normalizeQrUrl(qrData.qrImageUrl)"
-      alt="QR thanh toán"
-      class="qr-image"
-    />
-    <div v-else class="qr-placeholder">Chưa có ảnh QR</div>
-  </div>
+              <div class="text-center mb-3">
+                <img
+                  v-if="qrData.qrImageUrl"
+                  :src="normalizeQrUrl(qrData.qrImageUrl)"
+                  alt="QR thanh toán"
+                  class="qr-image"
+                />
+                <div v-else class="qr-placeholder">Chưa có ảnh QR</div>
+              </div>
 
-  <div class="qr-info-card">
-    <div class="qr-info-row">
-      <span class="qr-info-label">Mã đơn</span>
-      <span class="qr-info-value">{{ qrData.maHoaDon || "-" }}</span>
-    </div>
+              <div class="qr-info-card">
+                <div class="qr-info-row">
+                  <span class="qr-info-label">Mã đơn</span>
+                  <span class="qr-info-value">{{ qrData.maHoaDon || "-" }}</span>
+                </div>
 
-    <div class="qr-info-row qr-info-row--amount">
-      <span class="qr-info-label">Số tiền</span>
-      <span class="qr-amount">{{ money(qrData.amount || safeGrandTotal) }} đ</span>
-    </div>
-  </div>
+                <div class="qr-info-row qr-info-row--amount">
+                  <span class="qr-info-label">Số tiền</span>
+                  <span class="qr-amount"
+                    >{{ money(qrData.amount || safeGrandTotal) }} đ</span
+                  >
+                </div>
+              </div>
 
-  <div class="mt-3">
-    <label class="form-label qr-form-label">Ghi chú xác nhận</label>
-    <textarea
-      v-model="qrForm.ghiChu"
-      class="form-control input-ui qr-note-textarea"
-      rows="3"
-      placeholder="Khách đã thanh toán"
-    ></textarea>
-  </div>
-</template>
+              <div class="mt-3">
+                <label class="form-label qr-form-label">Ghi chú xác nhận</label>
+                <textarea
+                  v-model="qrForm.ghiChu"
+                  class="form-control input-ui qr-note-textarea"
+                  rows="3"
+                  placeholder="Khách đã thanh toán"
+                ></textarea>
+              </div>
+            </template>
 
             <template v-else>
               <div class="gateway-box">
@@ -551,7 +554,7 @@
                   <label class="form-label">Ghi chú xác nhận</label>
                   <textarea
                     v-model="qrForm.ghiChu"
-        class="form-control input-ui qr-note-textarea"
+                    class="form-control input-ui qr-note-textarea"
                     rows="3"
                     placeholder="Đã thanh toán online thành công"
                   ></textarea>
@@ -572,13 +575,12 @@
             <button class="btn-qr-close" type="button" @click="closeQrModal">
               Đóng
             </button>
-
-          
           </div>
         </div>
       </div>
     </div>
   </div>
+
   <!-- Modal xác nhận đặt hàng -->
   <div
     v-if="showConfirmModal"
@@ -651,6 +653,7 @@
       <div class="success-note">Đang chuyển sang trang kết quả đơn hàng...</div>
     </div>
   </div>
+
   <div
     v-if="showVoucherModal"
     class="confirm-backdrop"
@@ -781,6 +784,7 @@
       </div>
     </div>
   </div>
+
   <div
     v-if="showAddressModal"
     class="confirm-backdrop"
@@ -855,6 +859,146 @@
       </div>
     </div>
   </div>
+  <!-- Modal xem trước hóa đơn in nhiệt -->
+  <div
+    v-if="showInvoicePreviewModal"
+  class="receipt-backdrop"
+  @click.self="closeInvoicePreviewModal"
+>
+  <div class="receipt-modal">
+    <div class="receipt-modal__header">
+      <h5>Xem trước hóa đơn (in nhiệt)</h5>
+      <button
+        type="button"
+        class="receipt-modal__close"
+        @click="closeInvoicePreviewModal"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="receipt-modal__body">
+      <div id="checkout-thermal-receipt" class="thermal-receipt">
+        <div class="receipt-center receipt-store">VEST SHOP</div>
+        <div class="receipt-center">37 Đ. Nguyễn Văn Huyên, Quan Hoa, Cầu Giấy</div>
+        <div class="receipt-center">Hà Nội, Việt Nam</div>
+        <div class="receipt-center">Hotline: 0968038313</div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-center receipt-title">HÓA ĐƠN BÁN HÀNG</div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-row">
+          <span>Ngày: {{ formatReceiptDate(invoiceData.createdAt) }}</span>
+          <span>Số: {{ invoiceData.maHoaDon }}</span>
+        </div>
+
+        <div class="receipt-row">
+          <span>In lúc: {{ formatReceiptTime(invoiceData.createdAt) }}</span>
+          <span>Loại: {{ invoiceData.paymentLabel || "-" }}</span>
+        </div>
+
+        <div class="receipt-info">
+          <div>Khách: {{ invoiceData.customerName || "Khách lẻ" }}</div>
+          <div>SĐT: {{ invoiceData.phone || "-" }}</div>
+          <div>Đ/c: {{ invoiceData.address || "-" }}</div>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-table receipt-table-head">
+          <div>Tên hàng</div>
+          <div class="receipt-text-center">SL</div>
+          <div class="receipt-text-end">Tiền</div>
+        </div>
+
+        <div
+          v-for="it in invoiceData.items"
+          :key="it.key"
+          class="receipt-product"
+        >
+          <div class="receipt-table">
+            <div class="receipt-product-name">{{ it.name }}</div>
+            <div class="receipt-text-center">{{ it.qty }}</div>
+            <div class="receipt-text-end">{{ money(it.total) }} đ</div>
+          </div>
+
+          <div v-if="it.variantText" class="receipt-product-meta">
+            {{ it.variantText }}
+          </div>
+
+          <div class="receipt-product-meta">
+            ĐG: {{ money(it.price) }} đ
+          </div>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-total-row">
+          <span>Tổng tiền</span>
+          <span>{{ money(invoiceData.subtotal) }} đ</span>
+        </div>
+
+        <div class="receipt-total-row">
+          <span>Giảm giá</span>
+          <span>{{ money(invoiceData.discount) }} đ</span>
+        </div>
+
+        <div class="receipt-total-row">
+          <span>Phí vận chuyển</span>
+          <span>{{ money(invoiceData.shippingFee) }} đ</span>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-total-row receipt-grand-total">
+          <span>TỔNG THANH TOÁN</span>
+          <span>{{ money(invoiceData.total) }} đ</span>
+        </div>
+
+        <div class="receipt-dash"></div>
+
+        <div class="receipt-center mt-2">
+          <img
+            v-if="invoiceQrDataUrl"
+            :src="invoiceQrDataUrl"
+            alt="QR hóa đơn"
+            class="receipt-qr"
+          />
+        </div>
+
+        <div class="receipt-center receipt-qr-note">
+          Quét để tra cứu: {{ invoiceData.maHoaDon }}
+        </div>
+
+        <div class="receipt-center receipt-thank">
+          Cảm ơn quý khách!
+        </div>
+      </div>
+    </div>
+
+    <div class="receipt-modal__footer">
+      <button
+        type="button"
+        class="btn btn-light receipt-close-btn"
+        @click="closeInvoicePreviewModal"
+      >
+        Đóng
+      </button>
+
+      <button
+        type="button"
+        class="btn receipt-download-btn"
+        @click="downloadInvoicePdf"
+      >
+        Tải hóa đơn
+      </button>
+    </div>
+  </div>
+  </div>
+
   <div class="app-toast-wrap">
     <transition name="fade">
       <div
@@ -877,61 +1021,9 @@
     </transition>
   </div>
 
-  <div ref="printAreaRef" class="invoice-print-area">
-    <div class="receipt">
-      <div class="center bold big">HÓA ĐƠN TẠM TÍNH</div>
-      <div class="center small muted">Mã đơn: {{ invoiceData.maHoaDon }}</div>
-      <div class="center small muted">{{ invoiceData.createdAt }}</div>
+  <div ref="printAreaRef" class="invoice-print-area"></div>
 
-      <div class="hr"></div>
-
-      <div class="mt2"><b>Khách hàng:</b> {{ invoiceData.customerName }}</div>
-      <div class="mt2"><b>SĐT:</b> {{ invoiceData.phone }}</div>
-      <div class="mt2"><b>Địa chỉ:</b> {{ invoiceData.address }}</div>
-      <div class="mt2"><b>Thanh toán:</b> {{ invoiceData.paymentLabel }}</div>
-      <div class="mt2"><b>Ghi chú:</b> {{ invoiceData.note }}</div>
-
-      <div class="hr"></div>
-
-      <div class="items-head bold">
-        <div class="w-name">Sản phẩm</div>
-        <div class="w-qty right">SL</div>
-        <div class="w-price right">Tiền</div>
-      </div>
-
-      <div class="item mt6" v-for="it in invoiceData.items" :key="it.key">
-        <div class="w-name">
-          <div>{{ it.name }}</div>
-          <div class="small muted">{{ it.variantText }}</div>
-        </div>
-        <div class="w-qty right">{{ it.qty }}</div>
-        <div class="w-price right">{{ money(it.total) }}</div>
-      </div>
-
-      <div class="hr"></div>
-
-      <div class="row2">
-        <span>Tạm tính</span>
-        <span>{{ money(invoiceData.subtotal) }}</span>
-      </div>
-      <div class="row2">
-        <span>Vận chuyển</span>
-        <span>{{ money(invoiceData.shippingFee) }}</span>
-      </div>
-      <div class="row2">
-        <span>Giảm giá</span>
-        <span>-{{ money(invoiceData.discount) }}</span>
-      </div>
-      <div class="row2 bold mt6">
-        <span>Thành tiền</span>
-        <span>{{ money(invoiceData.total) }}</span>
-      </div>
-
-      <div class="hr"></div>
-      <div class="center small mt8">Cảm ơn quý khách đã mua hàng!</div>
-    </div>
-    <ChatWidget />
-  </div>
+  <ChatWidget />
 </template>
 
 <script setup>
@@ -947,15 +1039,17 @@ import {
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ghnLogo from "../../assets/ghn.webp.webp";
-import vnUnitsData from "../../assets/vn_units.json"; // sửa path nếu file của bạn nằm chỗ khác
+import vnUnitsData from "../../assets/vn_units.json";
 import ChatWidget from "../../components/ClientChatWidget.vue";
 import { getClientProfile, getClientAddresses } from "../../services/Api";
+import QRCode from "qrcode";
+
 const router = useRouter();
 const { cartItems, clearCart } = useCart();
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const PUBLIC_WEB_ORIGIN =
   import.meta.env.VITE_PUBLIC_WEB_ORIGIN || window.location.origin;
-import QRCode from "qrcode";
+
 const provinces = ref([]);
 const wards = ref([]);
 const vestUser = JSON.parse(localStorage.getItem("vest_user") || "null");
@@ -986,6 +1080,7 @@ const form = reactive({
   paymentMethod: "cod",
   invoice: false,
 });
+
 const paymentOptions = [
   {
     value: "cod",
@@ -1006,9 +1101,10 @@ const paymentOptions = [
     title: "VNPAY",
     desc: "ATM nội địa / QR / Internet Banking.",
     badge: "Nhanh",
-    helper: "Chuyển hướng sang trang thánh toán của VNPAY",
+    helper: "Chuyển hướng sang trang thanh toán của VNPAY",
   },
 ];
+
 const selectedPaymentOption = computed(() => {
   return (
     paymentOptions.find((x) => x.value === form.paymentMethod) ||
@@ -1023,24 +1119,11 @@ const gatewayInstruction = computed(() => {
 
   return "Quét mã QR và nhập mã giao dịch để xác nhận.";
 });
-const paymentUiHint = computed(() => {
-  if (form.paymentMethod === "cod") {
-    return "Thanh toán khi nhận hàng.";
-  }
- if (form.paymentMethod === "bank_qr") {
-  return "Quét mã QR để mở trang thanh toán giả lập.";
-}
-  if (form.paymentMethod === "vnpay") {
-    return "Thanh toán an toàn qua cổng VNPAY.";
-  }
 
-  return "Vui lòng chọn phương thức thanh toán.";
-});
 const vouchers = ref([]);
 const showVoucherModal = ref(false);
-
-const selectedVoucherId = ref(null); // đang tick trong modal
-const appliedVoucherId = ref(null); // đang áp dụng thật
+const selectedVoucherId = ref(null);
+const appliedVoucherId = ref(null);
 const discount = ref(0);
 const loading = ref(false);
 
@@ -1065,6 +1148,8 @@ const confirmSubmitting = ref(false);
 
 const showSuccessModal = ref(false);
 const successMessage = ref("");
+const showInvoicePreviewModal = ref(false);
+const invoiceQrDataUrl = ref("");
 const qrData = reactive({
   orderId: null,
   maHoaDon: "",
@@ -1095,6 +1180,7 @@ const errors = reactive({
   items: "",
   general: "",
 });
+
 const selectedProvince = computed(() => {
   return (
     provinces.value.find((p) => String(p.code) === String(form.province)) ||
@@ -1136,6 +1222,7 @@ const safeSubtotal = computed(() => {
     return sum + price * qty;
   }, 0);
 });
+
 function normalizeKhIds(raw) {
   if (!raw) return null;
 
@@ -1164,6 +1251,7 @@ function normalizeKhIds(raw) {
 
   return null;
 }
+
 function validateEmail(value) {
   if (!value?.trim()) return "Vui lòng nhập email";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1240,6 +1328,7 @@ const safeGrandTotal = computed(() => {
     (Number(discount.value) || 0)
   );
 });
+
 const fullDeliveryAddress = computed(() => {
   return [
     form.address?.trim(),
@@ -1308,6 +1397,7 @@ function showToast(message, type = "success") {
     toast.show = false;
   }, 2800);
 }
+
 async function loadVouchers() {
   try {
     const customerId = null;
@@ -1330,6 +1420,7 @@ const eligibleVoucherEntries = computed(() => {
     .filter((x) => x.discount > 0)
     .sort((a, b) => b.discount - a.discount);
 });
+
 const publicEligibleVoucherEntries = computed(() => {
   return eligibleVoucherEntries.value.filter(
     (x) => x.v.loai_phieu === "CONG_KHAI",
@@ -1341,6 +1432,7 @@ const personalEligibleVoucherEntries = computed(() => {
     (x) => x.v.loai_phieu === "CA_NHAN",
   );
 });
+
 const bestEligibleVoucherEntry = computed(() => {
   return eligibleVoucherEntries.value[0] || null;
 });
@@ -1459,7 +1551,6 @@ async function fetchWardsByProvince(provinceCode) {
     wardLoading.value = false;
   }
 }
-
 
 function normalizeText(value) {
   return String(value || "")
@@ -1623,7 +1714,7 @@ function validateFullName(value) {
 function validatePhone(value) {
   if (!value?.trim()) return "Vui lòng nhập số điện thoại";
   const normalized = value.trim();
-  const phoneRegex = /^(0|\\+84)[0-9]{9,10}$/;
+  const phoneRegex = /^(0|\+84)[0-9]{9,10}$/;
   if (!phoneRegex.test(normalized)) return "Số điện thoại không hợp lệ";
   return "";
 }
@@ -1656,6 +1747,7 @@ function validatePaymentMethod(value) {
   if (!allowed.includes(value)) return "Phương thức thanh toán không hợp lệ";
   return "";
 }
+
 function resolveProductDetailId(it) {
   return (
     it.idSanPhamChiTiet ||
@@ -1722,6 +1814,7 @@ watch(
     errors.phone = validatePhone(v);
   },
 );
+
 watch(
   () => form.email,
   (v) => {
@@ -1845,6 +1938,7 @@ async function checkoutApi(payload) {
 
   return data;
 }
+
 async function createVnpayPaymentUrlApi(orderId) {
   const token =
     localStorage.getItem("USER_ACCESS_TOKEN") ||
@@ -1900,22 +1994,23 @@ async function redirectToVnpay(orderData) {
     throw new Error("Backend chưa trả về link VNPAY");
   }
 
-sessionStorage.setItem(
-  "pending_checkout_customer_info",
-  JSON.stringify({
-    orderId,
-    maHoaDon: qrData.maHoaDon,
-    customerName: form.fullName?.trim() || "",
-    phone: form.phone?.trim() || "",
-    email: form.email?.trim() || "",
-    address: fullDeliveryAddress.value || "",
-    paymentMethod: "vnpay",
-    paymentLabel: "VNPAY",
-    total: Number(qrData.amount || 0),
-  })
-);
+  sessionStorage.setItem(
+    "pending_checkout_customer_info",
+    JSON.stringify({
+      orderId,
+      maHoaDon: qrData.maHoaDon,
+      customerName: form.fullName?.trim() || "",
+      phone: form.phone?.trim() || "",
+      email: form.email?.trim() || "",
+      address: fullDeliveryAddress.value || "",
+      paymentMethod: "vnpay",
+      paymentLabel: "VNPAY",
+      total: Number(qrData.amount || 0),
+    }),
+  );
   window.location.href = qrData.paymentUrl;
 }
+
 async function confirmQrPaymentApi(orderId, payload) {
   const response = await fetch(
     `${API_BASE}/api/online-checkout/${orderId}/confirm-payment`,
@@ -1945,6 +2040,7 @@ function normalizeQrUrl(url) {
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `http://localhost:8080${url}`;
 }
+
 function normalizePaymentUrl(url) {
   if (!url) return "";
 
@@ -1956,7 +2052,6 @@ function normalizePaymentUrl(url) {
     try {
       const parsed = new URL(rawUrl);
 
-      // mock-payment là route của FE -> luôn ép về origin hiện tại của FE
       if (parsed.pathname.startsWith("/mock-payment")) {
         return `${frontendOrigin}${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
@@ -1967,15 +2062,23 @@ function normalizePaymentUrl(url) {
     }
   }
 
-  // backend trả path tương đối cho mock-payment
   if (rawUrl.startsWith("/mock-payment")) {
     return `${frontendOrigin}${rawUrl}`;
   }
 
-  // các URL tương đối khác thì giữ backend origin
   return `${backendOrigin}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
 }
 
+function openPaymentGateway() {
+  const url = normalizePaymentUrl(qrData.paymentUrl);
+
+  if (!url) {
+    showToast("Chưa có link thanh toán", "warning");
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 async function buildMockPaymentQr(data) {
   const paymentUrl =
@@ -1995,6 +2098,7 @@ async function buildMockPaymentQr(data) {
 
   return { paymentUrl, qrImageUrl };
 }
+
 async function openQrModal(data) {
   qrData.orderId = data?.orderId || data?.id || null;
   qrData.maHoaDon = data?.maHoaDon || data?.orderCode || "";
@@ -2015,6 +2119,7 @@ async function openQrModal(data) {
   startPaymentPolling();
   showToast("Đơn hàng đã được tạo. Quét QR để mở trang thanh toán.", "success");
 }
+
 function closeQrModal() {
   if (confirmingQr.value) return;
   stopPaymentPolling();
@@ -2091,6 +2196,7 @@ async function confirmQrPayment() {
     confirmingQr.value = false;
   }
 }
+
 let paymentPollingTimer = null;
 
 async function getPaymentStatusApi(orderId) {
@@ -2160,6 +2266,7 @@ function startPaymentPolling() {
     }
   }, 3000);
 }
+
 function placeOrder() {
   if (!validateForm()) {
     errors.general = "Vui lòng kiểm tra lại thông tin đặt hàng";
@@ -2218,10 +2325,10 @@ async function submitOrder() {
       return;
     }
 
- if (form.paymentMethod === "vnpay") {
-  await redirectToVnpay(data);
-  return;
-}
+    if (form.paymentMethod === "vnpay") {
+      await redirectToVnpay(data);
+      return;
+    }
 
     if (typeof clearCart === "function") {
       clearCart();
@@ -2243,6 +2350,14 @@ async function submitOrder() {
         selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
       total: Number(safeGrandTotal.value || 0),
     });
+
+    if (form.invoice) {
+      setTimeout(async () => {
+        showSuccessModal.value = false;
+        await printInvoice();
+      }, 700);
+      return;
+    }
 
     setTimeout(() => {
       router.push({
@@ -2272,6 +2387,7 @@ function closeConfirmModal() {
 function closeSuccessModal() {
   showSuccessModal.value = false;
 }
+
 function saveCheckoutSuccessData(payload = {}) {
   sessionStorage.setItem(
     "checkout_success_data",
@@ -2303,69 +2419,219 @@ onMounted(async () => {
 
   syncAppliedVoucher();
 });
+
 onUnmounted(() => {
   stopPaymentPolling();
 });
+
+function getReceiptDateSource(value) {
+  const d = value ? new Date(value) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+function formatReceiptDate(value) {
+  const d = getReceiptDateSource(value);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function formatReceiptTime(value) {
+  const d = getReceiptDateSource(value);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mi}`;
+}
+
 async function printInvoice() {
   if (!invoiceData.value.items.length) {
-    showToast("Chưa có sản phẩm để in hóa đơn", "warning");
+    showToast("Chưa có sản phẩm để tải hóa đơn", "warning");
     return;
   }
 
+  invoiceQrDataUrl.value = await QRCode.toDataURL(
+    String(invoiceData.value.maHoaDon || "TAM_TINH"),
+    {
+      margin: 1,
+      width: 220,
+    },
+  );
+
+  showInvoicePreviewModal.value = true;
+}
+
+function closeInvoicePreviewModal() {
+  showInvoicePreviewModal.value = false;
+}
+
+async function downloadInvoicePdf() {
   await nextTick();
 
-  const area = printAreaRef.value;
-  if (!area) return;
+  const el = document.getElementById("checkout-thermal-receipt");
+  if (!el) return;
 
-  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH").replace(
-    /\s+/g,
-    "_",
-  );
+  const code = String(invoiceData.value?.maHoaDon || "TAM_TINH")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_");
+
   const w = window.open("", "_blank", "width=420,height=760");
 
   if (!w) {
-    showToast("Trình duyệt đang chặn popup in hóa đơn", "warning");
+    showToast("Trình duyệt đang chặn popup tải hóa đơn", "warning");
     return;
   }
 
+  w.document.open();
   w.document.write(`
+    <!doctype html>
     <html>
       <head>
+        <meta charset="UTF-8" />
         <title>HoaDon_${code}</title>
         <style>
-          body{ margin:0; padding:0; font-family: Arial, sans-serif; }
-          .receipt{ width:80mm; padding:8mm 6mm; }
-          .center{ text-align:center; }
-          .right{ text-align:right; }
-          .bold{ font-weight:700; }
-          .big{ font-size:16px; }
-          .small{ font-size:11px; }
-          .muted{ color:#555; }
-          .hr{ border-top:1px dashed #000; margin:6px 0; }
-          .row2{ display:flex; justify-content:space-between; gap:10px; font-size:12px; }
-          .mt2{ margin-top:2px; font-size:12px; }
-          .mt6{ margin-top:6px; font-size:12px; }
-          .mt8{ margin-top:8px; }
-          .items-head, .item{ display:flex; gap:6px; font-size:12px; }
-          .w-name{ flex: 1; }
-          .w-qty{ width: 10mm; }
-          .w-price{ width: 22mm; }
-          @media print { @page { margin: 0; } }
-        
-</style>
+          body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #222;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .thermal-receipt {
+            width: 80mm;
+            margin: 0 auto;
+            padding: 8mm 6mm;
+            background: #fff;
+            color: #222;
+            font-size: 12px;
+            line-height: 1.35;
+          }
+
+          .receipt-center {
+            text-align: center;
+          }
+
+          .receipt-store {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+          }
+
+          .receipt-title {
+            font-size: 13px;
+            font-weight: 800;
+          }
+
+          .receipt-dash {
+            border-top: 1px dashed #222;
+            margin: 8px 0;
+          }
+
+          .receipt-row,
+          .receipt-total-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+          }
+
+          .receipt-info {
+            display: grid;
+            gap: 4px;
+            margin-top: 8px;
+          }
+
+          .receipt-table {
+            display: grid;
+            grid-template-columns: 1fr 34px 88px;
+            gap: 6px;
+            align-items: start;
+          }
+
+          .receipt-table-head {
+            font-weight: 800;
+          }
+
+          .receipt-product {
+            margin-top: 6px;
+          }
+
+          .receipt-product-name {
+            font-weight: 800;
+          }
+
+          .receipt-product-meta {
+            color: #333;
+            font-size: 11px;
+            margin-top: 2px;
+          }
+
+          .receipt-text-center {
+            text-align: center;
+          }
+
+          .receipt-text-end {
+            text-align: right;
+          }
+
+          .receipt-grand-total {
+            font-weight: 800;
+            font-size: 13px;
+          }
+
+          .receipt-qr {
+            width: 92px;
+            height: 92px;
+            object-fit: contain;
+          }
+
+          .receipt-qr-note {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #555;
+          }
+
+          .receipt-thank {
+            margin-top: 14px;
+            font-size: 12px;
+          }
+
+          @media print {
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+
+            body {
+              margin: 0;
+            }
+
+            .thermal-receipt {
+              width: 80mm;
+              margin: 0;
+              padding: 6mm;
+            }
+          }
+        </style>
       </head>
-      <body>${area.outerHTML}</body>
+      <body>
+        ${el.outerHTML}
+      </body>
     </html>
   `);
 
   w.document.close();
   w.focus();
-  w.onload = () => {
-    w.print();
-  };
-  w.onafterprint = () => w.close();
 
-  showToast("Đã mở cửa sổ in / lưu PDF!", "success");
+  setTimeout(() => {
+    w.print();
+  }, 300);
+
+  w.onafterprint = () => {
+    w.close();
+  };
 }
 </script>
 
@@ -2427,6 +2693,14 @@ async function printInvoice() {
   font-weight: 750;
   font-size: 16px;
   letter-spacing: 0.2px;
+}
+
+.checkout-card__header--address {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .checkout-card__body,
@@ -3157,7 +3431,6 @@ async function printInvoice() {
   object-fit: contain;
 }
 
-/* ===== CLEAN QR MODAL CSS ===== */
 .qr-backdrop {
   position: fixed;
   inset: 0;
@@ -3194,8 +3467,8 @@ async function printInvoice() {
 
 .qr-modal-header h5 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 750;
+  font-size: 22px;
+  font-weight: 800;
   color: #fff;
 }
 
@@ -3218,22 +3491,22 @@ async function printInvoice() {
 .payment-channel-badge {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   background: #eef2ff;
   color: #1e3a8a;
-  font-weight: 750;
-  font-size: 13px;
+  font-weight: 800;
+  font-size: 14px;
   margin-bottom: 14px;
 }
 
 .qr-image {
   display: block;
-  width: min(100%, 340px);
-  max-width: 340px;
+  width: min(100%, 300px);
+  max-width: 300px;
   height: auto;
   margin: 0 auto;
-  border-radius: 14px;
+  border-radius: 18px;
   background: #fff;
 }
 
@@ -3246,20 +3519,68 @@ async function printInvoice() {
   text-align: center;
 }
 
-.qr-info {
-  display: grid;
-  gap: 8px;
-  margin-top: 16px;
-  color: #0f172a;
+.qr-info-card {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8fbff 0%, #fdfdff 100%);
+  border: 1px solid #e4ebf5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.qr-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #dbe4f0;
+}
+
+.qr-info-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.qr-info-label {
   font-size: 15px;
-  line-height: 1.55;
+  font-weight: 700;
+  color: #475569;
+}
+
+.qr-info-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: right;
+  word-break: break-word;
+}
+
+.qr-info-row--amount {
+  align-items: flex-end;
+}
+
+.qr-amount {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #dc2626;
+  letter-spacing: 0.2px;
+}
+
+.qr-form-label {
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .qr-note-textarea {
-  min-height: 84px !important;
+  min-height: 88px !important;
   max-height: 140px;
   resize: vertical;
   padding-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  border-radius: 18px;
 }
 
 .qr-modal .form-label {
@@ -3275,13 +3596,15 @@ async function printInvoice() {
 }
 
 .btn-qr-close {
-  min-height: 44px;
+  min-width: 110px;
+  min-height: 46px;
   padding: 0 20px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid #d8dfec;
   background: #fff;
   color: #0f172a;
-  font-weight: 750;
+  font-size: 16px;
+  font-weight: 800;
   transition: all 0.2s ease;
 }
 
@@ -3355,229 +3678,25 @@ async function printInvoice() {
   background: #001a72;
 }
 
-@media (max-width: 991.98px) {
-  .summary-item {
-    flex-direction: column;
-  }
-
-  .summary-item__right {
-    width: 100%;
-    text-align: left;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .coupon-box {
-    grid-template-columns: 1fr;
-  }
-
-  .payment-option {
-    padding: 14px;
-  }
-
-  .app-toast-wrap {
-    left: 16px;
-    right: 16px;
-    top: 16px;
-  }
-
-  .app-toast {
-    min-width: 0;
-    width: 100%;
-    max-width: none;
-  }
-
-  .qr-backdrop {
-    padding: 12px;
-  }
-
-  .qr-modal {
-    width: 100%;
-    max-height: calc(100vh - 24px);
-    border-radius: 18px;
-  }
-
-  .qr-modal-header {
-    padding: 14px 16px;
-  }
-
-  .qr-modal-header h5 {
-    font-size: 16px;
-  }
-
-  .qr-modal-body {
-    padding: 14px 16px 12px;
-  }
-
-  .qr-modal-footer {
-    padding: 12px 16px 16px;
-    gap: 8px;
-  }
-
-  .qr-image {
-    width: min(100%, 280px);
-    max-width: 280px;
-  }
-
-  .qr-note-textarea {
-    min-height: 76px !important;
-  }
-
-  .btn-qr-close,
-  .btn-qr-confirm {
-    min-height: 42px;
-    padding: 0 16px;
-    font-size: 14px;
-  }
-}
-/* ===== QR MODAL UI TWEAK ===== */
-.qr-modal-header h5 {
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.payment-channel-badge {
-  padding: 8px 14px;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.qr-image {
-  width: min(100%, 300px);
-  max-width: 300px;
-  border-radius: 18px;
-  display: block;
-  margin: 0 auto;
-}
-
-.qr-info-card {
-  margin-top: 18px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #f8fbff 0%, #fdfdff 100%);
-  border: 1px solid #e4ebf5;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.qr-info-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px dashed #dbe4f0;
-}
-
-.qr-info-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.qr-info-label {
-  font-size: 15px;
-  font-weight: 700;
-  color: #475569;
-}
-
-.qr-info-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: right;
-  word-break: break-word;
-}
-
-.qr-info-row--amount {
-  align-items: flex-end;
-}
-
-.qr-amount {
-  font-size: 30px;
-  line-height: 1.1;
-  font-weight: 900;
-  color: #dc2626;
-  letter-spacing: 0.2px;
-}
-
-.qr-form-label {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.qr-note-textarea {
-  min-height: 88px !important;
-  font-size: 15px;
-  line-height: 1.6;
-  border-radius: 18px;
-}
-
-.btn-qr-close {
-  min-width: 110px;
-  min-height: 46px;
-  font-size: 16px;
-  font-weight: 800;
-  border-radius: 16px;
-}
-
-@media (max-width: 767.98px) {
-  .qr-modal-header h5 {
-    font-size: 18px;
-  }
-
-  .qr-info-card {
-    padding: 14px;
-    border-radius: 16px;
-  }
-
-  .qr-info-label {
-    font-size: 14px;
-  }
-
-  .qr-info-value {
-    font-size: 16px;
-  }
-
-  .qr-amount {
-    font-size: 24px;
-  }
-
-  .qr-note-textarea {
-    min-height: 78px !important;
-    font-size: 14px;
-  }
-
-  .btn-qr-close {
-    min-width: 96px;
-    min-height: 42px;
-    font-size: 14px;
-  }
-}
-
-.checkout-address-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-
 .btn-select-address {
-  min-height: 42px;
-  padding: 0 16px;
-  border: 1px solid #d8dfec;
-  border-radius: 14px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
   background: #fff;
   color: #000f51;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 800;
   transition: all 0.2s ease;
 }
 
 .btn-select-address:hover:not(:disabled) {
-  border-color: #001a72;
-  background: #f8fbff;
+  background: #eef2ff;
+  border-color: #fff;
 }
 
 .btn-select-address:disabled {
-  opacity: 0.65;
+  opacity: 0.75;
   cursor: not-allowed;
 }
 
@@ -3639,4 +3758,298 @@ async function printInvoice() {
   color: #001a72;
 }
 
+@media (max-width: 991.98px) {
+  .summary-item {
+    flex-direction: column;
+  }
+
+  .summary-item__right {
+    width: 100%;
+    text-align: left;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .coupon-box {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-option {
+    padding: 14px;
+  }
+
+  .app-toast-wrap {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+  }
+
+  .app-toast {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .qr-backdrop {
+    padding: 12px;
+  }
+
+  .qr-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    border-radius: 18px;
+  }
+
+  .qr-modal-header {
+    padding: 14px 16px;
+  }
+
+  .qr-modal-header h5 {
+    font-size: 18px;
+  }
+
+  .qr-modal-body {
+    padding: 14px 16px 12px;
+  }
+
+  .qr-modal-footer {
+    padding: 12px 16px 16px;
+    gap: 8px;
+  }
+
+  .qr-image {
+    width: min(100%, 280px);
+    max-width: 280px;
+  }
+
+  .qr-info-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .qr-info-label {
+    font-size: 14px;
+  }
+
+  .qr-info-value {
+    font-size: 16px;
+  }
+
+  .qr-amount {
+    font-size: 24px;
+  }
+
+  .qr-note-textarea {
+    min-height: 78px !important;
+    font-size: 14px;
+  }
+
+  .btn-qr-close,
+  .btn-qr-confirm {
+    min-height: 42px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  .btn-qr-close {
+    min-width: 96px;
+  }
+}
+
+.checkout-print-btn {
+  min-height: 38px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.receipt-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 12px;
+  z-index: 3000;
+}
+
+.receipt-modal {
+  width: min(92vw, 468px);
+  max-height: 92vh;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.receipt-modal__header {
+  min-height: 54px;
+  padding: 0 16px;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.receipt-modal__header h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.receipt-modal__close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: #6c757d;
+  font-size: 18px;
+}
+
+.receipt-modal__close:hover {
+  color: #111;
+}
+
+.receipt-modal__body {
+  padding: 18px 0;
+  overflow: auto;
+  background: #fff;
+}
+
+.thermal-receipt {
+  width: 80mm;
+  margin: 0 auto;
+  padding: 0 6mm;
+  background: #fff;
+  color: #222;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.receipt-center {
+  text-align: center;
+}
+
+.receipt-store {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.receipt-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.receipt-dash {
+  border-top: 1px dashed #222;
+  margin: 8px 0;
+}
+
+.receipt-row,
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.receipt-info {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.receipt-table {
+  display: grid;
+  grid-template-columns: 1fr 34px 88px;
+  gap: 6px;
+  align-items: start;
+}
+
+.receipt-table-head {
+  font-weight: 800;
+}
+
+.receipt-product {
+  margin-top: 6px;
+}
+
+.receipt-product-name {
+  font-weight: 800;
+}
+
+.receipt-product-meta {
+  color: #333;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.receipt-text-center {
+  text-align: center;
+}
+
+.receipt-text-end {
+  text-align: right;
+}
+
+.receipt-grand-total {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.receipt-qr {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+}
+
+.receipt-qr-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #555;
+}
+
+.receipt-thank {
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.receipt-modal__footer {
+  padding: 14px 16px;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fff;
+}
+
+.receipt-close-btn {
+  min-width: 62px;
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+.receipt-download-btn {
+  min-width: 112px;
+  min-height: 36px;
+  border-radius: 6px;
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #111;
+  font-weight: 700;
+}
+
+.receipt-download-btn:hover {
+  background: #ffb300;
+  border-color: #ffb300;
+  color: #111;
+}
 </style>
