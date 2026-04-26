@@ -942,6 +942,7 @@ main {
     flex-direction: column;
   }
 
+  
   .btn-cancel-logout,
   .btn-confirm-logout {
     width: 100%;

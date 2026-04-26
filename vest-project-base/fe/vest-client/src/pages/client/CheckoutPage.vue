@@ -4052,5 +4052,4 @@ async function downloadInvoicePdf() {
   border-color: #ffb300;
   color: #111;
 }
-
 </style>
