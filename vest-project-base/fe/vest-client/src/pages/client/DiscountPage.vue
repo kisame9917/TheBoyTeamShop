@@ -1,335 +1,395 @@
 <template>
   <div class="discount-page">
     <section class="discount-hero">
-      <div class="container">
-        <div class="hero-box">
+      <div class="hero-bg hero-bg--one"></div>
+      <div class="hero-bg hero-bg--two"></div>
+
+      <div class="container position-relative">
+        <div class="hero-grid">
           <div class="hero-content">
             <span class="hero-badge">
-              <i class="bi bi-ticket-perforated-fill me-2"></i>
-              Ưu đãi đơn hàng
+              <i class="bi bi-stars me-2"></i>
+              Ưu đãi công khai đang áp dụng
             </span>
 
-            <h1 class="hero-title">GIẢM GIÁ</h1>
+            <h1 class="hero-title">
+              MÃ GIẢM GIÁ
+              <span>HOT DEAL</span>
+            </h1>
 
             <p class="hero-desc">
-              Tổng hợp mã giảm giá hiện có để áp dụng khi thanh toán.
-              Chọn mã phù hợp, sao chép nhanh và tiếp tục mua sắm.
+              Danh sách mã giảm giá công khai còn hiệu lực, có thể sao chép nhanh
+              và áp dụng khi thanh toán đơn hàng.
             </p>
 
             <div class="hero-actions">
-              <button class="hero-btn hero-btn--primary" @click="goShop">
-                Mua ngay
-              </button>
-              <button class="hero-btn hero-btn--outline" @click="scrollToVoucherList">
+              <button class="hero-btn hero-btn--primary" @click="scrollToVoucherList">
+                <i class="bi bi-ticket-perforated me-2"></i>
                 Xem mã giảm giá
+              </button>
+
+              <button class="hero-btn hero-btn--outline" @click="goShop">
+                Mua sắm ngay
+                <i class="bi bi-arrow-right ms-2"></i>
               </button>
             </div>
           </div>
 
-          <div class="hero-side">
-            <div class="hero-stat">
+          <div class="hero-panel">
+            <div class="hero-panel__icon">
+              <i class="bi bi-ticket-detailed"></i>
+            </div>
+
+            <div class="hero-panel__main">
+              <span>Đang có</span>
               <strong>{{ publicActiveCount }}</strong>
-              <span>Mã công khai đang dùng được</span>
+              <p>mã công khai dùng được</p>
             </div>
-            <div class="hero-stat">
-              <strong>{{ myVoucherCount }}</strong>
-              <span>Mã của tôi</span>
-            </div>
-            <div class="hero-stat">
-              <strong>3 bước</strong>
-              <span>Chọn mã → mua hàng → áp dụng ở checkout</span>
+
+            <div class="hero-panel__note">
+              <i class="bi bi-shield-check"></i>
+              Chỉ hiển thị mã công khai đang active, không fill mã cá nhân.
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section ref="voucherListRef" class="container py-5">
+    <section ref="voucherListRef" class="container voucher-section">
       <div class="section-head">
         <div>
           <div class="section-subtitle">Danh sách ưu đãi</div>
-          <h4 class="section-title mb-0">MÃ GIẢM GIÁ</h4>
+          <h4 class="section-title mb-0">Mã công khai đang áp dụng</h4>
         </div>
 
-        <div class="tab-group">
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'public' }"
-            @click="activeTab = 'public'"
-          >
-            Mã công khai
-          </button>
-
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'mine' }"
-            @click="activeTab = 'mine'"
-          >
-            Mã của tôi
-          </button>
+        <div class="voucher-toolbar">
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input
+              v-model.trim="keyword"
+              type="text"
+              placeholder="Tìm mã giảm giá..."
+            />
+          </div>
         </div>
       </div>
 
-      <div v-if="loading" class="state-box">Đang tải mã giảm giá...</div>
-      <div v-else-if="error" class="state-box text-danger">{{ error }}</div>
+      <div class="info-strip">
+        <div>
+       Các mã giảm giá được cập nhật tự động từ hệ thống, có thể áp dụng cho đơn hàng nếu còn hiệu lực.
+        </div>
+        <span>{{ filteredVouchers.length }} mã phù hợp</span>
+      </div>
+
+      <div v-if="loading" class="state-box">
+        <div class="state-spinner"></div>
+        <div>Đang tải mã giảm giá...</div>
+      </div>
+
+      <div v-else-if="error" class="state-box state-box--error">
+        <i class="bi bi-exclamation-triangle"></i>
+        <div>{{ error }}</div>
+      </div>
 
       <template v-else>
-        <div v-if="activeTab === 'public'">
-          <div v-if="publicVouchers.length" class="row g-4">
-            <div
-              v-for="voucher in publicVouchers"
-              :key="'public-' + voucher.id"
-              class="col-lg-4 col-md-6"
-            >
-              <div class="voucher-card">
-                <div class="voucher-top">
-                  <div>
-                    <div class="voucher-code">{{ voucher.maGiamGia }}</div>
-                    <div class="voucher-name">{{ voucher.tenGiamGia }}</div>
-                  </div>
+        <div v-if="filteredVouchers.length" class="row g-4">
+          <div
+         v-for="voucher in pagedVouchers"
+            :key="voucher.id || voucher.maGiamGia"
+            class="col-xl-4 col-md-6"
+          >
+            <article class="voucher-card">
+              <div class="voucher-card__shine"></div>
 
-                  <span class="voucher-status" :class="statusClass(voucher)">
-                    {{ statusLabel(voucher) }}
-                  </span>
+              <div class="voucher-card__head">
+                <div>
+                  <div class="voucher-label">Public voucher</div>
+                  <h5 class="voucher-name">{{ voucher.tenGiamGia || "Ưu đãi giảm giá" }}</h5>
                 </div>
 
-                <div class="voucher-value">
-                  {{ formatDiscount(voucher) }}
+                <span class="voucher-status">
+                  <i class="bi bi-check-circle-fill"></i>
+                  Đang áp dụng
+                </span>
+              </div>
+
+              <div class="voucher-ticket">
+                <div class="voucher-ticket__left">
+                  <span>Mã</span>
+                  <strong>{{ voucher.maGiamGia }}</strong>
                 </div>
 
-                <div class="voucher-meta">
-                  <div>
-                    <strong>Loại phiếu:</strong>
-                    {{ voucher.loaiPhieu === "CA_NHAN" ? "Cá nhân" : "Công khai" }}
-                  </div>
-                  <div>
-                    <strong>Đơn tối thiểu:</strong>
-                    {{ money(voucher.donHangToiThieu) }} đ
-                  </div>
-                  <div v-if="voucher.giaTriGiamToiDa">
-                    <strong>Giảm tối đa:</strong>
-                    {{ money(voucher.giaTriGiamToiDa) }} đ
-                  </div>
-                  <div>
-                    <strong>Hiệu lực:</strong>
-                    {{ formatDateTime(voucher.ngayBatDau) }} - {{ formatDateTime(voucher.ngayKetThuc) }}
-                  </div>
+                <button
+                  class="copy-btn"
+                  type="button"
+                  @click="copyCode(voucher.maGiamGia)"
+                >
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+
+              <div class="voucher-value">
+                {{ formatDiscount(voucher) }}
+              </div>
+
+              <div class="voucher-meta">
+                <div class="meta-item">
+                  <span>Đơn tối thiểu</span>
+                  <strong>{{ money(voucher.donHangToiThieu) }} đ</strong>
                 </div>
 
-                <div class="voucher-actions">
-                  <button class="voucher-btn voucher-btn--primary" @click="copyCode(voucher.maGiamGia)">
-                    Sao chép mã
-                  </button>
-                  <button class="voucher-btn voucher-btn--outline" @click="goShop">
-                    Dùng ngay
-                  </button>
+                <div v-if="voucher.giaTriGiamToiDa" class="meta-item">
+                  <span>Giảm tối đa</span>
+                  <strong>{{ money(voucher.giaTriGiamToiDa) }} đ</strong>
+                </div>
+
+                <div v-if="voucher.soLuong !== null" class="meta-item">
+                  <span>Số lượng còn</span>
+                  <strong>{{ voucher.soLuong }}</strong>
+                </div>
+
+                <div class="meta-item meta-item--full">
+                  <span>Hiệu lực</span>
+                  <strong>
+                    {{ formatDateTime(voucher.ngayBatDau) }}
+                    -
+                    {{ formatDateTime(voucher.ngayKetThuc) }}
+                  </strong>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div v-else class="empty-box">
-            <div class="empty-box__icon">
-              <i class="bi bi-ticket-perforated"></i>
-            </div>
-            <h5>Hiện chưa có mã công khai</h5>
-            <p>Một số ưu đãi sẽ xuất hiện tại đây khi hệ thống cập nhật.</p>
-            <button class="hero-btn hero-btn--primary" @click="goShop">
-              Xem sản phẩm
-            </button>
+              <div class="voucher-actions">
+                <button
+                  class="voucher-btn voucher-btn--primary"
+                  type="button"
+                  @click="copyCode(voucher.maGiamGia)"
+                >
+                  Sao chép mã
+                </button>
+
+                <button
+                  class="voucher-btn voucher-btn--outline"
+                  type="button"
+                  @click="goShop"
+                >
+                  Dùng ngay
+                </button>
+              </div>
+            </article>
           </div>
         </div>
+<div v-if="filteredVouchers.length > pageSize" class="voucher-pagination">
+  <div class="voucher-page-info">
+    Hiển thị {{ pagedVouchers.length }} / {{ filteredVouchers.length }} bản ghi
+  </div>
 
-        <div v-else>
-          <div v-if="!isLoggedIn" class="empty-box">
-            <div class="empty-box__icon">
-              <i class="bi bi-person-lock"></i>
-            </div>
-            <h5>Đăng nhập để xem mã của bạn</h5>
-            <p>Mã cá nhân sẽ được hiển thị sau khi bạn đăng nhập tài khoản.</p>
-            <button class="hero-btn hero-btn--primary" @click="goLogin">
-              Đăng nhập
-            </button>
+  <div class="voucher-page-actions">
+    <button
+      type="button"
+      class="voucher-page-btn"
+      :disabled="currentPage <= 1"
+      @click="prevVoucherPage"
+    >
+      ‹
+    </button>
+
+    <button
+      v-for="page in voucherPageNumbers"
+      :key="page"
+      type="button"
+      class="voucher-page-btn"
+      :class="{ active: currentPage === page }"
+      @click="goVoucherPage(page)"
+    >
+      {{ page }}
+    </button>
+
+    <button
+      type="button"
+      class="voucher-page-btn"
+      :disabled="currentPage >= totalVoucherPages"
+      @click="nextVoucherPage"
+    >
+      ›
+    </button>
+  </div>
+</div>
+        <div v-else class="empty-box">
+          <div class="empty-box__icon">
+            <i class="bi bi-ticket-perforated"></i>
           </div>
 
-          <div v-else-if="myVouchers.length" class="row g-4">
-            <div
-              v-for="voucher in myVouchers"
-              :key="'mine-' + voucher.id"
-              class="col-lg-4 col-md-6"
-            >
-              <div class="voucher-card voucher-card--mine">
-                <div class="voucher-top">
-                  <div>
-                    <div class="voucher-code">{{ voucher.maGiamGia }}</div>
-                    <div class="voucher-name">{{ voucher.tenGiamGia }}</div>
-                  </div>
+          <h5>Chưa có mã công khai đang áp dụng</h5>
+          <p>
+            Hiện tại hệ thống chưa có mã giảm giá công khai còn hiệu lực.
+            Bạn có thể quay lại sau hoặc tiếp tục xem sản phẩm.
+          </p>
 
-                  <span class="voucher-status" :class="statusClass(voucher)">
-                    {{ statusLabel(voucher) }}
-                  </span>
-                </div>
-
-                <div class="voucher-value">
-                  {{ formatDiscount(voucher) }}
-                </div>
-
-                <div class="voucher-meta">
-                  <div>
-                    <strong>Loại phiếu:</strong> Mã của tôi
-                  </div>
-                  <div>
-                    <strong>Đơn tối thiểu:</strong>
-                    {{ money(voucher.donHangToiThieu) }} đ
-                  </div>
-                  <div v-if="voucher.giaTriGiamToiDa">
-                    <strong>Giảm tối đa:</strong>
-                    {{ money(voucher.giaTriGiamToiDa) }} đ
-                  </div>
-                  <div>
-                    <strong>Hiệu lực:</strong>
-                    {{ formatDateTime(voucher.ngayBatDau) }} - {{ formatDateTime(voucher.ngayKetThuc) }}
-                  </div>
-                </div>
-
-                <div class="voucher-actions">
-                  <button class="voucher-btn voucher-btn--primary" @click="copyCode(voucher.maGiamGia)">
-                    Sao chép mã
-                  </button>
-                  <button class="voucher-btn voucher-btn--outline" @click="goCheckout">
-                    Đi đến thanh toán
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="empty-box">
-            <div class="empty-box__icon">
-              <i class="bi bi-wallet2"></i>
-            </div>
-            <h5>Bạn chưa có mã giảm giá cá nhân</h5>
-            <p>Hãy tiếp tục mua sắm, các ưu đãi dành riêng sẽ được cập nhật khi có.</p>
-            <button class="hero-btn hero-btn--primary" @click="goShop">
-              Tiếp tục mua sắm
-            </button>
-          </div>
+          <button class="hero-btn hero-btn--primary" @click="goShop">
+            Xem sản phẩm
+          </button>
         </div>
       </template>
     </section>
 
     <section class="container pb-5">
-      <div class="section-head">
-        <div>
-          <div class="section-subtitle">Cách sử dụng</div>
-          <h4 class="section-title mb-0">ÁP MÃ NHƯ THẾ NÀO?</h4>
-        </div>
-      </div>
-
       <div class="how-grid">
         <div class="how-card">
           <div class="how-step">1</div>
           <h5>Chọn mã phù hợp</h5>
-          <p>Xem điều kiện đơn hàng và sao chép mã giảm giá bạn muốn dùng.</p>
+          <p>Xem điều kiện đơn hàng tối thiểu và mức giảm của từng mã.</p>
         </div>
 
         <div class="how-card">
           <div class="how-step">2</div>
-          <h5>Thêm sản phẩm vào giỏ</h5>
-          <p>Chọn sản phẩm bạn cần và tiếp tục đến bước thanh toán.</p>
+          <h5>Sao chép mã</h5>
+          <p>Bấm sao chép để lưu mã và dùng nhanh tại trang thanh toán.</p>
         </div>
 
         <div class="how-card">
           <div class="how-step">3</div>
-          <h5>Áp mã ở checkout</h5>
-          <p>Hệ thống sẽ kiểm tra điều kiện và tính giảm giá trên đơn hàng nếu hợp lệ.</p>
+          <h5>Áp mã checkout</h5>
+          <p>Hệ thống sẽ kiểm tra điều kiện và tính giảm giá nếu mã hợp lệ.</p>
         </div>
       </div>
     </section>
 
     <div v-if="copiedCode" class="copy-toast">
-      Đã sao chép mã: <strong>{{ copiedCode }}</strong>
+      <i class="bi bi-check-circle-fill me-2"></i>
+      Đã sao chép mã:
+      <strong>{{ copiedCode }}</strong>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { getMyVouchers, getPublicVouchers } from "../../services/promotionClientApi";
 
 const router = useRouter();
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
-const voucherListRef = ref(null);
-const activeTab = ref("public");
 
+const voucherListRef = ref(null);
 const loading = ref(false);
 const error = ref("");
 const publicVouchers = ref([]);
-const myVouchers = ref([]);
-
+const keyword = ref("");
 const copiedCode = ref("");
+const currentPage = ref(1);
+const pageSize = 15;
 let copiedTimer = null;
 
-const isLoggedIn = computed(() => {
-  return (
-    !!localStorage.getItem("USER_ACCESS_TOKEN") ||
-    !!sessionStorage.getItem("USER_ACCESS_TOKEN") ||
-    !!localStorage.getItem("vest_token")
-  );
+const publicActiveCount = computed(() => publicVouchers.value.length);
+
+const filteredVouchers = computed(() => {
+  const q = keyword.value.toLowerCase();
+
+  if (!q) return publicVouchers.value;
+
+  return publicVouchers.value.filter((item) => {
+    return (
+      String(item.maGiamGia || "").toLowerCase().includes(q) ||
+      String(item.tenGiamGia || "").toLowerCase().includes(q)
+    );
+  });
+});
+const totalVoucherPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredVouchers.value.length / pageSize));
 });
 
-const khachHangId = computed(() => {
-  const raw =
-    localStorage.getItem("USER_ID") ||
-    sessionStorage.getItem("USER_ID") ||
-    localStorage.getItem("KHACH_HANG_ID") ||
-    sessionStorage.getItem("KHACH_HANG_ID");
-
-  const id = Number(raw);
-  return Number.isNaN(id) || id <= 0 ? null : id;
+const pagedVouchers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredVouchers.value.slice(start, start + pageSize);
 });
 
-const publicActiveCount = computed(() => {
-  return publicVouchers.value.filter((item) => isVoucherActive(item)).length;
+const voucherPageNumbers = computed(() => {
+  const total = totalVoucherPages.value;
+  const current = currentPage.value;
+  let start = Math.max(1, current - 2);
+  let end = Math.min(total, start + 4);
+
+  if (end - start < 4) {
+    start = Math.max(1, end - 4);
+  }
+
+  const pages = [];
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  return pages;
+});
+function goVoucherPage(page) {
+  const p = Number(page) || 1;
+  currentPage.value = Math.min(Math.max(p, 1), totalVoucherPages.value);
+}
+
+function prevVoucherPage() {
+  goVoucherPage(currentPage.value - 1);
+}
+
+function nextVoucherPage() {
+  goVoucherPage(currentPage.value + 1);
+}
+function normalizeVoucher(x) {
+  const rawSoLuong = x.soLuong ?? x.so_luong;
+
+  return {
+    id: x.id,
+    maGiamGia: x.maGiamGia ?? x.ma_giam_gia ?? "",
+    tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia ?? "",
+    trangThai: x.trangThai ?? x.trang_thai ?? true,
+    soLuong: rawSoLuong === undefined || rawSoLuong === null ? null : Number(rawSoLuong),
+    loaiGiam: x.loaiGiam ?? x.loai_giam ?? false,
+    giaTriPhanTram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
+    giaTriTienMat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
+    giaTriGiamToiDa: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
+    donHangToiThieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
+    loaiPhieu: x.loaiPhieu ?? x.loai_phieu ?? "",
+    ngayBatDau: x.ngayBatDau ?? x.ngay_bat_dau ?? null,
+    ngayKetThuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
+  };
+}
+watch(keyword, () => {
+  currentPage.value = 1;
 });
 
-const myVoucherCount = computed(() => myVouchers.value.length);
-
-function normalizeList(list) {
-  return Array.isArray(list) ? list : [];
+watch(filteredVouchers, () => {
+  if (currentPage.value > totalVoucherPages.value) {
+    currentPage.value = totalVoucherPages.value;
+  }
+});
+function isPublicVoucher(voucher) {
+  return String(voucher?.loaiPhieu || "").toUpperCase() === "CONG_KHAI";
 }
 
 function isVoucherActive(voucher) {
-  if (!voucher?.trangThai) return false;
+  const status = voucher?.trangThai;
+
+  if (status === false || status === 0 || status === "0") return false;
+
+  const statusText = String(status || "").toUpperCase();
+
+  if (
+    statusText === "FALSE" ||
+    statusText === "INACTIVE" ||
+    statusText === "NGUNG_AP_DUNG" ||
+    statusText === "DA_HUY"
+  ) {
+    return false;
+  }
+
+  if (voucher.soLuong !== null && Number(voucher.soLuong) <= 0) return false;
 
   const now = new Date();
   const start = voucher?.ngayBatDau ? new Date(voucher.ngayBatDau) : null;
   const end = voucher?.ngayKetThuc ? new Date(voucher.ngayKetThuc) : null;
 
-  if (start && now < start) return false;
-  if (end && now > end) return false;
+  if (start && !Number.isNaN(start.getTime()) && now < start) return false;
+  if (end && !Number.isNaN(end.getTime()) && now > end) return false;
 
   return true;
-}
-
-function statusLabel(voucher) {
-  if (!voucher?.trangThai) return "Ngừng áp dụng";
-
-  const now = new Date();
-  const start = voucher?.ngayBatDau ? new Date(voucher.ngayBatDau) : null;
-  const end = voucher?.ngayKetThuc ? new Date(voucher.ngayKetThuc) : null;
-
-  if (start && now < start) return "Chưa bắt đầu";
-  if (end && now > end) return "Hết hạn";
-  return "Đang áp dụng";
-}
-
-function statusClass(voucher) {
-  const label = statusLabel(voucher);
-  if (label === "Đang áp dụng") return "status-active";
-  if (label === "Chưa bắt đầu") return "status-pending";
-  return "status-ended";
 }
 
 function money(v) {
@@ -339,7 +399,9 @@ function money(v) {
 
 function formatDateTime(value) {
   if (!value) return "--/--/----";
+
   const d = new Date(value);
+
   if (Number.isNaN(d.getTime())) return value;
 
   return new Intl.DateTimeFormat("vi-VN", {
@@ -349,7 +411,8 @@ function formatDateTime(value) {
 }
 
 function formatDiscount(voucher) {
-  const isPercent = voucher?.loaiGiam === true || voucher?.loaiGiam === 1;
+  const isPercent = voucher?.loaiGiam === true || voucher?.loaiGiam === 1 || voucher?.loaiGiam === "1";
+
   if (isPercent && voucher?.giaTriPhanTram) {
     return `Giảm ${voucher.giaTriPhanTram}%`;
   }
@@ -366,12 +429,7 @@ async function fetchVouchers() {
     loading.value = true;
     error.value = "";
 
-    const customerId = khachHangId.value || null;
-    const url = customerId
-      ? `${API_BASE}/api/pgg/pos?khachHangId=${customerId}`
-      : `${API_BASE}/api/pgg/pos`;
-
-    const res = await fetch(url);
+    const res = await fetch(`${API_BASE}/api/pgg/pos`);
     const data = await res.json().catch(() => []);
 
     if (!res.ok) {
@@ -380,42 +438,27 @@ async function fetchVouchers() {
 
     const list = Array.isArray(data) ? data : [];
 
-    const normalized = list.map((x) => ({
-      id: x.id,
-      maGiamGia: x.maGiamGia ?? x.ma_giam_gia ?? "",
-      tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia ?? "",
-      trangThai: x.trangThai ?? x.trang_thai ?? true,
-      soLuong: Number(x.soLuong ?? x.so_luong ?? 0),
-      loaiGiam: x.loaiGiam ?? x.loai_giam ?? false,
-      giaTriPhanTram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
-      giaTriTienMat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
-      giaTriGiamToiDa: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
-      donHangToiThieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
-      loaiPhieu: x.loaiPhieu ?? x.loai_phieu ?? "",
-      ngayBatDau: x.ngayBatDau ?? x.ngay_bat_dau ?? null,
-      ngayKetThuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
-    }));
-
-    publicVouchers.value = normalized.filter((item) => item.loaiPhieu === "CONG_KHAI");
-    myVouchers.value = isLoggedIn.value
-      ? normalized.filter((item) => item.loaiPhieu === "CA_NHAN")
-      : [];
+    publicVouchers.value = list
+      .map(normalizeVoucher)
+      .filter((item) => isPublicVoucher(item) && isVoucherActive(item));
   } catch (err) {
     console.error("fetchVouchers error:", err);
     error.value = err?.message || "Không tải được mã giảm giá";
     publicVouchers.value = [];
-    myVouchers.value = [];
   } finally {
     loading.value = false;
   }
 }
 
 async function copyCode(code) {
+  if (!code) return;
+
   try {
     await navigator.clipboard.writeText(code);
     copiedCode.value = code;
 
     if (copiedTimer) clearTimeout(copiedTimer);
+
     copiedTimer = setTimeout(() => {
       copiedCode.value = "";
     }, 2200);
@@ -430,14 +473,6 @@ function scrollToVoucherList() {
 
 function goShop() {
   router.push({ name: "Search" });
-}
-
-function goCheckout() {
-  router.push({ name: "Checkout" });
-}
-
-function goLogin() {
-  router.push({ name: "Login", query: { redirect: "/giam-gia" } });
 }
 
 onMounted(async () => {
@@ -455,60 +490,97 @@ onBeforeUnmount(() => {
 <style scoped>
 .discount-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f5f7fc 0%, #f3f4f8 100%);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+    linear-gradient(180deg, #f7f9ff 0%, #f3f6fb 48%, #ffffff 100%);
+  color: #0f172a;
 }
 
 .discount-hero {
-  padding: 56px 0 40px;
-  background: linear-gradient(135deg, #000f51 0%, #12348f 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 70px 0 58px;
+  background:
+    linear-gradient(135deg, rgba(2, 6, 23, 0.95) 0%, rgba(15, 23, 42, 0.98) 44%, rgba(30, 64, 175, 0.95) 100%);
 }
 
-.hero-box {
+.hero-bg {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(10px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.hero-bg--one {
+  width: 360px;
+  height: 360px;
+  right: -120px;
+  top: -140px;
+  background: rgba(96, 165, 250, 0.28);
+}
+
+.hero-bg--two {
+  width: 260px;
+  height: 260px;
+  left: 8%;
+  bottom: -150px;
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.hero-grid {
   display: grid;
-  grid-template-columns: 1.25fr 0.75fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.25fr) 410px;
+  gap: 28px;
   align-items: stretch;
 }
 
 .hero-content,
-.hero-side {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 28px;
-  padding: 32px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+.hero-panel {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 34px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.22);
 }
 
-.hero-side {
-  display: grid;
-  gap: 16px;
+.hero-content {
+  padding: 42px;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 9px 15px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .hero-title {
-  font-size: 54px;
-  line-height: 1.08;
-  color: #fff;
-  font-weight: 800;
-  margin: 16px 0;
+  margin: 18px 0;
+  color: #ffffff;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.96;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+
+.hero-title span {
+  display: block;
+  color: #bfdbfe;
 }
 
 .hero-desc {
+  max-width: 660px;
+  margin: 0 0 28px;
+  color: rgba(255, 255, 255, 0.84);
   font-size: 17px;
   line-height: 1.8;
-  color: rgba(255, 255, 255, 0.88);
-  margin-bottom: 24px;
-  max-width: 620px;
 }
 
 .hero-actions {
@@ -521,194 +593,398 @@ onBeforeUnmount(() => {
   min-height: 50px;
   padding: 0 22px;
   border-radius: 16px;
-  font-weight: 750;
+  border: 0;
   font-size: 15px;
-  transition: all 0.25s ease;
-  border: none;
+  font-weight: 800;
+  transition: all 0.22s ease;
+}
+
+.hero-btn:hover {
+  transform: translateY(-2px);
 }
 
 .hero-btn--primary {
-  background: #fff;
-  color: #000f51;
+  color: #0f172a;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
 }
 
 .hero-btn--outline {
-  background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.24);
 }
 
-.hero-stat {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  padding: 20px;
+.hero-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 30px;
+  overflow: hidden;
 }
 
-.hero-stat strong {
+.hero-panel::before {
+  content: "";
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  right: -72px;
+  top: -56px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.22);
+}
+
+.hero-panel__icon {
+  width: 72px;
+  height: 72px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 36px;
+}
+
+.hero-panel__main {
+  margin-top: 34px;
+}
+
+.hero-panel__main span,
+.hero-panel__main p {
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0;
+}
+
+.hero-panel__main strong {
   display: block;
-  font-size: 30px;
-  line-height: 1.1;
-  color: #fff;
-  margin-bottom: 8px;
+  color: #ffffff;
+  font-size: 76px;
+  line-height: 0.95;
+  font-weight: 900;
+  letter-spacing: -0.06em;
 }
 
-.hero-stat span {
-  color: rgba(255, 255, 255, 0.86);
-  line-height: 1.6;
+.hero-panel__note {
+  margin-top: 28px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 15px;
+  border-radius: 18px;
+  color: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 255, 255, 0.1);
+  line-height: 1.55;
   font-size: 14px;
+}
+
+.voucher-section {
+  padding-top: 48px;
+  padding-bottom: 44px;
 }
 
 .section-head {
   display: flex;
-  justify-content: space-between;
   align-items: end;
-  gap: 16px;
-  margin-bottom: 24px;
+  justify-content: space-between;
+  gap: 18px;
   flex-wrap: wrap;
+  margin-bottom: 18px;
 }
 
 .section-subtitle {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #64748b;
   margin-bottom: 8px;
-  font-weight: 750;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .section-title {
-  font-size: 30px;
   color: #0f172a;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
-.tab-group {
+.voucher-toolbar {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-box {
+  min-width: 280px;
+  height: 48px;
+  display: flex;
+  align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.tab-btn {
-  min-height: 44px;
-  padding: 0 18px;
+  padding: 0 15px;
   border-radius: 999px;
-  border: 1px solid #dbe3ef;
-  background: #fff;
-  color: #334155;
-  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
 }
 
-.tab-btn.active {
-  background: #000f51;
-  color: #fff;
-  border-color: #000f51;
+.search-box i {
+  color: #64748b;
+}
+
+.search-box input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #0f172a;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.info-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.info-strip div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.info-strip i {
+  color: #2563eb;
+}
+
+.info-strip span {
+  flex: 0 0 auto;
+  color: #0f172a;
+  font-weight: 850;
 }
 
 .voucher-card {
-  background: #fff;
-  border-radius: 24px;
-  padding: 22px;
+  position: relative;
   height: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 14px 30px rgba(10, 24, 74, 0.05);
+  overflow: hidden;
+  padding: 22px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+  transition: all 0.25s ease;
 }
 
-.voucher-card--mine {
-  border-color: rgba(13, 110, 253, 0.18);
-  box-shadow: 0 16px 36px rgba(13, 110, 253, 0.08);
+.voucher-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.13);
 }
 
-.voucher-top {
+.voucher-card__shine {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  top: -100px;
+  right: -90px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  pointer-events: none;
+}
+
+.voucher-card__head {
+  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 14px;
-  align-items: start;
   margin-bottom: 18px;
 }
 
-.voucher-code {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: #eaf0ff;
-  color: #000f51;
-  font-size: 13px;
-  font-weight: 800;
-  margin-bottom: 12px;
+.voucher-label {
+  margin-bottom: 7px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .voucher-name {
-  font-size: 20px;
-  font-weight: 800;
+  margin: 0;
   color: #0f172a;
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 900;
 }
 
 .voucher-status {
-  white-space: nowrap;
+  height: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 11px;
   border-radius: 999px;
-  padding: 8px 12px;
+  color: #047857;
+  background: #d1fae5;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 850;
+  white-space: nowrap;
 }
 
-.status-active {
-  background: #dcfce7;
-  color: #166534;
+.voucher-ticket {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 15px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px dashed rgba(37, 99, 235, 0.35);
 }
 
-.status-pending {
-  background: #fef3c7;
-  color: #92400e;
+.voucher-ticket::before,
+.voucher-ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  transform: translateY(-50%);
 }
 
-.status-ended {
-  background: #fee2e2;
-  color: #991b1b;
+.voucher-ticket::before {
+  left: -9px;
+}
+
+.voucher-ticket::after {
+  right: -9px;
+}
+
+.voucher-ticket__left span {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.voucher-ticket__left strong {
+  color: #1e3a8a;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.copy-btn {
+  position: relative;
+  z-index: 1;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #1d4ed8;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  transform: scale(1.05);
+  background: #1e40af;
 }
 
 .voucher-value {
-  font-size: 34px;
-  line-height: 1.15;
-  font-weight: 800;
-  color: #000f51;
   margin-bottom: 18px;
+  color: #0f172a;
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.04em;
 }
 
 .voucher-meta {
   display: grid;
-  gap: 10px;
-  color: #475569;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.meta-item {
+  min-height: 72px;
+  padding: 13px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.meta-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.meta-item strong {
+  display: block;
+  color: #0f172a;
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.45;
+  font-weight: 900;
+}
+
+.meta-item--full {
+  grid-column: 1 / -1;
 }
 
 .voucher-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 22px;
+  margin-top: 20px;
 }
 
 .voucher-btn {
-  min-height: 44px;
-  padding: 0 16px;
-  border-radius: 14px;
-  font-weight: 750;
-  transition: all 0.2s ease;
+  min-height: 46px;
+  border-radius: 15px;
+  font-size: 14px;
+  font-weight: 900;
+  transition: all 0.22s ease;
+}
+
+.voucher-btn:hover {
+  transform: translateY(-2px);
 }
 
 .voucher-btn--primary {
-  background: #000f51;
-  color: #fff;
-  border: none;
+  color: #ffffff;
+  background: #0f172a;
+  border: 1px solid #0f172a;
 }
 
 .voucher-btn--outline {
-  background: #fff;
-  color: #000f51;
-  border: 1px solid #dbe3ef;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.32);
 }
 
 .how-grid {
@@ -720,109 +996,729 @@ onBeforeUnmount(() => {
 .how-card,
 .state-box,
 .empty-box {
-  background: #fff;
-  border-radius: 22px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+}
+
+.how-card {
   padding: 24px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 14px 30px rgba(10, 24, 74, 0.05);
 }
 
 .how-step {
   width: 46px;
   height: 46px;
-  border-radius: 14px;
-  background: #eaf0ff;
-  color: #000f51;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
   margin-bottom: 16px;
+  border-radius: 16px;
+  color: #ffffff;
+  background: #1d4ed8;
+  font-weight: 950;
 }
 
 .how-card h5 {
-  font-weight: 800;
+  margin-bottom: 9px;
   color: #0f172a;
-  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .how-card p,
 .empty-box p {
+  margin: 0;
   color: #64748b;
   line-height: 1.7;
-  margin-bottom: 0;
+}
+
+.state-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 170px;
+  padding: 28px;
+  color: #475569;
+  font-weight: 800;
+}
+
+.state-box--error {
+  color: #b91c1c;
+  background: #fff1f2;
+}
+
+.state-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(37, 99, 235, 0.18);
+  border-top-color: #2563eb;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
 }
 
 .empty-box {
+  padding: 42px 24px;
   text-align: center;
 }
 
 .empty-box__icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: #eaf0ff;
-  color: #000f51;
+  width: 72px;
+  height: 72px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  border-radius: 24px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: 32px;
+}
+
+.empty-box h5 {
+  margin-bottom: 10px;
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.empty-box .hero-btn {
+  margin-top: 22px;
+  color: #ffffff;
+  background: #0f172a;
 }
 
 .copy-toast {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: 22px;
+  bottom: 22px;
   z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 15px 18px;
+  border-radius: 18px;
+  color: #ffffff;
   background: #0f172a;
-  color: #fff;
-  padding: 14px 18px;
-  border-radius: 14px;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.28);
+  font-size: 14px;
 }
 
-@media (max-width: 991.98px) {
-  .hero-box,
-  .how-grid {
+.copy-toast strong {
+  margin-left: 4px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .hero-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero-title {
-    font-size: 42px;
+  .hero-panel {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .how-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 767.98px) {
   .discount-hero {
-    padding: 42px 0 34px;
+    padding: 42px 0 38px;
+  }
+
+  .hero-content,
+  .hero-panel {
+    border-radius: 26px;
+    padding: 24px;
+  }
+
+  .hero-title {
+    font-size: 42px;
+  }
+
+  .hero-actions,
+  .voucher-actions {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .hero-btn {
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 25px;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .voucher-toolbar {
+    width: 100%;
+  }
+
+  .info-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .voucher-card__head {
+    flex-direction: column;
+  }
+
+  .voucher-status {
+    width: fit-content;
+  }
+
+  .voucher-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .meta-item--full {
+    grid-column: auto;
+  }
+
+  .voucher-value {
+    font-size: 29px;
+  }
+
+  .copy-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    justify-content: center;
+  }
+}
+.discount-page,
+.discount-page input,
+.discount-page button,
+.discount-page select,
+.discount-page textarea {
+  font-family: var(--bs-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+}
+
+.discount-page {
+  background: #f5f7fb;
+  color: #111827;
+}
+
+.discount-hero {
+  padding: 42px 0 74px;
+  background: linear-gradient(135deg, #06164d 0%, #0a2168 52%, #143c9f 100%);
+}
+
+.hero-box,
+.hero-grid {
+  gap: 22px;
+}
+
+.hero-content,
+.hero-side,
+.hero-panel {
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+.hero-content {
+  padding: 30px;
+}
+
+.hero-side,
+.hero-panel {
+  padding: 24px;
+}
+
+.hero-badge {
+  padding: 7px 13px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hero-title {
+  margin: 14px 0 12px;
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hero-desc {
+  max-width: 620px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  gap: 12px;
+}
+
+.hero-btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hero-btn--primary {
+  color: #07143f;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.hero-btn--outline {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.hero-stat {
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.hero-stat strong,
+.hero-panel__main strong {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.hero-stat span,
+.hero-panel__main span,
+.hero-panel__main p {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.voucher-section,
+section.container.py-5 {
+  margin-top: -44px;
+  position: relative;
+  z-index: 3;
+}
+
+.section-head {
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.section-subtitle {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.tab-group {
+  gap: 8px;
+}
+
+.tab-btn {
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 650;
+  background: #f8fafc;
+  border: 1px solid #d8e0ea;
+}
+
+.tab-btn.active {
+  background: #07143f;
+  border-color: #07143f;
+}
+
+.search-box {
+  min-width: 280px;
+  height: 42px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #d8e0ea;
+  box-shadow: none;
+}
+
+.search-box input {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.info-strip {
+  margin-bottom: 18px;
+  padding: 12px 15px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+  font-size: 13px;
+}
+
+.info-strip span {
+  font-weight: 700;
+}
+
+.voucher-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.voucher-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.11);
+}
+
+.voucher-card--mine {
+  border-color: #dbeafe;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.08);
+}
+
+.voucher-top,
+.voucher-card__head {
+  margin-bottom: 14px;
+}
+
+.voucher-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.voucher-code {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.voucher-name {
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.voucher-status {
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.voucher-ticket {
+  margin-bottom: 14px;
+  padding: 13px;
+  border-radius: 16px;
+}
+
+.voucher-ticket__left span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.voucher-ticket__left strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.copy-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #07143f;
+}
+
+.copy-btn:hover {
+  background: #0b1b55;
+}
+
+.voucher-value {
+  margin-bottom: 14px;
+  color: #dc2626;
+  font-size: 28px;
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.voucher-meta {
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.meta-item {
+  min-height: 66px;
+  padding: 11px;
+  border-radius: 13px;
+  background: #f8fafc;
+}
+
+.meta-item span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.meta-item strong {
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.voucher-actions {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.voucher-btn {
+  min-height: 40px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.voucher-btn--primary {
+  background: #07143f;
+}
+
+.voucher-btn--primary:hover {
+  background: #0b1b55;
+}
+
+.voucher-btn--outline {
+  background: #ffffff;
+  color: #07143f;
+  border: 1px solid #d8e0ea;
+}
+
+.how-grid {
+  gap: 16px;
+}
+
+.how-card,
+.state-box,
+.empty-box {
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.how-card {
+  padding: 20px;
+}
+
+.how-step {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: #07143f;
+  color: #ffffff;
+  font-weight: 750;
+}
+
+.how-card h5 {
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.how-card p,
+.empty-box p {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.empty-box {
+  padding: 38px 24px;
+}
+
+.empty-box__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: 28px;
+}
+
+.empty-box h5 {
+  font-weight: 750;
+}
+
+.copy-toast {
+  right: 20px;
+  bottom: 20px;
+  padding: 13px 16px;
+  border-radius: 15px;
+  background: #07143f;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.22);
+  font-size: 13px;
+}
+
+@media (max-width: 991.98px) {
+  .hero-box,
+  .hero-grid,
+  .how-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .voucher-section,
+  section.container.py-5 {
+    margin-top: -36px;
   }
 
   .hero-title {
     font-size: 34px;
   }
+}
 
-  .hero-actions,
-  .voucher-actions {
+@media (max-width: 767.98px) {
+  .discount-hero {
+    padding: 34px 0 64px;
+  }
+
+  .hero-content,
+  .hero-side,
+  .hero-panel {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  .section-head {
+    align-items: flex-start;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .voucher-actions,
+  .hero-actions {
     flex-direction: column;
   }
 
-  .hero-btn,
-  .voucher-btn {
+  .voucher-btn,
+  .hero-btn {
     width: 100%;
   }
 
-  .section-title {
-    font-size: 24px;
-  }
-
-  .voucher-top {
-    flex-direction: column;
-    align-items: start;
-  }
-
   .voucher-value {
-    font-size: 28px;
+    font-size: 25px;
   }
+}
+.voucher-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.voucher-page-info {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.voucher-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voucher-page-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid #d8e0ea;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 750;
+  transition: all 0.18s ease;
+}
+
+.voucher-page-btn:hover:not(:disabled) {
+  background: #07143f;
+  border-color: #07143f;
+  color: #ffffff;
+}
+
+.voucher-page-btn.active {
+  background: #07143f;
+  border-color: #07143f;
+  color: #ffffff;
+}
+
+.voucher-page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 767.98px) {
+  .voucher-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .voucher-page-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+.row.g-4 > [class*="col-"] {
+  display: flex;
+}
+
+.voucher-card {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.voucher-meta {
+  margin-bottom: 0;
+}
+
+.voucher-actions {
+  margin-top: auto;
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 </style>

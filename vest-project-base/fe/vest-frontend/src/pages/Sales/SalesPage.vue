@@ -797,12 +797,12 @@
 
                   <div class="d-grid gap-2">
                     <button
-                      class="btn btn-success w-100"
-                      :disabled="activeOrder.cart.length === 0 || submitting"
-                      @click="confirmOrderCash"
-                    >
-                      Thanh toán (tiền mặt)
-                    </button>
+  class="btn btn-success w-100"
+  :disabled="activeOrder.cart.length === 0 || submitting"
+  @click="confirmOrderCash"
+>
+  {{ submitting ? "Đang xử lý..." : "Thanh toán (tiền mặt)" }}
+</button>
 
                     <button
                       class="btn btn-outline-success w-100"
@@ -1398,26 +1398,26 @@
                   <div class="col-12 col-md-6">
                     <label class="form-label mb-1">Tỉnh/Thành phố</label>
                     <v-select
-                        :options="provinces"
-                        label="provinceName"
-                        :reduce="(p) => p.provinceId"
-                        v-model="addressDraft.provinceId"
-                        :clearable="true"
-                        :searchable="true"
-                        :disabled="provincesLoading"
-                        placeholder="Chọn tỉnh/thành"
-                        @update:modelValue="onAddressProvinceChange"
+                      :options="provinces"
+                      label="provinceName"
+                      :reduce="(p) => p.provinceId"
+                      v-model="addressDraft.provinceId"
+                      :clearable="true"
+                      :searchable="true"
+                      :disabled="provincesLoading"
+                      placeholder="Chọn tỉnh/thành"
+                      @update:modelValue="onAddressProvinceChange"
                     />
 
                     <v-select
-                        :options="addressDraftWards"
-                        label="wardName"
-                        :reduce="(w) => w.wardCode"
-                        v-model="addressDraft.wardCode"
-                        :clearable="true"
-                        :searchable="true"
-                        :disabled="!addressDraft.provinceId || wardsLoading"
-                        placeholder="Chọn phường/xã"
+                      :options="addressDraftWards"
+                      label="wardName"
+                      :reduce="(w) => w.wardCode"
+                      v-model="addressDraft.wardCode"
+                      :clearable="true"
+                      :searchable="true"
+                      :disabled="!addressDraft.provinceId || wardsLoading"
+                      placeholder="Chọn phường/xã"
                     />
                   </div>
 
@@ -1505,166 +1505,146 @@
         </div>
       </div>
 
-<div
-  v-if="showQrPayModal"
-  class="modal fade show"
-  tabindex="-1"
-  role="dialog"
-  aria-modal="true"
-  style="display: block; z-index: 1065"
->
-  <div class="modal-dialog modal-dialog-centered qr-pay-dialog">
-    <div class="modal-content qr-pay-modal">
-      <div class="modal-header qr-pay-header">
-        <div>
-          <h5 class="modal-title fw-bold mb-1">Thanh toán bằng QR</h5>
-          <div class="qr-pay-subtitle">
-            Quét mã hoặc chuyển sang trang thanh toán
-          </div>
-        </div>
+      <div
+        v-if="showQrPayModal"
+        class="modal fade show"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        style="display: block; z-index: 1065"
+      >
+        <div class="modal-dialog modal-dialog-centered qr-pay-dialog">
+          <div class="modal-content qr-pay-modal">
+            <div class="modal-header qr-pay-header">
+              <div>
+                <h5 class="modal-title fw-bold mb-1">Thanh toán bằng QR</h5>
+                <div class="qr-pay-subtitle">
+                  Quét mã hoặc chuyển sang trang thanh toán
+                </div>
+              </div>
 
-        <button
-          type="button"
-          class="btn-close"
-          @click="closeQrPay"
-        ></button>
-      </div>
+              <button
+                type="button"
+                class="btn-close"
+                @click="closeQrPay"
+              ></button>
+            </div>
 
-      <div class="modal-body qr-pay-body">
-        <div class="qr-pay-top">
-          <div class="qr-pay-meta-card">
-            <div class="qr-pay-meta-label">Mã hóa đơn</div>
-            <div class="qr-pay-meta-value font-monospace">
-              {{ activeOrder?.maHoaDon }}
+            <div class="modal-body qr-pay-body">
+              <div class="qr-pay-top">
+                <div class="qr-pay-meta-card">
+                  <div class="qr-pay-meta-label">Mã hóa đơn</div>
+                  <div class="qr-pay-meta-value font-monospace">
+                    {{ activeOrder?.maHoaDon }}
+                  </div>
+                </div>
+
+                <div class="qr-pay-amount-card">
+                  <div class="qr-pay-meta-label">Số tiền thanh toán</div>
+                  <div class="qr-pay-amount">{{ money(grandTotal) }}</div>
+                </div>
+              </div>
+
+              <div class="qr-stage">
+                <div class="qr-stage-glow"></div>
+
+                <div class="qr-frame">
+                  <img :src="techcombankQr" alt="QR Pay" class="qr-image" />
+                </div>
+              </div>
+
+              <div class="qr-pay-info-card">
+                <div class="qr-pay-info-row qr-pay-info-row-top">
+                  <span class="qr-pay-info-label">Mã đơn</span>
+                  <span class="qr-pay-info-value font-monospace qr-pay-code">
+                    {{ qrContent }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <label class="form-label qr-pay-input-label">Ghi chú</label>
+                <input
+                  class="form-control qr-pay-input"
+                  v-model="qrNoteDraft"
+                  placeholder="VD: VNPAY sandbox - HDxxxx"
+                />
+              </div>
+            </div>
+
+            <div class="modal-footer qr-pay-footer">
+              <button
+                class="btn qr-btn qr-btn-success"
+                type="button"
+                @click="markPaidAndCheckout"
+                :disabled="submitting"
+              >
+                {{ submitting ? "Đang xử lý..." : "Xác nhận thanh toán" }}
+              </button>
+
+              <button
+                class="btn qr-btn qr-btn-secondary"
+                type="button"
+                @click="closeQrPay"
+              >
+                Đóng
+              </button>
             </div>
           </div>
-
-          <div class="qr-pay-amount-card">
-            <div class="qr-pay-meta-label">Số tiền thanh toán</div>
-            <div class="qr-pay-amount">{{ money(grandTotal) }}</div>
-          </div>
         </div>
+      </div>
 
-        <div class="qr-stage">
-          <div class="qr-stage-glow"></div>
+      <div
+        v-if="showPaymentConfirmModal"
+        class="modal-backdrop fade show payment-confirm-backdrop"
+        style="z-index: 1067"
+      ></div>
 
-          <div class="qr-frame">
-            <img
-              v-if="qrImg"
-              :src="qrImg"
-              alt="QR Pay"
-              class="qr-image"
-            />
-            <div v-else class="text-muted small py-5 text-center">
-              Đang tải QR...
+      <div
+        v-if="showPaymentConfirmModal"
+        class="modal fade show"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        style="display: block; z-index: 1068"
+      >
+        <div class="modal-dialog modal-dialog-centered payment-confirm-dialog">
+          <div class="modal-content payment-confirm-modal">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold">Xác nhận thanh toán</h5>
+              <button
+                type="button"
+                class="btn-close"
+                @click="resolvePaymentConfirm(false)"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <div class="fw-semibold payment-confirm-text">
+                {{ paymentConfirmText }}
+              </div>
+            </div>
+
+            <div class="modal-footer payment-confirm-footer">
+              <button
+                class="btn btn-outline-secondary payment-confirm-cancel-btn"
+                type="button"
+                @click="resolvePaymentConfirm(false)"
+              >
+                Hủy
+              </button>
+
+              <button
+                class="btn btn-success payment-confirm-ok-btn"
+                type="button"
+                @click="resolvePaymentConfirm(true)"
+              >
+                Xác nhận
+              </button>
             </div>
           </div>
-
-          <div class="qr-stage-caption">
-            <div class="qr-stage-title">Quét mã để thanh toán</div>
-          </div>
-        </div>
-
-        <div class="qr-pay-info-card">
-          <div class="qr-pay-info-row qr-pay-info-row-top">
-            <span class="qr-pay-info-label">Nội dung đơn</span>
-            <span class="qr-pay-info-value font-monospace qr-pay-code">
-              {{ qrContent }}
-            </span>
-          </div>
-        </div>
-
-        <div class="mt-3">
-          <label class="form-label qr-pay-input-label">Ghi chú</label>
-          <input
-            class="form-control qr-pay-input"
-            v-model="qrNoteDraft"
-            placeholder="VD: VNPAY sandbox - HDxxxx"
-          />
         </div>
       </div>
-
-      <div class="modal-footer qr-pay-footer">
-        <button
-          class="btn qr-btn qr-btn-primary"
-          type="button"
-          @click="goToSandboxPayment"
-        >
-          Chuyển hướng thanh toán
-        </button>
-
-        <button
-          class="btn qr-btn qr-btn-success"
-          type="button"
-          @click="markPaidAndCheckout"
-          :disabled="submitting"
-        >
-          Thanh toán thành công
-        </button>
-
-        <button
-          class="btn qr-btn qr-btn-secondary"
-          type="button"
-          @click="closeQrPay"
-        >
-          Đóng
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div
-  v-if="showPaymentConfirmModal"
-  class="modal-backdrop fade show payment-confirm-backdrop"
-  style="z-index: 1067"
-></div>
-
-<div
-  v-if="showPaymentConfirmModal"
-  class="modal fade show"
-  tabindex="-1"
-  role="dialog"
-  aria-modal="true"
-  style="display: block; z-index: 1068"
->
-  <div class="modal-dialog modal-dialog-centered payment-confirm-dialog">
-    <div class="modal-content payment-confirm-modal">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">Xác nhận thanh toán</h5>
-        <button
-          type="button"
-          class="btn-close"
-          @click="resolvePaymentConfirm(false)"
-        ></button>
-      </div>
-
-      <div class="modal-body">
-        <div class="fw-semibold payment-confirm-text">
-          {{ paymentConfirmText }}
-        </div>
-      </div>
-
-      <div class="modal-footer payment-confirm-footer">
-        <button
-          class="btn btn-outline-secondary payment-confirm-cancel-btn"
-          type="button"
-          @click="resolvePaymentConfirm(false)"
-        >
-          Hủy
-        </button>
-
-        <button
-          class="btn btn-success payment-confirm-ok-btn"
-          type="button"
-          @click="resolvePaymentConfirm(true)"
-        >
-          Xác nhận
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
       <div
         v-if="showPreCheckoutModal"
@@ -1794,14 +1774,20 @@ import { listKhachHang } from "@/services/khachHangApi";
 import { resolveMediaUrl } from "@/utils/media";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
-import QRCode from "qrcode";
+import techcombankQr from "@/assets/techcombank-qr.png";
 
 const PUBLIC_WEB_ORIGIN =
   import.meta.env.VITE_PUBLIC_WEB_ORIGIN || window.location.origin;
 const qrRequestCode = ref("");
 let posQrPollTimer = null;
 const qrPaymentUrl = ref("");
-const qrImg = ref("");
+function stopPosQrPolling() {
+  if (posQrPollTimer) {
+    clearInterval(posQrPollTimer);
+    clearTimeout(posQrPollTimer);
+    posQrPollTimer = null;
+  }
+}
 const qrContent = ref("");
 const qrNoteDraft = ref("");
 const MAX_ORDERS = 10;
@@ -1913,7 +1899,7 @@ async function startProductQr() {
       { fps: 10, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
         await onProductQrDecoded(decodedText);
-      }
+      },
     );
   } catch (e) {
     console.error(e);
@@ -1942,7 +1928,7 @@ async function onProductQrDecoded(decodedText) {
     }
 
     let found = allProducts.value.find(
-      (x) => String(x.code || "").toLowerCase() === code.toLowerCase()
+      (x) => String(x.code || "").toLowerCase() === code.toLowerCase(),
     );
 
     if (!found) {
@@ -2208,7 +2194,7 @@ const backdropOpen = computed(
     showCustomerModal.value ||
     showAddressModal.value ||
     showQrPayModal.value ||
-    showScanQrModal.value
+    showScanQrModal.value,
 );
 
 const anyModalOpen = computed(
@@ -2219,7 +2205,7 @@ const anyModalOpen = computed(
     showQrPayModal.value ||
     showScanQrModal.value ||
     showPreCheckoutModal.value ||
-    showPaymentConfirmModal.value
+    showPaymentConfirmModal.value,
 );
 
 watch(anyModalOpen, (open) => {
@@ -2732,7 +2718,6 @@ function getCustomerScopedVouchers(order, vouchers) {
   );
 }
 
-
 async function fetchCustomersAll() {
   if (customerLoading.value) return;
   customerLoading.value = true;
@@ -2950,7 +2935,7 @@ async function pickAddress(addressId) {
   o.diaChi = addr.fullAddress || "";
 
   const resolvedProvinceId =
-      addr.provinceId || resolveProvinceIdByName(addr.provinceName);
+    addr.provinceId || resolveProvinceIdByName(addr.provinceName);
 
   o.ghnProvinceId = resolvedProvinceId ? String(resolvedProvinceId) : null;
   o.quanHuyenNhanHang = "";
@@ -2965,7 +2950,7 @@ async function pickAddress(addressId) {
   }));
 
   const resolvedWardCode =
-      addr.wardCode || resolveWardCodeByName(o.ghnProvinceId, addr.wardName);
+    addr.wardCode || resolveWardCodeByName(o.ghnProvinceId, addr.wardName);
 
   o.ghnWardCode = resolvedWardCode ? String(resolvedWardCode) : "";
 
@@ -3060,17 +3045,17 @@ function wardNameByCodeByProvince(provinceId, wardCode) {
 
 function normalizeText(value) {
   return String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function resolveProvinceIdByName(provinceName) {
   const normalized = normalizeText(provinceName);
   const province = provinceLookup.value.find(
-      (item) => normalizeText(item.provinceName) === normalized,
+    (item) => normalizeText(item.provinceName) === normalized,
   );
   return province ? String(province.provinceId) : null;
 }
@@ -3082,7 +3067,7 @@ function resolveWardCodeByName(provinceId, wardName) {
 
   const normalized = normalizeText(wardName);
   const ward = (province.wards || []).find(
-      (item) => normalizeText(item.wardName) === normalized,
+    (item) => normalizeText(item.wardName) === normalized,
   );
 
   return ward ? String(ward.wardCode) : "";
@@ -3116,9 +3101,9 @@ function mapCustomerAddress(raw, customer) {
   const wardCode = resolveWardCodeByName(provinceId, wardName);
 
   const fullAddress = [detail, wardName, provinceName, raw?.quocGia]
-      .map((x) => String(x || "").trim())
-      .filter(Boolean)
-      .join(", ");
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .join(", ");
 
   return {
     id: raw?.id ?? Date.now() + Math.random(),
@@ -3149,7 +3134,7 @@ async function loadCustomerAddressBook(customer) {
     }
 
     const defaultAddr =
-        o.addressBook.find((item) => item.isDefault) || o.addressBook[0] || null;
+      o.addressBook.find((item) => item.isDefault) || o.addressBook[0] || null;
 
     o.selectedAddressId = defaultAddr?.id ?? null;
   } catch (e) {
@@ -4041,7 +4026,6 @@ function evaluateVoucherState(order, orderVouchers) {
 
   const best = getBestVoucherForOrder(order, orderVouchers);
 
-
   // ƯU TIÊN: trước đó từng có voucher, giờ voucher đó biến mất
   if (snapshot && !snapshotVoucher) {
     return {
@@ -4065,8 +4049,6 @@ function evaluateVoucherState(order, orderVouchers) {
       subtotal,
     };
   }
-
-
 
   // Nếu đang ở mode best và chưa có pggId nhưng đã có voucher phù hợp
   if (!order.pggId && order.voucherMode === "best" && best?.voucher) {
@@ -4441,158 +4423,58 @@ async function openQrPay() {
   if (!o) return;
 
   const err = validateCheckout(o);
+
   if (err && !String(err).includes("Khách thanh toán chưa đủ")) {
     return toastShow(err, "warning");
   }
 
-  o.paymentMethod = "QR";
-
   try {
-    const { data } = await http.post(
-      `/api/hoa-don/draft/${o.dbId || o.id}/pos-qr/init`,
-      { source: "POS" },
-    );
+    o.paymentMethod = "QR";
 
-    qrRequestCode.value = data?.requestCode || "";
-    qrPaymentUrl.value = String(data?.paymentUrl || "").startsWith("http")
-      ? data.paymentUrl
-      : `${PUBLIC_WEB_ORIGIN}${data?.paymentUrl || ""}`;
+    const qrText = String(o.maHoaDon || "").trim();
 
-    qrImg.value = await QRCode.toDataURL(qrPaymentUrl.value, {
-      width: 320,
-      margin: 2,
-    });
+    qrRequestCode.value = "";
+    qrPaymentUrl.value = "";
+    qrContent.value = qrText;
+    qrNoteDraft.value = `Khách đã thanh toán QR - ${qrText}`;
 
-    qrContent.value = `${o.maHoaDon}`;
-    qrNoteDraft.value = `Khách đã thanh toán - ${o.maHoaDon}`;
     showQrPayModal.value = true;
-
-    startPosQrPolling();
   } catch (e) {
     console.error(e);
-    const msg =
-      e?.response?.data?.message ||
-      e?.response?.data?.error ||
-      "Không khởi tạo được QR thanh toán";
-    toastShow(String(msg), "danger");
+    toastShow("Không mở được modal QR", "danger");
   }
-}
-
-function stopPosQrPolling() {
-  if (posQrPollTimer) {
-    clearInterval(posQrPollTimer);
-    posQrPollTimer = null;
-  }
-}
-
-async function startPosQrPolling() {
-  stopPosQrPolling();
-
-  const o = activeOrder.value;
-  if (!o?.dbId || !qrRequestCode.value) return;
-
-  posQrPollTimer = setInterval(async () => {
-    try {
-      const { data } = await http.get(
-        `/api/hoa-don/draft/${o.dbId}/pos-qr/status`,
-        {
-          params: { requestCode: qrRequestCode.value },
-        },
-      );
-
-      if (data?.paid) {
-        stopPosQrPolling();
-
-        const confirmRes = await http.post(
-          `/api/hoa-don/draft/${o.dbId}/pos-qr/confirm`,
-          {
-            requestCode: qrRequestCode.value,
-            maGiaoDich: data.maGiaoDich || `PAY${Date.now()}`,
-            soTien: Number(grandTotal.value || 0),
-            ghiChu: qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`,
-            paymentGateway: "MOCK-POS-QR",
-          },
-        );
-
-        o.paymentMethod = "QR";
-        o.paid = Number(grandTotal.value || 0);
-        o.maGiaoDich =
-          confirmRes?.data?.maGiaoDich || data.maGiaoDich || `PAY${Date.now()}`;
-        o.ghiChuThanhToan = (
-          qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`
-        ).trim();
-
-        closeQrPay();
-        toastShow("Thanh toán thành công", "success");
-
-        await resetOrderAfterPaid(o);
-      }
-    } catch (e) {
-      console.error("pos qr polling error", e);
-    }
-  }, 2500);
 }
 
 function closeQrPay() {
-  stopPosQrPolling();
   showQrPayModal.value = false;
-  qrImg.value = "";
   qrContent.value = "";
   qrPaymentUrl.value = "";
   qrRequestCode.value = "";
   qrNoteDraft.value = "";
 }
 
-function goToSandboxPayment() {
-  if (!qrPaymentUrl.value) {
-    return toastShow("Không tìm thấy đường dẫn thanh toán", "warning");
-  }
-
-  window.open(qrPaymentUrl.value, "_blank", "noopener,noreferrer");
-}
-
 async function markPaidAndCheckout() {
   const o = activeOrder.value;
-  if (!o) return;
+  if (!o || submitting.value) return;
 
-  const ok = await openPaymentConfirm(
-    `Xác nhận thanh toán thành công cho hóa đơn ${o.maHoaDon}?`,
-  );
-  if (!ok) return;
+  o.paymentMethod = "QR";
+  o.paid = Number(grandTotal.value || 0);
+  o.maGiaoDich = `QR-${o.maHoaDon}-${Date.now()}`;
+  o.ghiChuThanhToan = (
+    qrNoteDraft.value || `Khách đã thanh toán QR - ${o.maHoaDon}`
+  ).trim();
 
-  try {
-    const { data } = await http.post(
-      `/api/hoa-don/draft/${o.dbId || o.id}/pos-qr/confirm`,
-      {
-        requestCode: qrRequestCode.value,
-        maGiaoDich: `PAY${Date.now()}`,
-        soTien: Number(grandTotal.value || 0),
-        ghiChu: qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`,
-        paymentGateway: "MOCK-POS-QR",
-      },
-    );
-
-    o.paymentMethod = "QR";
-    o.paid = Number(grandTotal.value || 0);
-    o.maGiaoDich = data?.maGiaoDich || `PAY${Date.now()}`;
-    o.ghiChuThanhToan = (
-      qrNoteDraft.value || `Khách đã thanh toán - ${o.maHoaDon}`
-    ).trim();
-
-    closeQrPay();
-    toastShow("Thanh toán thành công", "success");
-
-    await resetOrderAfterPaid(o);
-  } catch (e) {
-    console.error(e);
-    const msg =
-      e?.response?.data?.message ||
-      e?.response?.data?.error ||
-      "Xác nhận thanh toán QR thất bại";
-    toastShow(String(msg), "danger");
+  const err = validateCheckout(o);
+  if (err) {
+    toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
+    return;
   }
-}
 
+  closeQrPay();
+  toastShow("Đang xử lý thanh toán...", "info");
+
+  await confirmOrder();
+}
 function validateCheckout(o) {
   if (!o) return "Không có đơn hàng đang chọn";
   if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";
@@ -4650,9 +4532,83 @@ function provinceNameById(id) {
 function wardNameByCode(code) {
   const o = activeOrder.value;
   if (!o?.ghnProvinceId) return "";
+  if (!o.dbId) {
+    return toastShow(
+      "Đơn hàng chưa có ID hệ thống. Vui lòng xóa đơn này, tạo đơn mới rồi thanh toán QR.",
+      "warning",
+    );
+  }
+
   return wardNameByCodeByProvince(o.ghnProvinceId, code);
 }
+async function confirmOrder() {
+  const o = activeOrder.value;
+  confirmHint.value = "";
 
+  if (!o || submitting.value) return;
+
+  clearTimeout(_syncDraftT);
+  _syncDraftT = null;
+  submitting.value = true;
+
+  try {
+    const err = validateCheckout(o);
+    if (err) {
+      toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
+      return;
+    }
+
+    const ok = await runVoucherPrecheckFlow();
+    if (!ok) return;
+
+    if (!o?.dbId) {
+      toastShow("Hóa đơn chưa được tạo", "danger");
+      return;
+    }
+
+    const payload = buildPosPayload(o);
+
+    const res = await http.post(
+      `/api/hoa-don/draft/${o.dbId}/checkout`,
+      payload,
+    );
+
+    const paidInvoice = res?.data || {};
+
+    if (o.paymentMethod === "QR") {
+      closeQrPay();
+    }
+
+    toastShow(`Thanh toán thành công: ${o.maHoaDon}`, "success");
+
+    await resetOrderAfterPaid(o);
+
+    const invoiceId =
+      paidInvoice.id ?? paidInvoice.hoaDonId ?? paidInvoice.idHoaDon ?? o.dbId;
+
+    if (invoiceId) {
+      router.push({
+        name: "order-detail",
+        params: { id: String(invoiceId) },
+      });
+    } else {
+      router.push({ name: "orders" });
+    }
+  } catch (e) {
+    console.error(e);
+
+    const msg =
+      e?.response?.data?.message ||
+      e?.response?.data?.error ||
+      e?.response?.data ||
+      e?.message ||
+      "Thanh toán thất bại";
+
+    toastShow(String(msg), "danger");
+  } finally {
+    submitting.value = false;
+  }
+}
 function buildPosPayload(o) {
   const isShip = !!o.loaiDon;
 
@@ -4726,9 +4682,13 @@ function buildSyncPayload(o) {
 
 let _syncDraftT = null;
 function scheduleSyncDraft(order = activeOrder.value) {
+  if (submitting.value) return;
+
   clearTimeout(_syncDraftT);
   _syncDraftT = setTimeout(async () => {
+    if (submitting.value) return;
     if (!order?.dbId) return;
+
     try {
       await http.post(
         `/api/hoa-don/draft/${order.dbId}/sync-pos`,
@@ -4741,6 +4701,9 @@ function scheduleSyncDraft(order = activeOrder.value) {
 }
 
 async function resetOrderAfterPaid(o) {
+  clearTimeout(_syncDraftT);
+  _syncDraftT = null;
+
   const idx = orders.value.findIndex((x) => x.id === o.id);
   if (idx !== -1) orders.value.splice(idx, 1);
 
@@ -4749,73 +4712,6 @@ async function resetOrderAfterPaid(o) {
   }
 
   saveDraftsNow();
-}
-
-async function confirmOrderCash() {
-  const o = activeOrder.value;
-  if (!o) return;
-
-  const ok = await openPaymentConfirm(
-    `Bạn có chắc muốn thanh toán hóa đơn ${o.maHoaDon} bằng tiền mặt không?`,
-  );
-  if (!ok) return;
-
-  o.paymentMethod = "CASH";
-  o.maGiaoDich = null;
-  o.ghiChuThanhToan = null;
-
-  await confirmOrder();
-}
-
-async function confirmOrder() {
-  const o = activeOrder.value;
-  confirmHint.value = "";
-
-  const err = validateCheckout(o);
-  if (err) {
-    return toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
-  }
-
-  const ok = await runVoucherPrecheckFlow();
-  if (!ok) return;
-
-  if (!o?.dbId) return toastShow("Hóa đơn chưa được tạo", "danger");
-
-  const payload = buildPosPayload(o);
-  submitting.value = true;
-
-  try {
-    const res = await http.post(
-      `/api/hoa-don/draft/${o.dbId}/checkout`,
-      payload,
-    );
-    const paidInvoice = res?.data || {};
-
-    toastShow(`Thanh toán thành công: ${o.maHoaDon}`, "success");
-
-    await resetOrderAfterPaid(o);
-
-    const invoiceId =
-      paidInvoice.id ?? paidInvoice.hoaDonId ?? paidInvoice.idHoaDon ?? o.dbId;
-
-    if (invoiceId) {
-      await router.push({
-        name: "order-detail",
-        params: { id: String(invoiceId) },
-      });
-    } else {
-      await router.push({ name: "orders" });
-    }
-  } catch (e) {
-    console.error(e);
-    const msg =
-      e?.response?.data?.message ||
-      e?.response?.data?.error ||
-      "Thanh toán thất bại";
-    toastShow(msg, "danger");
-  } finally {
-    submitting.value = false;
-  }
 }
 
 function onKeydown(e) {
@@ -4991,6 +4887,7 @@ watch(
 watch(
   activeOrder,
   (order) => {
+    if (submitting.value) return;
     if (!order?.dbId) return;
     scheduleSyncDraft(order);
   },
@@ -5014,18 +4911,36 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  void stopProductQr();
-  stopPosQrPolling();
+  try {
+    void stopProductQr();
+  } catch {}
 
-  window.removeEventListener("beforeunload", saveDraftsNow);
-  window.removeEventListener("keydown", onKeydown);
-  window.removeEventListener("focus", queueRefreshWhenVisible);
-  document.removeEventListener("visibilitychange", handleDocumentVisibility);
+  try {
+    stopPosQrPolling();
+  } catch {}
 
-  if (midnightTimer) clearTimeout(midnightTimer);
-  if (removeTabSyncListener) removeTabSyncListener();
+  try {
+    window.removeEventListener("beforeunload", saveDraftsNow);
+    window.removeEventListener("keydown", onKeydown);
+    window.removeEventListener("focus", queueRefreshWhenVisible);
+    document.removeEventListener("visibilitychange", handleDocumentVisibility);
+  } catch {}
 
-  saveDraftsNow();
+  try {
+    if (midnightTimer) clearTimeout(midnightTimer);
+    if (_saveT) clearTimeout(_saveT);
+    if (_syncDraftT) clearTimeout(_syncDraftT);
+    if (removeTabSyncListener) removeTabSyncListener();
+  } catch {}
+
+  try {
+    document.body.classList.remove("modal-open");
+    document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
+  } catch {}
+
+  try {
+    saveDraftsNow();
+  } catch {}
 });
 </script>
 
@@ -5446,16 +5361,23 @@ onBeforeUnmount(() => {
   box-shadow:
     0 24px 60px rgba(15, 23, 42, 0.18),
     0 10px 24px rgba(15, 23, 42, 0.1);
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .qr-pay-header {
   padding: 18px 20px 14px;
   border-bottom: 1px solid #eef2f7;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.12),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(34, 197, 94, 0.12),
+      transparent 30%
+    ),
     #ffffff;
 }
 
@@ -5493,7 +5415,7 @@ onBeforeUnmount(() => {
 }
 
 .qr-pay-meta-label {
-  font-size: 12px;
+  font-size: 15px;
   color: #6b7280;
   margin-bottom: 4px;
 }
@@ -5512,18 +5434,6 @@ onBeforeUnmount(() => {
   color: #dc2626;
 }
 
-.qr-stage {
-  position: relative;
-  border-radius: 22px;
-  padding: 20px 16px 16px;
-  background:
-    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-  border: 1px solid #e8eef7;
-  text-align: center;
-  margin-bottom: 16px;
-  overflow: hidden;
-}
-
 .qr-stage-glow {
   position: absolute;
   inset: auto;
@@ -5533,32 +5443,12 @@ onBeforeUnmount(() => {
   width: 220px;
   height: 220px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.18), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.18),
+    transparent 70%
+  );
   pointer-events: none;
-}
-
-.qr-frame {
-  position: relative;
-  z-index: 1;
-  width: 230px;
-  height: 230px;
-  margin: 0 auto 14px;
-  border-radius: 24px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  box-shadow:
-    0 18px 36px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.qr-image {
-  width: 180px;
-  height: 180px;
-  object-fit: contain;
-  display: block;
 }
 
 .qr-stage-caption {
@@ -5597,14 +5487,8 @@ onBeforeUnmount(() => {
   border-top: 1px solid #f1f5f9;
 }
 
-.qr-pay-info-label {
-  font-size: 13px;
-  color: #6b7280;
-  min-width: 110px;
-}
-
 .qr-pay-info-value {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   color: #111827;
   text-align: right;
@@ -5615,7 +5499,7 @@ onBeforeUnmount(() => {
 }
 
 .qr-pay-input-label {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #374151;
 }
@@ -5692,16 +5576,6 @@ onBeforeUnmount(() => {
 
   .qr-pay-footer {
     grid-template-columns: 1fr;
-  }
-
-  .qr-frame {
-    width: 210px;
-    height: 210px;
-  }
-
-  .qr-image {
-    width: 168px;
-    height: 168px;
   }
 
   .qr-pay-info-row {
@@ -5796,34 +5670,24 @@ onBeforeUnmount(() => {
 }
 
 .qr-pay-meta-label {
-  font-size: 12px;
+  font-size: 15px;
   color: #7b8794;
   margin-bottom: 6px;
 }
 
 .qr-pay-meta-value {
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
   color: #1f2937;
   word-break: break-all;
 }
 
 .qr-pay-amount {
-  font-size: 32px;
+  font-size: 27px;
   line-height: 1.1;
   font-weight: 800;
   color: #e03131;
   word-break: break-word;
-}
-
-.qr-stage {
-  position: relative;
-  border: 1px solid #e3e8ef;
-  border-radius: 18px;
-  background: #f8fafc;
-  padding: 18px;
-  margin-bottom: 12px;
-  text-align: center;
 }
 
 .qr-stage-glow {
@@ -5831,27 +5695,11 @@ onBeforeUnmount(() => {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: radial-gradient(circle at top, rgba(34, 197, 94, 0.08), transparent 60%);
-}
-
-.qr-frame {
-  position: relative;
-  width: 100%;
-  min-height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.qr-image {
-  width: 220px;
-  max-width: 100%;
-  height: auto;
-  border-radius: 16px;
-  background: #fff;
-  padding: 14px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: radial-gradient(
+    circle at top,
+    rgba(34, 197, 94, 0.08),
+    transparent 60%
+  );
 }
 
 .qr-stage-caption {
@@ -5879,13 +5727,13 @@ onBeforeUnmount(() => {
 }
 
 .qr-pay-info-label {
-  font-size: 13px;
+  font-size: 16px;
   color: #6b7280;
   flex: 0 0 auto;
 }
 
 .qr-pay-info-value {
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
   color: #1f2937;
   text-align: right;
@@ -6010,14 +5858,6 @@ onBeforeUnmount(() => {
     font-size: 26px;
   }
 
-  .qr-frame {
-    min-height: 220px;
-  }
-
-  .qr-image {
-    width: 190px;
-  }
-
   .qr-pay-footer {
     flex-direction: column;
   }
@@ -6031,5 +5871,35 @@ onBeforeUnmount(() => {
     max-width: calc(100vw - 20px);
     width: calc(100vw - 20px);
   }
+}
+
+.qr-stage {
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid #d9e2e7;
+  background: #f8fafb;
+  padding: 16px;
+}
+
+.qr-frame {
+  width: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 320px;
+  height: 320px;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  border-radius: 14px;
+  background: #fff;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 </style>

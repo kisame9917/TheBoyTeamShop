@@ -224,15 +224,15 @@
                   </span>
                 </td>
 
-                <td>
-                  <div
-                    class="staff-cell"
-                    :title="`${getStaffName(r)} - ${getStaffRole(r)}`"
-                  >
-                    <div class="staff-name">{{ getStaffName(r) }}</div>
-                    <div class="staff-role">{{ getStaffRole(r) }}</div>
-                  </div>
-                </td>
+               <td>
+  <div
+    class="staff-cell"
+    :title="`${getStaffName(r)} - ${getStaffCode(r)}`"
+  >
+    <div class="staff-name">{{ getStaffName(r) }}</div>
+    <div class="staff-role">{{ getStaffCode(r) }}</div>
+  </div>
+</td>
                 <td>
                   <span
                     class="cell-ellipsis"
@@ -249,10 +249,10 @@
                 </td>
 
                 <td class="text-center">
-                  <span class="badge text-bg-light border">
-                    {{ r.loaiDon ? "Online" : "Tại quầy" }}
-                  </span>
-                </td>
+  <span class="badge text-bg-light border">
+    {{ getOrderTypeLabel(r) }}
+  </span>
+</td>
 
                 <td class="fw-semibold text-end text-danger">
                   {{ formatCurrency(r.tongTienSauGiam) }}
@@ -263,13 +263,13 @@
                 </td>
 
                 <td class="text-center status-cell">
-                  <span
-                    class="badge status-badge"
-                    :class="statusBadgeClass(r.trangThaiDon)"
-                  >
-                    {{ r.tenTrangThaiDon || labelTrangThai(r.trangThaiDon) }}
-                  </span>
-                </td>
+  <span
+    class="badge status-badge"
+    :class="statusBadgeClass(getDisplayStatus(r))"
+  >
+    {{ labelTrangThai(getDisplayStatus(r)) }}
+  </span>
+</td>
 
                 <td class="text-center action-col">
                   <div class="action-group">
@@ -618,12 +618,18 @@ function formatDateVN(isoDateTime) {
   return `${dd}/${mm}/${yyyy}`;
 }
 function getStaffName(row) {
-  return row?.tenNhanVien || (row?.loaiDon ? "System" : "-");
+  if (!row) return "-";
+
+  return (
+    row?.tenNhanVien ||
+    row?.tenNhanVienXuLy ||
+    row?.nhanVienXuLy?.tenNhanVien ||
+    row?.nhanVien?.tenNhanVien ||
+    (row?.loaiDon ? "System" : "-")
+  );
 }
 
-function getStaffRole(row) {
-  return row?.tenChucVu || (row?.loaiDon ? "Hệ thống" : "-");
-}
+
 /** =======================
  * ✅ Flatpickr: dd/mm/yyyy UI - yyyy-MM-dd data
  * ======================= */
@@ -735,13 +741,15 @@ async function fetchData() {
       maxTotal: maxSend !== TOTAL_MAX ? maxSend : undefined,
     };
 
-    const res = await hoaDonApi.search(params);
-    const p = res.data;
+   const res = await hoaDonApi.search(params);
+const p = res.data;
 
-    rows.value = p.content || [];
-    page.totalElements = p.totalElements ?? 0;
-    page.totalPages = p.totalPages ?? 0;
-    pageInput.value = page.page + 1;
+const list = p.content || [];
+rows.value = await enrichStaffFromDetail(list);
+
+page.totalElements = p.totalElements ?? 0;
+page.totalPages = p.totalPages ?? 0;
+pageInput.value = page.page + 1;
   } catch (e) {
     console.error(e);
   } finally {
@@ -795,10 +803,93 @@ function jumpPage() {
 function goDetail(id) {
   router.push({ name: "order-detail", params: { id } });
 }
+async function enrichStaffFromDetail(list = []) {
+  return Promise.all(
+    list.map(async (row) => {
+      if (!row?.id) return row;
 
-/** =======================
- * EXCEL
- * ======================= */ async function exportListExcel() {
+      try {
+        const res = await hoaDonApi.detail(row.id);
+        const d = res.data || {};
+
+        const trangThaiDon = d?.trangThaiDon ?? row?.trangThaiDon;
+        const loaiDon = d?.loaiDon ?? row?.loaiDon;
+
+        return {
+          ...row,
+          trangThaiDon,
+          tenTrangThaiDon: d?.tenTrangThaiDon || labelTrangThai(trangThaiDon),
+          loaiDon,
+          tongTienSauGiam: d?.tongTienSauGiam ?? row?.tongTienSauGiam,
+          ngayTao: d?.ngayTao ?? row?.ngayTao,
+
+          maNhanVien:
+            d?.maNhanVien ||
+            d?.maNhanVienXuLy ||
+            d?.nhanVienXuLy?.maNhanVien ||
+            d?.nhanVien?.maNhanVien ||
+            row?.maNhanVien ||
+            "-",
+
+          tenNhanVien:
+            d?.tenNhanVien ||
+            d?.tenNhanVienXuLy ||
+            d?.nhanVienXuLy?.tenNhanVien ||
+            d?.nhanVien?.tenNhanVien ||
+            row?.tenNhanVien ||
+            "-",
+
+          tenChucVu:
+            d?.tenChucVu ||
+            d?.chucVuNhanVienXuLy ||
+            d?.nhanVienXuLy?.tenChucVu ||
+            d?.nhanVien?.tenChucVu ||
+            row?.tenChucVu ||
+            "-",
+        };
+      } catch (e) {
+        console.error("Không lấy được detail để đồng bộ hóa đơn:", row?.id, e);
+        return row;
+      }
+    }),
+  );
+}
+function getStaffCode(row) {
+  if (!row) return "-";
+
+  return (
+    row?.maNhanVien ||
+    row?.maNhanVienXuLy ||
+    row?.nhanVienXuLy?.maNhanVien ||
+    row?.nhanVien?.maNhanVien ||
+    (row?.loaiDon ? "SYSTEM" : "-")
+  );
+}
+function isSystemStaffCode(code) {
+  const v = String(code || "").trim().toUpperCase();
+  return !v || v === "-" || v === "SYSTEM";
+}
+
+function isPosShipRow(row) {
+  return !!row?.loaiDon && !isSystemStaffCode(getStaffCode(row));
+}
+
+function getOrderTypeLabel(row) {
+  if (!row?.loaiDon) return "Tại quầy";
+  if (isPosShipRow(row)) return "Tại quầy - giao hàng";
+  return "Online";
+}
+
+function getDisplayStatus(row) {
+  const code = Number(row?.trangThaiDon ?? -1);
+
+  if (isPosShipRow(row) && code === STATUS.CHO_XAC_NHAN) {
+    return STATUS.DA_XAC_NHAN;
+  }
+
+  return code;
+}
+async function exportListExcel() {
   if (!rows.value.length) return;
 
   const filterLines = [
@@ -836,8 +927,8 @@ function goDetail(id) {
   const data = rows.value.map((r, idx) => ({
     STT: page.page * page.size + idx + 1,
     "Mã hóa đơn": r.maHoaDon,
-    Loại: r.loaiDon ? "Online" : "Tại quầy",
-    "Trạng thái": r.tenTrangThaiDon,
+  Loại: getOrderTypeLabel(r),
+"Trạng thái": labelTrangThai(getDisplayStatus(r)),
     "Ngày tạo": formatDateVN(r.ngayTao),
     "Khách hàng": r.tenKhachHang || "Khách lẻ",
     SĐT: r.soDienThoai || "-",

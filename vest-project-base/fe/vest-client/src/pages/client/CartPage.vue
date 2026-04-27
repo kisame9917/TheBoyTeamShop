@@ -246,7 +246,14 @@ import { ref , onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
-import { getProducts } from "../../services/productClientApi"; // sửa đúng path service của bạn
+import {
+  getProducts,
+  getProductVariantsByProductId,
+} from "../../services/productClientApi";
+import {
+  pickVariantImage,
+} from "../../utils/media";
+import { pickProductImage, resolveMediaUrl } from "../../utils/media";
 import ChatWidget from '../../components/ClientChatWidget.vue';
 const router = useRouter();
 const { items, totalQty, subtotal, removeItem, updateQty } = useCart();
@@ -254,29 +261,88 @@ const { items, totalQty, subtotal, removeItem, updateQty } = useCart();
 const confirmOpen = ref(false);
 const pendingKey = ref(null);
 const relatedProducts = ref([]);
-
+const fallbackImage =
+  "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E";
 onMounted(async () => {
   try {
-    const res = await getProducts({ page: 0, size: 1000 });
-    const raw = res?.data?.content || res?.data || [];
+    const data = await getProducts({ page: 0, size: 12 });
 
-    relatedProducts.value = raw.map((p) => ({
-      name: p.tenSanPham || p.ten || "Sản phẩm",
-      desc: p.moTaNgan || p.moTa || "Sản phẩm phù hợp với phong cách của bạn.",
-      price: p.giaBan || p.donGia || 0,
-      image:
-        p.anh ||
-        p.image ||
-        p.hinhAnh ||
-        "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E",
-      link: `/product/${p.id}`,
-    }));
+    let raw = [];
+
+    if (Array.isArray(data)) {
+      raw = data;
+    } else if (Array.isArray(data?.content)) {
+      raw = data.content;
+    } else if (Array.isArray(data?.data)) {
+      raw = data.data;
+    } else if (Array.isArray(data?.data?.content)) {
+      raw = data.data.content;
+    }
+
+    const cartItems = Array.isArray(items.value)
+      ? items.value
+      : Array.isArray(items)
+        ? items
+        : [];
+
+    const cartProductIds = cartItems
+      .map((item) => Number(item.idSanPham || item.productId || item.id))
+      .filter(Boolean);
+
+    const result = await Promise.all(
+      raw
+        .filter((p) => !cartProductIds.includes(Number(p.id)))
+        .slice(0, 8)
+        .map(async (p) => {
+          let variants = [];
+
+          try {
+            const variantData = await getProductVariantsByProductId(p.id);
+            variants = Array.isArray(variantData) ? variantData : [];
+          } catch (err) {
+            console.error("fetch related variants error:", p.id, err);
+            variants = [];
+          }
+
+          const mappedVariants = variants.map((v) => ({
+            idSanPhamChiTiet: v.id,
+            price: Number(v.donGia ?? v.giaBan ?? v.price ?? 0),
+            image: pickVariantImage(v, fallbackImage),
+          }));
+
+          const prices = mappedVariants
+            .map((v) => Number(v.price || 0))
+            .filter((price) => price > 0);
+
+          return {
+            id: p.id,
+            name: p.tenSanPham || p.ten || p.name || "Sản phẩm",
+            desc:
+              p.moTaNgan ||
+              p.moTa ||
+              p.description ||
+              "Sản phẩm phù hợp với phong cách của bạn.",
+            price:
+              prices.length > 0
+                ? Math.min(...prices)
+                : Number(p.giaBan || p.donGia || p.price || 0),
+            image: pickProductImage(p, mappedVariants, fallbackImage),
+            link: {
+              name: "ProductDetail",
+              params: {
+                id: p.id,
+              },
+            },
+          };
+        }),
+    );
+
+    relatedProducts.value = result;
   } catch (e) {
-    console.error(e);
+    console.error("fetch related products error:", e);
     relatedProducts.value = [];
   }
 });
-
 function askRemove(it) {
   pendingKey.value = it?.key || it?.idSanPhamChiTiet || null;
   confirmOpen.value = true;
@@ -298,10 +364,8 @@ function formatMoney(v) {
 }
 
 function onImgError(e) {
-  e.target.src =
-      "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='14'%3E%E1%BA%A2nh%3C/text%3E%3C/svg%3E";
+  e.target.src = fallbackImage;
 }
-
 function goShopping() {
   router.push({ name: "Search" });
 }

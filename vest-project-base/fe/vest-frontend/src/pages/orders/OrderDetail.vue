@@ -318,7 +318,7 @@
         </div>
 
         <div class="table-responsive table-wrap">
-          <table class="table table-fixed align-middle mb-0">
+        <table class="table table-fixed align-middle mb-0 product-detail-table">
             <thead class="thead-dark-custom">
               <tr>
                 <th class="col-money">Số tiền</th>
@@ -356,14 +356,24 @@
         <h6 class="section-title mb-2">Sản phẩm</h6>
 
         <div class="table-responsive table-wrap">
-          <table class="table table-fixed align-middle mb-0">
+          <table
+            class="table table-fixed align-middle mb-0 product-detail-table"
+          >
+            <colgroup>
+              <col class="col-stt" />
+              <col class="col-img" />
+              <col class="col-product" />
+              <col class="col-qty" />
+              <col class="col-total" />
+            </colgroup>
+
             <thead class="thead-dark-custom">
               <tr>
-                <th class="col-stt">STT</th>
-                <th class="col-img">Ảnh</th>
+                <th class="col-stt text-center">STT</th>
+                <th class="col-img text-center">Ảnh</th>
                 <th class="col-product">Sản phẩm</th>
-                <th class="col-qty">Số lượng</th>
-                <th class="col-total">Thành tiền</th>
+                <th class="col-qty text-center">Số lượng</th>
+                <th class="col-total text-end">Thành tiền</th>
               </tr>
             </thead>
 
@@ -378,10 +388,12 @@
                 v-for="(it, idx) in pagedItems"
                 :key="(currentPage - 1) * pageSize + idx"
               >
-                <td>{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                <td class="text-center">
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
+                </td>
 
-                <td>
-                  <div class="img-box">
+                <td class="text-center">
+                  <div class="img-box mx-auto">
                     <img
                       v-if="it.anhDaiDien"
                       :src="
@@ -410,11 +422,11 @@
                   </div>
                 </td>
 
-                <td class="fw-semibold">{{ it.soLuong }}</td>
+            <td class="fw-semibold text-center">{{ it.soLuong }}</td>
 
-                <td class="fw-semibold text-danger">
-                  {{ formatCurrency(it.thanhTien) }}
-                </td>
+              <td class="fw-semibold text-danger text-end product-total-value">
+  {{ formatCurrency(it.thanhTien) }}
+</td>
               </tr>
             </tbody>
           </table>
@@ -501,7 +513,7 @@
                     <td>{{ historyStaffName(h) }}</td>
 
                     <td class="history-action-cell">
-                      {{ h.hanhDong || "-" }}
+                      {{ mapHistoryActionText(h.hanhDong) }}
                     </td>
 
                     <td class="history-note-cell">
@@ -864,6 +876,11 @@ function goBack() {
 
 const currentStatus = computed(() => {
   const raw = Number(hd.value?.trangThaiDon ?? -1);
+
+  if (isPosShipOrder.value && raw === STATUS.CHO_XAC_NHAN) {
+    return STATUS.DA_XAC_NHAN;
+  }
+
   const validCodes = activeFlow.value;
 
   if (validCodes.includes(raw)) return raw;
@@ -1051,6 +1068,7 @@ const staffRole = computed(() => {
   );
 });
 const FLOW_POS_SHIP = [
+  STATUS.CHO_XAC_NHAN,
   STATUS.DA_XAC_NHAN,
   STATUS.DANG_XU_LY,
   STATUS.DANG_GIAO,
@@ -1161,7 +1179,7 @@ function openRejectCancelModal() {
 }
 
 const currentStepCode = computed(() => {
-  const st = Number(hd.value?.trangThaiDon ?? -1);
+  const st = currentStatus.value;
   const validCodes = fullStepper.value.map((s) => s.code);
 
   if (validCodes.includes(st)) return st;
@@ -1173,7 +1191,6 @@ const currentStepCode = computed(() => {
 
   return history.at(-1) ?? -1;
 });
-
 const visibleStepper = computed(() => {
   const steps = fullStepper.value;
   const idx = steps.findIndex((s) => s.code === currentStepCode.value);
@@ -1188,15 +1205,25 @@ const stepperSteps = computed(() => {
     const matched = history
       .filter((h) => actionToStepCode(h.hanhDong) === code && h.thoiGian)
       .sort((a, b) => new Date(b.thoiGian) - new Date(a.thoiGian));
-    return matched[0]?.thoiGian || null;
+
+    if (matched[0]?.thoiGian) {
+      return matched[0].thoiGian;
+    }
+    if (isPosShipOrder.value && code === STATUS.CHO_XAC_NHAN) {
+      return hd.value?.ngayTao || null;
+    }
+
+    return null;
   };
 
-  return visibleStepper.value.map((s) => ({
-    ...s,
-    timeText: latestTimeByStep(s.code)
-      ? formatDateTimeVN(latestTimeByStep(s.code))
-      : "",
-  }));
+  return visibleStepper.value.map((s) => {
+    const time = latestTimeByStep(s.code);
+
+    return {
+      ...s,
+      timeText: time ? formatDateTimeVN(time) : "",
+    };
+  });
 });
 
 const stepCodes = computed(() => stepperSteps.value.map((s) => s.code));
@@ -1367,7 +1394,7 @@ async function confirmDoAction() {
     toast.error(msg);
   }
 }
-/** Buttons handlers */
+
 function openConfirmAdvanceModal() {
   const ns = nextStatus.value;
   if (ns === null) return;
@@ -1391,7 +1418,6 @@ function openConfirmCancelModal() {
   });
 }
 
-/** ===== History Modal ===== */
 const historyModalRef = ref(null);
 let bsHistoryModal = null;
 
@@ -1449,8 +1475,27 @@ function mapHistoryToStatusLabel(hanhDong) {
 
   return m[hanhDong] || hanhDong;
 }
+function mapHistoryActionText(hanhDong) {
+  if (!hanhDong) return "-";
 
-/** Lịch sử: Mã NV + Tên NV thao tác */
+  const m = {
+    CHO_XAC_NHAN: "Tạo đơn / Chờ xác nhận",
+    DA_XAC_NHAN: "Xác nhận đơn",
+    XAC_NHAN_DON: "Xác nhận đơn",
+    DANG_XU_LY: "Chuyển sang đang xử lý",
+    DANG_GIAO: "Chuyển sang đang giao",
+    DA_GIAO: "Xác nhận đã giao",
+    HOAN_THANH: "Hoàn thành đơn",
+    DA_HUY: "Hủy đơn",
+    YEU_CAU_HUY: "Yêu cầu hủy đơn",
+    KHACH_HANG_YEU_CAU_HUY_DON: "Khách hàng yêu cầu hủy đơn",
+    DA_HOAN: "Đã hoàn tiền",
+    XAC_NHAN_HOAN_TIEN: "Xác nhận hoàn tiền",
+  };
+
+  return m[hanhDong] || String(hanhDong).replace(/_/g, " ");
+}
+
 const historyStaffCode = (h) =>
   h?.maNhanVien ??
   h?.nhanVien?.maNhanVien ??
@@ -1463,7 +1508,6 @@ const historyStaffName = (h) =>
   h?.nhanVienThaoTac?.tenNhanVien ??
   "-";
 
-/** ===== Print Modal + QR ===== */
 const printModalRef = ref(null);
 const printAreaRef = ref(null);
 let bsPrintModal = null;
@@ -1708,9 +1752,7 @@ onMounted(async () => {
 .col-img {
   width: 12%;
 }
-.col-product {
-  width: 52%;
-}
+
 .col-qty {
   width: 12%;
 }
@@ -2255,5 +2297,83 @@ h6.mb-0 {
   background: #fd7e14 !important;
   color: #fff !important;
   border-color: #fd7e14 !important;
+}
+.product-detail-table .col-stt {
+  width: 7%;
+}
+
+.product-detail-table .col-img {
+  width: 16%;
+}
+
+.product-detail-table .col-product {
+  width: 34%;
+}
+
+.product-detail-table .col-qty {
+  width: 17%;
+}
+
+.product-detail-table .col-total {
+  width: 26%;
+}
+
+.product-detail-table th,
+.product-detail-table td {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.product-detail-table .col-total,
+.product-detail-table td:last-child {
+  padding-right: 26px;
+}
+
+.product-total-value {
+  font-size: 22px;
+  font-weight: 800 !important;
+  color: #dc3545 !important;
+}
+
+.product-detail-table tbody td {
+  height: 76px;
+}
+.product-detail-table {
+  table-layout: fixed;
+}
+
+.product-detail-table .col-stt {
+  width: 8%;
+}
+
+.product-detail-table .col-img {
+  width: 15%;
+}
+
+.product-detail-table .col-product {
+  width: 34%;
+}
+
+.product-detail-table .col-qty {
+  width: 13%;
+}
+
+.product-detail-table .col-total {
+  width: 20%;
+}
+
+.product-detail-table th:first-child,
+.product-detail-table td:first-child {
+  padding-left: 22px;
+}
+
+.product-detail-table th.col-product,
+.product-detail-table td:nth-child(3) {
+  padding-left: 34px;
+}
+
+.product-detail-table .img-box {
+  margin-left: auto;
+  margin-right: auto;
 }
 </style>
