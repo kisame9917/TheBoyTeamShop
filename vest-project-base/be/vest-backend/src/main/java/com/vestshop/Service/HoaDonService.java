@@ -42,8 +42,5 @@ public interface HoaDonService {
     List<HoaDonDetailResponse> getPosDrafts();
     HoaDonDetailResponse syncPosDraft(Long hoaDonId, PosDraftSyncRequest req);
     HoaDonDetailResponse confirmRefund(Long hoaDonId, RefundConfirmRequest request);
-    PosQrInitResponse initPosQrPayment(Long hoaDonId, PosQrInitRequest req);
-    PosQrConfirmResponse confirmPosQrPayment(Long hoaDonId, PosQrConfirmRequest req);
-    PosQrStatusResponse getPosQrPaymentStatus(Long hoaDonId, String requestCode);
 
 }
