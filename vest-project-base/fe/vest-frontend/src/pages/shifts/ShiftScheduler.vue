@@ -57,7 +57,7 @@
           <i class="bi bi-ui-checks-grid me-1"></i> Thêm hàng loạt
         </button>
 
-        <button class="btn btn-outline-secondary btn-sm" @click="openModal()">
+        <button class="btn btn-outline-primary btn-sm" @click="openModal()">
           <i class="bi bi-plus-lg me-1"></i> Phân Ca Mới
         </button>
       </div>
@@ -158,25 +158,26 @@
             </button>
 
             <input
-                type="date"
-                v-model="calendarAnchor"
+                ref="calendarPickerRef"
+                type="text"
                 class="form-control form-control-sm"
                 style="width: 160px"
-                @change="onCalendarAnchorChange"
+                placeholder="dd/mm/yyyy"
+                readonly
             />
 
             <button class="btn btn-outline-secondary btn-sm" type="button" @click="nextWeek" title="Tuần sau">
               <i class="bi bi-chevron-right"></i>
             </button>
 
-            <button class="btn btn-outline-secondary btn-sm" type="button" @click="goToday">
+            <button class="btn btn-outline-primary btn-sm" type="button" @click="goToday">
               Hôm nay
             </button>
           </div>
 
-          <div class="badge bg-light text-dark border">
-            Tuần từ: <span class="fw-semibold">{{ calendarWeekStart }}</span> đến
-            <span class="fw-semibold">{{ calendarWeekEnd }}</span>
+          <div class="badge bg-light text-dark border week-range-badge">
+            Tuần từ: <span class="fw-semibold">{{ formatDate(calendarWeekStart) }}</span> đến
+            <span class="fw-semibold">{{ formatDate(calendarWeekEnd) }}</span>
           </div>
         </div>
       </div>
@@ -448,7 +449,7 @@
             >
               <option :value="null" disabled>-- Chọn ca mẫu --</option>
               <option
-                  v-for="ca in templates"
+                  v-for="ca in activeTemplates"
                   :key="ca.id"
                   :value="ca.id"
                   :disabled="!isEdit && isShiftStartedForDate(ca, form.ngayLamViec)"
@@ -511,7 +512,7 @@
           <div class="bulk-body">
             <div class="row g-3">
               <!-- Left -->
-              <div class="col-12 col-lg-5">
+              <div class="col-12 col-lg-4">
                 <div class="bulk-box">
                   <label class="form-label fw-bold small mb-2">Chế độ</label>
                   <div class="btn-group btn-group-sm w-100" role="group">
@@ -542,7 +543,7 @@
                   <div class="mt-3" v-else>
                     <label class="form-label fw-bold small">Chọn tháng</label>
                     <input v-model="bulk.month" type="month" class="form-control" :min="currentMonthIso" />
-                    <div class="form-text text-muted">Tháng {{ bulk.month }}</div>
+<!--                    <div class="form-text text-muted">Tháng {{ bulk.month }}</div>-->
                   </div>
                 </div>
 
@@ -565,7 +566,7 @@
                   <label class="form-label fw-bold small">Ca làm việc <span class="text-danger">*</span></label>
                   <Multiselect
                       v-model="bulkShiftSelected"
-                      :options="templates"
+                      :options="activeTemplates"
                       :searchable="true"
                       :allow-empty="true"
                       :show-labels="false"
@@ -579,7 +580,7 @@
                 <div class="bulk-box mt-3">
                   <label class="form-label fw-bold small">Ghi chú</label>
                   <input v-model="bulk.ghiChu" type="text" class="form-control" placeholder="VD: Tăng ca, trực thay..." />
-                  <div class="form-text text-muted">Ghi chú sẽ áp dụng cho tất cả ngày đã chọn.</div>
+<!--                  <div class="form-text text-muted">Ghi chú sẽ áp dụng cho tất cả ngày đã chọn.</div>-->
                 </div>
 
                 <div class="bulk-box mt-3">
@@ -607,15 +608,15 @@
               </div>
 
               <!-- Right: Calendar -->
-              <div class="col-12 col-lg-7">
+              <div class="col-12 col-lg-8">
                 <div class="bulk-calendar">
                   <div class="bulk-cal-head">
                     <div class="fw-bold">
                       {{ bulk.mode === 'week' ? 'Chọn ngày theo tuần' : 'Chọn ngày theo tháng' }}
                     </div>
-                    <div class="text-muted small">
-                      Tick các ô ngày muốn thêm
-                    </div>
+<!--                    <div class="text-muted small">-->
+<!--                      Tick các ô ngày muốn thêm-->
+<!--                    </div>-->
                   </div>
 
                   <!-- Week grid -->
@@ -659,11 +660,11 @@
                             class="bulk-month-cell"
                             :class="{ 'out-month': !cell.inMonth, disabled: cell.disabled }"
                         >
-                          <div class="d-flex align-items-start justify-content-between">
+                          <div class="bulk-month-top">
                             <div class="bulk-daynum">{{ cell.dayNum }}</div>
                             <input
                                 type="checkbox"
-                                class="form-check-input"
+                                class="form-check-input bulk-month-checkbox"
                                 :disabled="cell.disabled || !cell.inMonth"
                                 :checked="cell.inMonth && isBulkSelected(cell.date)"
                                 @change="toggleBulkDate(cell.date, $event.target.checked)"
@@ -859,12 +860,22 @@ function applyFilters() {
 
 // ====================== ✅ SEARCHABLE COMBO (FILTER SHIFT) ======================
 const shiftFilterOptions = computed(() => {
-  return [{ id: null, tenCa: "Tất cả ca" }, ...(Array.isArray(templates.value) ? templates.value : [])];
+  return [
+    { id: null, tenCa: "Tất cả ca" },
+    ...activeTemplates.value
+  ];
 });
 const shiftFilterLabel = (opt) => (opt?.id == null ? "Tất cả ca" : String(opt?.tenCa || ""));
 const shiftFilterSelected = computed({
   get() {
-    return shiftFilterOptions.value.find((x) => x.id === filters.shiftId) || shiftFilterOptions.value[0] || null;
+    const found = shiftFilterOptions.value.find((x) => x.id === filters.shiftId);
+
+    if (!found) {
+      filters.shiftId = null;
+      return shiftFilterOptions.value[0] || null;
+    }
+
+    return found;
   },
   set(opt) {
     filters.shiftId = opt?.id ?? null;
@@ -916,7 +927,8 @@ const selectedIds = ref([]);
 
 // ====================== CALENDAR (WEEK) ======================
 const calendarAnchor = ref(toDateStr(new Date()));
-
+const calendarPickerRef = ref(null);
+let calendarPickerInstance = null;
 
 function startOfWeekISO(iso) {
   const d = isoToLocalDate(iso);
@@ -944,7 +956,7 @@ const calendarDays = computed(() => {
     return {
       date,
       label: labels[dayIdx],
-      isToday: date === todayIso,
+      isToday: date === todayIso.value,
     };
   });
 });
@@ -956,12 +968,16 @@ function nextWeek() {
   calendarAnchor.value = addDaysISO(calendarWeekStart.value, 7);
 }
 function goToday() {
-  calendarAnchor.value = todayIso;
+  calendarAnchor.value = todayIso.value;
 }
 function onCalendarAnchorChange() {}
 
 watch(calendarAnchor, () => {
-  if (viewMode.value === "calendar") loadCalendar();
+  calendarPickerInstance?.setDate(isoToLocalDate(calendarAnchor.value), false);
+
+  if (viewMode.value === "calendar") {
+    loadCalendar();
+  }
 });
 
 // ====================== LOAD DATA ======================
@@ -995,10 +1011,32 @@ function initListPickersIfNeeded() {
   }
 }
 
+function initCalendarPickerIfNeeded() {
+  if (!calendarPickerInstance && calendarPickerRef.value) {
+    calendarPickerInstance = flatpickr(calendarPickerRef.value, {
+      locale: Vietnamese,
+      allowInput: false,
+      dateFormat: "d/m/Y",
+      defaultDate: isoToLocalDate(calendarAnchor.value),
+      onChange: (selectedDates) => {
+        if (selectedDates?.[0]) {
+          calendarAnchor.value = toDateStr(selectedDates[0]);
+        }
+      },
+    });
+  }
+}
+
 watch(viewMode, async (m) => {
+  await nextTick();
+
   if (m === "list") {
-    await nextTick();
     initListPickersIfNeeded();
+  }
+
+  if (m === "calendar") {
+    initCalendarPickerIfNeeded();
+    calendarPickerInstance?.setDate(isoToLocalDate(calendarAnchor.value), false);
   }
 });
 
@@ -1008,13 +1046,18 @@ onMounted(async () => {
   }, 30000);
 
   // default calendar => do not init pickers now
+  await nextTick();
+
   if (viewMode.value === "list") {
-    await nextTick();
     initListPickersIfNeeded();
   }
 
-  if (viewMode.value === "calendar") loadCalendar();
-  else loadSchedule();
+  if (viewMode.value === "calendar") {
+    initCalendarPickerIfNeeded();
+    loadCalendar();
+  } else {
+    loadSchedule();
+  }
 
   loadResources();
 });
@@ -1120,6 +1163,17 @@ const sortedTemplates = computed(() => {
     return (a.tenCa || "").toString().localeCompare((b.tenCa || "").toString(), "vi");
   });
 });
+const activeTemplates = computed(() => {
+  const list = Array.isArray(templates.value) ? [...templates.value] : [];
+  return list
+      .filter(isTemplateActive)
+      .sort((a, b) => {
+        const ta = (a.gioBatDau || "").toString();
+        const tb = (b.gioBatDau || "").toString();
+        if (ta !== tb) return ta.localeCompare(tb);
+        return (a.tenCa || "").toString().localeCompare((b.tenCa || "").toString(), "vi");
+      });
+});
 
 const staffById = computed(() => {
   const map = {};
@@ -1192,8 +1246,8 @@ function resetFilters() {
   filters.keyword = "";
   filters.shiftId = null;
 
-  filters.from = toDateStr(firstDay);
-  filters.to = toDateStr(lastDay);
+  filters.from = toDateStr(firstDay.value);
+  filters.to = toDateStr(lastDay.value);
 
   fromPickerInstance?.setDate(isoToLocalDate(filters.from), false);
   toPickerInstance?.setDate(isoToLocalDate(filters.to), false);
@@ -1396,9 +1450,9 @@ function openBulkModal() {
   bulk.anchorDate =
       calendarAnchor.value && !isPastDate(calendarAnchor.value)
           ? calendarAnchor.value
-          : todayIso;
+          : todayIso.value;
 
-  bulk.month = (bulk.anchorDate || todayIso).slice(0, 7);
+  bulk.month = (bulk.anchorDate || todayIso.value).slice(0, 7);
 
   bulk.idNhanVien = null;
   bulk.idCaLamViec = null;
@@ -1621,12 +1675,11 @@ const bulkStaffSelected = computed({
 });
 const bulkShiftSelected = computed({
   get() {
-    return (templates.value || []).find((x) => x.id === bulk.idCaLamViec) || null;
+    return activeTemplates.value.find((x) => x.id === bulk.idCaLamViec) || null;
   },
   set(ca) {
     bulk.idCaLamViec = ca?.id ?? null;
 
-    // auto remove selected dates that become disabled due to conflict
     bulkSelectedDates.value = bulkSelectedDates.value.filter((d) => !getBulkCellState(d, true).disabled);
   },
 });
@@ -1698,10 +1751,24 @@ async function submitBulkAssign() {
 </script>
 
 <style scoped>
+.week-range-badge {
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.week-range-badge .fw-semibold {
+  font-size: 15px;
+}
 /* Reuse Filter & Table Styles from ShiftTemplateList */
 .filter-card {
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #e9ecef;
 }
 .filter-header {
@@ -1942,7 +2009,7 @@ async function submitBulkAssign() {
   border-radius: 999px;
   background: #1f2a44;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2008,16 +2075,47 @@ async function submitBulkAssign() {
 :deep(.multiselect__single) {
   margin-bottom: 0;
 }
-:deep(.multiselect__option--highlight) {
-  background: #1f2a44;
-}
-:deep(.multiselect__option--selected.multiselect__option--highlight) {
-  background: #1f2a44;
+.filter-card :deep(.multiselect__option--highlight) {
+  background: #0d6efd !important;
+  color: #fff !important;
 }
 
-/* ===================== ✅ BULK MODAL ===================== */
+.filter-card :deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #0d6efd !important;
+  color: #fff !important;
+}
+
+.filter-card :deep(.multiselect__option) {
+  background: #fff;
+  color: #212529;
+  font-weight: 400;
+}
+
+.filter-card :deep(.multiselect__option--selected) {
+  background: #fff !important;
+  color: #212529 !important;
+  font-weight: 400 !important;
+}
+
+.filter-card :deep(.multiselect__option--highlight) {
+  background: #0d6efd !important;
+  color: #fff !important;
+}
+
+.filter-card :deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #0d6efd !important;
+  color: #fff !important;
+  font-weight: 400 !important;
+}
+
+.filter-card :deep(.multiselect__option--highlight::after),
+.filter-card :deep(.multiselect__option--selected::after),
+.filter-card :deep(.multiselect__option--selected.multiselect__option--highlight::after) {
+  display: none !important;
+}
+/* ===================== BULK MODAL ===================== */
 .bulk-card {
-  width: min(980px, 96vw);
+  width: min(1240px, 98vw);
   padding: 0;
   overflow: hidden;
 }
@@ -2030,7 +2128,7 @@ async function submitBulkAssign() {
   justify-content: space-between;
 }
 .bulk-title {
-  font-weight: 800;
+  font-weight: 700;
   font-size: 16px;
 }
 .bulk-subtitle {
@@ -2053,6 +2151,7 @@ async function submitBulkAssign() {
   border-radius: 12px;
   padding: 12px;
   min-height: 520px;
+  overflow: hidden;
 }
 .bulk-cal-head {
   display: flex;
@@ -2090,13 +2189,16 @@ async function submitBulkAssign() {
 }
 
 .bulk-month-wrap {
-  overflow: auto;
+  width: 100%;
+  overflow: hidden;
 }
+
 .bulk-month-table {
   width: 100%;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 640px;
 }
 .bulk-month-table th {
   background: #1f2a44;
@@ -2112,9 +2214,12 @@ async function submitBulkAssign() {
   border: 1px solid #eef2f7;
   vertical-align: top;
   padding: 8px;
-  height: 86px;
+  height: 82px;
   background: #fff;
+  overflow: hidden;
+  position: relative;
 }
+
 .bulk-month-cell.out-month {
   background: #fbfcfe;
   opacity: 0.55;
@@ -2123,9 +2228,31 @@ async function submitBulkAssign() {
   background: #f8f9fa;
   opacity: 0.7;
 }
+.bulk-month-top {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bulk-month-checkbox {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  border-color: #adb5bd !important;
+  box-shadow: none !important;
+}
+
+.bulk-month-checkbox:not(:checked) {
+  background-color: #fff;
+}
 .bulk-daynum {
-  font-weight: 800;
-  font-size: 12px;
+  font-weight: 700;
+  font-size: 18px;
+  color: #495057;
+  text-align: center;
+  line-height: 1;
 }
 .bulk-reason {
   margin-top: 6px;
@@ -2165,5 +2292,38 @@ async function submitBulkAssign() {
   border-color: #e9ecef;
   border-left-color: #94a3b8;
 }
+.filter-card {
+  overflow: visible;
+  position: relative;
+  z-index: 20;
+}
+
+.filter-body,
+.filter-card .card-body {
+  overflow: visible;
+}
+
+.filter-card :deep(.multiselect) {
+  position: relative;
+}
+
+.filter-card :deep(.multiselect--active) {
+  z-index: 1000;
+}
+
+.filter-card :deep(.multiselect__content-wrapper) {
+  position: absolute !important;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: 220px !important;
+  margin-top: 4px;
+  border: 1px solid #dee2e6;
+  //border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  overflow-y: auto;
+  z-index: 9999;
+  background: #fff;
+}
 </style>
-Đang hiển thị 2aOboQROTP3lhl8xQdg6SxC5gGFmRB12TFMXYAoy.

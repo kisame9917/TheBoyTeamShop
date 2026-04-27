@@ -103,7 +103,7 @@
               @click="goProduct(product.id)"
           >
             <div class="product-card__img-wrap">
-              <span class="product-card__badge">Mới về</span>
+              <span v-if="isNewProduct(product)" class="product-card__badge">Mới về</span>
               <img
                   :src="product.image"
                   class="product-card__img"
@@ -243,6 +243,7 @@ const error = ref('');
 const products = ref([]);
 const currentBannerIndex = ref(0);
 const intervalMs = 3500;
+const newBadgeDays = 15;
 let timer = null;
 
 const fallbackProductImage =
@@ -283,6 +284,32 @@ function extractPrice(item, variants = []) {
 
   if (prices.length) return Math.min(...prices);
   return 0;
+}
+
+function getProductCreatedAt(product) {
+  return (
+      product?.createdAt ||
+      product?.ngayTao ||
+      product?.created_at ||
+      product?.raw?.ngayTao ||
+      product?.raw?.createdAt ||
+      product?.raw?.created_at ||
+      ''
+  );
+}
+
+function isNewProduct(product) {
+  const createdAt = getProductCreatedAt(product);
+  if (!createdAt) return false;
+
+  const createdTime = Date.parse(createdAt);
+  if (Number.isNaN(createdTime)) return false;
+
+  const now = Date.now();
+  const diff = now - createdTime;
+  const limit = newBadgeDays * 24 * 60 * 60 * 1000;
+
+  return diff >= 0 && diff <= limit;
 }
 
 const banners = computed(() => {
@@ -344,6 +371,8 @@ const data = await getProducts({ page: 0, size: 1000 });
             name: extractName(item),
             price: extractPrice(item, variants),
             image: pickProductImage(item, variants, fallbackProductImage),
+            createdAt: item.ngayTao || item.createdAt || item.created_at || '',
+            updatedAt: item.ngayCapNhat || item.updatedAt || item.updated_at || '',
             raw: item,
           };
         }),
