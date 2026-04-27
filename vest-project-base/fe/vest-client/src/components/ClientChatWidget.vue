@@ -1,9 +1,9 @@
 <template>
   <!-- Icon chat nổi -->
   <button class="chat-fab" @click="toggle" aria-label="Chat hỗ trợ">
-    💬
-    <span v-if="unreadCount > 0" class="chat-badge">{{ unreadCount }}</span>
-  </button>
+  <i class="bi bi-chat-dots-fill"></i>
+  <span v-if="unreadCount > 0" class="chat-badge">{{ unreadCount }}</span>
+</button>
 
   <!-- Popup chat -->
   <div v-if="open" class="chat-box">
