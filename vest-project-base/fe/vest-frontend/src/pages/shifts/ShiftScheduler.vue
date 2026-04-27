@@ -637,7 +637,7 @@
                         <div>
                           <div class="fw-semibold">{{ d.label }}</div>
                           <div class="small text-muted">{{ formatDate(d.date) }}</div>
-                          <div v-if="d.reason" class="small text-danger mt-1">{{ d.reason }}</div>
+
                         </div>
                       </label>
                     </div>
@@ -669,7 +669,7 @@
                                 @change="toggleBulkDate(cell.date, $event.target.checked)"
                             />
                           </div>
-                          <div v-if="cell.reason" class="bulk-reason">{{ cell.reason }}</div>
+<!--                          <div v-if="cell.reason" class="bulk-reason">{{ cell.reason }}</div>-->
                         </td>
                       </tr>
                       </tbody>

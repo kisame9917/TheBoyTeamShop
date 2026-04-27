@@ -35,7 +35,7 @@
           <i class="bi bi-x-lg me-1"></i> Hủy
         </button>
         <button
-            class="btn btn-outline-secondary btn-sm"
+            class="btn btn-outline-primary btn-sm"
             type="button"
             @click="goCreate"
             :disabled="!isAdmin"
@@ -136,12 +136,12 @@
           <div class="mt-2 text-muted">Đang tải...</div>
         </div>
 
-        <div v-else class="table-responsive">
+        <div v-else class="table-area">
           <div class="table-scroll">
             <table class="table align-middle table-hover">
               <thead class="table-head-dark">
               <tr>
-                <th v-if="exportMode" style="width: 44px" class="text-center">
+                <th v-if="exportMode" class="col-check text-center">
                   <input
                       type="checkbox"
                       :checked="isAllSelected"
@@ -150,22 +150,24 @@
                       title="Chọn tất cả"
                   />
                 </th>
-                <th style="width: 60px">#</th>
-                <th style="width: 80px">Ảnh</th>
-                <th style="width: 110px">Mã NV</th>
-                <th style="width: 180px">Họ tên</th>
-                <th style="width: 240px">Email</th>
-                <th style="width: 140px">SĐT</th>
-                <th style="width: 500px">Địa chỉ</th>
-                <th style="width: 130px" class="text-center">Chức vụ</th>
-                <th style="width: 140px" class="text-center">Trạng thái</th>
-                <th style="width: 210px" class="text-center">Hành động</th>
+                <th class="col-stt text-center">#</th>
+                <th class="col-avatar text-center">Ảnh</th>
+                <th class="col-code text-center">Mã NV</th>
+                <th class="col-name text-center">Họ tên</th>
+                <th class="col-email text-center">Email</th>
+                <th class="col-phone text-center">SĐT</th>
+                <th class="col-address text-center">Địa chỉ</th>
+                <th class="col-role text-center">Chức vụ</th>
+                <th class="col-status text-center">Trạng thái</th>
+                <th class="col-action text-center">Hành động</th>
               </tr>
               </thead>
 
               <tbody class="table-body-normal">
               <tr v-if="paged.length === 0">
-                <td :colspan="exportMode ? 11 : 10" class="text-center text-muted py-4">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 11 : 10" class="text-center text-muted py-4">
+                  Không có dữ liệu
+                </td>
               </tr>
 
               <tr v-for="(s, idx) in paged" :key="s.id">
@@ -178,10 +180,11 @@
                       title="Chọn dòng"
                   />
                 </td>
+
                 <td>{{ page.page * page.size + idx + 1 }}</td>
 
                 <td>
-                  <div class="d-flex align-items-center">
+                  <div class="d-flex align-items-center justify-content-center">
                     <img
                         v-if="resolveAvatar(s)"
                         :src="resolveAvatar(s)"
@@ -202,30 +205,42 @@
 
                 <td>{{ s.maNhanVien || "-" }}</td>
                 <td>{{ s.tenNhanVien || "-" }}</td>
-                <td class="text-truncate" style="max-width: 240px" :title="s.email || ''">{{ s.email || "-" }}</td>
+
+                <td class="text-truncate" :title="s.email || ''">
+                  {{ s.email || "-" }}
+                </td>
+
                 <td>{{ s.soDienThoai || "-" }}</td>
-                <td class="addr-cell">
+
+                <td class="addr-cell" :title="s.diaChi || ''">
                   <div class="addr-full">{{ s.diaChi || "-" }}</div>
                 </td>
 
-                <td class="text-center">
-                  <span class="badge text-bg-light border badge-normal">{{ getRoleText(s) }}</span>
+                <td>
+              <span class="badge text-bg-light border badge-normal">
+                {{ getRoleText(s) }}
+              </span>
                 </td>
 
-                <td class="text-center">
-                    <span class="badge fw-normal" :class="s.trangThai ? 'badge-working' : 'badge-off'">
-                      {{ s.trangThai ? "Đang làm" : "Đã nghỉ" }}
-                    </span>
+                <td>
+              <span class="badge fw-normal" :class="s.trangThai ? 'badge-working' : 'badge-off'">
+                {{ s.trangThai ? "Đang làm" : "Đã nghỉ" }}
+              </span>
                 </td>
 
-                <td class="text-end">
-                  <div class="d-inline-flex align-items-center gap-2">
-                    <button class="btn btn-outline-primary btn-sm" type="button" title="Xem chi tiết" @click="goDetail(s.id)">
+                <td>
+                  <div class="d-inline-flex align-items-center justify-content-center gap-2">
+                    <button
+                        class="btn btn-outline-primary btn-sm"
+                        type="button"
+                        title="Xem chi tiết"
+                        @click="goDetail(s.id)"
+                    >
                       <i class="bi bi-eye"></i>
                     </button>
 
                     <button
-                        class="btn btn-outline-warning btn-sm me-2"
+                        class="btn btn-outline-warning btn-sm"
                         type="button"
                         title="Sửa"
                         @click="goEdit(s.id)"
@@ -234,7 +249,7 @@
                       <i class="bi bi-pencil-square"></i>
                     </button>
 
-                    <div class="form-check form-switch m-0" title="Đổi trạng thái">
+                    <div class="form-check form-switch m-0 switch-lg" title="Đổi trạng thái">
                       <input
                           class="form-check-input"
                           type="checkbox"
@@ -249,48 +264,57 @@
               </tr>
               </tbody>
             </table>
+          </div>
 
-            <!-- Pagination -->
-            <div class="row align-items-center mt-3 g-2">
-              <div class="col-12 col-lg-4 text-muted">
-                Hiển thị {{ paged.length }} / tổng {{ filtered.length }} bản ghi
-              </div>
+          <!-- Pagination nằm ngoài border bảng -->
+          <div class="table-pagination row align-items-center mt-3 g-2">
+            <div class="col-12 col-lg-4 text-muted">
+              Hiển thị {{ paged.length }} / tổng {{ filtered.length }} bản ghi
+            </div>
 
-              <div class="col-12 col-lg-4 d-flex justify-content-center">
-                <div class="d-flex align-items-center gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" :disabled="page.page === 0" @click="setPage(page.page - 1)">
-                    <i class="bi bi-chevron-left"></i>
-                  </button>
+            <div class="col-12 col-lg-4 d-flex justify-content-center">
+              <div class="d-flex align-items-center gap-2">
+                <button
+                    class="btn btn-outline-secondary btn-sm"
+                    :disabled="page.page === 0"
+                    @click="setPage(page.page - 1)"
+                >
+                  <i class="bi bi-chevron-left"></i>
+                </button>
 
-                  <div class="input-group input-group-sm" style="width: 140px">
-                    <span class="input-group-text">Trang</span>
-                    <input
-                        type="number"
-                        min="1"
-                        :max="page.totalPages || 1"
-                        class="form-control text-center"
-                        v-model.number="pageInput"
-                        @keyup.enter="jumpPage"
-                    />
-                  </div>
-
-                  <button
-                      class="btn btn-outline-secondary btn-sm"
-                      :disabled="page.page >= page.totalPages - 1"
-                      @click="setPage(page.page + 1)"
-                  >
-                    <i class="bi bi-chevron-right"></i>
-                  </button>
+                <div class="input-group input-group-sm" style="width: 140px">
+                  <span class="input-group-text">Trang</span>
+                  <input
+                      type="number"
+                      min="1"
+                      :max="page.totalPages || 1"
+                      class="form-control text-center"
+                      v-model.number="pageInput"
+                      @keyup.enter="jumpPage"
+                  />
                 </div>
-              </div>
 
-              <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
-                <select class="form-select form-select-sm" style="width: 140px" v-model.number="page.size" @change="recalcPages">
-                  <option :value="10">10 / trang</option>
-                  <option :value="20">20 / trang</option>
-                  <option :value="50">50 / trang</option>
-                </select>
+                <button
+                    class="btn btn-outline-secondary btn-sm"
+                    :disabled="page.page >= page.totalPages - 1"
+                    @click="setPage(page.page + 1)"
+                >
+                  <i class="bi bi-chevron-right"></i>
+                </button>
               </div>
+            </div>
+
+            <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
+              <select
+                  class="form-select form-select-sm"
+                  style="width: 160px"
+                  v-model.number="page.size"
+                  @change="recalcPages"
+              >
+                <option :value="10">10 / trang</option>
+                <option :value="20">20 / trang</option>
+                <option :value="50">50 / trang</option>
+              </select>
             </div>
           </div>
         </div>
@@ -811,37 +835,139 @@ onMounted(async () => {
 
 <style scoped>
 /* ===== Table ===== */
-.table-head-dark th {
-  background: #1f2a3a !important;
-  color: #fff !important;
-  font-weight: 600;
-  border-color: #1f2a3a !important;
+/* ===== Table giống phiếu giảm giá - không scrollbar ngang, phân trang ngoài border ===== */
+.table-area {
+  width: 100%;
+  overflow: hidden;
 }
+
+.table-scroll {
+  width: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.table-scroll > table {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.table-scroll > table th,
+.table-scroll > table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.table-scroll > table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-head-dark th {
+  background: #1f2a44 !important;
+  color: #fff !important;
+  font-weight: 700;
+  border-color: #1f2a44 !important;
+}
+
 .table-body-normal td {
   font-weight: 400;
   text-transform: none;
 }
-.table-responsive {
-  overflow-x: visible !important;
+
+/* Chia width để thu nhỏ vẫn giữ cột địa chỉ */
+.col-check {
+  width: 3%;
 }
-.table-scroll {
-  overflow-x: visible !important;
+
+.col-stt {
+  width: 4%;
 }
-.addr-full {
-  white-space: normal;
-  word-break: break-word;
-  overflow: visible;
+
+.col-avatar {
+  width: 6%;
 }
+
+.col-code {
+  width: 8%;
+}
+
+.col-name {
+  width: 13%;
+}
+
+.col-email {
+  width: 16%;
+}
+
+.col-phone {
+  width: 10%;
+}
+
+.col-address {
+  width: 22%;
+}
+
+.col-role {
+  width: 8%;
+}
+
+.col-status {
+  width: 9%;
+}
+
+.col-action {
+  width: 11%;
+}
+
+/* Căn giữa nội dung đặc biệt trong TD */
+.table-scroll > table td .d-flex {
+  justify-content: center;
+}
+
+.table-scroll > table td .d-inline-flex {
+  justify-content: center;
+}
+
+/* Địa chỉ dài thì hiện ... để không vỡ layout */
 .addr-cell {
-  min-width: 320px;
+  overflow: hidden;
 }
+
+.addr-full {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-pagination {
+  width: 100%;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 .badge-normal {
   font-weight: 500;
 }
+
 .badge-working {
   background: #198754 !important;
   color: #fff !important;
 }
+
 .badge-off {
   background: #e5e7eb !important;
   color: #6b7280 !important;
@@ -948,4 +1074,29 @@ onMounted(async () => {
 .btn-confirm:disabled {opacity: 0.6;cursor: not-allowed;}
 .fw-normal {font-weight: 500 !important;}
 
+/* Switch trạng thái to hơn giống màn phiếu giảm giá */
+.switch-lg {
+  padding-left: 0;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.switch-lg .form-check-input {
+  width: 42px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.switch-lg .form-check-input:checked {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.switch-lg .form-check-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
 </style>

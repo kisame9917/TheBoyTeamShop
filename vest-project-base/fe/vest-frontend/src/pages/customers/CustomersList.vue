@@ -39,7 +39,7 @@
           <i class="bi bi-x-lg me-1"></i> Hủy
         </button>
 
-        <button class="btn btn-outline-secondary btn-sm" type="button" @click="goCreate" title="Thêm mới" :disabled="isViewLocked">
+        <button class="btn btn-outline-primary btn-sm" type="button" @click="goCreate" title="Thêm mới" :disabled="isViewLocked">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>
@@ -66,8 +66,8 @@
 
       <div id="customerFilterBody" class="collapse show">
         <div class="card-body filter-body">
-          <div class="row g-3">
-            <div class="col-12 col-lg-6">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Tìm kiếm</label>
               <input
                   v-model.trim="filters.keyword"
@@ -79,27 +79,39 @@
 
             <div class="col-12 col-lg-3">
               <label class="form-label">Email</label>
-              <input v-model.trim="filters.email" type="text" class="form-control" placeholder="Email" />
+              <input
+                  v-model.trim="filters.email"
+                  type="text"
+                  class="form-control"
+                  placeholder="Email"
+              />
             </div>
 
-            <div class="col-12 col-lg-3">
+            <div class="col-12 col-lg-2">
               <label class="form-label">SĐT</label>
-              <input v-model.trim="filters.phone" type="text" class="form-control" placeholder="SĐT" />
+              <input
+                  v-model.trim="filters.phone"
+                  type="text"
+                  class="form-control"
+                  placeholder="SĐT"
+              />
             </div>
 
             <div class="col-12 col-lg-3">
-              <label class="form-label">Mã khách hàng</label>
-              <input v-model.trim="filters.maKhachHang" type="text" class="form-control" placeholder="Mã KH" />
-            </div>
-
-            <div class="col-12 col-lg-6">
               <label class="form-label">Trạng thái</label>
-              <div class="d-flex align-items-center gap-3 mt-2">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" id="cst_all" value="all" v-model="filters.statusMode" />
+              <div class="d-flex align-items-center gap-3 flex-nowrap status-filter">
+                <div class="form-check mb-0">
+                  <input
+                      class="form-check-input"
+                      type="radio"
+                      id="cst_all"
+                      value="all"
+                      v-model="filters.statusMode"
+                  />
                   <label class="form-check-label" for="cst_all">Tất cả</label>
                 </div>
-                <div class="form-check">
+
+                <div class="form-check mb-0">
                   <input
                       class="form-check-input"
                       type="radio"
@@ -109,7 +121,8 @@
                   />
                   <label class="form-check-label" for="cst_on">Hoạt động</label>
                 </div>
-                <div class="form-check">
+
+                <div class="form-check mb-0">
                   <input
                       class="form-check-input"
                       type="radio"
@@ -140,7 +153,7 @@
           <div class="mt-2 text-muted">Đang tải...</div>
         </div>
 
-        <div v-else class="table-responsive">
+        <div v-else class="table-area">
           <div class="table-scroll">
             <table class="table align-middle table-hover">
               <thead class="table-head-dark">
@@ -154,14 +167,14 @@
                       title="Chọn tất cả (trang hiện tại)"
                   />
                 </th>
-                <th style="width: 60px">#</th>
-                <th style="width: 80px">Ảnh</th>
-                <th style="width: 110px">Mã KH</th>
-                <th style="width: 220px">Họ tên</th>
-                <th style="width: 140px">Ngày sinh</th>
-                <th style="width: 260px">Email</th>
-                <th style="width: 140px">SĐT</th>
-                <th class="col-address">Địa chỉ</th>
+                <th style="width: 60px" class="text-center">#</th>
+                <th style="width: 80px" class="text-center">Ảnh</th>
+                <th style="width: 110px" class="text-center">Mã KH</th>
+                <th style="width: 220px" class="text-center">Họ tên</th>
+                <th style="width: 140px" class="text-center">Ngày sinh</th>
+                <th style="width: 260px" class="text-center">Email</th>
+                <th style="width: 140px" class="text-center">SĐT</th>
+                <th class="col-address text-center">Địa chỉ</th>
                 <th style="width: 140px" class="text-center">Trạng thái</th>
                 <th style="width: 190px" class="text-center">Hành động</th>
               </tr>
@@ -169,7 +182,9 @@
 
               <tbody class="table-body-normal">
               <tr v-if="paged.length === 0">
-                <td :colspan="exportMode ? 11 : 10" class="text-center text-muted py-4">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 11 : 10" class="text-center text-muted py-4">
+                  Không có dữ liệu
+                </td>
               </tr>
 
               <tr v-for="(c, idx) in paged" :key="c.id">
@@ -182,10 +197,11 @@
                       title="Chọn dòng"
                   />
                 </td>
+
                 <td>{{ page.page * page.size + idx + 1 }}</td>
 
                 <td>
-                  <div class="d-flex align-items-center">
+                  <div class="d-flex align-items-center justify-content-center">
                     <img
                         v-if="resolveAvatar(c)"
                         :src="resolveAvatar(c)"
@@ -206,7 +222,6 @@
 
                 <td class="fw-semibold">{{ c.maKhachHang || "-" }}</td>
                 <td>{{ c.tenKhachHang || "-" }}</td>
-
                 <td>{{ formatNgaySinh(c.ngaySinh) }}</td>
 
                 <td class="text-truncate" style="max-width: 260px" :title="c.email || ''">
@@ -215,14 +230,14 @@
 
                 <td>{{ c.soDienThoai || "-" }}</td>
 
-                <td class="addr-cell">
+                <td class="addr-cell" :title="c.diaChi || ''">
                   <div class="addr-full">{{ c.diaChi || "-" }}</div>
                 </td>
 
                 <td class="text-center">
-                    <span class="badge fw-normal" :class="asBool(c.trangThai) ? 'badge-working' : 'badge-off'">
-                      {{ asBool(c.trangThai) ? "Hoạt động" : "Không hoạt động" }}
-                    </span>
+              <span class="badge fw-normal" :class="asBool(c.trangThai) ? 'badge-working' : 'badge-off'">
+                {{ asBool(c.trangThai) ? "Hoạt động" : "Không hoạt động" }}
+              </span>
                 </td>
 
                 <td class="text-end">
@@ -237,11 +252,17 @@
                       <i class="bi bi-geo-alt"></i>
                     </button>
 
-                    <button class="btn btn-outline-warning btn-sm" type="button" title="Sửa" @click="goEdit(c.id)" :disabled="isViewLocked">
+                    <button
+                        class="btn btn-outline-warning btn-sm"
+                        type="button"
+                        title="Sửa"
+                        @click="goEdit(c.id)"
+                        :disabled="isViewLocked"
+                    >
                       <i class="bi bi-pencil-square"></i>
                     </button>
 
-                    <div class="form-check form-switch m-0" title="Đổi trạng thái">
+                    <div class="form-check form-switch m-0 switch-lg" title="Đổi trạng thái">
                       <input
                           class="form-check-input"
                           type="checkbox"
@@ -256,47 +277,57 @@
               </tr>
               </tbody>
             </table>
+          </div>
 
-            <div class="row align-items-center mt-3 g-2">
-              <div class="col-12 col-lg-4 text-muted">
-                Hiển thị {{ paged.length }} / tổng {{ filtered.length }} bản ghi
-              </div>
+          <!-- Phân trang đã đưa ra ngoài border của bảng -->
+          <div class="table-pagination row align-items-center mt-3 g-2">
+            <div class="col-12 col-lg-4 text-muted">
+              Hiển thị {{ paged.length }} / tổng {{ filtered.length }} bản ghi
+            </div>
 
-              <div class="col-12 col-lg-4 d-flex justify-content-center">
-                <div class="d-flex align-items-center gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" :disabled="page.page === 0" @click="setPage(page.page - 1)">
-                    <i class="bi bi-chevron-left"></i>
-                  </button>
+            <div class="col-12 col-lg-4 d-flex justify-content-center">
+              <div class="d-flex align-items-center gap-2">
+                <button
+                    class="btn btn-outline-secondary btn-sm"
+                    :disabled="page.page === 0"
+                    @click="setPage(page.page - 1)"
+                >
+                  <i class="bi bi-chevron-left"></i>
+                </button>
 
-                  <div class="input-group input-group-sm" style="width: 140px">
-                    <span class="input-group-text">Trang</span>
-                    <input
-                        type="number"
-                        min="1"
-                        :max="page.totalPages || 1"
-                        class="form-control text-center"
-                        v-model.number="pageInput"
-                        @keyup.enter="jumpPage"
-                    />
-                  </div>
-
-                  <button
-                      class="btn btn-outline-secondary btn-sm"
-                      :disabled="page.page >= page.totalPages - 1"
-                      @click="setPage(page.page + 1)"
-                  >
-                    <i class="bi bi-chevron-right"></i>
-                  </button>
+                <div class="input-group input-group-sm" style="width: 140px">
+                  <span class="input-group-text">Trang</span>
+                  <input
+                      type="number"
+                      min="1"
+                      :max="page.totalPages || 1"
+                      class="form-control text-center"
+                      v-model.number="pageInput"
+                      @keyup.enter="jumpPage"
+                  />
                 </div>
-              </div>
 
-              <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
-                <select class="form-select form-select-sm" style="width: 160px" v-model.number="page.size" @change="recalcPaging">
-                  <option :value="10">10 bản ghi / trang</option>
-                  <option :value="20">20 bản ghi / trang</option>
-                  <option :value="50">50 bản ghi / trang</option>
-                </select>
+                <button
+                    class="btn btn-outline-secondary btn-sm"
+                    :disabled="page.page >= page.totalPages - 1"
+                    @click="setPage(page.page + 1)"
+                >
+                  <i class="bi bi-chevron-right"></i>
+                </button>
               </div>
+            </div>
+
+            <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
+              <select
+                  class="form-select form-select-sm"
+                  style="width: 160px"
+                  v-model.number="page.size"
+                  @change="recalcPaging"
+              >
+                <option :value="10">10 bản ghi / trang</option>
+                <option :value="20">20 bản ghi / trang</option>
+                <option :value="50">50 bản ghi / trang</option>
+              </select>
             </div>
           </div>
         </div>
@@ -926,19 +957,248 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.table-responsive { overflow-x: visible !important; }
-.table-scroll { overflow-x: visible !important; }
+/* ===== Table giống phiếu giảm giá - không scrollbar ngang, phân trang ngoài border ===== */
+.table-area {
+  width: 100%;
+  overflow: hidden;
+}
+
+.table-scroll {
+  width: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.table-scroll > table {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.table-scroll > table th,
+.table-scroll > table td {
+  padding: 12px 12px;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+/* Căn giữa nội dung đặc biệt trong TD */
+.table-scroll > table td .d-flex {
+  justify-content: center;
+}
+
+.table-scroll > table td.text-end {
+  text-align: center !important;
+}
+
+.table-scroll > table td .d-inline-flex {
+  justify-content: center;
+}
+
+.table-scroll > table tbody tr:last-child td {
+  border-bottom: none;
+}
 
 .table-head-dark th {
-  background: #1f2a3a !important;
+  background: #1f2a44 !important;
   color: #fff !important;
-  font-weight: 600;
-  border-color: #1f2a3a !important;
+  font-weight: 700;
+  border-color: #1f2a44 !important;
 }
-.table-body-normal td { font-weight: 400; text-transform: none; }
 
-.addr-cell { min-width: 320px; }
-.addr-full { white-space: normal; word-break: break-word; overflow: visible; }
+.table-body-normal td {
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* Không cho row phân trang tạo overflow ngang */
+.table-pagination {
+  width: 100%;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Cột địa chỉ giữ 1 dòng, dài thì hiện ... */
+.col-address {
+  width: 500px;
+}
+
+.addr-cell {
+  overflow: hidden;
+}
+
+.addr-full {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge-working {
+  background: #198754 !important;
+  color: #fff !important;
+}
+
+.badge-off {
+  background: #e5e7eb !important;
+  color: #6b7280 !important;
+}
+
+/* Filter card */
+.filter-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+}
+
+.filter-header {
+  background: #1f2a44;
+  color: #fff;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.filter-title {
+  font-weight: 700;
+}
+
+.filter-hint {
+  opacity: 0.75;
+}
+
+.filter-icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.filter-header[aria-expanded="false"] .filter-icon {
+  transform: rotate(-90deg);
+}
+
+.filter-body {
+  background: #f8fafc;
+}
+
+.filter-card .form-label {
+  font-weight: 600;
+}
+
+.filter-card .form-control,
+.filter-card .form-select {
+  border-radius: 10px;
+}
+
+/* Overlay modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-card {
+  width: min(520px, calc(100% - 32px));
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modal-desc {
+  margin: 0 0 14px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-outline {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-confirm {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-outline:disabled,
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Address radio list in modal */
+.addr-radio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.addr-radio-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.addr-radio-item--checked {
+  border-color: #0d6efd;
+  background: #f8fbff;
+}
+
+.addr-radio-content {
+  flex: 1;
+}
 
 .badge-working { background: #198754 !important; color: #fff !important; }
 .badge-off { background: #e5e7eb !important; color: #6b7280 !important; }
@@ -1037,4 +1297,28 @@ onMounted(async () => {
   background:#f8fbff;
 }
 .addr-radio-content{ flex:1; }
+.switch-lg {
+  padding-left: 0;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.switch-lg .form-check-input {
+  width: 42px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.switch-lg .form-check-input:checked {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.switch-lg .form-check-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
 </style>

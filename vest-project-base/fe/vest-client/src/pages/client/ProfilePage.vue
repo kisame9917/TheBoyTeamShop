@@ -4,7 +4,7 @@
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
           <h1 class="profile-title mb-1">Hồ sơ của tôi</h1>
-          <p class="profile-subtitle mb-0">Quản lý thông tin cá nhân và địa chỉ nhận hàng trên kênh bán hàng online.</p>
+<!--          <p class="profile-subtitle mb-0">Quản lý thông tin cá nhân và địa chỉ nhận hàng trên kênh bán hàng online.</p>-->
         </div>
         <router-link to="/shop" class="btn btn-outline-primary">
           <i class="bi bi-bag me-2"></i>Tiếp tục mua sắm
@@ -25,9 +25,18 @@
         <div class="col-lg-4">
           <div class="card border-0 shadow-sm h-100 profile-summary">
             <div class="card-body p-4">
-              <div class="avatar-circle mb-3">{{ avatarText }}</div>
+              <div class="avatar-circle mb-3">
+                <img
+                    v-if="avatarUrl"
+                    :src="avatarUrl"
+                    alt="Avatar khách hàng"
+                    class="avatar-img"
+                    @error="onAvatarError"
+                />
+                <span v-else>{{ avatarText }}</span>
+              </div>
               <h2 class="summary-name mb-1">{{ form.tenKhachHang || 'Khách hàng' }}</h2>
-              <p class="text-secondary mb-4">{{ form.email || 'Chưa cập nhật email' }}</p>
+              <p >{{ form.email || 'Chưa cập nhật email' }}</p>
 
               <div class="summary-item">
                 <span>Mã khách hàng</span>
@@ -166,12 +175,29 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { getClientProfile, updateClientProfile } from '../../services/Api';
+import { pickFirstMediaUrl } from '../../utils/media';
 import ChatWidget from '../../components/ClientChatWidget.vue';
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
 const successMessage = ref('');
 const profile = ref({});
+const avatarLoadError = ref(false);
+
+const avatarUrl = computed(() => {
+  if (avatarLoadError.value) return '';
+
+  return pickFirstMediaUrl(
+      profile.value?.avatarUrl,
+      profile.value?.anhDaiDien,
+      profile.value?.mediaAvatar,
+      profile.value?.mediaAvatarUrl
+  );
+});
+
+function onAvatarError() {
+  avatarLoadError.value = true;
+}
 const gioiTinhValue = ref('');
 const provinces = ref([]);
 const wards = ref([]);
@@ -265,6 +291,7 @@ async function onProvinceChange() {
 }
 
 function fillForm(data = {}) {
+  avatarLoadError.value = false;
   profile.value = data;
   form.id = data.id ?? null;
   form.maKhachHang = data.maKhachHang || '';
@@ -310,6 +337,9 @@ function syncProfileToStorage(data = {}) {
       tenKhachHang: userName,
       email: data.email ?? vestUser.email,
       soDienThoai: data.soDienThoai ?? vestUser.soDienThoai,
+      anhDaiDien: data.anhDaiDien ?? data.avatarUrl ?? vestUser.anhDaiDien,
+      avatarUrl: data.avatarUrl ?? data.anhDaiDien ?? vestUser.avatarUrl,
+      mediaAvatarId: data.mediaAvatarId ?? vestUser.mediaAvatarId,
       role: vestUser.role || 'CLIENT',
     })
   );
@@ -410,6 +440,15 @@ onMounted(async () => {
   font-weight: 800;
   background: rgba(255, 255, 255, 0.18);
   border: 2px solid rgba(255, 255, 255, 0.32);
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .summary-name {

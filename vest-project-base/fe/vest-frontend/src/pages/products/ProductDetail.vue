@@ -1153,6 +1153,7 @@ function getColorCode(name) {
   min-height: 100vh;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   overflow-x: hidden;
+  padding: 16px;
 }
 
 *,
@@ -1164,6 +1165,9 @@ function getColorCode(name) {
 .content-wrapper {
   width: 100%;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .card {
@@ -1181,7 +1185,7 @@ function getColorCode(name) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 
@@ -1190,6 +1194,7 @@ function getColorCode(name) {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  flex: 1 1 420px;
 }
 
 .page-title-text {
@@ -1231,6 +1236,9 @@ function getColorCode(name) {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
+  max-width: 100%;
+  flex: 0 1 auto;
 }
 
 .filter-card {
@@ -1373,7 +1381,7 @@ function getColorCode(name) {
 
 .table-card {
   padding: 0;
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .table-responsive {
@@ -1793,7 +1801,7 @@ function getColorCode(name) {
 
 @media (max-width: 767.98px) {
   .product-detail-page {
-    padding-bottom: 12px;
+    padding: 12px;
   }
 
   .page-title-text {
@@ -1848,6 +1856,10 @@ function getColorCode(name) {
 }
 
 @media (max-width: 575.98px) {
+  .product-detail-page {
+    padding: 8px;
+  }
+
   .filter-body,
   .modal-body,
   .modal-header,
@@ -1865,4 +1877,5 @@ function getColorCode(name) {
     width: 100%;
   }
 }
+
 </style>

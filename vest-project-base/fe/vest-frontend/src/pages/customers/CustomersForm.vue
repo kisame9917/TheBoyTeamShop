@@ -6,7 +6,9 @@
       </div>
 
       <!-- ✅ yêu cầu: có popup xác nhận khi hủy -->
-      <button type="button" class="btn-back" @click="onCancel">← Quay lại danh sách</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+      </button>
     </div>
 
     <div class="card">
@@ -37,25 +39,54 @@
 
           <div class="form-group span-3">
             <label>Tên khách hàng <span class="req">*</span></label>
-            <input class="form-input" v-model="form.tenKhachHang" placeholder="Nhập tên khách hàng" :disabled="isViewLocked" />
+            <input
+                class="form-input"
+                v-model="form.tenKhachHang"
+                placeholder="Nhập tên khách hàng"
+                :disabled="isViewLocked"
+            />
           </div>
 
           <!-- Row 2: SĐT, Email -->
           <div class="form-group span-3">
             <label>Số điện thoại <span class="req">*</span></label>
-            <input class="form-input" v-model="form.soDienThoai" placeholder="VD: 0912345678" :disabled="isViewLocked" />
+            <input
+                class="form-input"
+                v-model="form.soDienThoai"
+                placeholder="VD: 0912345678"
+                inputmode="numeric"
+                maxlength="10"
+                @input="form.soDienThoai = normalizePhoneInput(form.soDienThoai)"
+                :disabled="isViewLocked"
+            />
           </div>
 
           <div class="form-group span-3">
-            <label>Email</label>
-            <input class="form-input" v-model="form.email" placeholder="VD: abc@gmail.com" :disabled="isViewLocked" />
+            <label>Email <span class="req">*</span></label>
+            <input
+                class="form-input"
+                type="email"
+                v-model="form.email"
+                placeholder="VD: abc@gmail.com"
+                :disabled="isViewLocked"
+            />
           </div>
 
           <!-- Row 3 -->
           <div class="form-group span-3 row3-item">
-            <label>Ngày sinh</label>
+            <label>Ngày sinh <span class="req">*</span></label>
             <div class="input-group date-input-group">
-              <input ref="dobPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" :disabled="isViewLocked" />
+              <input
+                  ref="dobPickerRef"
+                  type="text"
+                  class="form-control"
+                  placeholder="dd/mm/yyyy"
+                  inputmode="numeric"
+                  maxlength="10"
+                  @input="onDobManualInput"
+                  @blur="syncDobFromInput"
+                  :disabled="isViewLocked"
+              />
               <button class="btn btn-outline-secondary" type="button" @click="openDobPicker" title="Chọn ngày" :disabled="isViewLocked">
                 <i class="bi bi-calendar3"></i>
               </button>
@@ -184,12 +215,25 @@
         <div class="addr-form-grid">
           <div class="form-group">
             <label>Người nhận <span class="req">*</span></label>
-            <input class="form-input" v-model="addrModal.form.tenNguoiNhan" placeholder="Tên người nhận" :disabled="isViewLocked" />
+            <input
+                class="form-input"
+                v-model="addrModal.form.tenNguoiNhan"
+                placeholder="Tên người nhận"
+                :disabled="isViewLocked"
+            />
           </div>
 
           <div class="form-group">
             <label>SĐT người nhận <span class="req">*</span></label>
-            <input class="form-input" v-model="addrModal.form.soDienThoai" placeholder="Chỉ nhập số" :disabled="isViewLocked" />
+            <input
+                class="form-input"
+                v-model="addrModal.form.soDienThoai"
+                placeholder="VD: 0912345678"
+                inputmode="numeric"
+                maxlength="10"
+                @input="addrModal.form.soDienThoai = normalizePhoneInput(addrModal.form.soDienThoai)"
+                :disabled="isViewLocked"
+            />
           </div>
 
           <div class="form-group">
@@ -254,26 +298,6 @@
           <button class="btn btn-confirm" type="button" @click="confirmOk" :disabled="confirm.loading">
             {{ confirm.loading ? "Đang xử lý..." : "Đồng ý" }}
           </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
-      <div
-          v-for="t in toast.state.items"
-          :key="t.id"
-          class="toast show align-items-center border-0 mb-2"
-          :class="toastClass(t.type)"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-      >
-        <div class="d-flex">
-          <div class="toast-body">
-            <div v-if="t.title" class="fw-semibold mb-1">{{ t.title }}</div>
-            <div>{{ t.message }}</div>
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
         </div>
       </div>
     </div>
@@ -366,6 +390,7 @@ const form = reactive({
 // ===== Date picker: Ngày sinh (flatpickr) =====
 const dobPickerRef = ref(null);
 let fpDob = null;
+let isManualDobInput = false;
 
 function parseYMD(ymd) {
   if (!ymd) return null;
@@ -374,7 +399,104 @@ function parseYMD(ymd) {
   const s = raw.includes("T") ? raw.split("T")[0] : raw;
   const [y, m, d] = String(s).split("-").map(Number);
   if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d);
+
+  const date = new Date(y, m - 1, d);
+  if (
+      date.getFullYear() !== y ||
+      date.getMonth() !== m - 1 ||
+      date.getDate() !== d
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function normalizeDateInput(v) {
+  const digits = String(v == null ? "" : v).replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return digits.slice(0, 2) + "/" + digits.slice(2);
+
+  return digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4);
+}
+
+function parseDobDisplay(value) {
+  const raw = String(value || "").trim();
+
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+    return null;
+  }
+
+  const [dd, mm, yyyy] = raw.split("/").map(Number);
+  const d = new Date(yyyy, mm - 1, dd);
+
+  if (
+      d.getFullYear() !== yyyy ||
+      d.getMonth() !== mm - 1 ||
+      d.getDate() !== dd
+  ) {
+    return null;
+  }
+
+  return d;
+}
+
+function isOlderThan14(dob) {
+  const today = new Date();
+  const limit = new Date(
+      today.getFullYear() - 14,
+      today.getMonth(),
+      today.getDate()
+  );
+
+  return dob < limit;
+}
+
+function getDobRaw() {
+  return String(dobPickerRef.value?.value || "").trim();
+}
+
+function getDobYmdForPayload() {
+  const d = parseDobDisplay(getDobRaw());
+
+  if (d) {
+    return flatpickr.formatDate(d, "Y-m-d");
+  }
+
+  return String(form.ngaySinh || "").trim() || null;
+}
+
+function onDobManualInput(e) {
+  isManualDobInput = true;
+
+  const value = normalizeDateInput(e.target.value);
+  e.target.value = value;
+
+  const d = parseDobDisplay(value);
+  form.ngaySinh = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+
+  nextTick(() => {
+    isManualDobInput = false;
+  });
+}
+
+function syncDobFromInput(e) {
+  const value = String(e.target.value || "").trim();
+
+  if (!value) {
+    form.ngaySinh = "";
+    fpDob?.clear();
+    return;
+  }
+
+  const d = parseDobDisplay(value);
+  if (d) {
+    form.ngaySinh = flatpickr.formatDate(d, "Y-m-d");
+    fpDob?.setDate(d, false);
+  } else {
+    form.ngaySinh = "";
+  }
 }
 
 function initDobPicker() {
@@ -407,7 +529,7 @@ function clearDob() {
 watch(
     () => form.ngaySinh,
     (v) => {
-      if (!fpDob) return;
+      if (!fpDob || isManualDobInput) return;
       fpDob.setDate(parseYMD(v), false);
     }
 );
@@ -530,17 +652,86 @@ function onCancel() {
   });
 }
 
-function isDigitsOnly(v) {
-  const s = String(v == null ? "" : v).trim();
-  return s.length > 0 && /^\d+$/.test(s);
+function normalizeSpaces(v) {
+  return String(v == null ? "" : v).trim().replace(/\s+/g, " ");
+}
+
+function normalizePhoneInput(v) {
+  return String(v == null ? "" : v).replace(/\D/g, "").slice(0, 10);
+}
+
+function isValidPhone(v) {
+  return /^0\d{9}$/.test(String(v || "").trim());
+}
+
+function isValidEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
+}
+
+function hasDigitInName(v) {
+  return /\d/.test(normalizeSpaces(v));
+}
+
+function hasSpecialCharInName(v) {
+  const s = normalizeSpaces(v);
+  return /[^\p{L}\s]/u.test(s);
 }
 
 function validate() {
-  if (!String(form.tenKhachHang || "").trim()) return "Tên khách hàng không được để trống";
-  if (!String(form.soDienThoai || "").trim() || !isDigitsOnly(form.soDienThoai)) return "Số điện thoại phải là số";
-  if (!isEdit.value && !String(form.email || "").trim()) {
-    return "Email không được để trống để gửi tài khoản và mật khẩu";
+  const tenKhachHang = normalizeSpaces(form.tenKhachHang);
+  const soDienThoai = String(form.soDienThoai || "").trim();
+  const email = String(form.email || "").trim();
+  const dobRaw = getDobRaw();
+
+  if (!tenKhachHang) {
+    return "Tên khách hàng không được để trống";
   }
+
+  if (tenKhachHang.length < 2) {
+    return "Vui lòng nhập đúng tên khách hàng";
+  }
+
+  if (hasDigitInName(tenKhachHang)) {
+    return "Tên khách hàng không được chứa số";
+  }
+
+  if (hasSpecialCharInName(tenKhachHang)) {
+    return "Tên khách hàng không được chứa ký tự đặc biệt";
+  }
+
+  if (!soDienThoai) {
+    return "Số điện thoại không được để trống";
+  }
+
+  if (!/^\d+$/.test(soDienThoai)) {
+    return "Số điện thoại không được chứa chữ";
+  }
+
+  if (!isValidPhone(soDienThoai)) {
+    return "Số điện thoại phải gồm 10 số và bắt đầu bằng số 0";
+  }
+
+  if (!email) {
+    return "Email không được để trống";
+  }
+
+  if (!isValidEmail(email)) {
+    return "Email không đúng định dạng";
+  }
+
+  if (!dobRaw) {
+    return "Ngày sinh không được để trống";
+  }
+
+  const dob = parseDobDisplay(dobRaw);
+  if (!dob) {
+    return "Ngày sinh phải đúng định dạng dd/mm/yyyy";
+  }
+
+  if (!isOlderThan14(dob)) {
+    return "Khách hàng phải trên 14 tuổi";
+  }
+
   return "";
 }
 
@@ -736,11 +927,52 @@ function closeAddrModal(force = false) {
 }
 
 function validateAddrForm() {
-  if (!String(addrModal.form.tenNguoiNhan || "").trim()) return "Vui lòng nhập tên người nhận";
-  if (!String(addrModal.form.soDienThoai || "").trim() || !isDigitsOnly(addrModal.form.soDienThoai)) return "SĐT người nhận phải là số";
-  if (!String(addrModal.form.tinhThanh || "").trim()) return "Vui lòng chọn Tỉnh/Thành phố";
-  if (!String(addrModal.form.phuongXa || "").trim()) return "Vui lòng chọn Phường/Xã/Đặc khu";
-  if (!String(addrModal.form.diaChiChiTiet || "").trim()) return "Vui lòng nhập địa chỉ chi tiết";
+  const tenNguoiNhan = normalizeSpaces(addrModal.form.tenNguoiNhan);
+  const soDienThoai = String(addrModal.form.soDienThoai || "").trim();
+  const tinhThanh = String(addrModal.form.tinhThanh || "").trim();
+  const phuongXa = String(addrModal.form.phuongXa || "").trim();
+  const diaChiChiTiet = String(addrModal.form.diaChiChiTiet || "").trim();
+
+  if (!tenNguoiNhan) {
+    return "Vui lòng nhập tên người nhận";
+  }
+
+  if (tenNguoiNhan.length < 2) {
+    return "Vui lòng nhập đúng tên người nhận";
+  }
+
+  if (hasDigitInName(tenNguoiNhan)) {
+    return "Tên người nhận không được chứa số";
+  }
+
+  if (hasSpecialCharInName(tenNguoiNhan)) {
+    return "Tên người nhận không được chứa ký tự đặc biệt";
+  }
+
+  if (!soDienThoai) {
+    return "Vui lòng nhập SĐT người nhận";
+  }
+
+  if (!/^\d+$/.test(soDienThoai)) {
+    return "SĐT người nhận không được chứa chữ";
+  }
+
+  if (!isValidPhone(soDienThoai)) {
+    return "SĐT người nhận phải gồm 10 số và bắt đầu bằng số 0";
+  }
+
+  if (!tinhThanh) {
+    return "Vui lòng chọn Tỉnh/Thành phố";
+  }
+
+  if (!phuongXa) {
+    return "Vui lòng chọn Phường/Xã/Đặc khu";
+  }
+
+  if (!diaChiChiTiet) {
+    return "Vui lòng nhập địa chỉ chi tiết";
+  }
+
   return "";
 }
 
@@ -833,7 +1065,6 @@ async function doSaveDiaChi() {
   }
 }
 
-
 async function saveDiaChi() {
   if (blockIfViewMode()) return;
   const msg = validateAddrForm();
@@ -894,7 +1125,7 @@ async function doSubmit() {
       maKhachHang: form.maKhachHang,
       tenKhachHang: String(form.tenKhachHang || "").trim(),
       gioiTinh: form.gioiTinh,
-      ngaySinh: String(form.ngaySinh || "").trim() ? String(form.ngaySinh || "").trim() : null,
+      ngaySinh: getDobYmdForPayload(),
       soDienThoai: String(form.soDienThoai || "").trim(),
       email: String(form.email || "").trim() ? String(form.email || "").trim() : null,
       taiKhoan: taiKhoanAuto,
@@ -962,14 +1193,6 @@ async function submit() {
     message: isEdit.value ? "Bạn có chắc muốn lưu thay đổi không?" : "Bạn có chắc muốn thêm mới khách hàng không?",
     onOk: doSubmit,
   });
-}
-
-function toastClass(type) {
-  const t = String(type || "info").toLowerCase();
-  if (t === "success") return "text-bg-success";
-  if (t === "error") return "text-bg-danger";
-  if (t === "warning") return "text-bg-warning";
-  return "text-bg-info";
 }
 
 onMounted(async () => {
@@ -1250,7 +1473,7 @@ onBeforeUnmount(() => {
   border: 1px solid #d0d7de;
   background:#fff;
   cursor:pointer;
-  font-weight:700;
+  font-weight:400;
 }
 .btn-primary{
   border-color:#1d4ed8;

@@ -37,7 +37,7 @@
           </button>
         </template>
 
-        <button class="btn btn-outline-secondary btn-sm" @click="openModal()">
+        <button class="btn btn-outline-primary btn-sm" @click="openModal()">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>

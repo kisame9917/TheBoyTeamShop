@@ -55,7 +55,7 @@
           <div class="small text-muted">PNG, JPG, JPEG - tối đa {{ MAX_AVATAR_MB }}MB.</div>
         </div>
 
-        <form @submit.prevent="submit">
+        <form @submit.prevent="submit" novalidate>
           <div class="row g-3">
             <div class="col-12 col-lg-6">
               <label class="form-label">Mã nhân viên</label>
@@ -92,12 +92,24 @@
 
             <div class="col-12 col-lg-6">
               <label class="form-label">Số điện thoại</label>
-              <input class="form-control" v-model="form.soDienThoai" placeholder="Chỉ nhập số" />
+              <input
+                  class="form-control"
+                  v-model="form.soDienThoai"
+                  placeholder="VD: 0912345678"
+                  inputmode="numeric"
+                  maxlength="10"
+                  @input="form.soDienThoai = normalizePhoneInput(form.soDienThoai)"
+              />
             </div>
 
             <div class="col-12 col-lg-6">
               <label class="form-label">Email</label>
-              <input class="form-control" v-model="form.email" placeholder="Email" />
+              <input
+                  class="form-control"
+                  type="text"
+                  v-model="form.email"
+                  placeholder="VD: abc@gmail.com"
+              />
             </div>
 
             <div class="col-12 col-lg-6">
@@ -272,27 +284,6 @@
           >
             Áp dụng dữ liệu QR
           </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
-      <div
-          v-for="t in toast.state.items"
-          :key="t.id"
-          class="toast show align-items-center border-0 mb-2"
-          :class="toastClass(t.type)"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-      >
-        <div class="d-flex">
-          <div class="toast-body">
-            <div v-if="t.title" class="fw-semibold mb-1">{{ t.title }}</div>
-            <div>{{ t.message }}</div>
-          </div>
-
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="toast.remove(t.id)"></button>
         </div>
       </div>
     </div>
@@ -889,10 +880,31 @@ function generateNextCode(all) {
   return 'NV' + String(maxN + 1).padStart(3, '0')
 }
 
-function isDigitsOnly(v) {
-  const s = String(v ?? '').trim()
-  return s.length > 0 && /^\d+$/.test(s)
+function normalizeSpaces(v) {
+  return String(v == null ? '' : v).trim().replace(/\s+/g, ' ')
 }
+
+function normalizePhoneInput(v) {
+  return String(v == null ? '' : v).replace(/\D/g, '').slice(0, 10)
+}
+
+function isValidPhone(v) {
+  return /^0\d{9}$/.test(String(v || '').trim())
+}
+
+function isValidEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim())
+}
+
+function hasDigitInName(v) {
+  return /\d/.test(normalizeSpaces(v))
+}
+
+function hasSpecialCharInName(v) {
+  const s = normalizeSpaces(v)
+  return /[^\p{L}\s]/u.test(s)
+}
+
 function isAtLeast18(dateStr) {
   if (!dateStr) return false
   const dob = new Date(dateStr)
@@ -915,14 +927,50 @@ async function validateDuplicates(all) {
 }
 
 function validateForm() {
-  if (!String(form.maNhanVien || '').trim()) return 'Mã nhân viên không được trống'
-  if (!String(form.tenNhanVien || '').trim()) return 'Tên nhân viên không được trống'
+  if (!String(form.maNhanVien || '').trim()) {
+    return 'Mã nhân viên không được trống'
+  }
 
+  const tenNhanVien = normalizeSpaces(form.tenNhanVien)
+  const soDienThoai = String(form.soDienThoai || '').trim()
   const email = String(form.email || '').trim()
-  if (!email) return 'Email không được trống'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Email không hợp lệ'
 
-  if (!String(form.soDienThoai || '').trim() || !isDigitsOnly(form.soDienThoai)) return 'Số điện thoại phải là số'
+  if (!tenNhanVien) {
+    return 'Tên nhân viên không được trống'
+  }
+
+  if (tenNhanVien.length < 2) {
+    return 'Vui lòng nhập đúng tên nhân viên'
+  }
+
+  if (hasDigitInName(tenNhanVien)) {
+    return 'Tên nhân viên không được chứa số'
+  }
+
+  if (hasSpecialCharInName(tenNhanVien)) {
+    return 'Tên nhân viên không được chứa ký tự đặc biệt'
+  }
+
+  if (!soDienThoai) {
+    return 'Số điện thoại không được để trống'
+  }
+
+  if (!/^\d+$/.test(soDienThoai)) {
+    return 'Số điện thoại không được chứa chữ'
+  }
+
+  if (!isValidPhone(soDienThoai)) {
+    return 'Số điện thoại phải gồm 10 số và bắt đầu bằng số 0'
+  }
+
+  if (!email) {
+    return 'Email không được trống'
+  }
+
+  if (!isValidEmail(email)) {
+    return 'Email không hợp lệ'
+  }
+
   if (!form.ngaySinh || !isAtLeast18(form.ngaySinh)) return 'Nhân viên phải đủ 18 tuổi'
 
   if (!addr.provinceCode || !addr.wardCode || !String(addr.detail || '').trim()) {
@@ -1045,14 +1093,6 @@ async function submit() {
       saving.value = false
     }
   })
-}
-
-function toastClass(type) {
-  const t = String(type || 'info').toLowerCase()
-  if (t === 'success') return 'text-bg-success'
-  if (t === 'error') return 'text-bg-danger'
-  if (t === 'warning') return 'text-bg-warning'
-  return 'text-bg-info'
 }
 
 onMounted(loadData)

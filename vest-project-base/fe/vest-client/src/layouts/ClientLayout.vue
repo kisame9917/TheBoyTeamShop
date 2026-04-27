@@ -76,9 +76,9 @@
               <i class="bi bi-person"></i>
             </router-link>
 
-            <a href="#" class="text-white" aria-label="Yêu thích" @click.prevent>
-              <i class="bi bi-heart"></i>
-            </a>
+<!--            <a href="#" class="text-white" aria-label="Yêu thích" @click.prevent>-->
+<!--              <i class="bi bi-heart"></i>-->
+<!--            </a>-->
 
             <div class="cart-wrap" ref="cartWrap">
               <button
@@ -329,7 +329,7 @@ const route = useRoute();
 
 const cartOpen = ref(false);
 const cartWrap = ref(null);
-const { totalQty } = useCart();
+const { totalQty, clearCart, syncCart } = useCart();
 
 function toggleCart() {
   cartOpen.value = !cartOpen.value;
@@ -564,6 +564,10 @@ function logout() {
   logoutConfirmOpen.value = false;
   userMenuOpen.value = false;
   cartOpen.value = false;
+  cartToast.value.open = false;
+
+  clearCart();
+  syncCart();
 
   clearChatConversationStorage();
   clearClientAuthStorage();
@@ -571,6 +575,7 @@ function logout() {
   syncAuth();
 
   window.dispatchEvent(new Event('auth-changed'));
+  window.dispatchEvent(new Event('cart-changed'));
 
   router.push({ name: 'Home' });
 }

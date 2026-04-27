@@ -6,9 +6,9 @@
         <h6 class="mb-0 fw-semibold">Giao ca &amp; Kết toán</h6>
       </div>
 
-      <RouterLink class="btn btn-outline-secondary btn-sm" to="/my-schedule">
-        <i class="bi bi-calendar3 me-1"></i> Lịch của tôi
-      </RouterLink>
+<!--      <RouterLink class="btn btn-outline-secondary btn-sm" to="/my-schedule">-->
+<!--        <i class="bi bi-calendar3 me-1"></i> Lịch của tôi-->
+<!--      </RouterLink>-->
     </div>
 
     <!-- ADMIN -->

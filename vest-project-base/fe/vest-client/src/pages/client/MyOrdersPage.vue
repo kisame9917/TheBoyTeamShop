@@ -4,9 +4,7 @@
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h1 class="page-title mb-1">Đơn hàng của tôi</h1>
-          <p class="page-desc mb-0">
-            Trang này chỉ dành cho khách đã đăng nhập. Khách chưa đăng nhập vẫn dùng trang tra cứu công khai.
-          </p>
+         
         </div>
 
         <router-link :to="{ name: 'OrderLookup' }" class="btn btn-outline-secondary">
@@ -425,6 +423,7 @@
 import { computed, onMounted, ref } from "vue";
 import { getMyOrderDetail, getMyOrders, cancelMyOrder, updateMyOrderShipping, updateMyOrderItems } from "../../services/Api";
 import ChatWidget from "../../components/ClientChatWidget.vue";
+import { resolveMediaUrl } from "../../utils/media";
 import {
   canCancelOrder,
   canEditShipping,
@@ -538,8 +537,10 @@ function paymentStatusClass(value) {
 function normalizeImg(url) {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  return `http://localhost:8080${url}`;
+  if (url.startsWith("/")) return `http://localhost:8080${url}`;
+  return `http://localhost:8080/uploads/${url}`;
 }
+
 
 function onImgError(e) {
   e.target.src =

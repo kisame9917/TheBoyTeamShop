@@ -23,7 +23,6 @@ public class OnlineOrderLookupResponse {
     private String paymentStatus;
 
     private String tenKhachHang;
-
     private String soDienThoai;
 
     private String tenNguoiNhanHang;
