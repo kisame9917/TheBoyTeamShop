@@ -11,19 +11,23 @@ import com.vestshop.Repository.MessageRepo;
 import com.vestshop.Repository.SanPhamChiTietRepository;
 import com.vestshop.Service.AISuggestService;
 import com.vestshop.Service.ChatService;
+import com.vestshop.Service.NotificationRealtimeService;
 import com.vestshop.dto.AI.AISuggestResponse;
 import com.vestshop.dto.AI.ProductSuggestionDto;
 import com.vestshop.dto.response.ChatMessageResponse;
 import com.vestshop.dto.response.ChatSaveResult;
 import com.vestshop.dto.response.ConversationSummaryResponse;
-import org.springframework.stereotype.Service;
-import com.vestshop.Service.NotificationRealtimeService;
 import com.vestshop.dto.response.NotificationEventResponse;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.text.Normalizer;
-import java.util.*;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,12 +39,14 @@ public class ChatServiceImpl implements ChatService {
     private final MessageProductSuggestionRepo messageProductSuggestionRepo;
     private final SanPhamChiTietRepository sanPhamChiTietRepo;
     private final NotificationRealtimeService notificationRealtimeService;
+
     public ChatServiceImpl(
             ConversationRepo conversationRepo,
             MessageRepo messageRepo,
             AISuggestService aiSuggestService,
             MessageProductSuggestionRepo messageProductSuggestionRepo,
-            SanPhamChiTietRepository sanPhamChiTietRepo, NotificationRealtimeService notificationRealtimeService
+            SanPhamChiTietRepository sanPhamChiTietRepo,
+            NotificationRealtimeService notificationRealtimeService
     ) {
         this.conversationRepo = conversationRepo;
         this.messageRepo = messageRepo;
@@ -118,6 +124,7 @@ public class ChatServiceImpl implements ChatService {
 
                     return result;
                 }
+
                 AISuggestResponse aiResponse = aiSuggestService.suggestProducts(content);
 
                 String reply = (aiResponse != null && aiResponse.getReply() != null && !aiResponse.getReply().isBlank())
@@ -172,6 +179,7 @@ public class ChatServiceImpl implements ChatService {
                 conversationRepo.save(conversation);
             }
         }
+
         return result;
     }
 
@@ -351,19 +359,20 @@ public class ChatServiceImpl implements ChatService {
                 .trim();
         return s.replaceAll("\\s+", " ");
     }
+
     private void pushHumanHandoffNotification(Conversation conversation, Message clientMessage) {
         String customerName = resolveCustomerName(conversation);
 
-        notificationRealtimeService.pushToRole(
-                "ADMIN",
-                NotificationEventResponse.builder()
-                        .id("CHAT-HUMAN-" + conversation.getId() + "-" + System.currentTimeMillis())
-                        .title("Khách hàng " + customerName + " đang yêu cầu tiếp nhận")
-                        .time("Vừa xong")
-                        .link("/chat-support")
-                        .type("CHAT_NEEDS_HUMAN")
-                        .createdAt(OffsetDateTime.now().toString())
-                        .build()
-        );
+        NotificationEventResponse event = NotificationEventResponse.builder()
+                .id("CHAT-HUMAN-" + conversation.getId() + "-" + clientMessage.getId() + "-" + System.currentTimeMillis())
+                .title("Khách hàng - " + customerName + " đang yêu cầu tiếp nhận")
+                .time("Vừa xong")
+                .link("/chat-support?conversationId=" + conversation.getId())
+                .type("CHAT_NEEDS_HUMAN")
+                .createdAt(OffsetDateTime.now().toString())
+                .build();
+
+        notificationRealtimeService.pushToRole("ADMIN", event);
+        notificationRealtimeService.pushToRole("STAFF", event);
     }
 }
