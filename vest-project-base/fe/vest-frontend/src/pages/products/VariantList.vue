@@ -10,8 +10,29 @@
         <button class="btn btn-outline-secondary btn-sm" @click="openQrModal">
           <i class="bi bi-qr-code-scan me-1"></i>Quét QR
         </button>
-        <button class="btn btn-outline-primary btn-sm" @click="showExportModal = true">
+        <button
+          v-if="!isExportSelecting"
+          class="btn btn-outline-primary btn-sm"
+          type="button"
+          @click="startExportSelect"
+        >
           <i class="bi bi-download me-1"></i>Tải Excel
+        </button>
+        <button
+          v-else
+          class="btn btn-outline-primary btn-sm"
+          type="button"
+          @click="downloadExcel"
+        >
+          <i class="bi bi-download me-1"></i>Xuất đã chọn ({{ selectedExportCount }})
+        </button>
+        <button
+          v-if="isExportSelecting"
+          class="btn btn-outline-secondary btn-sm"
+          type="button"
+          @click="cancelExportSelect"
+        >
+          <i class="bi bi-x-circle me-1"></i>Hủy chọn
         </button>
         <button class="btn btn-primary btn-sm" @click="resetFilters">
           <i class="bi bi-list-check me-1"></i>Hiển thị đầy đủ biến thể
@@ -46,12 +67,20 @@
 
           <div class="col-12 col-lg-3">
             <label class="form-label small fw-semibold">Màu sắc</label>
-            <select v-model="filters.color" class="form-select">
-              <option value="">-- Chọn Màu sắc --</option>
-              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.ten">
-                {{ c.ten }}
-              </option>
-            </select>
+            <Multiselect
+              v-model="selectedColorFilter"
+              :options="attributes.mauSac"
+              track-by="id"
+              label="ten"
+              placeholder="-- Chọn Màu sắc --"
+              :searchable="true"
+              :allow-empty="true"
+              :show-labels="false"
+              class="filter-multiselect"
+            >
+              <template #noResult>Không tìm thấy màu sắc</template>
+              <template #noOptions>Không có màu sắc</template>
+            </Multiselect>
           </div>
 
           <div class="col-12 col-lg-3">
@@ -103,12 +132,20 @@
 
           <div class="col-12 col-lg-3">
             <label class="form-label small fw-semibold">Kích cỡ</label>
-            <select v-model="filters.size" class="form-select">
-              <option value="">-- Chọn Kích cỡ --</option>
-              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.soSize">
-                {{ s.soSize }}
-              </option>
-            </select>
+            <Multiselect
+              v-model="selectedSizeFilter"
+              :options="attributes.kichCo"
+              track-by="id"
+              label="soSize"
+              placeholder="-- Chọn Kích cỡ --"
+              :searchable="true"
+              :allow-empty="true"
+              :show-labels="false"
+              class="filter-multiselect"
+            >
+              <template #noResult>Không tìm thấy kích cỡ</template>
+              <template #noOptions>Không có kích cỡ</template>
+            </Multiselect>
           </div>
 
           <div class="col-12 col-lg-3 position-relative">
@@ -148,6 +185,14 @@
         <table class="table align-middle mb-0">
           <thead class="thead-dark">
           <tr>
+            <th v-if="isExportSelecting" class="text-center select-col">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :checked="isAllCurrentPageSelected"
+                @change="toggleCurrentPageExport($event.target.checked)"
+              />
+            </th>
             <th class="text-center">STT</th>
             <th class="text-center">Ảnh</th>
 
@@ -168,6 +213,14 @@
 
           <tbody>
           <tr v-for="(v, index) in pagedItems" :key="v.id">
+            <td v-if="isExportSelecting" class="text-center select-col">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :checked="isVariantSelected(v)"
+                @change="toggleVariantExport(v, $event.target.checked)"
+              />
+            </td>
             <td class="text-center">{{ currentPage * pageSize + index + 1 }}</td>
 
             <td class="text-center">
@@ -254,11 +307,11 @@
 
           <tr v-if="loading">
             <!-- ✅ colspan tăng 1 -->
-            <td colspan="12" class="text-center py-4">Đang tải dữ liệu...</td>
+            <td :colspan="isExportSelecting ? 13 : 12" class="text-center py-4">Đang tải dữ liệu...</td>
           </tr>
           <tr v-if="!loading && pagedItems.length === 0">
             <!-- ✅ colspan tăng 1 -->
-            <td colspan="12" class="text-center py-4">Không có dữ liệu</td>
+            <td :colspan="isExportSelecting ? 13 : 12" class="text-center py-4">Không có dữ liệu</td>
           </tr>
           </tbody>
         </table>
@@ -396,20 +449,32 @@
         <div class="row g-3">
           <div class="col-6">
             <label class="form-label small fw-semibold">Kích cỡ</label>
-            <select v-model="editingVariant.idKichCo" class="form-select">
-              <option v-for="s in attributes.kichCo" :key="s.id" :value="s.id">
-                {{ s.soSize }}
-              </option>
-            </select>
+            <Multiselect
+              v-model="selectedEditSize"
+              :options="attributes.kichCo"
+              track-by="id"
+              label="soSize"
+              placeholder="Chọn kích cỡ"
+              :searchable="true"
+              :allow-empty="false"
+              :show-labels="false"
+              class="filter-multiselect"
+            />
           </div>
 
           <div class="col-6">
             <label class="form-label small fw-semibold">Màu sắc</label>
-            <select v-model="editingVariant.idMauSac" class="form-select">
-              <option v-for="c in attributes.mauSac" :key="c.id" :value="c.id">
-                {{ c.ten }}
-              </option>
-            </select>
+            <Multiselect
+              v-model="selectedEditColor"
+              :options="attributes.mauSac"
+              track-by="id"
+              label="ten"
+              placeholder="Chọn màu sắc"
+              :searchable="true"
+              :allow-empty="false"
+              :show-labels="false"
+              class="filter-multiselect"
+            />
           </div>
 
           <div class="col-6">
@@ -494,6 +559,9 @@ import { emitTabSync, TAB_SYNC_EVENTS } from "@/utils/tabSync";
 import { useRouter } from 'vue-router'
 import { Html5Qrcode } from 'html5-qrcode'
 import QRCode from 'qrcode'
+import * as XLSX from 'xlsx'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
 import { getAllDetails, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
 import attributeService from '../../services/attributeService'
 import { useToast } from '../../composables/useToast'
@@ -530,6 +598,44 @@ const filters = reactive({
   priceMax: PRICE_MAX
 })
 
+const selectedColorFilter = computed({
+  get() {
+    return attributes.mauSac.find((c) => c.ten === filters.color) || null
+  },
+  set(value) {
+    filters.color = value?.ten || ''
+    currentPage.value = 0
+  }
+})
+
+const selectedSizeFilter = computed({
+  get() {
+    return attributes.kichCo.find((s) => String(s.soSize) === String(filters.size)) || null
+  },
+  set(value) {
+    filters.size = value?.soSize ?? ''
+    currentPage.value = 0
+  }
+})
+
+const selectedEditSize = computed({
+  get() {
+    return attributes.kichCo.find((s) => String(s.id) === String(editingVariant.idKichCo)) || null
+  },
+  set(value) {
+    editingVariant.idKichCo = value?.id || ''
+  }
+})
+
+const selectedEditColor = computed({
+  get() {
+    return attributes.mauSac.find((c) => String(c.id) === String(editingVariant.idMauSac)) || null
+  },
+  set(value) {
+    editingVariant.idMauSac = value?.id || ''
+  }
+})
+
 /** modals (giữ nguyên) */
 const showQrModal = ref(false)
 const showExportModal = ref(false)
@@ -545,6 +651,8 @@ const showQrPreviewModal = ref(false)
 const qrPreviewUrl = ref('')
 const qrPreviewCode = ref('')
 const qrPreviewVariant = ref(null)
+const isExportSelecting = ref(false)
+const selectedExportIds = ref([])
 let variantQrScanner = null
 
 const editingVariant = reactive({
@@ -717,13 +825,27 @@ onBeforeUnmount(() => {
   closeQrPreviewModal()
 })
 
+function getSizeValue(item) {
+  const raw = item?.soSize ?? item?.ten ?? ''
+  const num = Number(String(raw).replace(',', '.'))
+  return Number.isFinite(num) ? num : Number.MAX_SAFE_INTEGER
+}
+
+function sortSizes(list = []) {
+  return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
+    const byNumber = getSizeValue(a) - getSizeValue(b)
+    if (byNumber !== 0) return byNumber
+    return String(a?.soSize ?? a?.ten ?? '').localeCompare(String(b?.soSize ?? b?.ten ?? ''), 'vi')
+  })
+}
+
 async function loadAttributes() {
   try {
     const resSize = await attributeService.getAllList('kich-co')
-    attributes.kichCo = resSize.data
+    attributes.kichCo = sortSizes(resSize.data || [])
 
     const resColor = await attributeService.getAllList('mau-sac')
-    attributes.mauSac = resColor.data
+    attributes.mauSac = resColor.data || []
   } catch (e) {
     console.error(e)
   }
@@ -997,41 +1119,120 @@ async function handleFileUpload(event) {
   }
 }
 
+const selectedExportCount = computed(() => selectedExportIds.value.length)
+
+function getVariantExportKey(variant) {
+  return String(variant?.id ?? variant?.maSanPhamChiTiet ?? '')
+}
+
+function isVariantSelected(variant) {
+  const key = getVariantExportKey(variant)
+  return !!key && selectedExportIds.value.includes(key)
+}
+
+function toggleVariantExport(variant, checked) {
+  const key = getVariantExportKey(variant)
+  if (!key) return
+
+  if (checked) {
+    if (!selectedExportIds.value.includes(key)) {
+      selectedExportIds.value = [...selectedExportIds.value, key]
+    }
+    return
+  }
+
+  selectedExportIds.value = selectedExportIds.value.filter((id) => id !== key)
+}
+
+const isAllCurrentPageSelected = computed(() => {
+  if (!pagedItems.value.length) return false
+  return pagedItems.value.every((item) => isVariantSelected(item))
+})
+
+function toggleCurrentPageExport(checked) {
+  const currentIds = pagedItems.value
+    .map((item) => getVariantExportKey(item))
+    .filter(Boolean)
+
+  if (checked) {
+    selectedExportIds.value = Array.from(new Set([...selectedExportIds.value, ...currentIds]))
+    return
+  }
+
+  selectedExportIds.value = selectedExportIds.value.filter((id) => !currentIds.includes(id))
+}
+
+function startExportSelect() {
+  isExportSelecting.value = true
+  selectedExportIds.value = []
+}
+
+function cancelExportSelect() {
+  isExportSelecting.value = false
+  selectedExportIds.value = []
+}
+
+function getSelectedExportItems() {
+  const selectedSet = new Set(selectedExportIds.value)
+  return allItems.value.filter((item) => selectedSet.has(getVariantExportKey(item)))
+}
+
 /** export */
-function downloadCsv() {
+function buildVariantExcelRows(items = []) {
+  return items.map((v, i) => ({
+    STT: i + 1,
+    'Mã sản phẩm': v.maSanPham ?? '',
+    'Tên sản phẩm': v.tenSanPham ?? '',
+    'Mã SP chi tiết': v.maSanPhamChiTiet ?? '',
+    'Màu sắc': v.tenMauSac ?? '',
+    'Kích cỡ': v.tenKichCo ?? '',
+    'Số lượng tồn': v.soLuongTon ?? 0,
+    'Giá bán': v.donGia ?? 0,
+    'Trạng thái': v.trangThai ? 'Còn hàng' : 'Hết hàng',
+    'Ghi chú': v.ghiChu ?? ''
+  }))
+}
+
+function autoFitExcelColumns(ws, rows) {
+  const headers = Object.keys(rows[0] || {})
+  ws['!cols'] = headers.map((header) => {
+    const maxLength = Math.max(
+      String(header).length,
+      ...rows.map((row) => String(row[header] ?? '').length)
+    )
+    return { wch: Math.min(Math.max(maxLength + 2, 10), 45) }
+  })
+}
+
+function downloadExcel() {
   try {
-    const rows = filteredItems.value.map((v, i) => ({
-      STT: i + 1,
-      // ✅ thêm maSanPham + chỉnh thứ tự cho đúng yêu cầu
-      MaSP: v.maSanPham ?? '',
-      TenSanPham: v.tenSanPham ?? '',
-      MaSPCT: v.maSanPhamChiTiet ?? '',
-      MauSac: v.tenMauSac ?? '',
-      KichCo: v.tenKichCo ?? '',
-      SoLuongTon: v.soLuongTon ?? 0,
-      GiaBan: v.donGia ?? 0,
-      TrangThai: v.trangThai ? 'Còn hàng' : 'Hết hàng'
-    }))
+    const selectedItems = getSelectedExportItems()
+    if (!selectedItems.length) {
+      error('Vui lòng chọn biến thể cần xuất Excel')
+      return
+    }
 
-    const header = Object.keys(rows[0] || {
-      STT: '', MaSP: '', TenSanPham: '', MaSPCT: '', MauSac: '', KichCo: '', SoLuongTon: '', GiaBan: '', TrangThai: ''
+    const rows = buildVariantExcelRows(selectedItems)
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    autoFitExcelColumns(ws, rows)
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'DanhSachBienThe')
+
+    const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([arrayBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     })
-
-    const csv = [
-      header.join(','),
-      ...rows.map(r => header.map(h => `"${String(r[h] ?? '').replaceAll('"', '""')}"`).join(','))
-    ].join('\n')
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `bien-the-${Date.now()}.csv`
+    a.download = `danh-sach-bien-the-da-chon_${rows.length}_bien-the.xlsx`
     a.click()
     URL.revokeObjectURL(url)
 
-    showExportModal.value = false
-    success('Đã xuất file CSV (mở bằng Excel)')
+    success(`Đã xuất ${rows.length} biến thể ra Excel`)
+    cancelExportSelect()
   } catch (e) {
     console.error(e)
     error('Xuất file thất bại')
@@ -1454,5 +1655,28 @@ function onPriceBlur(e) {
 .color-dot,
 .color-dot-lg {
   border: 1px solid #d1d5db;
+}
+
+.filter-multiselect {
+  min-height: 38px;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  min-height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding-top: 7px;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+
+.select-col {
+  width: 44px;
+  min-width: 44px;
 }
 </style>
