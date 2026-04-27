@@ -542,20 +542,30 @@ function parseYMD(ymd) {
   if (!y || !m || !d) return null;
   return new Date(y, m - 1, d);
 }
+function todayDate() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function todayYMD() {
+  return flatpickr.formatDate(todayDate(), "Y-m-d");
+}
 
 function initPickers() {
   if (startPickerRef.value && !fpStart) {
-    fpStart = flatpickr(startPickerRef.value, {
-      locale: Vietnamese,
-      dateFormat: "d/m/Y",
-      allowInput: true,
-      defaultDate: parseYMD(form.value.ngayBatDau),
-      onChange: (selectedDates) => {
-        const d = selectedDates?.[0] || null;
-        form.value.ngayBatDau = d ? flatpickr.formatDate(d, "Y-m-d") : "";
-        if (fpEnd) fpEnd.set("minDate", d || null);
-      },
-    });
+  fpStart = flatpickr(startPickerRef.value, {
+  locale: Vietnamese,
+  dateFormat: "d/m/Y",
+  allowInput: false,
+  minDate: todayDate(),
+  defaultDate: parseYMD(form.value.ngayBatDau),
+  onChange: (selectedDates) => {
+    const d = selectedDates?.[0] || null;
+    form.value.ngayBatDau = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+    if (fpEnd) fpEnd.set("minDate", d || todayDate());
+  },
+});
   }
 
   if (endPickerRef.value && !fpEnd) {
@@ -572,8 +582,9 @@ function initPickers() {
     });
   }
 
-  if (fpEnd) fpEnd.set("minDate", form.value.ngayBatDau ? parseYMD(form.value.ngayBatDau) : null);
-  if (fpStart) fpStart.set("maxDate", form.value.ngayKetThuc ? parseYMD(form.value.ngayKetThuc) : null);
+ if (fpEnd) fpEnd.set("minDate", form.value.ngayBatDau ? parseYMD(form.value.ngayBatDau) : todayDate());
+if (fpStart) fpStart.set("minDate", todayDate());
+if (fpStart) fpStart.set("maxDate", form.value.ngayKetThuc ? parseYMD(form.value.ngayKetThuc) : null);
 }
 
 function openStartPicker() {
@@ -586,7 +597,7 @@ function openEndPicker() {
 function clearStartDate() {
   form.value.ngayBatDau = "";
   fpStart?.clear();
-  if (fpEnd) fpEnd.set("minDate", null);
+  if (fpEnd) fpEnd.set("minDate", todayDate());
 }
 function clearEndDate() {
   form.value.ngayKetThuc = "";
@@ -838,9 +849,10 @@ function validate() {
 
   if (!isNum(form.value.donHangToiThieu) || form.value.donHangToiThieu < 0) return "Đơn hàng tối thiểu phải >= 0";
 
-  if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu";
-  if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc";
-  if (form.value.ngayKetThuc < form.value.ngayBatDau) return "Ngày kết thúc phải >= ngày bắt đầu";
+if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu";
+if (form.value.ngayBatDau < todayYMD()) return "Ngày bắt đầu không được nhỏ hơn ngày hiện tại";
+if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc";
+if (form.value.ngayKetThuc < form.value.ngayBatDau) return "Ngày kết thúc phải >= ngày bắt đầu";
 
   if (!form.value.loaiGiam) {
     if (form.value.donHangToiThieu > 0 && form.value.giaTriGiam > form.value.donHangToiThieu) {

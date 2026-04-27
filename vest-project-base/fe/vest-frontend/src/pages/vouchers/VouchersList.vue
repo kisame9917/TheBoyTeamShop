@@ -1,6 +1,5 @@
 <template>
   <div class="container-fluid py-3">
-    <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-ticket-perforated fs-4"></i>
@@ -8,8 +7,7 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <!-- ✅ GIỮ MỌI THỨ NHƯ CŨ, CHỈ ĐỔI EXPORT -->
-        <button 
+        <button
           v-if="!exportMode"
           class="btn btn-outline-primary btn-sm"
           type="button"
@@ -39,13 +37,12 @@
           </button>
         </template>
 
-        <button class="btn btn-outline-secondary btn-sm" @click="goCreate">
+        <button class="btn btn-outline-primary btn-sm" @click="goCreate">
           <i class="bi bi-plus-lg me-1"></i> Thêm mới
         </button>
       </div>
     </div>
 
-    <!-- Filters -->
     <div class="card shadow-sm mb-3 filter-card">
       <div
         class="filter-header d-flex align-items-center justify-content-between"
@@ -174,7 +171,6 @@
       </div>
     </div>
 
-    <!-- Table -->
     <div class="card shadow-sm">
       <div class="card-body">
         <div v-if="loading" class="text-center py-5">
@@ -184,30 +180,31 @@
 
         <div v-else class="table-wrap">
           <table class="voucher-table">
-            <!-- ✅ chỉ thêm col cho checkbox KHI exportMode (liên quan Excel) -->
             <colgroup v-if="exportMode">
               <col style="width: 20px" />
-              <col style="width: 80px" />
-              <col style="width: 200px" />
-              <col style="width: 220px" />
-              <col style="width: 150px" />
+              <col style="width: 70px" />
+              <col style="width: 170px" />
+              <col style="width: 210px" />
               <col style="width: 130px" />
+              <col style="width: 130px" />
+              <col style="width: 160px" />
               <col style="width: 90px" />
-              <col style="width: 160px" />
-              <col style="width: 160px" />
+              <col style="width: 150px" />
+              <col style="width: 150px" />
               <col style="width: 120px" />
               <col style="width: 120px" />
             </colgroup>
 
             <colgroup v-else>
-              <col style="width: 80px" />
-              <col style="width: 200px" />
-              <col style="width: 220px" />
-              <col style="width: 150px" />
+              <col style="width: 70px" />
+              <col style="width: 170px" />
+              <col style="width: 210px" />
               <col style="width: 130px" />
+              <col style="width: 130px" />
+              <col style="width: 160px" />
               <col style="width: 90px" />
-              <col style="width: 160px" />
-              <col style="width: 160px" />
+              <col style="width: 150px" />
+              <col style="width: 150px" />
               <col style="width: 120px" />
               <col style="width: 120px" />
             </colgroup>
@@ -229,6 +226,7 @@
                 <th>Tên giảm giá</th>
                 <th>Loại phiếu</th>
                 <th>Giá trị giảm</th>
+                <th>Đơn hàng tối thiểu</th>
                 <th>Số lượng</th>
                 <th>Ngày bắt đầu</th>
                 <th>Ngày kết thúc</th>
@@ -239,7 +237,7 @@
 
             <tbody>
               <tr v-if="pagedItems.length === 0">
-                <td :colspan="exportMode ? 11 : 10" class="empty">Không có dữ liệu</td>
+                <td :colspan="exportMode ? 12 : 11" class="empty">Không có dữ liệu</td>
               </tr>
 
               <tr v-for="(v, idx) in pagedItems" :key="v.id">
@@ -265,6 +263,12 @@
 
                 <td>
                   <span class="ellipsis1" :title="renderGiaTriGiamRow(v)">{{ renderGiaTriGiamRow(v) }}</span>
+                </td>
+
+                <td>
+                  <span class="ellipsis1" :title="formatMoney(v.donHangToiThieu ?? 0)">
+                    {{ formatMoney(v.donHangToiThieu ?? 0) }}
+                  </span>
                 </td>
 
                 <td>{{ v.soLuong ?? 0 }}</td>
@@ -311,7 +315,6 @@
           </table>
         </div>
 
-        <!-- Pagination -->
         <div class="d-flex align-items-center mt-3 flex-column flex-md-row gap-2" v-if="totalPages > 0">
           <div class="text-muted flex-grow-1">
             Hiển thị {{ pagedItems.length }} / tổng {{ totalElements }} bản ghi
@@ -354,7 +357,6 @@
       </div>
     </div>
 
-    <!-- Confirm modal -->
     <div v-if="showConfirm" class="modal-overlay" @click.self="closeConfirm">
       <div class="modal-card">
         <h3 class="modal-title">Xác nhận</h3>
@@ -389,18 +391,12 @@ const toast = useToast();
 
 const API = "/api/pgg";
 
-// =====================
-// UI state
-// =====================
 const loading = ref(false);
 const error = ref("");
 const items = ref([]);
 
 const togglingIds = ref(new Set());
 
-// =====================
-// helpers (QUAN TRỌNG)
-// =====================
 function toBool(v, defaultVal = true) {
   if (v === null || v === undefined) return defaultVal;
   if (typeof v === "boolean") return v;
@@ -411,7 +407,6 @@ function toBool(v, defaultVal = true) {
   return defaultVal;
 }
 
-// ăn được: Array | {content: Array} | {data: Array} | {success,data} (nếu interceptor không unwrap)
 function extractList(raw) {
   if (Array.isArray(raw)) return raw;
   if (Array.isArray(raw?.content)) return raw.content;
@@ -420,9 +415,6 @@ function extractList(raw) {
   return [];
 }
 
-// =====================
-// Confirm modal
-// =====================
 const showConfirm = ref(false);
 const confirmText = ref("Bạn chắc chắn chứ?");
 const confirmLoading = ref(false);
@@ -433,16 +425,19 @@ function openConfirm(text, action) {
   pendingAction = typeof action === "function" ? action : null;
   showConfirm.value = true;
 }
+
 function closeConfirm() {
   if (confirmLoading.value) return;
   showConfirm.value = false;
   pendingAction = null;
 }
+
 async function confirmYes() {
   if (!pendingAction) {
     showConfirm.value = false;
     return;
   }
+
   confirmLoading.value = true;
   try {
     await pendingAction();
@@ -453,9 +448,6 @@ async function confirmYes() {
   }
 }
 
-// =====================
-// Filters
-// =====================
 const filters = reactive({
   keyword: "",
   loai: "",
@@ -465,15 +457,9 @@ const filters = reactive({
   to: "",
 });
 
-// =====================
-// Pagination
-// =====================
 const page = reactive({ page: 0, size: 10 });
 const pageInput = ref(1);
 
-// =====================
-// Query sync
-// =====================
 let applyingQuery = false;
 
 function buildListQuery() {
@@ -526,8 +512,8 @@ watch(
   }
 );
 
-// debounce
 let autoTimer = null;
+
 function autoApplyFilters(delay = 450) {
   clearTimeout(autoTimer);
   autoTimer = setTimeout(() => applyFilters(), delay);
@@ -548,13 +534,11 @@ function onChangeSize() {
 function goCreate() {
   router.push({ path: "/vouchers/create", query: buildListQuery() });
 }
+
 function goEdit(id) {
   router.push({ path: `/vouchers/update/${id}`, query: buildListQuery() });
 }
 
-// =====================
-// Date helpers
-// =====================
 function toDate(v) {
   if (!v) return null;
   const d = new Date(String(v));
@@ -577,9 +561,6 @@ function dateFromYMD(ymd, endOfDay = false) {
   return d;
 }
 
-// =====================
-// Biz status
-// =====================
 function getBizStatusText(v) {
   const start = toDate(v.ngayBatDau);
   const end = toDate(v.ngayKetThuc);
@@ -589,12 +570,15 @@ function getBizStatusText(v) {
   if (end && now > end) return "Kết thúc";
   return "Đang áp dụng";
 }
+
 function isEnded(v) {
   return getBizStatusText(v) === "Kết thúc";
 }
+
 function isActive(v) {
   return getBizStatusText(v) === "Đang áp dụng";
 }
+
 function isUpcoming(v) {
   return getBizStatusText(v) === "Sắp diễn ra";
 }
@@ -616,9 +600,6 @@ function isPersonal(v) {
   return String(lp || "").toUpperCase() === "CA_NHAN";
 }
 
-// =====================
-// normalize (ÉP BOOL Ở ĐÂY)
-// =====================
 function normalizeRow(x) {
   return {
     ...x,
@@ -629,20 +610,15 @@ function normalizeRow(x) {
     ngayTao: x.ngayTao ?? x.ngay_tao ?? null,
     maGiamGia: x.maGiamGia ?? x.ma_giam_gia ?? x.ma ?? null,
     tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia ?? null,
-
-    // ✅ quan trọng: ép bool để không bị filter rớt sạch
     trangThai: toBool(x.trangThai ?? x.trang_thai, true),
     loaiGiam: toBool(x.loaiGiam ?? x.loai_giam, true),
-
     giaTriPhanTram: x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? null,
     giaTriTienMat: x.giaTriTienMat ?? x.gia_tri_tien_mat ?? null,
+    donHangToiThieu: x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0,
     soLuong: x.soLuong ?? x.so_luong ?? 0,
   };
 }
 
-// =====================
-// Filtering
-// =====================
 const filteredItems = computed(() => {
   const kw = String(filters.keyword || "").trim().toLowerCase();
   const loai = String(filters.loai || "");
@@ -653,7 +629,6 @@ const filteredItems = computed(() => {
   const now = new Date();
 
   return (items.value || [])
-    // ✅ giờ trangThai đã boolean rồi
     .filter((v) => v.trangThai === true)
     .filter((v) => {
       if (!kw) return true;
@@ -718,9 +693,6 @@ const pagedItems = computed(() => {
   return sortedItems.value.slice(start, start + page.size);
 });
 
-// =====================
-// Pagination actions
-// =====================
 function setPage(p) {
   if (p < 0) return;
   if (totalPages.value && p > totalPages.value - 1) return;
@@ -737,9 +709,6 @@ function jumpPage() {
   syncQueryToUrl();
 }
 
-// =====================
-// Money render
-// =====================
 function formatMoney(v) {
   const n = Number(v);
   if (Number.isNaN(n)) return String(v ?? "-");
@@ -751,18 +720,17 @@ function renderGiaTriGiamRow(v) {
     const pct = Number(v?.giaTriPhanTram ?? 0);
     return `${pct}%`;
   }
+
   const money = Number(v?.giaTriTienMat ?? 0);
   return formatMoney(money);
 }
 
-// =====================
-// APIs
-// =====================
 const getAllPhieuGiamGia = async () => await http.get(API);
 
 async function apiStartNow(id) {
   await http.put(`${API}/start/${id}`);
 }
+
 async function apiEndNow(id) {
   await http.put(`${API}/end-pgg/${id}`);
 }
@@ -794,10 +762,10 @@ async function onToggleBiz(v, evt) {
           await apiStartNow(v.id);
           await reload();
           emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
-      voucherId: v.id,
-      maGiamGia: v.maGiamGia,
-      action: "START_NOW",
-    });
+            voucherId: v.id,
+            maGiamGia: v.maGiamGia,
+            action: "START_NOW",
+          });
         });
         toast.success(`✅ Đã bắt đầu áp dụng: ${label}`);
       });
@@ -810,11 +778,11 @@ async function onToggleBiz(v, evt) {
       await doWithLock(async () => {
         await apiStartNow(v.id);
         await reload();
-         emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
-      voucherId: v.id,
-      maGiamGia: v.maGiamGia,
-      action: "START_NOW",
-    });
+        emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
+          voucherId: v.id,
+          maGiamGia: v.maGiamGia,
+          action: "START_NOW",
+        });
       });
       toast.success(`✅ Đã bật: ${label}`);
     });
@@ -830,10 +798,10 @@ async function onToggleBiz(v, evt) {
           await apiEndNow(v.id);
           await reload();
           emitTabSync(TAB_SYNC_EVENTS.VOUCHER_CHANGED, {
-      voucherId: v.id,
-      maGiamGia: v.maGiamGia,
-      action: "END_NOW",
-    });
+            voucherId: v.id,
+            maGiamGia: v.maGiamGia,
+            action: "END_NOW",
+          });
         });
         toast.info(`⛔ Đã kết thúc: ${label}`);
       });
@@ -845,9 +813,6 @@ async function onToggleBiz(v, evt) {
   }
 }
 
-// =====================
-// Export Excel (giữ nguyên của bạn)
-// =====================
 const exportMode = ref(false);
 const exporting = ref(false);
 const selectedIds = ref([]);
@@ -856,6 +821,7 @@ const selectedRows = reactive({});
 function openExportMode() {
   exportMode.value = true;
 }
+
 function cancelExportMode() {
   exportMode.value = false;
   selectedIds.value = [];
@@ -895,6 +861,7 @@ function toExcelRow(v) {
     "Loại phiếu": isPersonal(v) ? "Cá nhân" : "Công khai",
     "Loại giảm": v.loaiGiam ? "Giảm %" : "Giảm tiền",
     "Giá trị giảm": v.loaiGiam ? `${Number(v.giaTriPhanTram ?? 0)}%` : Number(v.giaTriTienMat ?? 0),
+    "Đơn hàng tối thiểu": Number(v.donHangToiThieu ?? 0),
     "Số lượng": Number(v.soLuong ?? 0),
     "Ngày bắt đầu": formatDate(v.ngayBatDau),
     "Ngày kết thúc": formatDate(v.ngayKetThuc),
@@ -922,6 +889,7 @@ async function exportSelectedToExcel() {
       { wch: 12 },
       { wch: 12 },
       { wch: 14 },
+      { wch: 18 },
       { wch: 10 },
       { wch: 14 },
       { wch: 14 },
@@ -951,7 +919,7 @@ async function exportSelectedToExcel() {
     URL.revokeObjectURL(url);
 
     cancelExportMode();
-    toast.success(`✅ Xuất Excel thành công (${rows.length} dòng)`);
+    toast.success(` Xuất Excel thành công`);
   } catch (e) {
     console.error(e);
     toast.error("Xuất Excel thất bại.");
@@ -960,9 +928,6 @@ async function exportSelectedToExcel() {
   }
 }
 
-// =====================
-// Flatpickr
-// =====================
 const fromPickerRef = ref(null);
 const toPickerRef = ref(null);
 let fpFrom = null;
@@ -1008,14 +973,17 @@ function initPickers() {
 function openFromPicker() {
   fpFrom?.open();
 }
+
 function openToPicker() {
   fpTo?.open();
 }
+
 function clearFromDate() {
   filters.from = "";
   fpFrom?.clear();
   applyFilters();
 }
+
 function clearToDate() {
   filters.to = "";
   fpTo?.clear();
@@ -1028,6 +996,7 @@ watch(
     if (fpTo) fpTo.set("minDate", v ? parseYMD(v) : null);
   }
 );
+
 watch(
   () => filters.to,
   (v) => {
@@ -1035,9 +1004,6 @@ watch(
   }
 );
 
-// =====================
-// Reset
-// =====================
 function resetFilters() {
   filters.keyword = "";
   filters.loai = "";
@@ -1057,12 +1023,10 @@ function resetFilters() {
   syncQueryToUrl();
 }
 
-// =====================
-// Load data (ĂN content/page)
-// =====================
 async function reload() {
   loading.value = true;
   error.value = "";
+
   try {
     const raw = await getAllPhieuGiamGia();
     const list = extractList(raw);
@@ -1074,9 +1038,6 @@ async function reload() {
   }
 }
 
-// =====================
-// mount/unmount
-// =====================
 onMounted(async () => {
   restoreFromQuery(route.query);
 
@@ -1101,15 +1062,13 @@ onBeforeUnmount(() => {
 });
 </script>
 
-
-
 <style scoped>
-/* ===== Filter ===== */
 .filter-card {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid #e9ecef;
 }
+
 .filter-header {
   background: #1f2a44;
   color: #fff;
@@ -1118,12 +1077,15 @@ onBeforeUnmount(() => {
   user-select: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
+
 .filter-title {
   font-weight: 700;
 }
+
 .filter-hint {
   opacity: 0.75;
 }
+
 .filter-icon {
   display: inline-flex;
   width: 26px;
@@ -1135,21 +1097,24 @@ onBeforeUnmount(() => {
   font-size: 12px;
   transition: transform 0.2s ease;
 }
+
 .filter-header[aria-expanded="false"] .filter-icon {
   transform: rotate(-90deg);
 }
+
 .filter-body {
   background: #f8fafc;
 }
+
 .filter-card .form-label {
   font-weight: 600;
 }
+
 .filter-card .form-control,
 .filter-card .form-select {
   border-radius: 10px;
 }
 
-/* ===== Table (zoom-safe) ===== */
 .table-wrap {
   border: 1px solid #dee2e6;
   border-radius: 12px;
@@ -1157,14 +1122,16 @@ onBeforeUnmount(() => {
   background: #fff;
   text-align: center;
 }
+
 .voucher-table {
   width: 100%;
-  min-width: 1180px;
+  min-width: 1320px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   transform: translateZ(0);
 }
+
 .voucher-table th,
 .voucher-table td {
   padding: 12px 12px;
@@ -1173,31 +1140,33 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   box-sizing: border-box;
 }
+
 .voucher-table thead th {
   background: #1f2a44;
   color: #fff;
   font-weight: 700;
 }
+
 .ellipsis {
   display: block;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .ellipsis1 {
   display: block;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* font-weight: bold; */
 }
+
 .empty {
   text-align: center;
   padding: 18px 0;
   color: #6b7280;
 }
 
-/* pill */
 .pill {
   display: inline-block;
   padding: 4px 10px;
@@ -1205,30 +1174,32 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 600;
 }
+
 .pill-public {
   background: #1d4ed8;
   color: #f1f5f9;
 }
+
 .pill-personal {
   background: #fef3c7;
   color: #92400e;
 }
 
-/* badge */
 .badge-success {
   background: #1d4ed8;
   color: #f1f5f9;
 }
+
 .badge-warning {
   background: #fef3c7;
   color: #92400e;
 }
+
 .badge-muted {
   background: #e5e7eb;
   color: #374151;
 }
 
-/* modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1238,6 +1209,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   z-index: 9999;
 }
+
 .modal-card {
   width: min(420px, calc(100% - 32px));
   background: #fff;
@@ -1245,33 +1217,35 @@ onBeforeUnmount(() => {
   padding: 18px 18px 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
+
 .modal-title {
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 700;
 }
+
 .modal-desc {
   margin: 0 0 14px;
   color: #555;
   line-height: 1.4;
 }
+
 .modal-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
 }
 
-/* ✅ export modal (giữ nguyên như cũ, không ảnh hưởng vì không dùng nữa) */
 .export-modal {
   width: min(740px, calc(100% - 32px));
 }
+
 .export-cols {
   max-height: 260px;
   overflow: auto;
   padding-right: 6px;
 }
 
-/* switch */
 .switch {
   position: relative;
   display: inline-block;
@@ -1279,9 +1253,11 @@ onBeforeUnmount(() => {
   height: 22px;
   vertical-align: middle;
 }
+
 .switch input {
   display: none;
 }
+
 .slider {
   position: absolute;
   inset: 0;
@@ -1290,6 +1266,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: 0.2s;
 }
+
 .slider::before {
   content: "";
   position: absolute;
@@ -1301,12 +1278,15 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   transition: 0.2s;
 }
+
 .switch input:checked + .slider {
   background-color: #1d4ed8;
 }
+
 .switch input:checked + .slider::before {
   transform: translateX(20px);
 }
+
 .switch input:disabled + .slider {
   opacity: 0.55;
   cursor: not-allowed;
