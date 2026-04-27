@@ -1,15 +1,17 @@
 import { defineStore } from "pinia";
-import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 
 function getRole() {
-  return String(localStorage.getItem("vest_role") || localStorage.getItem("role") || "").toUpperCase();
+  return String(
+    localStorage.getItem("vest_role") || localStorage.getItem("role") || ""
+  ).toUpperCase();
 }
 
 function getUserId() {
   try {
     const raw = localStorage.getItem("vest_user");
     if (!raw) return null;
+
     const u = JSON.parse(raw);
     return u?.id || u?.idNhanVien || u?.userId || null;
   } catch {
@@ -18,7 +20,11 @@ function getUserId() {
 }
 
 function baseUrl() {
-  return import.meta.env.VITE_API_URL || "http://localhost:8080";
+  return (
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE ||
+    "http://localhost:8080"
+  ).replace(/\/+$/, "");
 }
 
 function normalizeNoti(raw) {
@@ -52,7 +58,9 @@ export const useNotificationStore = defineStore("notification", {
 
     loadLocal() {
       try {
-        this.items = JSON.parse(localStorage.getItem("vest_notifications") || "[]");
+        this.items = JSON.parse(
+          localStorage.getItem("vest_notifications") || "[]"
+        );
       } catch {
         this.items = [];
       }
@@ -60,6 +68,7 @@ export const useNotificationStore = defineStore("notification", {
 
     add(item) {
       const n = normalizeNoti(item);
+
       const existed = this.items.some((x) => String(x.id) === String(n.id));
       if (existed) return;
 
@@ -71,6 +80,7 @@ export const useNotificationStore = defineStore("notification", {
     markRead(id) {
       const n = this.items.find((x) => String(x.id) === String(id));
       if (!n) return;
+
       n.read = true;
       this.saveLocal();
     },
@@ -83,10 +93,10 @@ export const useNotificationStore = defineStore("notification", {
     connect() {
       if (this.stompClient) return;
 
-      const socket = new SockJS(`${baseUrl()}/ws`);
+      const wsUrl = baseUrl().replace(/^http/, "ws") + "/ws";
 
       const client = new Client({
-        webSocketFactory: () => socket,
+        brokerURL: wsUrl,
         reconnectDelay: 3000,
         debug: () => {},
       });
@@ -131,11 +141,14 @@ export const useNotificationStore = defineStore("notification", {
         this.stompClient.deactivate();
         this.stompClient = null;
       }
+
       this.connected = false;
+      this.inited = false;
     },
 
     init() {
       if (this.inited) return;
+
       this.loadLocal();
       this.connect();
       this.inited = true;

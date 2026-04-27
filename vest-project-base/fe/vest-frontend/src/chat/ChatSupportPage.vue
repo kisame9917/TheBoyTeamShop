@@ -4,14 +4,9 @@
       <div>
         <div class="title">Chat hỗ trợ</div>
       </div>
-
-      <div class="join-box">
-        <span class="ws-pill" :class="wsStatusClass">{{ wsStatus }}</span>
-      </div>
     </div>
 
     <div class="body">
-      <!-- Left -->
       <div class="side">
         <div class="card side-card">
           <div class="side-header">
@@ -47,7 +42,7 @@
               :key="c.conversationId"
               class="conv-item list-style"
               :class="{
-                active: c.conversationId === conversationId,
+                active: String(c.conversationId) === String(conversationId),
                 urgent: c.needsHuman
               }"
               @click="openConversation(c.conversationId)"
@@ -87,7 +82,7 @@
 
               <div v-if="c.needsHuman" class="conv-actions">
                 <button class="take-btn" @click.stop="takeConversation(c)">
-                   Tiếp nhận
+                  Tiếp nhận
                 </button>
               </div>
             </button>
@@ -95,7 +90,6 @@
         </div>
       </div>
 
-      <!-- Right -->
       <div class="chat">
         <div class="chat-top">
           <div class="chat-top-left">
@@ -193,13 +187,17 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, nextTick } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, nextTick, watch } from "vue";
+import { useRoute } from "vue-router";
 import axios from "axios";
 import { Client } from "@stomp/stompjs";
 import { useAuthStore } from "@/stores/auth";
 
 const API = "http://localhost:8080";
+const LAST_CONVERSATION_KEY = "vest_chat_support_last_conversation_id";
+
 const auth = useAuthStore();
+const route = useRoute();
 
 const adminId = computed(
   () => auth.user?.id || localStorage.getItem("adminId") || "1"
@@ -240,15 +238,7 @@ const conversationId = ref(null);
 const messages = ref([]);
 const input = ref("");
 const msgBox = ref(null);
-
 const wsStatus = ref("DISCONNECTED");
-const wsStatusClass = computed(() => {
-  if (wsStatus.value === "CONNECTED") return "ok";
-  if (wsStatus.value === "CONNECTING") return "warn";
-  if (wsStatus.value === "ERROR") return "err";
-  return "muted";
-});
-
 const conversations = ref([]);
 
 const mainTab = ref("CUSTOMER");
@@ -356,10 +346,12 @@ function isSameMessage(a, b) {
 
 function dedupeMessages(list) {
   const unique = [];
+
   for (const msg of list || []) {
     const exists = unique.some((m) => isSameMessage(m, msg));
     if (!exists) unique.push(msg);
   }
+
   return unique;
 }
 
@@ -375,6 +367,8 @@ function normalizeConversationItem(c) {
     "";
 
   const lastMessage = c.lastMessage ?? "";
+  const needsHuman = Boolean(c.needsHuman ?? isHumanSupportRequest(lastMessage));
+  const isTaken = Boolean(c.isTaken ?? false);
 
   return {
     conversationId: c.id ?? c.conversationId,
@@ -382,11 +376,11 @@ function normalizeConversationItem(c) {
     lastMessage,
     lastAt: c.lastAt ?? c.createdAt ?? c.updatedAt ?? null,
     unreadCount: Number(c.unreadCount || 0),
-    needsHuman: isHumanSupportRequest(lastMessage),
+    needsHuman,
     status: c.status ?? "ACTIVE",
     isInternal: Boolean(c.isInternal ?? false),
-    handledByAI: Boolean(c.handledByAI ?? false),
-    isTaken: Boolean(c.isTaken ?? false),
+    handledByAI: Boolean(c.handledByAI ?? (!needsHuman && !isTaken)),
+    isTaken,
     takenByName: c.takenByName ?? "",
   };
 }
@@ -416,6 +410,7 @@ function upsertConversationFromMessage(msg) {
     "";
 
   const resolvedName = String(rawName).trim() || "Khách vãng lai";
+  const needsHuman = isHumanSupportRequest(msg.content);
 
   const item = {
     conversationId: id,
@@ -423,10 +418,10 @@ function upsertConversationFromMessage(msg) {
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : 1,
-    needsHuman: isHumanSupportRequest(msg.content),
+    needsHuman,
     status: msg.status ?? "ACTIVE",
     isInternal: Boolean(msg.isInternal ?? false),
-    handledByAI: Boolean(msg.senderType === "BOT" || msg.handledByAI),
+    handledByAI: Boolean(msg.senderType === "BOT" || msg.handledByAI || (!needsHuman && msg.senderType !== "ADMIN")),
     isTaken: Boolean(msg.isTaken ?? false),
     takenByName: msg.takenByName ?? "",
   };
@@ -446,9 +441,14 @@ function upsertConversationFromMessage(msg) {
     lastMessage: msg.content,
     lastAt: msg.createdAt,
     unreadCount: isActive ? 0 : unread + 1,
-    needsHuman: isHumanSupportRequest(msg.content),
+    needsHuman,
     status: msg.status ?? current.status,
-    handledByAI: msg.senderType === "BOT" ? true : current.handledByAI,
+    handledByAI:
+      msg.senderType === "BOT"
+        ? true
+        : needsHuman
+        ? false
+        : current.handledByAI,
     isTaken:
       msg.senderType === "ADMIN"
         ? true
@@ -461,12 +461,18 @@ function upsertConversationFromMessage(msg) {
 }
 
 async function loadHistory(id) {
-  const res = await axios.get(`${API}/api/chat/messages`, {
-    params: { conversationId: id },
-  });
+  if (!id) return;
 
-  messages.value = dedupeMessages(Array.isArray(res.data) ? res.data : []);
-  nextTick(scrollBottom);
+  try {
+    const res = await axios.get(`${API}/api/chat/messages`, {
+      params: { conversationId: id },
+    });
+
+    messages.value = dedupeMessages(Array.isArray(res.data) ? res.data : []);
+    nextTick(scrollBottom);
+  } catch (e) {
+    console.warn("Load chat history failed:", e?.message || e);
+  }
 }
 
 async function refreshList() {
@@ -538,6 +544,7 @@ function subscribeRoom(id) {
     const msg = JSON.parse(frame.body);
 
     const exists = messages.value.some((m) => isSameMessage(m, msg));
+
     if (!exists) {
       messages.value.push(msg);
       nextTick(scrollBottom);
@@ -549,12 +556,14 @@ function subscribeRoom(id) {
 
     if (idx !== -1) {
       const current = conversations.value[idx];
+      const needsHuman = isHumanSupportRequest(msg.content);
+
       current.lastMessage = msg.content;
       current.lastAt = msg.createdAt;
       current.customerName =
         current.customerName || msg.customerName || "Khách vãng lai";
       current.status = msg.status ?? current.status;
-      current.needsHuman = isHumanSupportRequest(msg.content);
+      current.needsHuman = needsHuman;
 
       if (msg.senderType === "BOT") {
         current.handledByAI = true;
@@ -575,13 +584,17 @@ function subscribeRoom(id) {
 }
 
 async function openConversation(id) {
+  if (!id) return;
+
   connectWsIfNeeded();
 
   conversationId.value = id;
+  localStorage.setItem(LAST_CONVERSATION_KEY, String(id));
 
   const idx = conversations.value.findIndex(
     (x) => String(x.conversationId) === String(id)
   );
+
   if (idx !== -1) {
     conversations.value[idx].unreadCount = 0;
   }
@@ -612,6 +625,7 @@ function send() {
   const idx = conversations.value.findIndex(
     (x) => String(x.conversationId) === String(conversationId.value)
   );
+
   if (idx !== -1) {
     conversations.value[idx].isTaken = true;
     conversations.value[idx].takenByName = adminLabel.value;
@@ -650,9 +664,44 @@ async function takeConversation(c) {
   }
 }
 
+async function openConversationFromQuery() {
+  const id = Number(route.query.conversationId);
+
+  if (!id) return false;
+  if (String(id) === String(conversationId.value)) return true;
+
+  await refreshList();
+  await openConversation(id);
+
+  return true;
+}
+
+watch(
+  () => route.query.conversationId,
+  async () => {
+    await openConversationFromQuery();
+  }
+);
+
 onMounted(async () => {
   connectWsIfNeeded();
   await refreshList();
+
+  const openedFromQuery = await openConversationFromQuery();
+
+  if (openedFromQuery) return;
+
+  const savedId = localStorage.getItem(LAST_CONVERSATION_KEY);
+
+  if (savedId) {
+    const exists = conversations.value.some(
+      (x) => String(x.conversationId) === String(savedId)
+    );
+
+    if (exists) {
+      await openConversation(savedId);
+    }
+  }
 });
 
 onBeforeUnmount(() => {
@@ -689,42 +738,6 @@ onBeforeUnmount(() => {
   font-size: 20px;
   font-weight: 800;
   color: #0f172a;
-}
-
-.join-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.ws-pill {
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.ws-pill.ok {
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
-}
-
-.ws-pill.warn {
-  background: rgba(245, 158, 11, 0.14);
-  color: #92400e;
-}
-
-.ws-pill.err {
-  background: rgba(239, 68, 68, 0.12);
-  color: #b91c1c;
-}
-
-.ws-pill.muted {
-  background: rgba(100, 116, 139, 0.12);
-  color: #334155;
 }
 
 .body {
