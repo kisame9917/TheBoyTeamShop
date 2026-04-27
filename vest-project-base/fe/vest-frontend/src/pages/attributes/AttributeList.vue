@@ -18,9 +18,36 @@
         </div>
 
         <div class="action-group">
-          <button class="btn btn-outline-secondary" type="button" @click="exportExcel">
-            Xuất Excel
+          <button
+            v-if="!exportMode"
+            class="btn btn-outline-secondary"
+            type="button"
+            :disabled="loading || filteredItems.length === 0"
+            @click="openExportMode"
+          >
+            <i class="bi bi-download me-2"></i> Tải Excel
           </button>
+
+          <template v-else>
+            <button
+              class="btn btn-primary"
+              type="button"
+              :disabled="selectedIds.length === 0 || exporting"
+              @click="exportSelectedToExcel"
+            >
+              <i class="bi bi-file-earmark-excel me-2"></i>
+              {{ exporting ? 'Đang xuất...' : `Xuất Excel (${selectedIds.length})` }}
+            </button>
+
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              :disabled="exporting"
+              @click="cancelExportMode"
+            >
+              <i class="bi bi-x-lg me-2"></i> Hủy
+            </button>
+          </template>
 
           <button class="btn btn-primary" type="button" @click="openModal('create')">
             + Thêm {{ title.toLowerCase() }}
@@ -31,31 +58,61 @@
 
     <!-- Table -->
     <div class="card table-card">
+      <div v-if="exportMode" class="table-header-info">
+        <div class="export-hint">
+          Đang chọn để xuất Excel — đã chọn: <b>{{ selectedIds.length }}</b>
+        </div>
+      </div>
+
       <div class="table-responsive">
-        <table class="table table-custom">
+        <table class="table table-custom attribute-table">
+          <colgroup>
+            <col v-if="exportMode" class="col-check" />
+            <col class="col-stt" />
+            <col class="col-code" />
+            <col class="col-name" />
+            <col class="col-status" />
+            <col class="col-action" />
+          </colgroup>
           <thead>
             <tr>
-              <th class="text-center" style="width: 80px;">STT</th>
-              <th class="text-center" style="width: 160px;">Mã</th>
-              <th>{{ title }}</th>
-              <th class="text-center" style="width: 160px;">Trạng thái</th>
-              <th class="text-center" style="width: 180px;">Hành động</th>
+              <th v-if="exportMode" class="text-center">
+                <input
+                  type="checkbox"
+                  :disabled="pagedItems.length === 0"
+                  :checked="allVisibleSelected"
+                  @change="toggleSelectAllVisible($event.target.checked)"
+                  title="Chọn tất cả trang hiện tại"
+                />
+              </th>
+              <th class="text-center">STT</th>
+              <th class="text-center">Mã</th>
+              <th class="attr-name-cell">{{ title }}</th>
+              <th class="text-center">Trạng thái</th>
+              <th class="text-center">Hành động</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="text-center">Đang tải dữ liệu...</td>
+              <td :colspan="tableColspan" class="text-center">Đang tải dữ liệu...</td>
             </tr>
 
             <tr v-else-if="pagedItems.length === 0">
-              <td colspan="5" class="text-center">Không có dữ liệu</td>
+              <td :colspan="tableColspan" class="text-center">Không có dữ liệu</td>
             </tr>
 
             <tr v-else v-for="(item, index) in pagedItems" :key="item.id">
+              <td v-if="exportMode" class="text-center">
+                <input
+                  type="checkbox"
+                  :checked="isSelected(item.id)"
+                  @change="toggleSelect(item, $event.target.checked)"
+                />
+              </td>
               <td class="text-center">{{ startIndex + index + 1 }}</td>
               <td class="text-center">{{ item.ma }}</td>
-              <td>{{ displayName(item) }}</td>
+              <td class="attr-name-cell">{{ displayName(item) }}</td>
 
               <td class="text-center">
                 <span :class="['badge', item.trangThai ? 'badge-success' : 'badge-danger']">
@@ -204,6 +261,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import * as XLSX from 'xlsx'
 import attributeService from '../../services/attributeService'
 import { useToast } from '../../composables/useToast'
 
@@ -273,12 +331,59 @@ function genNextCode() {
  * ======================= */
 const items = ref([])
 const loading = ref(false)
+const exporting = ref(false)
 const searchQuery = ref('')
 
 function displayName(item) {
   if (!item) return ''
   if (!isSize.value) return item.ten ?? ''
   return item.soSize ?? item.ten ?? ''
+}
+
+const exportMode = ref(false)
+const selectedIds = ref([])
+const selectedRows = reactive({})
+
+function openExportMode() {
+  exportMode.value = true
+}
+
+function clearSelectedRows() {
+  selectedIds.value = []
+  Object.keys(selectedRows).forEach((key) => delete selectedRows[key])
+}
+
+function cancelExportMode() {
+  exportMode.value = false
+  clearSelectedRows()
+}
+
+const tableColspan = computed(() => (exportMode.value ? 6 : 5))
+
+function isSelected(id) {
+  return selectedIds.value.includes(id)
+}
+
+function toggleSelect(row, checked) {
+  const id = row?.id
+  if (!id) return
+
+  if (checked) {
+    if (!selectedIds.value.includes(id)) selectedIds.value.push(id)
+    selectedRows[id] = { ...row }
+  } else {
+    selectedIds.value = selectedIds.value.filter((x) => x !== id)
+    delete selectedRows[id]
+  }
+}
+
+const allVisibleSelected = computed(() => {
+  if (!exportMode.value || pagedItems.value.length === 0) return false
+  return pagedItems.value.every((item) => selectedIds.value.includes(item.id))
+})
+
+function toggleSelectAllVisible(checked) {
+  pagedItems.value.forEach((item) => toggleSelect(item, checked))
 }
 
 /* =======================
@@ -418,7 +523,10 @@ async function fetchData() {
 }
 
 onMounted(fetchData)
-watch(type, fetchData)
+watch(type, () => {
+  cancelExportMode()
+  fetchData()
+})
 
 /* =======================
  * Modal
@@ -559,11 +667,92 @@ async function toggleStatus(item, next) {
   }
 }
 
-/* =======================
- * Excel stub
- * ======================= */
-function exportExcel() {
-  success('Chức năng xuất Excel sẽ bổ sung sau')
+function excelStatusText(value) {
+  return value ? 'Hoạt động' : 'Ngừng hoạt động'
+}
+
+function toExcelRow(item, index) {
+  return {
+    STT: index + 1,
+    Mã: item?.ma ?? '',
+    [title.value]: displayName(item),
+    'Trạng thái': excelStatusText(!!item?.trangThai)
+  }
+}
+
+function autoFitExcelColumns(ws, rows) {
+  const headers = Object.keys(rows[0] || {})
+  ws['!cols'] = headers.map((header) => {
+    const maxLength = Math.max(
+      String(header).length,
+      ...rows.map((row) => String(row[header] ?? '').length)
+    )
+    return { wch: Math.min(Math.max(maxLength + 2, 10), 40) }
+  })
+}
+
+function removeVietnameseTones(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+}
+
+function safeFileName(value) {
+  return removeVietnameseTones(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'thuoc-tinh'
+}
+
+async function exportSelectedToExcel() {
+  if (selectedIds.value.length === 0) {
+    error(`Vui lòng chọn ${title.value.toLowerCase()} cần xuất Excel`)
+    return
+  }
+
+  const rows = selectedIds.value
+    .map((id) => selectedRows[id])
+    .filter(Boolean)
+    .map((item, index) => toExcelRow(item, index))
+
+  if (!rows.length) {
+    error(`Không tìm thấy dữ liệu ${title.value.toLowerCase()} đã chọn để xuất Excel`)
+    return
+  }
+
+  exporting.value = true
+
+  try {
+    const ws = XLSX.utils.json_to_sheet(rows)
+    autoFitExcelColumns(ws, rows)
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, safeFileName(title.value).slice(0, 31))
+
+    const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([arrayBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${safeFileName(title.value)}-da-chon_${rows.length}_ban-ghi.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+
+    success(`Xuất Excel ${title.value.toLowerCase()} đã chọn thành công`)
+    cancelExportMode()
+  } catch (e) {
+    console.error(e)
+    error('Xuất Excel thất bại. Vui lòng thử lại')
+  } finally {
+    exporting.value = false
+  }
 }
 </script>
 
@@ -644,6 +833,17 @@ function exportExcel() {
   border-bottom: 1px solid #f3f4f6;
   vertical-align: middle;
   color: #374151;
+}
+
+.table-header-info {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.export-hint {
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 /* badge */
@@ -850,4 +1050,49 @@ function exportExcel() {
   gap: 10px;
   padding: 0 16px 16px;
 }
+
+.attribute-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 860px;
+}
+
+.attribute-table .col-check {
+  width: 6%;
+}
+
+.attribute-table .col-stt {
+  width: 9%;
+}
+
+.attribute-table .col-code {
+  width: 17%;
+}
+
+.attribute-table .col-name {
+  width: 30%;
+}
+
+.attribute-table .col-status {
+  width: 18%;
+}
+
+.attribute-table .col-action {
+  width: 20%;
+}
+
+.attribute-table th,
+.attribute-table td {
+  vertical-align: middle;
+  padding-left: 14px;
+  padding-right: 14px;
+  white-space: nowrap;
+}
+
+.attribute-table .attr-name-cell {
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+}
+
 </style>
