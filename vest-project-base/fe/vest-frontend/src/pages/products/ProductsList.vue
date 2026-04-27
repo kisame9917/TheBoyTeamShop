@@ -7,7 +7,7 @@
       </div>
 
       <div class="page-actions">
-        <button class="btn btn-outline-secondary btn-sm" type="button" @click="scanQr">
+        <button class="btn btn-outline-primary btn-sm" type="button" @click="scanQr">
           <i class="bi bi-qr-code-scan me-2"></i> Quét QR
         </button>
 
@@ -43,7 +43,7 @@
           </button>
         </template>
 
-        <button class="btn btn-outline-secondary btn-sm" type="button" @click="createProduct">
+        <button class="btn btn-outline-primary btn-sm" type="button" @click="createProduct">
           <i class="bi bi-plus-lg me-2"></i> Thêm mới
         </button>
       </div>
@@ -77,12 +77,20 @@
 
           <div class="form-group fg-brand">
             <label>Thương hiệu</label>
-            <select v-model="filters.thuongHieu" class="form-input" @change="onFilterChanged">
-              <option value="">-- Chọn Thương hiệu --</option>
-              <option v-for="b in attributes.thuongHieu" :key="b.id" :value="String(b.id)">
-                {{ b.ten }}
-              </option>
-            </select>
+            <Multiselect
+              v-model="selectedBrandFilter"
+              :options="attributes.thuongHieu"
+              track-by="id"
+              label="ten"
+              placeholder="-- Chọn Thương hiệu --"
+              :searchable="true"
+              :allow-empty="true"
+              :show-labels="false"
+              class="filter-multiselect"
+            >
+              <template #noResult>Không tìm thấy thương hiệu</template>
+              <template #noOptions>Không có thương hiệu</template>
+            </Multiselect>
           </div>
 
           <div class="form-group fg-qty">
@@ -135,12 +143,20 @@
 
           <div class="form-group fg-type">
             <label>Loại sản phẩm</label>
-            <select v-model="filters.loai" class="form-input" @change="onFilterChanged">
-              <option value="">-- Chọn Loại sản phẩm --</option>
-              <option v-for="t in attributes.loaiSanPham" :key="t.id" :value="String(t.id)">
-                {{ t.ten }}
-              </option>
-            </select>
+            <Multiselect
+              v-model="selectedTypeFilter"
+              :options="attributes.loaiSanPham"
+              track-by="id"
+              label="ten"
+              placeholder="-- Chọn Loại sản phẩm --"
+              :searchable="true"
+              :allow-empty="true"
+              :show-labels="false"
+              class="filter-multiselect"
+            >
+              <template #noResult>Không tìm thấy loại sản phẩm</template>
+              <template #noOptions>Không có loại sản phẩm</template>
+            </Multiselect>
           </div>
 
           <div class="form-group fg-status">
@@ -342,6 +358,8 @@ import { onMounted, onBeforeUnmount, ref, reactive, computed, nextTick } from 'v
 import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
 import { Html5Qrcode } from 'html5-qrcode'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
 
 import attributeService from '../../services/attributeService'
 import { listSanPham, getGiaMaxDb } from '../../services/sanPhamApi'
@@ -384,6 +402,26 @@ const filters = reactive({
   status: '', // "" | "true" | "false"  (theo tồn kho)
   priceMin: 0,
   priceMax: DEFAULT_MAX
+})
+
+const selectedBrandFilter = computed({
+  get() {
+    return attributes.thuongHieu.find((b) => String(b.id) === String(filters.thuongHieu)) || null
+  },
+  set(value) {
+    filters.thuongHieu = value?.id ? String(value.id) : ''
+    onFilterChanged()
+  }
+})
+
+const selectedTypeFilter = computed({
+  get() {
+    return attributes.loaiSanPham.find((t) => String(t.id) === String(filters.loai)) || null
+  },
+  set(value) {
+    filters.loai = value?.id ? String(value.id) : ''
+    onFilterChanged()
+  }
 })
 
 /** ✅ Helpers: tồn kho */
@@ -721,12 +759,13 @@ async function reload() {
   }
 }
 
-/** Export FE: mỗi sản phẩm 1 file excel */
-function toExcelRow(p) {
+/** Export FE: gộp tất cả sản phẩm đã chọn vào 1 file Excel */
+function toExcelRow(p, index) {
   const giaMin = Number(p.giaMin ?? 0)
   const giaMax = Number(p.giaMax ?? p.giaMin ?? 0)
 
   return {
+    STT: index + 1,
     'Mã sản phẩm': p.maSanPham ?? '',
     'Tên sản phẩm': p.tenSanPham ?? '',
     'Loại sản phẩm': p.tenLoaiSanPham ?? '',
@@ -734,55 +773,62 @@ function toExcelRow(p) {
     'Hàng tồn': Number(p.soLuongTon ?? 0),
     'Giá min': giaMin,
     'Giá max': giaMax,
-    // ✅ export theo tồn kho
     'Trạng thái': isInStock(p) ? 'Còn hàng' : 'Hết hàng'
   }
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms))
+function autoFitExcelColumns(ws, rows) {
+  const headers = Object.keys(rows[0] || {})
+  ws['!cols'] = headers.map((header) => {
+    const maxLength = Math.max(
+      String(header).length,
+      ...rows.map((row) => String(row[header] ?? '').length)
+    )
+    return { wch: Math.min(Math.max(maxLength + 2, 10), 45) }
+  })
 }
 
 async function exportSelectedToExcel() {
   if (selectedIds.value.length === 0) return
 
+  const rows = selectedIds.value
+    .map((id) => selectedRows[id])
+    .filter(Boolean)
+    .map((p, index) => toExcelRow(p, index))
+
+  if (!rows.length) {
+    error.value = 'Không tìm thấy dữ liệu sản phẩm đã chọn để xuất Excel.'
+    return
+  }
+
   exporting.value = true
   error.value = ''
 
   try {
-    for (const id of selectedIds.value) {
-      const p = selectedRows[id]
-      if (!p) continue
+    const ws = XLSX.utils.json_to_sheet(rows)
+    autoFitExcelColumns(ws, rows)
 
-      const ws = XLSX.utils.json_to_sheet([toExcelRow(p)])
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'SanPham')
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'DanhSachSanPham')
 
-      const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-      const blob = new Blob([arrayBuffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      })
+    const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([arrayBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
 
-      const safeCode = String(p.maSanPham ?? id).replace(/[^\w\-]+/g, '_')
-      const safeName = String(p.tenSanPham ?? '').slice(0, 40).replace(/[^\w\-]+/g, '_')
-      const filename = `san-pham_${safeCode}${safeName ? '_' + safeName : ''}.xlsx`
-
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-
-      await sleep(120)
-    }
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `danh-sach-san-pham-da-chon_${rows.length}_san-pham.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
 
     cancelExportMode()
   } catch (e) {
     console.error(e)
-    error.value = 'Xuất Excel thất bại (có thể bị chặn tải nhiều file).'
+    error.value = 'Xuất Excel thất bại. Vui lòng thử lại.'
   } finally {
     exporting.value = false
   }
@@ -1066,4 +1112,64 @@ onBeforeUnmount(() => {
   .fg-search, .fg-brand, .fg-qty, .fg-price, .fg-type, .fg-status, .fg-reset { grid-column: 1 / -1; }
   .fg-reset { justify-content: flex-end; margin-top: 0; }
 }
+
+.filter-multiselect {
+  min-height: 38px;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  min-height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding-top: 7px;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  margin-bottom: 0;
+  font-size: 0.92rem;
+}
+
+.filter-multiselect :deep(.multiselect__tags:focus-within),
+.filter-multiselect.multiselect--active :deep(.multiselect__tags) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.filter-multiselect :deep(.multiselect__option--highlight) {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.filter-multiselect :deep(.multiselect__option--highlight::after) {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected) {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected::after) {
+  color: #1d4ed8;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #2563eb;
+  color: #fff;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected.multiselect__option--highlight::after) {
+  background: #2563eb;
+  color: #fff;
+}
+
+.filter-multiselect :deep(.multiselect__spinner::before),
+.filter-multiselect :deep(.multiselect__spinner::after) {
+  border-color: #3b82f6 transparent transparent;
+}
+
+
 </style>
