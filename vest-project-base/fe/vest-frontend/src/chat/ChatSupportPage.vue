@@ -736,7 +736,7 @@ onBeforeUnmount(() => {
 
 .title {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
 }
 
@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
 
 .side-title {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
 }
 
@@ -788,7 +788,7 @@ onBeforeUnmount(() => {
   background: #e0f2fe;
   color: #075985;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid #bae6fd;
@@ -917,7 +917,7 @@ onBeforeUnmount(() => {
 
 .customer-name {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -952,7 +952,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: rgba(41, 84, 184, 0.12);
   color: #2954b8;
-  font-weight: 900;
+  font-weight: 700;
   font-size: 12px;
   display: inline-flex;
   align-items: center;
@@ -970,7 +970,7 @@ onBeforeUnmount(() => {
   border: none;
   background: #2954b8;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   font-size: 12px;
 }
@@ -982,7 +982,7 @@ onBeforeUnmount(() => {
 .status-chip {
   flex-shrink: 0;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid transparent;
@@ -1050,7 +1050,7 @@ onBeforeUnmount(() => {
 
 .chat-title {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
 }
 
@@ -1122,7 +1122,7 @@ onBeforeUnmount(() => {
 }
 
 .who {
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .text {
@@ -1163,7 +1163,7 @@ onBeforeUnmount(() => {
   border: none;
   background: #2954b8;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
