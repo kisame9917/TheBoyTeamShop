@@ -327,7 +327,7 @@
                   :options="attributes.mauSac"
                   track-by="id"
                   label="ten"
-                  :placeholder="selectedColors.length ? '' : ''"
+                  placeholder="Tìm và chọn màu sắc"
                   :searchable="true"
                   :multiple="true"
                   :close-on-select="false"
@@ -364,7 +364,7 @@
                   :options="attributes.kichCo"
                   track-by="id"
                   label="soSize"
-                  :placeholder="selectedSizes.length ? '' : ''"
+                  placeholder="Tìm và chọn kích cỡ"
                   :searchable="true"
                   :multiple="true"
                   :close-on-select="false"
@@ -784,6 +784,20 @@ function pickActiveOrAll(list) {
   return active.length ? active : arr
 }
 
+function getSizeValue(item) {
+  const raw = item?.soSize ?? item?.ten ?? item?.name ?? ''
+  const num = Number(String(raw).replace(',', '.'))
+  return Number.isFinite(num) ? num : Number.MAX_SAFE_INTEGER
+}
+
+function sortSizes(list = []) {
+  return [...list].sort((a, b) => {
+    const byNumber = getSizeValue(a) - getSizeValue(b)
+    if (byNumber !== 0) return byNumber
+    return String(a?.soSize ?? a?.ten ?? '').localeCompare(String(b?.soSize ?? b?.ten ?? ''), 'vi')
+  })
+}
+
 function bindMs(productKey, listKey) {
   return computed({
     get: () => (attributes[listKey] || []).find((i) => String(i.id) === String(product[productKey])) || null,
@@ -804,7 +818,7 @@ const msChatLieu = bindMs('chatLieuId', 'chatLieu')
 const selectedColors = ref([])
 const selectedSizes = ref([])
 
-const DEFAULT_SIZE_SET = new Set([46, 47, 48, 49, 50])
+const sizePolicySeed = ref(Date.now() + Math.floor(Math.random() * 1000000))
 
 function normKey(s) {
   return String(s || '')
@@ -815,45 +829,78 @@ function normKey(s) {
     .replace(/\s+/g, ' ')
 }
 
-const BRAND_POLICY = {
-  'adam': [46, 48, 50, 52, 54],
-  'adam store': [46, 48, 50, 52, 54],
-  'aristino': [46, 48, 50, 52, 54, 56, 58],
-  'routine': [44, 46, 48, 50, 52, 54],
-  'owen': [48, 50, 52, 54, 56, 58, 60],
-  'viet tien': [46, 48, 50, 52, 54, 56],
-  'may 10': [44, 46, 48, 50, 52, 54, 56, 58],
-  'biluxury': [44, 46, 48, 50, 52],
-  'blue exchange': [44, 46, 48, 50],
-  'an phuoc - pierre cardin': [46, 48, 50, 52, 54, 56, 58, 60]
+function stableHash(s) {
+  let h = 2166136261
+  const text = String(s || '')
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return Math.abs(h)
 }
 
-const FIT_POLICY = {
-  'slim fit': [44, 46, 48, 50, 52],
-  'regular fit': [46, 48, 50, 52, 54, 56, 58],
-  'reguler fit': [46, 48, 50, 52, 54, 56, 58],
-  'big size': [56, 58, 60, 62, 64]
-}
-
-function toSet(arr) {
-  return new Set((arr || []).map((x) => Number(x)).filter((x) => Number.isFinite(x)))
-}
-
-function intersect(a, b) {
-  const out = new Set()
-  for (const x of a) if (b.has(x)) out.add(x)
-  return out
-}
 
 function formatAllowedSizes(allowed) {
   if (!allowed) return 'chưa áp dụng'
   const arr = Array.from(allowed).sort((a, b) => a - b)
-  if (arr.length === 0) return 'không có size phù hợp'
+  if (arr.length === 0) return 'không có size phù hợp trong danh sách hiện có'
   if (arr.length === 1) return String(arr[0])
 
   const isStep1 = arr.every((v, i) => i === 0 || v - arr[i - 1] === 1)
   if (isStep1) return `${arr[0]}–${arr[arr.length - 1]}`
   return arr.join(', ')
+}
+
+const existingSizeNumbers = computed(() => {
+  return sortSizes(attributes.kichCo || [])
+    .map((x) => Number(x?.soSize ?? x?.ten))
+    .filter((x) => Number.isFinite(x))
+})
+
+
+function getFitSizePool(sizes, fitKey) {
+  const arr = Array.isArray(sizes) ? sizes : []
+  if (arr.length <= 3) return arr
+
+  const key = normKey(fitKey)
+  if (key.includes('big') || key.includes('oversize') || key.includes('plus') || key.includes('rong')) {
+    return arr.slice(Math.max(0, Math.floor(arr.length * 0.45)))
+  }
+
+  if (key.includes('slim') || key.includes('om') || key.includes('body')) {
+    return arr.slice(0, Math.max(3, Math.ceil(arr.length * 0.7)))
+  }
+
+  if (key.includes('regular') || key.includes('reguler') || key.includes('classic') || key.includes('standard')) {
+    const from = Math.max(0, Math.floor(arr.length * 0.15))
+    const to = Math.min(arr.length, Math.ceil(arr.length * 0.85))
+    return arr.slice(from, to)
+  }
+
+  return arr
+}
+
+function pickRandomSizes(sizes, seed) {
+  const arr = Array.isArray(sizes) ? sizes : []
+  if (!arr.length) return []
+  if (arr.length <= 3) return arr
+
+  const count = Math.min(arr.length, Math.max(2, Math.ceil(arr.length * 0.65)))
+  const start = seed % arr.length
+  const rotated = [...arr.slice(start), ...arr.slice(0, start)]
+
+  return rotated.slice(0, count).sort((a, b) => a - b)
+}
+
+function buildDynamicSizeSet() {
+  const existing = existingSizeNumbers.value
+  if (!existing.length) return new Set()
+
+  const pool = getFitSizePool(existing, fitNameNorm.value)
+  const source = pool.length ? pool : existing
+  const seed = stableHash(`${brandNameNorm.value}|${fitNameNorm.value}|${sizePolicySeed.value}|${existing.join(',')}`)
+
+  return new Set(pickRandomSizes(source, seed))
 }
 
 const brandNameNorm = computed(() => normKey(msThuongHieu.value?.ten))
@@ -864,19 +911,11 @@ const sizePolicyMeta = computed(() => {
   const hasFit = !!product.fitId
   if (!hasBrand && !hasFit) return { set: null, source: 'none' }
 
-  const brandSet = hasBrand ? toSet(BRAND_POLICY[brandNameNorm.value]) : null
-  const fitSet = hasFit ? toSet(FIT_POLICY[fitNameNorm.value]) : null
+  const set = buildDynamicSizeSet()
 
-  const brandKnown = !!(brandSet && brandSet.size)
-  const fitKnown = !!(fitSet && fitSet.size)
-
-  if (brandKnown && fitKnown) return { set: intersect(brandSet, fitSet), source: 'both' }
-  if (brandKnown && !fitKnown && hasFit) return { set: intersect(brandSet, DEFAULT_SIZE_SET), source: 'mix' }
-  if (!brandKnown && fitKnown && hasBrand) return { set: intersect(fitSet, DEFAULT_SIZE_SET), source: 'mix' }
-  if (brandKnown && !hasFit) return { set: brandSet, source: 'brand' }
-  if (fitKnown && !hasBrand) return { set: fitSet, source: 'fit' }
-
-  return { set: DEFAULT_SIZE_SET, source: 'default' }
+  if (hasBrand && hasFit) return { set, source: 'both' }
+  if (hasBrand) return { set, source: 'brand' }
+  return { set, source: 'fit' }
 })
 
 const allowedSizeSet = computed(() => sizePolicyMeta.value.set)
@@ -916,18 +955,29 @@ async function onSizeSelect(option) {
   }
 }
 
-watch([() => product.thuongHieuId, () => product.fitId], () => {
-  const allowed = allowedSizeSet.value
-  if (!allowed) return
-  const invalid = selectedSizes.value.filter((x) => !allowed.has(Number(x.soSize)))
-  if (invalid.length) {
-    showToast(
-      `Đang có size không phù hợp: ${invalid.map((x) => x.soSize).join(', ')}. Hợp lệ: ${allowedSizeText.value}`,
-      'error',
-      { title: 'Cảnh báo' }
-    )
+watch(
+  [
+    () => product.thuongHieuId,
+    () => product.fitId,
+    () => (attributes.kichCo || []).map((x) => `${x?.id}-${x?.soSize ?? x?.ten}`).join('|')
+  ],
+  () => {
+    if (product.thuongHieuId || product.fitId) {
+      sizePolicySeed.value = Date.now() + Math.floor(Math.random() * 1000000)
+    }
+
+    const allowed = allowedSizeSet.value
+    if (!allowed) return
+    const invalid = selectedSizes.value.filter((x) => !allowed.has(Number(x.soSize)))
+    if (invalid.length) {
+      showToast(
+        `Đang có size không phù hợp: ${invalid.map((x) => x.soSize).join(', ')}. Hợp lệ: ${allowedSizeText.value}`,
+        'error',
+        { title: 'Cảnh báo' }
+      )
+    }
   }
-})
+)
 
 function ensureSizesValidOrShow() {
   const allowed = allowedSizeSet.value
@@ -1054,9 +1104,10 @@ async function confirmAddModal() {
     const reload = await attributeService.getAllList(addModal.typeCode)
     const nextList = pickActiveOrAll(reload.data || [])
 
-    attributes[addModal.listKey] = [...nextList].sort(
-      (a, b) => Number(b?.id || 0) - Number(a?.id || 0)
-    )
+    attributes[addModal.listKey] =
+      addModal.listKey === 'kichCo'
+        ? sortSizes(nextList)
+        : [...nextList].sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
 
     if (addModal.productKey) {
       product[addModal.productKey] = created.id
@@ -1243,7 +1294,8 @@ onMounted(async () => {
   try {
     const tasks = Object.keys(attributeMap).map((key) =>
       attributeService.getAllList(attributeMap[key]).then((res) => {
-        attributes[key] = pickActiveOrAll(res.data || [])
+        const nextList = pickActiveOrAll(res.data || [])
+        attributes[key] = key === 'kichCo' ? sortSizes(nextList) : nextList
       })
     )
     await Promise.all(tasks)
@@ -1862,6 +1914,7 @@ function getColorCode(name) {
   gap: 6px;
   min-height: 40px;
   padding: 6px 40px 6px 10px;
+  position: relative;
 }
 
 .ms-wrap-multi :deep(.multiselect__tags-wrap) {
@@ -1872,9 +1925,10 @@ function getColorCode(name) {
 }
 
 .ms-wrap-multi :deep(.multiselect__input) {
-  width: 80px !important;
-  min-width: 80px;
-  flex: 1 0 80px;
+  display: inline-block;
+  width: auto !important;
+  min-width: 120px;
+  flex: 1 1 120px;
   margin: 0 !important;
   padding: 0 !important;
   line-height: 24px;
@@ -1883,11 +1937,28 @@ function getColorCode(name) {
   box-shadow: none !important;
 }
 
+.ms-wrap-multi :deep(.multiselect__input::placeholder) {
+  color: transparent !important;
+}
+
 .ms-wrap-multi :deep(.multiselect__placeholder) {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
   margin: 0 !important;
   padding: 0 !important;
   line-height: 24px;
   color: #9ca3af;
+  pointer-events: none;
+}
+
+.ms-wrap-multi :deep(.multiselect--active .multiselect__placeholder) {
+  display: none;
+}
+
+.ms-wrap-multi :deep(.multiselect__tags-wrap:not(:empty) ~ .multiselect__placeholder) {
+  display: none;
 }
 
 .ms-empty {
