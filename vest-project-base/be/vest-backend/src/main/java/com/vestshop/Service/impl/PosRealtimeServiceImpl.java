@@ -21,6 +21,8 @@ public class PosRealtimeServiceImpl implements PosRealtimeService {
                         .type("UPSERT")
                         .hoaDonId(data.getId())
                         .data(data)
+                        .qrCode(null)
+                        .qrNote(null)
                         .build()
         );
     }
@@ -33,6 +35,22 @@ public class PosRealtimeServiceImpl implements PosRealtimeService {
                         .type("REMOVE")
                         .hoaDonId(hoaDonId)
                         .data(null)
+                        .qrCode(null)
+                        .qrNote(null)
+                        .build()
+        );
+    }
+
+    @Override
+    public void pushShowQr(HoaDonDetailResponse data, String qrCode, String qrNote) {
+        messagingTemplate.convertAndSend(
+                "/topic/pos-orders",
+                PosOrderRealtimeEvent.builder()
+                        .type("SHOW_QR")
+                        .hoaDonId(data.getId())
+                        .data(data)
+                        .qrCode(qrCode)
+                        .qrNote(qrNote)
                         .build()
         );
     }

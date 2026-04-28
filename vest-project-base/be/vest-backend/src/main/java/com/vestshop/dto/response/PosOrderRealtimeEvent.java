@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class PosOrderRealtimeEvent {
-    private String type; // UPSERT | REMOVE
+    private String type;
     private Long hoaDonId;
     private HoaDonDetailResponse data;
+    private String qrCode;
+    private String qrNote;
 }

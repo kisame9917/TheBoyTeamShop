@@ -44,10 +44,11 @@ public class SecurityConfig {
 
                         // static files
                         .requestMatchers("/uploads/**", "/images/**").permitAll()
+                        .requestMatchers("/ws/**", "/ws").permitAll()
 
                         // online checkout public
                         .requestMatchers("/api/checkout/**", "/api/online-checkout/**").permitAll()
-                        .requestMatchers("/api/app-pos/**", "/ws/**", "/ws").permitAll()
+
                         // shop online public APIs
                         .requestMatchers(HttpMethod.GET,
                                 "/api/san-pham",

@@ -1,6 +1,7 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Service.HoaDonService;
+import com.vestshop.Service.PosRealtimeService;
 import com.vestshop.dto.request.*;
 import com.vestshop.dto.response.*;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.List;
 public class HoaDonController {
 
     private final HoaDonService hoaDonService;
+    private final PosRealtimeService posRealtimeService;
 
     @GetMapping
     public ResponseEntity<Page<HoaDonListResponse>> search(
@@ -114,6 +116,26 @@ public class HoaDonController {
     @GetMapping("/drafts/pos-active")
     public ResponseEntity<List<HoaDonDetailResponse>> getPosDrafts() {
         return ResponseEntity.ok(hoaDonService.getPosDrafts());
+    }
+
+    @PostMapping("/draft/{id}/push-qr")
+    public ResponseEntity<Void> pushQrToApp(
+            @PathVariable Long id,
+            @RequestBody(required = false) PushQrToAppRequest req
+    ) {
+        HoaDonDetailResponse detail = hoaDonService.getDetailById(id);
+
+        if (detail == null
+                || detail.getTrangThaiDon() == null
+                || detail.getTrangThaiDon() != 0
+                || !Boolean.TRUE.equals(detail.getTrangThai())) {
+            throw new IllegalArgumentException("Chỉ được gửi QR cho đơn POS đang mở");
+        }
+
+        String qrCode = req == null ? null : req.getQrCode();
+        String qrNote = req == null ? null : req.getQrNote();
+        posRealtimeService.pushShowQr(detail, qrCode, qrNote);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/draft/{id}/sync-pos")
