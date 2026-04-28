@@ -7,7 +7,7 @@ class OrderService {
   OrderService(this.apiClient);
 
   Future<List<OrderModel>> getActivePosDrafts() async {
-    final data = await apiClient.get('/hoa-don/drafts/pos-active');
+    final data = await apiClient.get('/app-pos/orders');
     debugPrint('POS DRAFT RAW DATA = $data');
 
     if (data is! List) {
@@ -26,7 +26,7 @@ class OrderService {
     return result;
   }
   Future<OrderModel> getOrderDetail(int orderId) async {
-  final data = await apiClient.get('/hoa-don/$orderId');
+  final data = await apiClient.get('/app-pos/orders/$orderId');
   return OrderModel.fromJson(Map<String, dynamic>.from(data));
 }
 }

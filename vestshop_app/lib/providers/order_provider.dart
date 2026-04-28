@@ -47,19 +47,25 @@ Future<void> loadOrders() async {
 
               final type = json['type'];
 
-              if (type == 'UPSERT' && json['data'] != null) {
-                final incoming = OrderModel.fromJson(
-                  json['data'] as Map<String, dynamic>,
-                );
+             if (type == 'UPSERT' && json['data'] != null) {
+  final incoming = OrderModel.fromJson(
+    Map<String, dynamic>.from(json['data'] as Map),
+  );
 
-                final idx = orders.indexWhere((e) => e.id == incoming.id);
-                if (idx >= 0) {
-                  orders[idx] = incoming;
-                } else {
-                  orders.insert(0, incoming);
-                }
-                _safeNotify();
-              }
+  if (incoming.trangThaiDon != 0) {
+    orders.removeWhere((e) => e.id == incoming.id);
+    _safeNotify();
+    return;
+  }
+
+  final idx = orders.indexWhere((e) => e.id == incoming.id);
+  if (idx >= 0) {
+    orders[idx] = incoming;
+  } else {
+    orders.insert(0, incoming);
+  }
+  _safeNotify();
+}
 
               if (type == 'REMOVE') {
                 final dynamic rawId = json['hoaDonId'];
@@ -94,10 +100,8 @@ Future<void> loadOrders() async {
     _wsClient.disconnect();
     super.dispose();
   }
-  void startRealtimeOnly() {
-  orders = [];
-  isLoading = false;
-  _safeNotify();
+Future<void> startRealtimeOnly() async {
+  await loadOrders();
   connectRealtime();
 }
 }

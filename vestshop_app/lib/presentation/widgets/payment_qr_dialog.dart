@@ -56,7 +56,6 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
 
               if (!mounted || hoaDonId == null) return;
 
-              // Khi đơn tại quầy bị remove realtime sau thanh toán xong
               if (type == 'REMOVE' && hoaDonId == widget.order.id) {
                 Navigator.of(context).pop(true);
               }
@@ -97,145 +96,153 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
     return '${ApiConstants.serverUrl}$value';
   }
 
+  Widget _buildQrImage(String? qr) {
+    final value = qr?.trim();
+
+    if (value != null && value.isNotEmpty && _isImageUrl(value)) {
+      final imageUrl = _resolveImageUrl(value);
+      return Image.network(
+        imageUrl,
+        width: 260,
+        height: 260,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const SizedBox(
+            width: 260,
+            height: 260,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (_, error, __) {
+          debugPrint('QR load error = $error');
+          return Image.asset(
+            'assets/images/techcombank-qr.png',
+            width: 260,
+            height: 260,
+            fit: BoxFit.contain,
+          );
+        },
+      );
+    }
+
+    return Image.asset(
+      'assets/images/techcombank-qr.png',
+      width: 260,
+      height: 260,
+      fit: BoxFit.contain,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final qr = qrData?.trim();
 
-    debugPrint('QR raw = $qr');
-
-    if (qr == null || qr.isEmpty) {
-      return const Dialog(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Không có dữ liệu QR'),
-        ),
-      );
-    }
-
-    final canShowImage = _isImageUrl(qr);
-    final imageUrl = canShowImage ? _resolveImageUrl(qr) : null;
-
-    debugPrint('QR imageUrl = $imageUrl');
-
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 500,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Thanh toán bằng QR',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Thanh toán bằng QR',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _infoRow(
+                  'Loại đơn',
+                  widget.order.loaiDon ? 'Giao hàng' : 'Tại quầy',
+                ),
+                _infoRow('Mã HD', widget.order.maHoaDon),
+                _infoRow(
+                  'Số tiền',
+                  '${widget.order.tongTienSauGiam.toStringAsFixed(0)} đ',
+                  valueColor: Colors.red,
+                ),
+                const SizedBox(height: 14),
+                Center(child: _buildQrImage(qr)),
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    'Nội dung chuyển khoản: ${widget.order.maHoaDon}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  IconButton(
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 10),
+                    Text('Đang chờ thanh toán realtime...'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
                     onPressed: () => Navigator.pop(context, false),
-                    icon: const Icon(Icons.close),
+                    child: const Text('Đóng'),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Mã HD: ${widget.order.maHoaDon}',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Số tiền: ${widget.order.tongTienSauGiam.toStringAsFixed(0)} đ',
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.red,
-                  fontWeight: FontWeight.w700,
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Sẽ tự đóng khi thanh toán được ghi nhận realtime',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.orange,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: canShowImage
-                    ? Column(
-                        children: [
-                          Image.network(
-                            imageUrl!,
-                            width: 240,
-                            height: 240,
-                            fit: BoxFit.contain,
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return const Padding(
-                                padding: EdgeInsets.all(24),
-                                child: CircularProgressIndicator(),
-                              );
-                            },
-                            errorBuilder: (_, error, __) {
-                              debugPrint('QR load error = $error');
-                              return Column(
-                                children: [
-                                  const Text('Không tải được ảnh QR'),
-                                  const SizedBox(height: 8),
-                                  SelectableText(imageUrl),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          const Text('Dữ liệu QR hiện không phải link ảnh'),
-                          const SizedBox(height: 8),
-                          SelectableText(qr),
-                        ],
-                      ),
-              ),
-              const SizedBox(height: 16),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 10),
-                  Text('Đang chờ thanh toán realtime...'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Đóng'),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 86,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

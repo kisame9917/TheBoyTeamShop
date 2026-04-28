@@ -35,6 +35,7 @@ class OrderItemModel {
       donGia: (json['donGia'] as num?)?.toDouble() ?? 0,
       thanhTien: (json['thanhTien'] as num?)?.toDouble() ?? 0,
       anhDaiDien: json['anhDaiDien']?.toString(),
+      
     );
   }
 }
@@ -53,6 +54,7 @@ class OrderModel {
   final List<OrderItemModel> items;
   final String? qrCode;
   final List<PaymentTransactionModel> giaoDichThanhToan;
+  final bool loaiDon;
 
   OrderModel({
     required this.id,
@@ -68,6 +70,7 @@ class OrderModel {
     required this.items,
     required this.qrCode,
     required this.giaoDichThanhToan,
+    required this.loaiDon,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -96,6 +99,7 @@ class OrderModel {
       id: (json['id'] as num?)?.toInt() ?? 0,
       maHoaDon: json['maHoaDon']?.toString() ?? '',
       trangThaiDon: (json['trangThaiDon'] as num?)?.toInt() ?? 0,
+      loaiDon: json['loaiDon'] == true,
       tenKhachHang: json['tenKhachHang']?.toString(),
       soDienThoai: json['soDienThoai']?.toString(),
       tongTien: (json['tongTien'] as num?)?.toDouble() ?? 0,
@@ -106,6 +110,7 @@ class OrderModel {
       items: parsedItems,
       qrCode: json['qrCode']?.toString(),
       giaoDichThanhToan: parsedTransactions,
+      
     );
   }
 }
