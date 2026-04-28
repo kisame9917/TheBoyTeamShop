@@ -96,11 +96,11 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
     return '${ApiConstants.serverUrl}$value';
   }
 
-  Widget _buildQrImage(String? qr) {
-    final value = qr?.trim();
+  Widget _buildQrImage() {
+    final qr = qrData?.trim();
 
-    if (value != null && value.isNotEmpty && _isImageUrl(value)) {
-      final imageUrl = _resolveImageUrl(value);
+    if (qr != null && qr.isNotEmpty && _isImageUrl(qr)) {
+      final imageUrl = _resolveImageUrl(qr);
       return Image.network(
         imageUrl,
         width: 260,
@@ -116,16 +116,15 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
         },
         errorBuilder: (_, error, __) {
           debugPrint('QR load error = $error');
-          return Image.asset(
-            'assets/images/techcombank-qr.png',
-            width: 260,
-            height: 260,
-            fit: BoxFit.contain,
-          );
+          return _localQrImage();
         },
       );
     }
 
+    return _localQrImage();
+  }
+
+  Widget _localQrImage() {
     return Image.asset(
       'assets/images/techcombank-qr.png',
       width: 260,
@@ -136,8 +135,6 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final qr = qrData?.trim();
-
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -179,7 +176,7 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
                   valueColor: Colors.red,
                 ),
                 const SizedBox(height: 14),
-                Center(child: _buildQrImage(qr)),
+                Center(child: _buildQrImage()),
                 const SizedBox(height: 12),
                 Center(
                   child: Text(

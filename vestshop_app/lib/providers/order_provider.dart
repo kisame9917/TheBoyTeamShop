@@ -1,34 +1,31 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
 import '../core/constants/api_constants.dart';
-import '../core/network/api_client.dart';
 import '../core/network/ws_client.dart';
 import '../data/models/order_model.dart';
-import '../data/services/order_service.dart';
 
 class OrderProvider extends ChangeNotifier {
-  final ApiClient _apiClient = ApiClient(baseUrl: ApiConstants.baseUrl);
-  late final OrderService _orderService = OrderService(_apiClient);
   final WsClient _wsClient = WsClient();
 
   List<OrderModel> orders = [];
   bool isLoading = false;
   bool _disposed = false;
+  OrderModel? qrOrderToShow;
+  int qrSignal = 0;
 
-Future<void> loadOrders() async {
-  isLoading = true;
-  _safeNotify();
-
-  try {
-    orders = await _orderService.getActivePosDrafts();
-    debugPrint('LOAD ORDERS SUCCESS: ${orders.length}');
-  } catch (e) {
-    debugPrint('loadOrders error: $e');
-  } finally {
+  void startRealtimeOnly() {
+    orders = [];
     isLoading = false;
     _safeNotify();
+    connectRealtime();
   }
-}
+
+  Future<void> loadOrders() async {
+    startRealtimeOnly();
+  }
+
   void connectRealtime() {
     if (_wsClient.isConnected) return;
 
@@ -45,27 +42,40 @@ Future<void> loadOrders() async {
               final Map<String, dynamic> json =
                   jsonDecode(body) as Map<String, dynamic>;
 
-              final type = json['type'];
+              final type = json['type']?.toString();
 
-             if (type == 'UPSERT' && json['data'] != null) {
-  final incoming = OrderModel.fromJson(
-    Map<String, dynamic>.from(json['data'] as Map),
-  );
+              if ((type == 'UPSERT' || type == 'SHOW_QR') &&
+                  json['data'] != null) {
+                var incoming = OrderModel.fromJson(
+                  Map<String, dynamic>.from(json['data'] as Map),
+                );
 
-  if (incoming.trangThaiDon != 0) {
-    orders.removeWhere((e) => e.id == incoming.id);
-    _safeNotify();
-    return;
-  }
+                final qrCode = json['qrCode']?.toString().trim();
+                if (type == 'SHOW_QR' && qrCode != null && qrCode.isNotEmpty) {
+                  incoming = incoming.copyWith(qrCode: qrCode);
+                }
 
-  final idx = orders.indexWhere((e) => e.id == incoming.id);
-  if (idx >= 0) {
-    orders[idx] = incoming;
-  } else {
-    orders.insert(0, incoming);
-  }
-  _safeNotify();
-}
+                if (incoming.trangThaiDon != 0) {
+                  orders.removeWhere((e) => e.id == incoming.id);
+                  _safeNotify();
+                  return;
+                }
+
+                final idx = orders.indexWhere((e) => e.id == incoming.id);
+                if (idx >= 0) {
+                  orders[idx] = incoming;
+                } else {
+                  orders.insert(0, incoming);
+                }
+
+                if (type == 'SHOW_QR') {
+                  qrOrderToShow = incoming;
+                  qrSignal++;
+                }
+
+                _safeNotify();
+                return;
+              }
 
               if (type == 'REMOVE') {
                 final dynamic rawId = json['hoaDonId'];
@@ -73,6 +83,9 @@ Future<void> loadOrders() async {
                 if (id == null) return;
 
                 orders.removeWhere((e) => e.id == id);
+                if (qrOrderToShow?.id == id) {
+                  qrOrderToShow = null;
+                }
                 _safeNotify();
               }
             } catch (e) {
@@ -82,6 +95,12 @@ Future<void> loadOrders() async {
         );
       },
     );
+  }
+
+  void markQrHandled(int signal) {
+    if (qrSignal == signal) {
+      qrOrderToShow = null;
+    }
   }
 
   void disconnectRealtime() {
@@ -100,8 +119,4 @@ Future<void> loadOrders() async {
     _wsClient.disconnect();
     super.dispose();
   }
-Future<void> startRealtimeOnly() async {
-  await loadOrders();
-  connectRealtime();
-}
 }

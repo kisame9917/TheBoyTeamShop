@@ -7,7 +7,7 @@ class OrderService {
   OrderService(this.apiClient);
 
   Future<List<OrderModel>> getActivePosDrafts() async {
-    final data = await apiClient.get('/app-pos/orders');
+    final data = await apiClient.get('/hoa-don/drafts/pos-active');
     debugPrint('POS DRAFT RAW DATA = $data');
 
     if (data is! List) {
@@ -19,14 +19,11 @@ class OrderService {
         .toList();
 
     debugPrint('POS DRAFT PARSED LENGTH = ${result.length}');
-    for (final o in result) {
-      debugPrint('ORDER id=${o.id}, ma=${o.maHoaDon}, items=${o.items.length}');
-    }
-
     return result;
   }
+
   Future<OrderModel> getOrderDetail(int orderId) async {
-  final data = await apiClient.get('/app-pos/orders/$orderId');
-  return OrderModel.fromJson(Map<String, dynamic>.from(data));
-}
+    final data = await apiClient.get('/hoa-don/$orderId');
+    return OrderModel.fromJson(Map<String, dynamic>.from(data));
+  }
 }

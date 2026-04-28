@@ -1,6 +1,5 @@
 import 'payment_transaction_model.dart';
 
-
 class OrderItemModel {
   final int? idSanPhamChiTiet;
   final String? maSanPhamChiTiet;
@@ -26,7 +25,7 @@ class OrderItemModel {
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
     return OrderItemModel(
-      idSanPhamChiTiet: json['idSanPhamChiTiet'] as int?,
+      idSanPhamChiTiet: (json['idSanPhamChiTiet'] as num?)?.toInt(),
       maSanPhamChiTiet: json['maSanPhamChiTiet']?.toString(),
       tenSanPham: json['tenSanPham']?.toString(),
       mauSac: json['mauSac']?.toString(),
@@ -35,7 +34,6 @@ class OrderItemModel {
       donGia: (json['donGia'] as num?)?.toDouble() ?? 0,
       thanhTien: (json['thanhTien'] as num?)?.toDouble() ?? 0,
       anhDaiDien: json['anhDaiDien']?.toString(),
-      
     );
   }
 }
@@ -44,6 +42,7 @@ class OrderModel {
   final int id;
   final String maHoaDon;
   final int trangThaiDon;
+  final bool loaiDon;
   final String? tenKhachHang;
   final String? soDienThoai;
   final double tongTien;
@@ -54,12 +53,12 @@ class OrderModel {
   final List<OrderItemModel> items;
   final String? qrCode;
   final List<PaymentTransactionModel> giaoDichThanhToan;
-  final bool loaiDon;
 
   OrderModel({
     required this.id,
     required this.maHoaDon,
     required this.trangThaiDon,
+    required this.loaiDon,
     required this.tenKhachHang,
     required this.soDienThoai,
     required this.tongTien,
@@ -70,8 +69,28 @@ class OrderModel {
     required this.items,
     required this.qrCode,
     required this.giaoDichThanhToan,
-    required this.loaiDon,
   });
+
+  OrderModel copyWith({
+    String? qrCode,
+  }) {
+    return OrderModel(
+      id: id,
+      maHoaDon: maHoaDon,
+      trangThaiDon: trangThaiDon,
+      loaiDon: loaiDon,
+      tenKhachHang: tenKhachHang,
+      soDienThoai: soDienThoai,
+      tongTien: tongTien,
+      tongTienGiam: tongTienGiam,
+      tongTienSauGiam: tongTienSauGiam,
+      phiVanChuyen: phiVanChuyen,
+      idPhieuGiamGia: idPhieuGiamGia,
+      items: items,
+      qrCode: qrCode ?? this.qrCode,
+      giaoDichThanhToan: giaoDichThanhToan,
+    );
+  }
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     final rawItems =
@@ -86,15 +105,19 @@ class OrderModel {
             .map((e) => OrderItemModel.fromJson(Map<String, dynamic>.from(e)))
             .toList()
         : <OrderItemModel>[];
+
     final rawTransactions = json['giaoDichThanhToan'] ?? [];
 
     final parsedTransactions = rawTransactions is List
-    ? rawTransactions
-        .map((e) => PaymentTransactionModel.fromJson(
-              Map<String, dynamic>.from(e),
-            ))
-        .toList()
-    : <PaymentTransactionModel>[];
+        ? rawTransactions
+            .map(
+              (e) => PaymentTransactionModel.fromJson(
+                Map<String, dynamic>.from(e),
+              ),
+            )
+            .toList()
+        : <PaymentTransactionModel>[];
+
     return OrderModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       maHoaDon: json['maHoaDon']?.toString() ?? '',
@@ -110,7 +133,6 @@ class OrderModel {
       items: parsedItems,
       qrCode: json['qrCode']?.toString(),
       giaoDichThanhToan: parsedTransactions,
-      
     );
   }
 }
