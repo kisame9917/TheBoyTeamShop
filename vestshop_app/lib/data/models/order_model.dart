@@ -1,4 +1,27 @@
-import 'payment_transaction_model.dart';
+class PaymentTransactionModel {
+  final int? id;
+  final String? duLieuQr;
+  final String? maGiaoDich;
+  final double soTien;
+
+  PaymentTransactionModel({
+    required this.id,
+    required this.duLieuQr,
+    required this.maGiaoDich,
+    required this.soTien,
+  });
+
+  factory PaymentTransactionModel.fromJson(Map<String, dynamic> json) {
+    return PaymentTransactionModel(
+      id: (json['id'] as num?)?.toInt(),
+      duLieuQr: json['duLieuQr']?.toString() ?? json['du_lieu_qr']?.toString(),
+      maGiaoDich: json['maGiaoDich']?.toString() ?? json['ma_giao_dich']?.toString(),
+      soTien: (json['soTien'] as num?)?.toDouble() ??
+          (json['so_tien'] as num?)?.toDouble() ??
+          0,
+    );
+  }
+}
 
 class OrderItemModel {
   final int? idSanPhamChiTiet;
@@ -71,30 +94,8 @@ class OrderModel {
     required this.giaoDichThanhToan,
   });
 
-  OrderModel copyWith({
-    String? qrCode,
-  }) {
-    return OrderModel(
-      id: id,
-      maHoaDon: maHoaDon,
-      trangThaiDon: trangThaiDon,
-      loaiDon: loaiDon,
-      tenKhachHang: tenKhachHang,
-      soDienThoai: soDienThoai,
-      tongTien: tongTien,
-      tongTienGiam: tongTienGiam,
-      tongTienSauGiam: tongTienSauGiam,
-      phiVanChuyen: phiVanChuyen,
-      idPhieuGiamGia: idPhieuGiamGia,
-      items: items,
-      qrCode: qrCode ?? this.qrCode,
-      giaoDichThanhToan: giaoDichThanhToan,
-    );
-  }
-
   factory OrderModel.fromJson(Map<String, dynamic> json) {
-    final rawItems =
-        json['items'] ??
+    final rawItems = json['items'] ??
         json['chiTietHoaDons'] ??
         json['chiTietHoaDon'] ??
         json['hoaDonChiTiets'] ??
@@ -106,7 +107,10 @@ class OrderModel {
             .toList()
         : <OrderItemModel>[];
 
-    final rawTransactions = json['giaoDichThanhToan'] ?? [];
+    final rawTransactions = json['giaoDichThanhToan'] ??
+        json['giaoDichThanhToans'] ??
+        json['giaoDich'] ??
+        [];
 
     final parsedTransactions = rawTransactions is List
         ? rawTransactions

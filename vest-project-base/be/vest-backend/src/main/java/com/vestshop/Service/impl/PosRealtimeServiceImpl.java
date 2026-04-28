@@ -21,8 +21,6 @@ public class PosRealtimeServiceImpl implements PosRealtimeService {
                         .type("UPSERT")
                         .hoaDonId(data.getId())
                         .data(data)
-                        .qrCode(null)
-                        .qrNote(null)
                         .build()
         );
     }
@@ -35,14 +33,13 @@ public class PosRealtimeServiceImpl implements PosRealtimeService {
                         .type("REMOVE")
                         .hoaDonId(hoaDonId)
                         .data(null)
-                        .qrCode(null)
-                        .qrNote(null)
+                        .message("Đơn hàng đã hoàn tất")
                         .build()
         );
     }
 
     @Override
-    public void pushShowQr(HoaDonDetailResponse data, String qrCode, String qrNote) {
+    public void pushShowQr(HoaDonDetailResponse data, String qrCode, String message) {
         messagingTemplate.convertAndSend(
                 "/topic/pos-orders",
                 PosOrderRealtimeEvent.builder()
@@ -50,7 +47,24 @@ public class PosRealtimeServiceImpl implements PosRealtimeService {
                         .hoaDonId(data.getId())
                         .data(data)
                         .qrCode(qrCode)
-                        .qrNote(qrNote)
+                        .message(message == null || message.isBlank()
+                                ? "Hiển thị QR thanh toán"
+                                : message)
+                        .build()
+        );
+    }
+
+    @Override
+    public void pushQrPaid(Long hoaDonId, String message) {
+        messagingTemplate.convertAndSend(
+                "/topic/pos-orders",
+                PosOrderRealtimeEvent.builder()
+                        .type("QR_PAID")
+                        .hoaDonId(hoaDonId)
+                        .data(null)
+                        .message(message == null || message.isBlank()
+                                ? "Thanh toán QR thành công"
+                                : message)
                         .build()
         );
     }

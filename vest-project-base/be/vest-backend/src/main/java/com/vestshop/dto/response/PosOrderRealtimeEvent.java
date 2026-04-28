@@ -14,5 +14,5 @@ public class PosOrderRealtimeEvent {
     private Long hoaDonId;
     private HoaDonDetailResponse data;
     private String qrCode;
-    private String qrNote;
+    private String message;
 }

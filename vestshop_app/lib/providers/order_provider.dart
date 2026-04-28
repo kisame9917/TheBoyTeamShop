@@ -12,8 +12,9 @@ class OrderProvider extends ChangeNotifier {
   List<OrderModel> orders = [];
   bool isLoading = false;
   bool _disposed = false;
-  OrderModel? qrOrderToShow;
-  int qrSignal = 0;
+
+  Future<void> Function(OrderModel order)? onShowQr;
+  void Function(int orderId, String message)? onQrPaid;
 
   void startRealtimeOnly() {
     orders = [];
@@ -23,7 +24,8 @@ class OrderProvider extends ChangeNotifier {
   }
 
   Future<void> loadOrders() async {
-    startRealtimeOnly();
+    isLoading = false;
+    _safeNotify();
   }
 
   void connectRealtime() {
@@ -43,17 +45,13 @@ class OrderProvider extends ChangeNotifier {
                   jsonDecode(body) as Map<String, dynamic>;
 
               final type = json['type']?.toString();
+              final rawId = json['hoaDonId'];
+              final int? hoaDonId = rawId is int ? rawId : int.tryParse('$rawId');
 
-              if ((type == 'UPSERT' || type == 'SHOW_QR') &&
-                  json['data'] != null) {
-                var incoming = OrderModel.fromJson(
+              if (type == 'UPSERT' && json['data'] != null) {
+                final incoming = OrderModel.fromJson(
                   Map<String, dynamic>.from(json['data'] as Map),
                 );
-
-                final qrCode = json['qrCode']?.toString().trim();
-                if (type == 'SHOW_QR' && qrCode != null && qrCode.isNotEmpty) {
-                  incoming = incoming.copyWith(qrCode: qrCode);
-                }
 
                 if (incoming.trangThaiDon != 0) {
                   orders.removeWhere((e) => e.id == incoming.id);
@@ -61,31 +59,49 @@ class OrderProvider extends ChangeNotifier {
                   return;
                 }
 
-                final idx = orders.indexWhere((e) => e.id == incoming.id);
-                if (idx >= 0) {
-                  orders[idx] = incoming;
-                } else {
-                  orders.insert(0, incoming);
+                _upsertOrder(incoming);
+                return;
+              }
+
+              if (type == 'SHOW_QR') {
+                OrderModel? order;
+
+                if (json['data'] != null) {
+                  order = OrderModel.fromJson(
+                    Map<String, dynamic>.from(json['data'] as Map),
+                  );
+                  _upsertOrder(order, notify: false);
+                } else if (hoaDonId != null) {
+                  final idx = orders.indexWhere((e) => e.id == hoaDonId);
+                  if (idx >= 0) order = orders[idx];
                 }
 
-                if (type == 'SHOW_QR') {
-                  qrOrderToShow = incoming;
-                  qrSignal++;
+                if (order != null) {
+                  _safeNotify();
+                  onShowQr?.call(order);
                 }
+                return;
+              }
 
+              if (type == 'QR_PAID') {
+                if (hoaDonId == null) return;
+
+                orders.removeWhere((e) => e.id == hoaDonId);
                 _safeNotify();
+
+                final message = json['message']?.toString().trim();
+                onQrPaid?.call(
+                  hoaDonId,
+                  message == null || message.isEmpty
+                      ? 'Thanh toán QR thành công'
+                      : message,
+                );
                 return;
               }
 
               if (type == 'REMOVE') {
-                final dynamic rawId = json['hoaDonId'];
-                final int? id = rawId is int ? rawId : int.tryParse('$rawId');
-                if (id == null) return;
-
-                orders.removeWhere((e) => e.id == id);
-                if (qrOrderToShow?.id == id) {
-                  qrOrderToShow = null;
-                }
+                if (hoaDonId == null) return;
+                orders.removeWhere((e) => e.id == hoaDonId);
                 _safeNotify();
               }
             } catch (e) {
@@ -97,10 +113,15 @@ class OrderProvider extends ChangeNotifier {
     );
   }
 
-  void markQrHandled(int signal) {
-    if (qrSignal == signal) {
-      qrOrderToShow = null;
+  void _upsertOrder(OrderModel incoming, {bool notify = true}) {
+    final idx = orders.indexWhere((e) => e.id == incoming.id);
+    if (idx >= 0) {
+      orders[idx] = incoming;
+    } else {
+      orders.insert(0, incoming);
     }
+
+    if (notify) _safeNotify();
   }
 
   void disconnectRealtime() {
@@ -108,9 +129,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
+    if (!_disposed) notifyListeners();
   }
 
   @override
