@@ -18,12 +18,15 @@
             </h1>
 
             <p class="hero-desc">
-              Danh sách mã giảm giá công khai còn hiệu lực, có thể sao chép nhanh
-              và áp dụng khi thanh toán đơn hàng.
+              Danh sách mã giảm giá công khai còn hiệu lực, có thể sao chép
+              nhanh và áp dụng khi thanh toán đơn hàng.
             </p>
 
             <div class="hero-actions">
-              <button class="hero-btn hero-btn--primary" @click="scrollToVoucherList">
+              <button
+                class="hero-btn hero-btn--primary"
+                @click="scrollToVoucherList"
+              >
                 <i class="bi bi-ticket-perforated me-2"></i>
                 Xem mã giảm giá
               </button>
@@ -48,7 +51,7 @@
 
             <div class="hero-panel__note">
               <i class="bi bi-shield-check"></i>
-              Chỉ hiển thị mã công khai đang active, không fill mã cá nhân.
+              Mã giảm giá của bạn ❤️
             </div>
           </div>
         </div>
@@ -59,10 +62,38 @@
       <div class="section-head">
         <div>
           <div class="section-subtitle">Danh sách ưu đãi</div>
-          <h4 class="section-title mb-0">Mã công khai đang áp dụng</h4>
+          <h4 class="section-title mb-0">
+            {{
+              activeTab === "public"
+                ? "Mã công khai đang áp dụng"
+                : "Mã giảm giá của tôi"
+            }}
+          </h4>
         </div>
 
         <div class="voucher-toolbar">
+          <div class="tab-group">
+            <button
+              type="button"
+              class="tab-btn"
+              :class="{ active: activeTab === 'public' }"
+              @click="activeTab = 'public'"
+            >
+              Công khai
+              <span>{{ publicActiveCount }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="tab-btn"
+              :class="{ active: activeTab === 'mine' }"
+              @click="activeTab = 'mine'"
+            >
+              Của tôi
+              <span>{{ myVoucherCount }}</span>
+            </button>
+          </div>
+
           <div class="search-box">
             <i class="bi bi-search"></i>
             <input
@@ -76,7 +107,8 @@
 
       <div class="info-strip">
         <div>
-       Các mã giảm giá được cập nhật tự động từ hệ thống, có thể áp dụng cho đơn hàng nếu còn hiệu lực.
+          Các mã giảm giá được cập nhật tự động từ hệ thống, có thể áp dụng cho
+          đơn hàng nếu còn hiệu lực.
         </div>
         <span>{{ filteredVouchers.length }} mã phù hợp</span>
       </div>
@@ -94,17 +126,28 @@
       <template v-else>
         <div v-if="filteredVouchers.length" class="row g-4">
           <div
-         v-for="voucher in pagedVouchers"
+            v-for="voucher in pagedVouchers"
             :key="voucher.id || voucher.maGiamGia"
             class="col-xl-4 col-md-6"
           >
-            <article class="voucher-card">
+            <article
+              class="voucher-card"
+              :class="{ 'voucher-card--mine': isPrivateVoucher(voucher) }"
+            >
               <div class="voucher-card__shine"></div>
 
               <div class="voucher-card__head">
                 <div>
-                  <div class="voucher-label">Public voucher</div>
-                  <h5 class="voucher-name">{{ voucher.tenGiamGia || "Ưu đãi giảm giá" }}</h5>
+                  <div class="voucher-label">
+                    {{
+                      isPrivateVoucher(voucher)
+                        ? "Personal voucher"
+                        : "Public voucher"
+                    }}
+                  </div>
+                  <h5 class="voucher-name">
+                    {{ voucher.tenGiamGia || "Ưu đãi giảm giá" }}
+                  </h5>
                 </div>
 
                 <span class="voucher-status">
@@ -178,57 +221,81 @@
             </article>
           </div>
         </div>
-<div v-if="filteredVouchers.length > pageSize" class="voucher-pagination">
-  <div class="voucher-page-info">
-    Hiển thị {{ pagedVouchers.length }} / {{ filteredVouchers.length }} bản ghi
-  </div>
-
-  <div class="voucher-page-actions">
-    <button
-      type="button"
-      class="voucher-page-btn"
-      :disabled="currentPage <= 1"
-      @click="prevVoucherPage"
-    >
-      ‹
-    </button>
-
-    <button
-      v-for="page in voucherPageNumbers"
-      :key="page"
-      type="button"
-      class="voucher-page-btn"
-      :class="{ active: currentPage === page }"
-      @click="goVoucherPage(page)"
-    >
-      {{ page }}
-    </button>
-
-    <button
-      type="button"
-      class="voucher-page-btn"
-      :disabled="currentPage >= totalVoucherPages"
-      @click="nextVoucherPage"
-    >
-      ›
-    </button>
-  </div>
-</div>
-        <div v-else class="empty-box">
-          <div class="empty-box__icon">
-            <i class="bi bi-ticket-perforated"></i>
+        <div
+          v-if="filteredVouchers.length > pageSize"
+          class="voucher-pagination"
+        >
+          <div class="voucher-page-info">
+            Hiển thị {{ pagedVouchers.length }} /
+            {{ filteredVouchers.length }} bản ghi
           </div>
 
-          <h5>Chưa có mã công khai đang áp dụng</h5>
-          <p>
-            Hiện tại hệ thống chưa có mã giảm giá công khai còn hiệu lực.
-            Bạn có thể quay lại sau hoặc tiếp tục xem sản phẩm.
-          </p>
+          <div class="voucher-page-actions">
+            <button
+              type="button"
+              class="voucher-page-btn"
+              :disabled="currentPage <= 1"
+              @click="prevVoucherPage"
+            >
+              ‹
+            </button>
 
-          <button class="hero-btn hero-btn--primary" @click="goShop">
-            Xem sản phẩm
-          </button>
+            <button
+              v-for="page in voucherPageNumbers"
+              :key="page"
+              type="button"
+              class="voucher-page-btn"
+              :class="{ active: currentPage === page }"
+              @click="goVoucherPage(page)"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              type="button"
+              class="voucher-page-btn"
+              :disabled="currentPage >= totalVoucherPages"
+              @click="nextVoucherPage"
+            >
+              ›
+            </button>
+          </div>
         </div>
+        <div v-else class="empty-box">
+  <div class="empty-box__icon">
+    <i :class="activeTab === 'mine' && !isLoggedIn ? 'bi bi-person-lock' : 'bi bi-ticket-perforated'"></i>
+  </div>
+
+  <template v-if="activeTab === 'mine' && !isLoggedIn">
+    <h5>Đăng nhập để xem mã cá nhân</h5>
+    <p>Mã giảm giá cá nhân sẽ được hiển thị sau khi bạn đăng nhập tài khoản.</p>
+
+    <button class="hero-btn hero-btn--primary" @click="goLogin">
+      Đăng nhập
+    </button>
+  </template>
+
+  <template v-else-if="activeTab === 'mine'">
+    <h5>Bạn chưa có mã giảm giá cá nhân</h5>
+    <p>Hiện tại tài khoản của bạn chưa có mã cá nhân còn hiệu lực.</p>
+
+    <button class="hero-btn hero-btn--primary" @click="goShop">
+      Tiếp tục mua sắm
+    </button>
+  </template>
+
+  <template v-else>
+    <h5>Chưa có mã công khai đang áp dụng</h5>
+    <p>
+      Hiện tại hệ thống chưa có mã giảm giá công khai còn hiệu lực.
+      Bạn có thể quay lại sau hoặc tiếp tục xem sản phẩm.
+    </p>
+
+    <button class="hero-btn hero-btn--primary" @click="goShop">
+      Xem sản phẩm
+    </button>
+  </template>
+</div>
       </template>
     </section>
 
@@ -273,23 +340,114 @@ const voucherListRef = ref(null);
 const loading = ref(false);
 const error = ref("");
 const publicVouchers = ref([]);
+const myVouchers = ref([]);
+const activeTab = ref("public");
 const keyword = ref("");
 const copiedCode = ref("");
 const currentPage = ref(1);
 const pageSize = 15;
 let copiedTimer = null;
+const isLoggedIn = computed(() => {
+  return (
+    !!localStorage.getItem("USER_ACCESS_TOKEN") ||
+    !!sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    !!localStorage.getItem("vest_token")
+  );
+});
 
+function safeJsonParse(value) {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readTokenPayload(token) {
+  try {
+    if (!token || !token.includes(".")) return null;
+
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => `%${("00" + c.charCodeAt(0).toString(16)).slice(-2)}`)
+        .join(""),
+    );
+
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function getStoredCustomerId() {
+  const direct =
+    localStorage.getItem("USER_ID") ||
+    sessionStorage.getItem("USER_ID") ||
+    localStorage.getItem("KHACH_HANG_ID") ||
+    sessionStorage.getItem("KHACH_HANG_ID");
+
+  if (direct && Number(direct) > 0) return Number(direct);
+
+  const user =
+    safeJsonParse(localStorage.getItem("vest_user")) ||
+    safeJsonParse(sessionStorage.getItem("vest_user")) ||
+    safeJsonParse(localStorage.getItem("user")) ||
+    safeJsonParse(sessionStorage.getItem("user"));
+
+  const userId =
+    user?.idKhachHang ??
+    user?.khachHangId ??
+    user?.id_khach_hang ??
+    user?.customerId ??
+    user?.id;
+
+  if (userId && Number(userId) > 0) return Number(userId);
+
+  const token =
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token") ||
+    sessionStorage.getItem("vest_token");
+
+  const payload = readTokenPayload(token);
+
+  const tokenId =
+    payload?.idKhachHang ??
+    payload?.khachHangId ??
+    payload?.id_khach_hang ??
+    payload?.customerId ??
+    payload?.id ??
+    payload?.sub;
+
+  if (tokenId && Number(tokenId) > 0) return Number(tokenId);
+
+  return null;
+}
+
+const khachHangId = computed(() => getStoredCustomerId());
+const myVoucherCount = computed(() => myVouchers.value.length);
+
+const currentVoucherList = computed(() => {
+  if (activeTab.value === "mine") return myVouchers.value;
+  return publicVouchers.value;
+});
 const publicActiveCount = computed(() => publicVouchers.value.length);
 
 const filteredVouchers = computed(() => {
   const q = keyword.value.toLowerCase();
 
-  if (!q) return publicVouchers.value;
+  if (!q) return currentVoucherList.value;
 
-  return publicVouchers.value.filter((item) => {
+  return currentVoucherList.value.filter((item) => {
     return (
-      String(item.maGiamGia || "").toLowerCase().includes(q) ||
-      String(item.tenGiamGia || "").toLowerCase().includes(q)
+      String(item.maGiamGia || "")
+        .toLowerCase()
+        .includes(q) ||
+      String(item.tenGiamGia || "")
+        .toLowerCase()
+        .includes(q)
     );
   });
 });
@@ -332,27 +490,66 @@ function prevVoucherPage() {
 function nextVoucherPage() {
   goVoucherPage(currentPage.value + 1);
 }
+function normalizeKhIds(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((x) => Number(x?.id ?? x?.khachHangId ?? x))
+      .filter((x) => Number.isFinite(x) && x > 0);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((x) => Number(x.trim()))
+      .filter((x) => Number.isFinite(x) && x > 0);
+  }
+
+  return [];
+}
+
 function normalizeVoucher(x) {
-  const rawSoLuong = x.soLuong ?? x.so_luong;
+  const khIdsRaw =
+    x.khachHangIds ??
+    x.khach_hang_ids ??
+    x.khachHangs ??
+    x.khach_hangs ??
+    x.khachHangList ??
+    x.khach_hang_list ??
+    [];
+
+  const khSingle =
+    x.khachHangId ??
+    x.khach_hang_id ??
+    x.idKhachHang ??
+    x.id_khach_hang ??
+    null;
 
   return {
     id: x.id,
     maGiamGia: x.maGiamGia ?? x.ma_giam_gia ?? "",
     tenGiamGia: x.tenGiamGia ?? x.ten_giam_gia ?? "",
     trangThai: x.trangThai ?? x.trang_thai ?? true,
-    soLuong: rawSoLuong === undefined || rawSoLuong === null ? null : Number(rawSoLuong),
+    soLuong: Number(x.soLuong ?? x.so_luong ?? 0),
     loaiGiam: x.loaiGiam ?? x.loai_giam ?? false,
     giaTriPhanTram: Number(x.giaTriPhanTram ?? x.gia_tri_phan_tram ?? 0),
     giaTriTienMat: Number(x.giaTriTienMat ?? x.gia_tri_tien_mat ?? 0),
     giaTriGiamToiDa: Number(x.giaTriGiamToiDa ?? x.gia_tri_giam_toi_da ?? 0),
     donHangToiThieu: Number(x.donHangToiThieu ?? x.don_hang_toi_thieu ?? 0),
-    loaiPhieu: x.loaiPhieu ?? x.loai_phieu ?? "",
+    loaiPhieu: x.loaiPhieu ?? x.loai_phieu ?? null,
+    khachHangIds: normalizeKhIds(khIdsRaw),
+    khachHangId: khSingle != null ? Number(khSingle) : null,
     ngayBatDau: x.ngayBatDau ?? x.ngay_bat_dau ?? null,
     ngayKetThuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
   };
 }
+
 watch(keyword, () => {
   currentPage.value = 1;
+});
+
+watch(activeTab, () => {
+  currentPage.value = 1;
+  keyword.value = "";
 });
 
 watch(filteredVouchers, () => {
@@ -361,7 +558,40 @@ watch(filteredVouchers, () => {
   }
 });
 function isPublicVoucher(voucher) {
-  return String(voucher?.loaiPhieu || "").toUpperCase() === "CONG_KHAI";
+  const lp = voucher?.loaiPhieu;
+
+  if (lp === false) return true;
+  if (lp === true) return false;
+
+  const s = String(lp || "").toUpperCase();
+
+  return s === "CONG_KHAI" || s === "PUBLIC";
+}
+
+function isPrivateVoucher(voucher) {
+  const lp = voucher?.loaiPhieu;
+
+  if (lp === true) return true;
+  if (lp === false) return false;
+
+  const s = String(lp || "").toUpperCase();
+
+  return s === "CA_NHAN" || s === "PERSONAL";
+}
+
+function voucherBelongsToCustomer(voucher, customerId) {
+  if (!isPrivateVoucher(voucher)) return true;
+  if (!customerId) return false;
+
+  if (Array.isArray(voucher.khachHangIds) && voucher.khachHangIds.length) {
+    return voucher.khachHangIds.includes(Number(customerId));
+  }
+
+  if (voucher.khachHangId != null) {
+    return Number(voucher.khachHangId) === Number(customerId);
+  }
+
+  return true;
 }
 
 function isVoucherActive(voucher) {
@@ -411,7 +641,10 @@ function formatDateTime(value) {
 }
 
 function formatDiscount(voucher) {
-  const isPercent = voucher?.loaiGiam === true || voucher?.loaiGiam === 1 || voucher?.loaiGiam === "1";
+  const isPercent =
+    voucher?.loaiGiam === true ||
+    voucher?.loaiGiam === 1 ||
+    voucher?.loaiGiam === "1";
 
   if (isPercent && voucher?.giaTriPhanTram) {
     return `Giảm ${voucher.giaTriPhanTram}%`;
@@ -429,7 +662,19 @@ async function fetchVouchers() {
     loading.value = true;
     error.value = "";
 
-    const res = await fetch(`${API_BASE}/api/pgg/pos`);
+    const customerId = khachHangId.value || null;
+    const params = new URLSearchParams();
+
+    if (customerId) {
+      params.set("khachHangId", String(customerId));
+    }
+
+    const url = `${API_BASE}/api/pgg/pos${params.toString() ? `?${params.toString()}` : ""}`;
+
+    console.log("DISCOUNT CUSTOMER ID =", customerId);
+    console.log("DISCOUNT PGG URL =", url);
+
+    const res = await fetch(url);
     const data = await res.json().catch(() => []);
 
     if (!res.ok) {
@@ -437,19 +682,25 @@ async function fetchVouchers() {
     }
 
     const list = Array.isArray(data) ? data : [];
+    const normalized = list.map(normalizeVoucher).filter(isVoucherActive);
 
-    publicVouchers.value = list
-      .map(normalizeVoucher)
-      .filter((item) => isPublicVoucher(item) && isVoucherActive(item));
+    publicVouchers.value = normalized.filter(isPublicVoucher);
+    myVouchers.value = isLoggedIn.value
+      ? normalized.filter(isPrivateVoucher)
+      : [];
+
+    console.log("DISCOUNT ALL =", normalized);
+    console.log("DISCOUNT PUBLIC =", publicVouchers.value);
+    console.log("DISCOUNT MINE =", myVouchers.value);
   } catch (err) {
     console.error("fetchVouchers error:", err);
     error.value = err?.message || "Không tải được mã giảm giá";
     publicVouchers.value = [];
+    myVouchers.value = [];
   } finally {
     loading.value = false;
   }
 }
-
 async function copyCode(code) {
   if (!code) return;
 
@@ -474,7 +725,9 @@ function scrollToVoucherList() {
 function goShop() {
   router.push({ name: "Search" });
 }
-
+function goLogin() {
+  router.push({ name: "Login", query: { redirect: "/giam-gia" } });
+}
 onMounted(async () => {
   await fetchVouchers();
 });
@@ -485,13 +738,21 @@ onBeforeUnmount(() => {
     copiedTimer = null;
   }
 });
+watch(activeTab, () => {
+  currentPage.value = 1;
+  keyword.value = "";
+});
 </script>
 
 <style scoped>
 .discount-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 34%),
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.12),
+      transparent 34%
+    ),
     linear-gradient(180deg, #f7f9ff 0%, #f3f6fb 48%, #ffffff 100%);
   color: #0f172a;
 }
@@ -500,8 +761,12 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   padding: 70px 0 58px;
-  background:
-    linear-gradient(135deg, rgba(2, 6, 23, 0.95) 0%, rgba(15, 23, 42, 0.98) 44%, rgba(30, 64, 175, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(2, 6, 23, 0.95) 0%,
+    rgba(15, 23, 42, 0.98) 44%,
+    rgba(30, 64, 175, 0.95) 100%
+  );
 }
 
 .hero-bg {
@@ -783,8 +1048,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   padding: 22px;
   border-radius: 28px;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   border: 1px solid rgba(148, 163, 184, 0.24);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
   transition: all 0.25s ease;
@@ -855,8 +1119,7 @@ onBeforeUnmount(() => {
   margin-bottom: 18px;
   padding: 15px;
   border-radius: 20px;
-  background:
-    linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border: 1px dashed rgba(37, 99, 235, 0.35);
 }
 
@@ -1205,7 +1468,16 @@ onBeforeUnmount(() => {
 .discount-page button,
 .discount-page select,
 .discount-page textarea {
-  font-family: var(--bs-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  font-family: var(
+    --bs-body-font-family,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif
+  );
 }
 
 .discount-page {
@@ -1385,7 +1657,9 @@ section.container.py-5 {
   background: #ffffff;
   border: 1px solid #e5eaf2;
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .voucher-card:hover {
@@ -1720,5 +1994,70 @@ section.container.py-5 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+.voucher-toolbar {
+  flex-wrap: wrap;
+}
+
+.tab-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid #d8e0ea;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.18s ease;
+}
+
+.tab-btn span {
+  min-width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tab-btn.active {
+  background: #07143f;
+  border-color: #07143f;
+  color: #ffffff;
+}
+
+.tab-btn.active span {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.voucher-card--mine {
+  border-color: #bfdbfe;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.08);
+}
+
+@media (max-width: 767.98px) {
+  .tab-group,
+  .tab-btn {
+    width: 100%;
+  }
+
+  .tab-btn {
+    justify-content: center;
+  }
 }
 </style>

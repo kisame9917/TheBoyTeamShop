@@ -4566,6 +4566,28 @@ function wardNameByCode(code) {
 
   return wardNameByCodeByProvince(o.ghnProvinceId, code);
 }
+async function confirmOrderCash() {
+  const o = activeOrder.value;
+  if (!o || submitting.value) return;
+
+  o.paymentMethod = "CASH";
+  o.maGiaoDich = null;
+  o.ghiChuThanhToan = null;
+
+  const err = validateCheckout(o);
+  if (err) {
+    toastShow(err, err.includes("chưa đủ") ? "warning" : "danger");
+    return;
+  }
+
+  const ok = await openPaymentConfirm(
+    `Xác nhận thanh toán tiền mặt hóa đơn ${o.maHoaDon}?`,
+  );
+
+  if (!ok) return;
+
+  await confirmOrder();
+}
 async function confirmOrder() {
   const o = activeOrder.value;
   confirmHint.value = "";
@@ -4583,13 +4605,22 @@ async function confirmOrder() {
       return;
     }
 
-    const ok = await runVoucherPrecheckFlow();
-    if (!ok) return;
+  const ok = await runVoucherPrecheckFlow();
+if (!ok) return;
 
-    if (!o?.dbId) {
-      toastShow("Hóa đơn chưa được tạo", "danger");
-      return;
-    }
+const errAfterVoucher = validateCheckout(o);
+if (errAfterVoucher) {
+  toastShow(
+    errAfterVoucher,
+    errAfterVoucher.includes("chưa đủ") ? "warning" : "danger",
+  );
+  return;
+}
+
+if (!o?.dbId) {
+  toastShow("Hóa đơn chưa được tạo", "danger");
+  return;
+}
 
     const payload = buildPosPayload(o);
 
