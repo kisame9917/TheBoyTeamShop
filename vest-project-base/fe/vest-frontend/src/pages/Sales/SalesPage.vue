@@ -4418,6 +4418,28 @@ async function runVoucherPrecheckFlow() {
   return true;
 }
 
+async function pushQrToApp(o) {
+  if (!o?.dbId) {
+    toastShow(
+      "Đơn hàng chưa có ID hệ thống. Vui lòng xóa đơn này, tạo đơn mới rồi thanh toán QR.",
+      "warning",
+    );
+    return false;
+  }
+
+  await http.post(
+    `/api/hoa-don/draft/${o.dbId}/sync-pos`,
+    buildSyncPayload(o),
+  );
+
+  await http.post(`/api/hoa-don/draft/${o.dbId}/push-qr`, {
+    qrCode: "",
+    qrNote: qrNoteDraft.value || `Khách đã thanh toán QR - ${o.maHoaDon}`,
+  });
+
+  return true;
+}
+
 async function openQrPay() {
   const o = activeOrder.value;
   if (!o) return;
@@ -4438,10 +4460,20 @@ async function openQrPay() {
     qrContent.value = qrText;
     qrNoteDraft.value = `Khách đã thanh toán QR - ${qrText}`;
 
+    const pushed = await pushQrToApp(o);
+    if (!pushed) return;
+
     showQrPayModal.value = true;
+    toastShow("Đã gửi QR sang app", "success");
   } catch (e) {
     console.error(e);
-    toastShow("Không mở được modal QR", "danger");
+    const msg =
+      e?.response?.data?.message ||
+      e?.response?.data?.error ||
+      e?.response?.data ||
+      e?.message ||
+      "Không gửi được QR sang app";
+    toastShow(String(msg), "danger");
   }
 }
 
