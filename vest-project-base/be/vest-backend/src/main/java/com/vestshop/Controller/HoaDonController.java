@@ -4,7 +4,6 @@ import com.vestshop.Service.HoaDonService;
 import com.vestshop.Service.PosRealtimeService;
 import com.vestshop.dto.request.*;
 import com.vestshop.dto.response.*;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -30,10 +29,8 @@ public class HoaDonController {
             @RequestParam(required = false) Integer trangThaiDon,
             @RequestParam(required = false) String phanLoai,
             @RequestParam(required = false) Boolean loaiDon,
-
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-
             @RequestParam(required = false) BigDecimal minTotal,
             @RequestParam(required = false) BigDecimal maxTotal,
             @RequestParam(required = false) Boolean hasVoucher,
@@ -58,17 +55,13 @@ public class HoaDonController {
                 )
         );
     }
+
     @PostMapping("/draft/{id}/cancel")
     public ResponseEntity<Void> cancelDraft(@PathVariable Long id,
                                             @RequestBody(required = false) CancelDraftRequest req) {
         hoaDonService.cancelDraft(id, req);
         return ResponseEntity.noContent().build();
     }
-
-//    @PostMapping("/pos")
-//    public ResponseEntity<HoaDonDetailResponse> createPos(@Valid @RequestBody BanHangRequest req) {
-//        return ResponseEntity.ok(hoaDonService.createPos(req));
-//    }
 
     @GetMapping("/{id}")
     public ResponseEntity<HoaDonDetailResponse> detail(@PathVariable Long id) {
@@ -104,38 +97,21 @@ public class HoaDonController {
     public ResponseEntity<HoaDonDetailResponse> hoanHang(@PathVariable Long id, @RequestBody HoaDonReturnRequest req) {
         return ResponseEntity.ok(hoaDonService.hoanHang(id, req));
     }
+
     @PostMapping("/taohoadon")
     public ResponseEntity<TaohoadonResponse> createDraft(@RequestBody(required = false) TaoHoaDonChoXacNhanRequest req) {
         return ResponseEntity.ok(hoaDonService.createDraft(req));
     }
+
     @PostMapping("/draft/{id}/checkout")
     public ResponseEntity<?> checkoutDraft(@PathVariable("id") Long id,
                                            @RequestBody BanHangRequest req) {
         return ResponseEntity.ok(hoaDonService.checkoutDraft(id, req));
     }
+
     @GetMapping("/drafts/pos-active")
     public ResponseEntity<List<HoaDonDetailResponse>> getPosDrafts() {
         return ResponseEntity.ok(hoaDonService.getPosDrafts());
-    }
-
-    @PostMapping("/draft/{id}/push-qr")
-    public ResponseEntity<Void> pushQrToApp(
-            @PathVariable Long id,
-            @RequestBody(required = false) PushQrToAppRequest req
-    ) {
-        HoaDonDetailResponse detail = hoaDonService.getDetailById(id);
-
-        if (detail == null
-                || detail.getTrangThaiDon() == null
-                || detail.getTrangThaiDon() != 0
-                || !Boolean.TRUE.equals(detail.getTrangThai())) {
-            throw new IllegalArgumentException("Chỉ được gửi QR cho đơn POS đang mở");
-        }
-
-        String qrCode = req == null ? null : req.getQrCode();
-        String qrNote = req == null ? null : req.getQrNote();
-        posRealtimeService.pushShowQr(detail, qrCode, qrNote);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/draft/{id}/sync-pos")
@@ -146,11 +122,31 @@ public class HoaDonController {
         return ResponseEntity.ok(hoaDonService.syncPosDraft(id, req));
     }
 
+    @PostMapping("/draft/{id}/push-qr")
+    public ResponseEntity<HoaDonDetailResponse> pushQrToApp(
+            @PathVariable Long id,
+            @RequestBody(required = false) PushQrToAppRequest req
+    ) {
+        HoaDonDetailResponse detail = hoaDonService.getDetailById(id);
+        String qrCode = req == null ? null : req.getQrCode();
+        String message = req == null ? null : req.getMessage();
+        posRealtimeService.pushShowQr(detail, qrCode, message);
+        return ResponseEntity.ok(detail);
+    }
+
+    @PostMapping("/draft/{id}/qr-paid")
+    public ResponseEntity<Void> pushQrPaidToApp(
+            @PathVariable Long id,
+            @RequestBody(required = false) PushQrToAppRequest req
+    ) {
+        String message = req == null ? null : req.getMessage();
+        posRealtimeService.pushQrPaid(id, message);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/xac-nhan-hoan-tien")
     public ResponseEntity<HoaDonDetailResponse> confirmRefund(@PathVariable Long id,
                                                               @RequestBody RefundConfirmRequest request) {
         return ResponseEntity.ok(hoaDonService.confirmRefund(id, request));
     }
-
-
 }

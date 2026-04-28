@@ -32,7 +32,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/api/gemini/**").permitAll()
-                        // auth + oauth2 + swagger
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/oauth2/**",
@@ -42,14 +41,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // static files
                         .requestMatchers("/uploads/**", "/images/**").permitAll()
                         .requestMatchers("/ws/**", "/ws").permitAll()
-
-                        // online checkout public
                         .requestMatchers("/api/checkout/**", "/api/online-checkout/**").permitAll()
 
-                        // shop online public APIs
                         .requestMatchers(HttpMethod.GET,
                                 "/api/san-pham",
                                 "/api/san-pham/**",
@@ -59,7 +54,6 @@ public class SecurityConfig {
                                 "/api/pgg/pos"
                         ).permitAll()
 
-                        // backoffice / bán hàng tại quầy
                         .requestMatchers("/api/hoa-don/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/khach-hang/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/ca-lam-viec/lich-ca-nhan/**").hasAnyRole("ADMIN", "STAFF")
