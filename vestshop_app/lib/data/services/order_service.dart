@@ -4,6 +4,7 @@ import '../models/order_model.dart';
 
 class OrderService {
   final ApiClient apiClient;
+
   OrderService(this.apiClient);
 
   Future<List<OrderModel>> getActivePosDrafts() async {
@@ -14,12 +15,9 @@ class OrderService {
       throw Exception('API không trả về List. data=$data');
     }
 
-    final result = data
+    return data
         .map((e) => OrderModel.fromJson(Map<String, dynamic>.from(e)))
         .toList();
-
-    debugPrint('POS DRAFT PARSED LENGTH = ${result.length}');
-    return result;
   }
 
   Future<OrderModel> getOrderDetail(int orderId) async {

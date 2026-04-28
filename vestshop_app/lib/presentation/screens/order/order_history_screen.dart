@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/api_constants.dart';
 import '../../../core/utils/format_utils.dart';
 import '../../../data/models/order_model.dart';
 import '../../../providers/order_provider.dart';
@@ -15,37 +14,69 @@ class OrderHistoryScreen extends StatefulWidget {
 }
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
-  int _lastQrSignal = 0;
+  bool _isQrDialogOpen = false;
+  int? _qrDialogOrderId;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
-      context.read<OrderProvider>().startRealtimeOnly();
+      final provider = context.read<OrderProvider>();
+      provider.onShowQr = _showQrFromAdmin;
+      provider.onQrPaid = _handleQrPaidFromAdmin;
+      provider.startRealtimeOnly();
     });
   }
 
   @override
   void dispose() {
-    context.read<OrderProvider>().disconnectRealtime();
+    final provider = context.read<OrderProvider>();
+    provider.onShowQr = null;
+    provider.onQrPaid = null;
+    provider.disconnectRealtime();
     super.dispose();
   }
 
-  void _listenShowQr(OrderProvider provider) {
-    final signal = provider.qrSignal;
-    final order = provider.qrOrderToShow;
-
-    if (signal == 0 || signal == _lastQrSignal || order == null) return;
-
-    _lastQrSignal = signal;
-    provider.markQrHandled(signal);
-
+  Future<void> _showQrFromAdmin(OrderModel order) async {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+
+      if (_isQrDialogOpen) {
+        Navigator.of(context, rootNavigator: true).pop(false);
+        await Future.delayed(const Duration(milliseconds: 120));
+      }
+
+      if (!mounted) return;
+
+      _isQrDialogOpen = true;
+      _qrDialogOrderId = order.id;
+
       await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (_) => PaymentQrDialog(order: order),
+      );
+
+      _isQrDialogOpen = false;
+      _qrDialogOrderId = null;
+    });
+  }
+
+  void _handleQrPaidFromAdmin(int orderId, String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      if (_isQrDialogOpen && (_qrDialogOrderId == null || _qrDialogOrderId == orderId)) {
+        Navigator.of(context, rootNavigator: true).pop(true);
+      }
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
       );
     });
   }
@@ -53,36 +84,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<OrderProvider>();
-    _listenShowQr(provider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Đơn POS realtime'),
-        actions: [
-          IconButton(
-            onPressed: () => context.read<OrderProvider>().startRealtimeOnly(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Đơn hàng tại quầy')),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : provider.orders.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'Đang chờ dữ liệu realtime từ POS...',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
+              ? const Center(child: Text('Chưa có đơn hàng tại quầy đang mở'))
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: provider.orders.length,
                   itemBuilder: (context, index) {
-                    final o = provider.orders[index];
-                    return _OrderCard(order: o);
+                    final order = provider.orders[index];
+                    return _OrderCard(order: order);
                   },
                 ),
     );
@@ -104,40 +118,12 @@ class _OrderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    order.maHoaDon,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: order.loaiDon
-                        ? Colors.orange.shade50
-                        : Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    order.loaiDon ? 'Giao hàng' : 'Tại quầy',
-                    style: TextStyle(
-                      color: order.loaiDon
-                          ? Colors.orange.shade800
-                          : Colors.green.shade800,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              order.maHoaDon,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 6),
             Text('Khách: ${order.tenKhachHang ?? "Khách lẻ"}'),
@@ -146,10 +132,7 @@ class _OrderCard extends StatelessWidget {
             ...order.items.map(_buildItem),
             const Divider(),
             _row('Tổng tiền hàng', FormatUtils.money(order.tongTien)),
-            _row(
-              'Giảm giá voucher',
-              '- ${FormatUtils.money(order.tongTienGiam)}',
-            ),
+            _row('Giảm giá voucher', '- ${FormatUtils.money(order.tongTienGiam)}'),
             _row('Phí ship', FormatUtils.money(order.phiVanChuyen)),
             const SizedBox(height: 6),
             _row(
@@ -164,7 +147,7 @@ class _OrderCard extends StatelessWidget {
   }
 
   Widget _buildItem(OrderItemModel item) {
-    final imageUrl = _resolveImageUrl(item.anhDaiDien);
+    final imageUrl = item.anhDaiDien?.trim();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -184,15 +167,13 @@ class _OrderCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             clipBehavior: Clip.antiAlias,
-            child: imageUrl != null
+            child: imageUrl != null && imageUrl.isNotEmpty
                 ? Image.network(
                     imageUrl,
                     width: 52,
                     height: 52,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) {
-                      return const Icon(Icons.broken_image);
-                    },
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
                   )
                 : const Icon(Icons.image),
           ),
@@ -202,7 +183,7 @@ class _OrderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.tenSanPham ?? '',
+                  item.tenSanPham ?? 'Sản phẩm',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
@@ -215,14 +196,6 @@ class _OrderCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String? _resolveImageUrl(String? value) {
-    final url = value?.trim();
-    if (url == null || url.isEmpty) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/')) return '${ApiConstants.serverUrl}$url';
-    return url;
   }
 
   Widget _row(String left, String right, {bool isBold = false}) {

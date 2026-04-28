@@ -4417,29 +4417,6 @@ async function runVoucherPrecheckFlow() {
 
   return true;
 }
-
-async function pushQrToApp(o) {
-  if (!o?.dbId) {
-    toastShow(
-      "Đơn hàng chưa có ID hệ thống. Vui lòng xóa đơn này, tạo đơn mới rồi thanh toán QR.",
-      "warning",
-    );
-    return false;
-  }
-
-  await http.post(
-    `/api/hoa-don/draft/${o.dbId}/sync-pos`,
-    buildSyncPayload(o),
-  );
-
-  await http.post(`/api/hoa-don/draft/${o.dbId}/push-qr`, {
-    qrCode: "",
-    qrNote: qrNoteDraft.value || `Khách đã thanh toán QR - ${o.maHoaDon}`,
-  });
-
-  return true;
-}
-
 async function openQrPay() {
   const o = activeOrder.value;
   if (!o) return;
@@ -4448,6 +4425,13 @@ async function openQrPay() {
 
   if (err && !String(err).includes("Khách thanh toán chưa đủ")) {
     return toastShow(err, "warning");
+  }
+
+  if (!o.dbId) {
+    return toastShow(
+      "Đơn hàng chưa có ID hệ thống. Vui lòng tạo lại đơn rồi thanh toán QR.",
+      "warning",
+    );
   }
 
   try {
@@ -4460,20 +4444,19 @@ async function openQrPay() {
     qrContent.value = qrText;
     qrNoteDraft.value = `Khách đã thanh toán QR - ${qrText}`;
 
-    const pushed = await pushQrToApp(o);
-    if (!pushed) return;
-
     showQrPayModal.value = true;
-    toastShow("Đã gửi QR sang app", "success");
+
+    clearTimeout(_syncDraftT);
+    _syncDraftT = null;
+
+    await http.post(`/api/hoa-don/draft/${o.dbId}/sync-pos`, buildSyncPayload(o));
+    await http.post(`/api/hoa-don/draft/${o.dbId}/push-qr`, {
+      qrCode: "",
+      message: "Hiển thị QR thanh toán",
+    });
   } catch (e) {
     console.error(e);
-    const msg =
-      e?.response?.data?.message ||
-      e?.response?.data?.error ||
-      e?.response?.data ||
-      e?.message ||
-      "Không gửi được QR sang app";
-    toastShow(String(msg), "danger");
+    toastShow("App chưa nhận được QR. Kiểm tra lại kết nối realtime.", "warning");
   }
 }
 
@@ -4484,7 +4467,6 @@ function closeQrPay() {
   qrRequestCode.value = "";
   qrNoteDraft.value = "";
 }
-
 async function markPaidAndCheckout() {
   const o = activeOrder.value;
   if (!o || submitting.value) return;
@@ -4502,11 +4484,22 @@ async function markPaidAndCheckout() {
     return;
   }
 
+  if (o.dbId) {
+    try {
+      await http.post(`/api/hoa-don/draft/${o.dbId}/qr-paid`, {
+        message: "Thanh toán QR thành công",
+      });
+    } catch (e) {
+      console.error("push QR paid to app error", e);
+    }
+  }
+
   closeQrPay();
   toastShow("Đang xử lý thanh toán...", "info");
 
   await confirmOrder();
 }
+
 function validateCheckout(o) {
   if (!o) return "Không có đơn hàng đang chọn";
   if (!Array.isArray(o.cart) || o.cart.length === 0) return "Giỏ hàng trống";

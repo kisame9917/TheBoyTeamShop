@@ -1,13 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/api_constants.dart';
-import '../../core/network/ws_client.dart';
 import '../../data/models/order_model.dart';
 
-class PaymentQrDialog extends StatefulWidget {
+class PaymentQrDialog extends StatelessWidget {
   final OrderModel order;
 
   const PaymentQrDialog({
@@ -15,65 +12,12 @@ class PaymentQrDialog extends StatefulWidget {
     required this.order,
   });
 
-  @override
-  State<PaymentQrDialog> createState() => _PaymentQrDialogState();
-}
-
-class _PaymentQrDialogState extends State<PaymentQrDialog> {
-  late final WsClient _wsClient;
-
-  @override
-  void initState() {
-    super.initState();
-    _wsClient = WsClient();
-    _connectRealtime();
-  }
-
-  @override
-  void dispose() {
-    _wsClient.disconnect();
-    super.dispose();
-  }
-
-  void _connectRealtime() {
-    _wsClient.connect(
-      url: ApiConstants.wsUrl,
-      onConnect: (_) {
-        _wsClient.subscribe(
-          destination: '/topic/pos-orders',
-          callback: (frame) {
-            try {
-              final body = frame?.body;
-              if (body == null || body.isEmpty) return;
-
-              final Map<String, dynamic> json =
-                  jsonDecode(body) as Map<String, dynamic>;
-
-              final type = json['type']?.toString();
-              final rawId = json['hoaDonId'];
-              final int? hoaDonId =
-                  rawId is int ? rawId : int.tryParse('$rawId');
-
-              if (!mounted || hoaDonId == null) return;
-
-              if (type == 'REMOVE' && hoaDonId == widget.order.id) {
-                Navigator.of(context).pop(true);
-              }
-            } catch (e) {
-              debugPrint('QR realtime parse error: $e');
-            }
-          },
-        );
-      },
-    );
-  }
-
   String? get qrData {
-    if (widget.order.qrCode != null && widget.order.qrCode!.trim().isNotEmpty) {
-      return widget.order.qrCode;
+    if (order.qrCode != null && order.qrCode!.trim().isNotEmpty) {
+      return order.qrCode;
     }
 
-    for (final tx in widget.order.giaoDichThanhToan) {
+    for (final tx in order.giaoDichThanhToan) {
       final value = tx.duLieuQr;
       if (value != null && value.trim().isNotEmpty) {
         return value;
@@ -96,11 +40,11 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
     return '${ApiConstants.serverUrl}$value';
   }
 
-  Widget _buildQrImage() {
-    final qr = qrData?.trim();
+  Widget _buildQrImage(String? qr) {
+    final value = qr?.trim();
 
-    if (qr != null && qr.isNotEmpty && _isImageUrl(qr)) {
-      final imageUrl = _resolveImageUrl(qr);
+    if (value != null && value.isNotEmpty && _isImageUrl(value)) {
+      final imageUrl = _resolveImageUrl(value);
       return Image.network(
         imageUrl,
         width: 260,
@@ -116,15 +60,16 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
         },
         errorBuilder: (_, error, __) {
           debugPrint('QR load error = $error');
-          return _localQrImage();
+          return Image.asset(
+            'assets/images/techcombank-qr.png',
+            width: 260,
+            height: 260,
+            fit: BoxFit.contain,
+          );
         },
       );
     }
 
-    return _localQrImage();
-  }
-
-  Widget _localQrImage() {
     return Image.asset(
       'assets/images/techcombank-qr.png',
       width: 260,
@@ -135,6 +80,8 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final qr = qrData?.trim();
+
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -151,7 +98,7 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Thanh toán bằng QR',
+                        'Đơn hàng tại quầy',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -165,22 +112,18 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                _infoRow(
-                  'Loại đơn',
-                  widget.order.loaiDon ? 'Giao hàng' : 'Tại quầy',
-                ),
-                _infoRow('Mã HD', widget.order.maHoaDon),
+                _infoRow('Mã HD', order.maHoaDon),
                 _infoRow(
                   'Số tiền',
-                  '${widget.order.tongTienSauGiam.toStringAsFixed(0)} đ',
+                  '${order.tongTienSauGiam.toStringAsFixed(0)} đ',
                   valueColor: Colors.red,
                 ),
                 const SizedBox(height: 14),
-                Center(child: _buildQrImage()),
+                Center(child: _buildQrImage(qr)),
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
-                    'Nội dung chuyển khoản: ${widget.order.maHoaDon}',
+                    'Nội dung chuyển khoản: ${order.maHoaDon}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 15,
@@ -188,25 +131,19 @@ class _PaymentQrDialogState extends State<PaymentQrDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 10),
-                    Text('Đang chờ thanh toán realtime...'),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
+                const SizedBox(height: 14),
+                Container(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Đóng'),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade100),
+                  ),
+                  child: const Text(
+                    'Đang chờ admin xác nhận thanh toán QR...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
