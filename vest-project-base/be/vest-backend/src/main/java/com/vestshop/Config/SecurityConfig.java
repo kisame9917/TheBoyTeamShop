@@ -47,7 +47,7 @@ public class SecurityConfig {
 
                         // online checkout public
                         .requestMatchers("/api/checkout/**", "/api/online-checkout/**").permitAll()
-
+                        .requestMatchers("/api/app-pos/**", "/ws/**", "/ws").permitAll()
                         // shop online public APIs
                         .requestMatchers(HttpMethod.GET,
                                 "/api/san-pham",
