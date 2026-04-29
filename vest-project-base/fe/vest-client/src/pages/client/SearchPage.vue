@@ -32,13 +32,15 @@
 
           <div class="hero-stats">
             <div class="hero-stat">
-              <strong>{{ products.length }}</strong>
-              <span>Sản phẩm</span>
+              <strong>{{ availableProductCount }}</strong>
+              <span>Sản phẩm còn hàng</span>
             </div>
+
             <div class="hero-stat">
               <strong>{{ allColors.length }}</strong>
               <span>Màu sắc</span>
             </div>
+
             <div class="hero-stat">
               <strong>{{ allSizes.length }}</strong>
               <span>Kích thước</span>
@@ -76,7 +78,7 @@
                   v-model.trim="keyword"
                   type="text"
                   class="filter-input"
-                  placeholder="Tên sản phẩm, mô tả..."
+                  placeholder="Tên sản phẩm..."
                 />
               </div>
             </div>
@@ -146,7 +148,7 @@
                       class="color-dot"
                       :style="{ backgroundColor: getColorCode(selectedColor) }"
                     ></i>
-                    {{ selectedColor || "Tất cả màu sắc" }}
+                    {{ selectedColorLabel }}
                   </span>
                   <i class="bi bi-chevron-down"></i>
                 </button>
@@ -172,14 +174,14 @@
 
                   <button
                     v-for="color in filteredColorOptions"
-                    :key="color"
+                    :key="color.id"
                     type="button"
                     class="combo-option combo-option-color"
-                    :class="{ selected: selectedColor === color }"
-                    @mousedown.prevent="pickColor(color)"
+                    :class="{ selected: String(selectedColor) === String(color.id) }"
+                    @mousedown.prevent="pickColor(color.id)"
                   >
-                    <i class="color-dot" :style="{ backgroundColor: getColorCode(color) }"></i>
-                    {{ color }}
+                    <i class="color-dot" :style="{ backgroundColor: color.code }"></i>
+                    {{ color.name }}
                   </button>
 
                   <div v-if="filteredColorOptions.length === 0" class="combo-empty">
@@ -242,39 +244,41 @@
             <div class="filter-group">
               <label class="filter-label">Khoảng giá</label>
 
-              <div class="price-inputs">
-                <div>
-                  <span>Từ</span>
-                  <input
-                    v-model.number="minPriceFilter"
-                    type="number"
-                    min="0"
-                    class="price-input"
-                  />
+              <div class="price-box">
+                <div class="price-inputs">
+                  <div class="price-field">
+                    <span>Từ</span>
+                    <input
+                      v-model.number="minPriceFilter"
+                      type="number"
+                      min="0"
+                      class="price-input"
+                    />
+                  </div>
+
+                  <div class="price-field">
+                    <span>Đến</span>
+                    <input
+                      v-model.number="maxPriceFilter"
+                      type="number"
+                      min="0"
+                      class="price-input"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <span>Đến</span>
-                  <input
-                    v-model.number="maxPriceFilter"
-                    type="number"
-                    min="0"
-                    class="price-input"
-                  />
+                <input
+                  v-model.number="maxPriceFilter"
+                  type="range"
+                  class="price-slider"
+                  min="0"
+                  :max="safeMaxDbPrice"
+                  step="10000"
+                />
+
+                <div class="price-range-text">
+                  {{ money(normalMinPrice) }} đ - {{ money(normalMaxPrice) }} đ
                 </div>
-              </div>
-
-              <input
-                v-model.number="maxPriceFilter"
-                type="range"
-                class="form-range mt-3"
-                min="0"
-                :max="safeMaxDbPrice"
-                step="10000"
-              />
-
-              <div class="price-range-text">
-                {{ money(normalMinPrice) }} đ - {{ money(normalMaxPrice) }} đ
               </div>
             </div>
 
@@ -297,15 +301,6 @@
                   @click="selectedStock = 'in-stock'"
                 >
                   Còn hàng
-                </button>
-
-                <button
-                  type="button"
-                  class="stock-btn"
-                  :class="{ active: selectedStock === 'out-stock' }"
-                  @click="selectedStock = 'out-stock'"
-                >
-                  Hết hàng
                 </button>
               </div>
             </div>
@@ -352,7 +347,7 @@
             </button>
 
             <button v-if="selectedColor" type="button" @click="pickColor('')">
-              Màu: {{ selectedColor }}
+              Màu: {{ selectedColorLabel }}
               <i class="bi bi-x"></i>
             </button>
 
@@ -362,7 +357,7 @@
             </button>
 
             <button v-if="selectedStock !== 'all'" type="button" @click="selectedStock = 'all'">
-              {{ selectedStock === "in-stock" ? "Còn hàng" : "Hết hàng" }}
+              Còn hàng
               <i class="bi bi-x"></i>
             </button>
           </div>
@@ -407,13 +402,6 @@
                     <span class="badge-soft">
                       {{ item.categoryLabel }}
                     </span>
-
-                    <span
-                      class="badge-stock"
-                      :class="{ 'badge-stock-out': item.totalStock <= 0 }"
-                    >
-                      {{ item.totalStock > 0 ? "Còn hàng" : "Hết hàng" }}
-                    </span>
                   </div>
                 </div>
 
@@ -426,36 +414,26 @@
                     {{ item.displayName }}
                   </h5>
 
-                  <p class="product-desc">
-                    {{ item.displayDescription || "Sản phẩm thời trang cao cấp, thiết kế hiện đại và dễ phối đồ." }}
-                  </p>
-
                   <div class="product-price-row">
-                    <div>
-                      <span class="price-label">Giá từ</span>
-                      <div class="product-price">
-                        {{ money(item.displayPrice) }} đ
-                      </div>
-                    </div>
-
-                    <div class="variant-count">
-                      {{ item.variants.length }} biến thể
+                    <span class="price-label">Giá từ</span>
+                    <div class="product-price">
+                      {{ money(item.displayPrice) }} đ
                     </div>
                   </div>
 
-                  <div v-if="item.colors.length" class="meta-block">
+                  <div v-if="item.colorOptions.length" class="meta-block">
                     <div class="meta-label">Màu sắc</div>
                     <div class="chip-wrap">
                       <span
-                        v-for="color in item.colors.slice(0, 5)"
-                        :key="color"
+                        v-for="color in item.colorOptions.slice(0, 5)"
+                        :key="color.id"
                         class="color-chip"
-                        :title="color"
-                        :style="{ backgroundColor: getColorCode(color) }"
+                        :title="color.name"
+                        :style="{ backgroundColor: getColorCode(color.id) }"
                       ></span>
 
-                      <span v-if="item.colors.length > 5" class="chip-more">
-                        +{{ item.colors.length - 5 }}
+                      <span v-if="item.colorOptions.length > 5" class="chip-more">
+                        +{{ item.colorOptions.length - 5 }}
                       </span>
                     </div>
                   </div>
@@ -479,13 +457,13 @@
 
                   <div class="product-extra">
                     <div>
-                      <span>Tồn kho</span>
+                      <span>Số lượng</span>
                       <strong>{{ item.totalStock }}</strong>
                     </div>
 
                     <div>
                       <span>Màu</span>
-                      <strong>{{ item.colors.length || 0 }}</strong>
+                      <strong>{{ item.colorOptions.length || 0 }}</strong>
                     </div>
 
                     <div>
@@ -555,13 +533,13 @@ import ChatWidget from "../../components/ClientChatWidget.vue";
 import {
   getGiaMaxDb,
   getLoaiSanPhamList,
+  getMauSacList,
   getProductVariantsByProductId,
   getProducts,
 } from "../../services/productClientApi";
 import {
   pickProductImage,
   pickVariantImage,
-  resolveMediaUrl,
   sortNewestFirst,
 } from "../../utils/media";
 
@@ -574,6 +552,7 @@ const error = ref("");
 const rawProducts = ref([]);
 const products = ref([]);
 const categories = ref([]);
+const dbColors = ref([]);
 
 const page = ref(0);
 const size = ref(12);
@@ -598,7 +577,7 @@ const sizeQuery = ref("");
 const fallbackImage =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='460'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3ENo Image%3C/text%3E%3C/svg%3E";
 
-const COLOR_MAP = {
+const FALLBACK_COLOR_MAP = {
   den: "#111827",
   trang: "#ffffff",
   xam: "#9ca3af",
@@ -634,6 +613,10 @@ const normalMaxPrice = computed(() => {
   return Math.max(Number(minPriceFilter.value) || 0, Number(maxPriceFilter.value) || 0);
 });
 
+const availableProductCount = computed(() => {
+  return products.value.filter((item) => Number(item.totalStock || 0) > 0).length;
+});
+
 const categoryOptions = computed(() => {
   return (categories.value || []).map((item) => ({
     id: String(item.id),
@@ -667,9 +650,41 @@ const filteredCategoryOptions = computed(() => {
 });
 
 const allColors = computed(() => {
-  return [...new Set(products.value.flatMap((p) => p.colors || []))]
-    .filter(Boolean)
-    .sort((a, b) => String(a).localeCompare(String(b), "vi"));
+  const map = new Map();
+
+  products.value.forEach((product) => {
+    (product.colorOptions || []).forEach((color) => {
+      const id = String(color.id || "");
+      const name = String(color.name || "").trim();
+
+      if (!id || !name) return;
+
+      const dbColor = dbColors.value.find((item) => String(item.id) === id);
+      const code = resolveColorCode(dbColor?.ma || dbColor?.code || color.code, dbColor?.ten || name);
+
+      if (!map.has(id)) {
+        map.set(id, {
+          id,
+          name: dbColor?.ten || name,
+          code,
+        });
+      }
+    });
+  });
+
+  return [...map.values()].sort((a, b) =>
+    String(a.name).localeCompare(String(b.name), "vi"),
+  );
+});
+
+const selectedColorLabel = computed(() => {
+  if (!selectedColor.value) return "Tất cả màu sắc";
+
+  const found = allColors.value.find(
+    (item) => String(item.id) === String(selectedColor.value),
+  );
+
+  return found?.name || "Tất cả màu sắc";
 });
 
 const allSizes = computed(() => {
@@ -683,7 +698,7 @@ const filteredColorOptions = computed(() => {
 
   if (!q) return allColors.value;
 
-  return allColors.value.filter((item) => normalizeText(item).includes(q));
+  return allColors.value.filter((item) => normalizeText(item.name).includes(q));
 });
 
 const filteredSizeOptions = computed(() => {
@@ -696,6 +711,8 @@ const filteredSizeOptions = computed(() => {
 
 const filteredProducts = computed(() => {
   return (products.value || []).filter((item) => {
+    if (Number(item.totalStock || 0) <= 0) return false;
+
     const kw = normalizeText(keyword.value);
 
     const productCategoryId =
@@ -703,7 +720,6 @@ const filteredProducts = computed(() => {
 
     const searchContent = normalizeText([
       item.displayName,
-      item.displayDescription,
       item.categoryLabel,
       item.colors.join(" "),
       item.sizes.join(" "),
@@ -716,7 +732,8 @@ const filteredProducts = computed(() => {
       String(productCategoryId) === String(selectedCategory.value);
 
     const matchColor =
-      !selectedColor.value || (item.colors || []).includes(selectedColor.value);
+      !selectedColor.value ||
+      (item.colorIds || []).map(String).includes(String(selectedColor.value));
 
     const matchSize =
       !selectedSize.value || (item.sizes || []).includes(selectedSize.value);
@@ -727,9 +744,7 @@ const filteredProducts = computed(() => {
       price >= normalMinPrice.value && price <= normalMaxPrice.value;
 
     const matchStock =
-      selectedStock.value === "all" ||
-      (selectedStock.value === "in-stock" && Number(item.totalStock || 0) > 0) ||
-      (selectedStock.value === "out-stock" && Number(item.totalStock || 0) <= 0);
+      selectedStock.value === "all" || selectedStock.value === "in-stock";
 
     return (
       matchKeyword &&
@@ -754,7 +769,9 @@ const sortedProducts = computed(() => {
   }
 
   if (sortBy.value === "nameAsc") {
-    return list.sort((a, b) => String(a.displayName || "").localeCompare(String(b.displayName || ""), "vi"));
+    return list.sort((a, b) =>
+      String(a.displayName || "").localeCompare(String(b.displayName || ""), "vi"),
+    );
   }
 
   return list;
@@ -816,10 +833,6 @@ watch(
   },
 );
 
-function normalizeImage(value) {
-  return resolveMediaUrl(value) || fallbackImage;
-}
-
 function normalizeText(text) {
   return String(text || "")
     .trim()
@@ -836,25 +849,48 @@ function normalizeColorName(name) {
     .trim();
 }
 
-function getColorCode(colorName) {
-  if (!colorName) return "#d1d5db";
+function resolveColorCode(value, colorName = "") {
+  const raw = String(value || "").trim();
 
-  const key = normalizeColorName(colorName);
+  if (raw.startsWith("#")) return raw;
+  if (/^[0-9a-fA-F]{3}$/.test(raw) || /^[0-9a-fA-F]{6}$/.test(raw)) return `#${raw}`;
+  if (/^(rgb|rgba|hsl|hsla)\(/i.test(raw)) return raw;
 
-  if (COLOR_MAP[key]) return COLOR_MAP[key];
-  if (key.includes("navy") || key.includes("than")) return COLOR_MAP["xanh navy"];
-  if (key.includes("xanh") && key.includes("la")) return COLOR_MAP["xanh la"];
-  if (key.includes("xanh") && key.includes("duong")) return COLOR_MAP["xanh duong"];
-  if (key.includes("do")) return COLOR_MAP.do;
-  if (key.includes("vang")) return COLOR_MAP.vang;
-  if (key.includes("cam")) return COLOR_MAP.cam;
-  if (key.includes("hong")) return COLOR_MAP.hong;
-  if (key.includes("tim")) return COLOR_MAP.tim;
-  if (key.includes("nau")) return COLOR_MAP.nau;
-  if (key.includes("trang")) return COLOR_MAP.trang;
-  if (key.includes("den")) return COLOR_MAP.den;
+  const keyByValue = normalizeColorName(raw);
+  if (FALLBACK_COLOR_MAP[keyByValue]) return FALLBACK_COLOR_MAP[keyByValue];
 
-  return "#3b82f6";
+  const keyByName = normalizeColorName(colorName);
+  if (FALLBACK_COLOR_MAP[keyByName]) return FALLBACK_COLOR_MAP[keyByName];
+
+  if (keyByName.includes("navy") || keyByName.includes("than")) return FALLBACK_COLOR_MAP["xanh navy"];
+  if (keyByName.includes("xanh") && keyByName.includes("la")) return FALLBACK_COLOR_MAP["xanh la"];
+  if (keyByName.includes("xanh") && keyByName.includes("duong")) return FALLBACK_COLOR_MAP["xanh duong"];
+  if (keyByName.includes("do")) return FALLBACK_COLOR_MAP.do;
+  if (keyByName.includes("vang")) return FALLBACK_COLOR_MAP.vang;
+  if (keyByName.includes("cam")) return FALLBACK_COLOR_MAP.cam;
+  if (keyByName.includes("hong")) return FALLBACK_COLOR_MAP.hong;
+  if (keyByName.includes("tim")) return FALLBACK_COLOR_MAP.tim;
+  if (keyByName.includes("nau")) return FALLBACK_COLOR_MAP.nau;
+  if (keyByName.includes("trang")) return FALLBACK_COLOR_MAP.trang;
+  if (keyByName.includes("den")) return FALLBACK_COLOR_MAP.den;
+
+  return "#d1d5db";
+}
+
+function getColorCode(colorId) {
+  if (!colorId) return "#d1d5db";
+
+  const foundById = allColors.value.find(
+    (item) => String(item.id) === String(colorId),
+  );
+
+  if (foundById?.code) return foundById.code;
+
+  const foundByName = allColors.value.find(
+    (item) => normalizeText(item.name) === normalizeText(colorId),
+  );
+
+  return foundByName?.code || resolveColorCode("", colorId);
 }
 
 function normalizeSizeName(raw) {
@@ -879,10 +915,6 @@ function sortSize(a, b) {
 
 function baseProductName(item) {
   return item.tenSanPham || item.name || item.title || "Sản phẩm";
-}
-
-function baseProductDesc(item) {
-  return item.moTa || item.description || "";
 }
 
 function baseProductCode(item) {
@@ -925,13 +957,36 @@ function syncFilterFromQuery() {
 }
 
 function mapVariant(v) {
+  const colorObj = typeof v.mauSac === "object" ? v.mauSac : null;
+
+  const colorId =
+    v.idMauSac ??
+    v.id_mau_sac ??
+    colorObj?.id ??
+    null;
+
   const colorName =
-    (typeof v.mauSac === "object"
-      ? v.mauSac?.ten || v.mauSac?.name || ""
-      : v.mauSac) ||
     v.tenMauSac ||
+    v.ten_mau_sac ||
+    colorObj?.ten ||
+    colorObj?.name ||
     v.mau ||
     "";
+
+  const dbColor = dbColors.value.find(
+    (item) => String(item.id) === String(colorId),
+  );
+
+  const colorCode = resolveColorCode(
+    v.maMauSac ||
+      v.ma_mau_sac ||
+      colorObj?.ma ||
+      colorObj?.code ||
+      dbColor?.ma ||
+      dbColor?.code ||
+      "",
+    dbColor?.ten || colorName,
+  );
 
   const sizeName =
     normalizeSizeName(v.kichCo) ||
@@ -941,7 +996,9 @@ function mapVariant(v) {
 
   return {
     idSanPhamChiTiet: v.id,
+    colorId: colorId != null ? String(colorId) : "",
     color: colorName,
+    colorCode,
     size: sizeName,
     price: Number(v.donGia ?? v.giaBan ?? v.price ?? 0),
     stock: Number(v.soLuongTon ?? v.soLuong ?? 0),
@@ -953,34 +1010,60 @@ function mapVariant(v) {
 function enrichProduct(product, variants) {
   const mappedVariants = (variants || []).map(mapVariant);
 
-  const prices = mappedVariants
+  const availableVariants = mappedVariants.filter(
+    (v) => Number(v.stock || 0) > 0,
+  );
+
+  const prices = availableVariants
     .map((v) => Number(v.price || 0))
     .filter((p) => p > 0);
 
-  const colors = [
-    ...new Set(mappedVariants.map((v) => v.color).filter(Boolean)),
-  ];
+  const colorMap = new Map();
+
+  availableVariants.forEach((v) => {
+    const id = String(v.colorId || "");
+    const name = String(v.color || "").trim();
+
+    if (!id || !name) return;
+
+    if (!colorMap.has(id)) {
+      const dbColor = dbColors.value.find(
+        (item) => String(item.id) === String(id),
+      );
+
+      colorMap.set(id, {
+        id,
+        name: dbColor?.ten || name,
+        code: resolveColorCode(dbColor?.ma || v.colorCode || "", dbColor?.ten || name),
+      });
+    }
+  });
+
+  const colorOptions = [...colorMap.values()];
+  const colors = colorOptions.map((item) => item.name);
+  const colorIds = colorOptions.map((item) => String(item.id));
 
   const sizes = [
-    ...new Set(mappedVariants.map((v) => v.size).filter(Boolean)),
+    ...new Set(availableVariants.map((v) => v.size).filter(Boolean)),
   ].sort(sortSize);
 
-  const totalStock = mappedVariants.reduce(
+  const totalStock = availableVariants.reduce(
     (sum, v) => sum + Number(v.stock || 0),
     0,
   );
 
   return {
     ...product,
-    variants: mappedVariants,
+    variants: availableVariants,
     displayName: baseProductName(product),
-    displayDescription: baseProductDesc(product),
-    displayImage: pickProductImage(product, mappedVariants, fallbackImage),
+    displayImage: pickProductImage(product, availableVariants, fallbackImage),
     displayPrice:
       prices.length > 0
         ? Math.min(...prices)
         : Number(product.giaBan || product.price || 0),
     colors,
+    colorOptions,
+    colorIds,
     sizes,
     totalStock,
     code: baseProductCode(product),
@@ -1053,6 +1136,16 @@ async function fetchCategories() {
   }
 }
 
+async function fetchColors() {
+  try {
+    const data = await getMauSacList();
+    dbColors.value = Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error("fetchColors error:", err);
+    dbColors.value = [];
+  }
+}
+
 async function fetchMaxPrice() {
   try {
     const data = await getGiaMaxDb();
@@ -1120,7 +1213,7 @@ function changePage(nextPage) {
 onMounted(async () => {
   document.addEventListener("click", closeCombo);
 
-  await Promise.all([fetchCategories(), fetchMaxPrice()]);
+  await Promise.all([fetchCategories(), fetchColors(), fetchMaxPrice()]);
 
   syncFilterFromQuery();
   await fetchProductsData();
@@ -1132,20 +1225,25 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.search-page,
+.search-page input,
+.search-page button,
+.search-page select,
+.search-page textarea {
+  font-family: var(--bs-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+}
 
 .search-page {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32%),
-    linear-gradient(180deg, #f6f8fc 0%, #f8fafc 46%, #ffffff 100%);
+  background: #f5f7fb;
+  color: #111827;
 }
 
 .search-hero {
   position: relative;
   overflow: hidden;
-  padding: 42px 0 56px;
-  background:
-    linear-gradient(135deg, rgba(2, 6, 23, 0.96) 0%, rgba(15, 23, 42, 0.98) 48%, rgba(30, 64, 175, 0.94) 100%);
+  padding: 34px 0 88px;
+  background: linear-gradient(135deg, #06164d 0%, #0a2168 52%, #143c9f 100%);
 }
 
 .search-hero::before,
@@ -1154,6 +1252,7 @@ onBeforeUnmount(() => {
   position: absolute;
   border-radius: 999px;
   pointer-events: none;
+  opacity: 0.35;
 }
 
 .search-hero::before {
@@ -1176,53 +1275,52 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr 300px;
   gap: 24px;
   align-items: stretch;
-  padding: 34px;
-  border-radius: 34px;
+  padding: 28px 30px;
+  border-radius: 24px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(16px);
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  padding: 9px 15px;
+  padding: 7px 13px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
-  font-size: 13px;
-  font-weight: 850;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .hero-title {
-  margin: 18px 0;
+  margin: 14px 0 12px;
   color: #ffffff;
-  font-size: clamp(38px, 5vw, 64px);
-  line-height: 1;
-  font-weight: 950;
-  letter-spacing: -0.05em;
+  font-size: 42px;
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .hero-desc {
-  max-width: 680px;
+  max-width: 620px;
   margin: 0;
   color: rgba(255, 255, 255, 0.82);
-  font-size: 16px;
-  line-height: 1.8;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .hero-stats {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hero-stat {
-  padding: 18px;
-  border-radius: 22px;
+  padding: 15px 16px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -1230,35 +1328,40 @@ onBeforeUnmount(() => {
 .hero-stat strong {
   display: block;
   color: #ffffff;
-  font-size: 34px;
+  font-size: 28px;
   line-height: 1;
-  font-weight: 950;
+  font-weight: 800;
 }
 
 .hero-stat span {
   display: block;
   margin-top: 7px;
   color: rgba(255, 255, 255, 0.76);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .product-section {
-  margin-top: -28px;
+  margin-top: -54px;
   padding-bottom: 56px;
   position: relative;
   z-index: 3;
 }
 
+.filter-box,
+.product-toolbar,
+.product-card,
+.state-box {
+  border-radius: 20px;
+  border: 1px solid #e5eaf2;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
 .filter-box {
   position: sticky;
   top: 20px;
-  padding: 20px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(16px);
+  padding: 18px;
 }
 
 .filter-head {
@@ -1269,21 +1372,22 @@ onBeforeUnmount(() => {
   margin-bottom: 20px;
 }
 
-.filter-subtitle {
+.filter-subtitle,
+.toolbar-subtitle {
   margin-bottom: 5px;
   color: #2563eb;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .filter-title {
   margin: 0;
   color: #0f172a;
-  font-size: 22px;
-  font-weight: 950;
-  letter-spacing: -0.03em;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .filter-clear-mini {
@@ -1293,7 +1397,7 @@ onBeforeUnmount(() => {
   color: #1d4ed8;
   background: #dbeafe;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .filter-group {
@@ -1305,18 +1409,18 @@ onBeforeUnmount(() => {
   margin-bottom: 8px;
   color: #0f172a;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .filter-input-icon {
-  height: 46px;
+  height: 42px;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  border-radius: 16px;
+  border-radius: 13px;
   background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  border: 1px solid #d8e0ea;
 }
 
 .filter-input-icon i {
@@ -1330,7 +1434,7 @@ onBeforeUnmount(() => {
   color: #0f172a;
   background: transparent;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .combo-box {
@@ -1339,26 +1443,26 @@ onBeforeUnmount(() => {
 
 .combo-trigger {
   width: 100%;
-  min-height: 46px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 0 14px;
-  border-radius: 16px;
+  border-radius: 13px;
   color: #334155;
   background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  font-size: 14px;
-  font-weight: 750;
+  border: 1px solid #d8e0ea;
+  font-size: 13px;
+  font-weight: 500;
   text-align: left;
   transition: all 0.2s ease;
 }
 
 .combo-trigger.active {
-  color: #1d4ed8;
-  background: #eff6ff;
-  border-color: rgba(37, 99, 235, 0.3);
+  color: #0f172a;
+  background: #f8fafc;
+  border-color: #b8c7dc;
 }
 
 .combo-trigger:hover {
@@ -1380,10 +1484,10 @@ onBeforeUnmount(() => {
   max-height: 300px;
   overflow: auto;
   padding: 10px;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #ffffff;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
 }
 
 .combo-search {
@@ -1409,12 +1513,12 @@ onBeforeUnmount(() => {
   background: transparent;
   color: #0f172a;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .combo-option {
   width: 100%;
-  min-height: 40px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -1423,8 +1527,8 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   color: #334155;
   background: transparent;
-  font-size: 14px;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 500;
   text-align: left;
   transition: all 0.16s ease;
 }
@@ -1433,10 +1537,6 @@ onBeforeUnmount(() => {
 .combo-option.selected {
   color: #1d4ed8;
   background: #eff6ff;
-}
-
-.combo-option-color {
-  justify-content: flex-start;
 }
 
 .combo-empty {
@@ -1456,25 +1556,32 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(15, 23, 42, 0.16);
 }
 
+.price-box {
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #d8e0ea;
+}
+
 .price-inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.price-inputs div {
-  padding: 10px;
-  border-radius: 16px;
-  background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.24);
+.price-field {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
 }
 
-.price-inputs span {
+.price-field span {
   display: block;
   margin-bottom: 4px;
   color: #64748b;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -1482,17 +1589,23 @@ onBeforeUnmount(() => {
   width: 100%;
   border: 0;
   outline: 0;
-  color: #0f172a;
   background: transparent;
-  font-size: 13px;
-  font-weight: 850;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.price-slider {
+  width: 100%;
+  margin-top: 12px;
+  accent-color: #2563eb;
 }
 
 .price-range-text {
-  margin-top: 4px;
-  color: #475569;
+  margin-top: 8px;
+  color: #334155;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .stock-filter {
@@ -1502,38 +1615,38 @@ onBeforeUnmount(() => {
 }
 
 .stock-btn {
-  min-height: 40px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 14px;
+  min-height: 38px;
+  border: 1px solid #d8e0ea;
+  border-radius: 12px;
   color: #334155;
   background: #f8fafc;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 650;
   transition: all 0.2s ease;
 }
 
 .stock-btn.active {
   color: #ffffff;
-  background: #0f172a;
-  border-color: #0f172a;
+  background: #07143f;
+  border-color: #07143f;
 }
 
 .reset-btn {
   width: 100%;
-  min-height: 46px;
+  min-height: 42px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 13px;
   color: #ffffff;
-  background: #0f172a;
-  font-size: 14px;
-  font-weight: 900;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+  background: #07143f;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
   transition: all 0.2s ease;
 }
 
 .reset-btn:hover {
   transform: translateY(-2px);
-  background: #1e293b;
+  background: #0b1b55;
 }
 
 .product-toolbar {
@@ -1541,29 +1654,16 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 16px;
-  padding: 20px 22px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
-}
-
-.toolbar-subtitle {
-  margin-bottom: 4px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  margin-bottom: 18px;
+  padding: 18px 20px;
 }
 
 .toolbar-title {
   margin: 0;
   color: #0f172a;
-  font-size: 28px;
-  font-weight: 950;
-  letter-spacing: -0.04em;
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .toolbar-actions {
@@ -1573,24 +1673,24 @@ onBeforeUnmount(() => {
 }
 
 .result-count {
-  padding: 10px 14px;
+  padding: 9px 13px;
   border-radius: 999px;
   color: #1d4ed8;
   background: #eff6ff;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .sort-select {
-  min-height: 42px;
+  min-height: 40px;
   padding: 0 38px 0 13px;
-  border-radius: 14px;
+  border-radius: 12px;
   color: #0f172a;
   background: #ffffff;
   border: 1px solid rgba(148, 163, 184, 0.32);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 500;
   outline: 0;
 }
 
@@ -1609,7 +1709,7 @@ onBeforeUnmount(() => {
 .active-filter-bar span {
   color: #64748b;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .active-filter-bar button {
@@ -1623,7 +1723,7 @@ onBeforeUnmount(() => {
   background: #f1f5f9;
   padding: 0 11px;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .state-box {
@@ -1633,12 +1733,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 12px;
   padding: 28px;
-  border-radius: 28px;
   color: #475569;
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .state-box-error {
@@ -1675,13 +1771,13 @@ onBeforeUnmount(() => {
 .empty-state h5 {
   margin: 6px 0 0;
   color: #0f172a;
-  font-weight: 950;
+  font-weight: 750;
 }
 
 .empty-state p {
   margin: 0;
   color: #64748b;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .reset-btn-inline {
@@ -1694,27 +1790,27 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow: hidden;
   cursor: pointer;
-  border-radius: 28px;
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
-  transition: all 0.24s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .product-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 28px 64px rgba(15, 23, 42, 0.14);
+  transform: translateY(-4px);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.11);
 }
 
 .product-image-wrap {
   position: relative;
   overflow: hidden;
-  background: #f1f5f9;
+  height: 250px;
+  background: #f3f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .product-img {
   width: 100%;
-  height: 310px;
+  height: 100%;
   object-fit: cover;
   display: block;
   transition: transform 0.28s ease;
@@ -1726,121 +1822,82 @@ onBeforeUnmount(() => {
 
 .product-badges {
   position: absolute;
-  left: 14px;
-  right: 14px;
-  top: 14px;
+  left: 10px;
+  right: auto;
+  top: 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
 }
 
-.badge-soft,
-.badge-stock {
-  min-height: 30px;
+.badge-soft {
+  min-height: 26px;
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 9px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 900;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 700;
   backdrop-filter: blur(10px);
 }
 
-.badge-soft {
-  color: #0f172a;
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.badge-stock {
-  color: #047857;
-  background: rgba(209, 250, 229, 0.95);
-}
-
-.badge-stock-out {
-  color: #b91c1c;
-  background: rgba(254, 226, 226, 0.95);
-}
-
 .product-body {
-  padding: 18px;
+  padding: 15px;
 }
 
 .product-code {
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   color: #2563eb;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .product-name {
-  min-height: 52px;
-  margin: 0;
+  min-height: 48px;
+  margin: 0 0 12px;
   color: #0f172a;
-  font-size: 19px;
+  font-size: 17px;
   line-height: 1.35;
-  font-weight: 950;
-  letter-spacing: -0.02em;
-}
-
-.product-desc {
-  min-height: 44px;
-  margin: 9px 0 0;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.6;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-weight: 750;
+  letter-spacing: 0;
 }
 
 .product-price-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 15px;
+  display: block;
+  margin-top: 12px;
 }
 
 .price-label {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   color: #94a3b8;
-  font-size: 12px;
-  font-weight: 850;
+  font-size: 11px;
+  font-weight: 650;
 }
 
 .product-price {
   color: #dc2626;
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1.1;
-  font-weight: 950;
-  letter-spacing: -0.04em;
-}
-
-.variant-count {
-  flex: 0 0 auto;
-  padding: 7px 9px;
-  border-radius: 999px;
-  color: #475569;
-  background: #f1f5f9;
-  font-size: 12px;
-  font-weight: 850;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .meta-block {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .meta-label {
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   color: #64748b;
   font-size: 11px;
-  font-weight: 950;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -1852,8 +1909,8 @@ onBeforeUnmount(() => {
 }
 
 .color-chip {
-  width: 23px;
-  height: 23px;
+  width: 21px;
+  height: 21px;
   padding: 0;
   border-radius: 999px;
   border: 2px solid #ffffff;
@@ -1862,15 +1919,15 @@ onBeforeUnmount(() => {
 
 .size-chip,
 .chip-more {
-  min-height: 26px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 9px;
   border-radius: 999px;
   color: #0f172a;
   background: #f1f5f9;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .chip-more {
@@ -1881,13 +1938,13 @@ onBeforeUnmount(() => {
 .product-extra {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 16px;
+  gap: 7px;
+  margin-top: 13px;
 }
 
 .product-extra div {
-  padding: 10px 8px;
-  border-radius: 15px;
+  padding: 8px 6px;
+  border-radius: 12px;
   background: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.16);
   text-align: center;
@@ -1897,36 +1954,36 @@ onBeforeUnmount(() => {
   display: block;
   margin-bottom: 3px;
   color: #94a3b8;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: 650;
 }
 
 .product-extra strong {
   color: #0f172a;
-  font-size: 14px;
-  font-weight: 950;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .detail-btn {
   width: 100%;
-  min-height: 44px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  margin-top: 16px;
+  margin-top: 14px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 13px;
   color: #ffffff;
-  background: #0f172a;
-  font-size: 14px;
-  font-weight: 950;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2);
+  background: #07143f;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
   transition: all 0.2s ease;
 }
 
 .detail-btn:hover {
-  background: #1e293b;
+  background: #0b1b55;
   transform: translateY(-2px);
 }
 
@@ -1941,13 +1998,13 @@ onBeforeUnmount(() => {
 
 .page-number,
 .page-arrow {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: #ffffff;
   color: #0f172a;
-  border-radius: 14px;
-  font-weight: 900;
+  border-radius: 12px;
+  font-weight: 700;
   transition: all 0.2s ease;
 }
 
@@ -1959,9 +2016,9 @@ onBeforeUnmount(() => {
 }
 
 .page-number.active {
-  background: #0f172a;
+  background: #07143f;
   color: #ffffff;
-  border-color: #0f172a;
+  border-color: #07143f;
 }
 
 .page-arrow:disabled {
@@ -2003,20 +2060,25 @@ onBeforeUnmount(() => {
 
 @media (max-width: 767.98px) {
   .search-hero {
-    padding: 32px 0 44px;
+    padding: 28px 0 70px;
   }
 
   .hero-card {
-    padding: 24px;
-    border-radius: 26px;
+    grid-template-columns: 1fr;
+    padding: 22px;
+    border-radius: 20px;
   }
 
   .hero-title {
-    font-size: 36px;
+    font-size: 31px;
   }
 
   .hero-stats {
     grid-template-columns: 1fr;
+  }
+
+  .product-section {
+    margin-top: -42px;
   }
 
   .toolbar-actions {
@@ -2029,8 +2091,8 @@ onBeforeUnmount(() => {
     width: 100%;
   }
 
-  .product-img {
-    height: 270px;
+  .product-image-wrap {
+    height: 240px;
   }
 
   .price-inputs,
@@ -2040,407 +2102,11 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 575.98px) {
-  .product-section {
-    margin-top: -18px;
-  }
-
   .filter-box,
   .product-toolbar,
   .product-card,
   .state-box {
-    border-radius: 22px;
-  }
-
-  .hero-title {
-    font-size: 31px;
-  }
-}
-.search-page,
-.search-page input,
-.search-page button,
-.search-page select,
-.search-page textarea {
-  font-family: var(--bs-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
-}
-.search-page,
-.search-page input,
-.search-page button,
-.search-page select,
-.search-page textarea {
-  font-family: var(--bs-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
-}
-
-.search-page {
-  background: #f5f7fb;
-  color: #111827;
-}
-
-.search-hero {
-  padding: 34px 0 88px;
-  background: linear-gradient(135deg, #06164d 0%, #0a2168 52%, #143c9f 100%);
-}
-
-.search-hero::before,
-.search-hero::after {
-  opacity: 0.35;
-}
-
-.hero-card {
-  grid-template-columns: 1fr 300px;
-  padding: 28px 30px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: none;
-}
-
-.hero-badge {
-  padding: 7px 13px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.hero-title {
-  margin: 14px 0 12px;
-  font-size: 42px;
-  line-height: 1.08;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.hero-desc {
-  max-width: 620px;
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-.hero-stats {
-  gap: 10px;
-}
-
-.hero-stat {
-  padding: 15px 16px;
-  border-radius: 18px;
-}
-
-.hero-stat strong {
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.hero-stat span {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.product-section {
-  margin-top: -54px;
-}
-
-.filter-box,
-.product-toolbar,
-.product-card,
-.state-box {
-  border-radius: 20px;
-  border: 1px solid #e5eaf2;
-  background: #ffffff;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-}
-
-.filter-box {
-  padding: 18px;
-}
-
-.filter-subtitle,
-.toolbar-subtitle {
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.filter-title {
-  font-size: 20px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-}
-
-.filter-label {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.filter-input-icon,
-.combo-trigger,
-.price-inputs div {
-  height: 42px;
-  border-radius: 13px;
-  background: #f8fafc;
-  border-color: #d8e0ea;
-}
-
-.combo-trigger {
-  min-height: 42px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.combo-trigger.active {
-  color: #0f172a;
-  background: #f8fafc;
-  border-color: #b8c7dc;
-}
-
-.combo-menu {
-  border-radius: 16px;
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
-}
-
-.combo-option {
-  min-height: 38px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.price-inputs span {
-  font-weight: 700;
-}
-
-.price-input {
-  font-weight: 650;
-}
-
-.price-range-text {
-  font-weight: 650;
-}
-
-.stock-btn {
-  min-height: 38px;
-  border-radius: 12px;
-  font-weight: 650;
-}
-
-.stock-btn.active,
-.reset-btn,
-.detail-btn {
-  background: #07143f;
-}
-
-.reset-btn {
-  min-height: 42px;
-  border-radius: 13px;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: none;
-}
-
-.product-toolbar {
-  padding: 18px 20px;
-  margin-bottom: 18px;
-}
-
-.toolbar-title {
-  font-size: 24px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-}
-
-.result-count {
-  padding: 9px 13px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.sort-select {
-  min-height: 40px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.product-card {
-  overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.11);
-}
-
-.product-image-wrap {
-  height: 250px;
-  background: #f3f6fb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.product-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.product-badges {
-  left: 10px;
-  right: 10px;
-  top: 10px;
-}
-
-.badge-soft,
-.badge-stock {
-  min-height: 26px;
-  padding: 0 9px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.product-body {
-  padding: 15px;
-}
-
-.product-code {
-  margin-bottom: 7px;
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.product-name {
-  min-height: 45px;
-  font-size: 17px;
-  line-height: 1.35;
-  font-weight: 750;
-  letter-spacing: 0;
-}
-
-.product-desc {
-  min-height: 40px;
-  margin-top: 7px;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.product-price-row {
-  margin-top: 12px;
-}
-
-.price-label {
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.product-price {
-  color: #dc2626;
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.variant-count {
-  padding: 6px 9px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.meta-block {
-  margin-top: 12px;
-}
-
-.meta-label {
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.color-chip {
-  width: 21px;
-  height: 21px;
-}
-
-.size-chip,
-.chip-more {
-  min-height: 24px;
-  padding: 0 9px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.product-extra {
-  gap: 7px;
-  margin-top: 13px;
-}
-
-.product-extra div {
-  padding: 8px 6px;
-  border-radius: 12px;
-}
-
-.product-extra span {
-  font-size: 10px;
-  font-weight: 650;
-}
-
-.product-extra strong {
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.detail-btn {
-  min-height: 40px;
-  margin-top: 14px;
-  border-radius: 13px;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: none;
-}
-
-.detail-btn:hover {
-  background: #0b1b55;
-}
-
-.page-number,
-.page-arrow {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  font-weight: 700;
-}
-
-.page-number.active {
-  background: #07143f;
-  border-color: #07143f;
-}
-
-@media (max-width: 1199.98px) {
-  .hero-card {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .search-hero {
-    padding: 28px 0 70px;
-  }
-
-  .hero-card {
-    padding: 22px;
-    border-radius: 20px;
-  }
-
-  .hero-title {
-    font-size: 31px;
-  }
-
-  .product-section {
-    margin-top: -42px;
-  }
-
-  .product-image-wrap {
-    height: 240px;
+    border-radius: 18px;
   }
 }
 </style>

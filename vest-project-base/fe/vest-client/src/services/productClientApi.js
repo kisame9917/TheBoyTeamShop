@@ -19,7 +19,10 @@ export async function getProductVariantsByProductId(productId) {
   const res = await api.get(`/api/san-pham-chi-tiet/by-product/${productId}`);
   return res.data;
 }
-
+export async function getMauSacList() {
+  const res = await api.get("/api/mau-sac/list");
+  return res.data;
+}
 export async function getGiaMaxDb() {
   const res = await api.get('/api/san-pham/gia-max');
   return res.data;
@@ -29,11 +32,11 @@ export async function getLoaiSanPhamList() {
   const res = await api.get('/api/loai-san-pham/list');
   return res.data;
 }
-
 export default {
   getProducts,
   getProductById,
   getProductVariantsByProductId,
+  getMauSacList,
   getGiaMaxDb,
   getLoaiSanPhamList,
 };
