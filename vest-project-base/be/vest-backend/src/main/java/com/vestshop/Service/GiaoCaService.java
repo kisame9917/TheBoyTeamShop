@@ -30,10 +30,10 @@ public class GiaoCaService {
     private final NhanVienRepository nhanVienRepository;
     private final LichLamViecRepository lichLamViecRepository;
     private final CaLamViecRepository caLamViecRepository;
-    private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
+    private final LichSuThanhToanRepository lichSuThanhToanRepository;
     private final HoaDonRepository hoaDonRepository;
 
-    private static final int HOA_DON_HOAN_THANH = 4;
+//    private static final int HOA_DON_HOAN_THANH = 4;
 
     /**
      * Threshold gộp ca liên = 0 phút (end == start)
@@ -57,6 +57,7 @@ public class GiaoCaService {
         ShiftBlock currentBlock = findBlockContaining(blocks, now);
         ShiftBlock nextBlock = findNextBlock(blocks, now);
 
+        BigDecimal expectedTienMatDauCa = expectedTienMatDauCa(nv.getId());
         BigDecimal expectedTienTaiKhoanDauCa = expectedTienTaiKhoanDauCa(nv.getId());
 
         if (dangMoOpt.isPresent()) {
@@ -83,6 +84,7 @@ public class GiaoCaService {
                     .secondsToEnd(secondsToEnd)
                     .blockStartTime(blockStart)
                     .blockEndTime(blockEnd)
+                    .expectedTienMatDauCa(expectedTienMatDauCa)
                     .expectedTienTaiKhoanDauCa(expectedTienTaiKhoanDauCa)
                     .message(currentBlock != null ? "Bạn đang trong ca làm việc" : "Ca đã hết giờ theo lịch. Vui lòng bàn giao ca.")
                     .build();
@@ -111,6 +113,7 @@ public class GiaoCaService {
                     .secondsToEnd(Math.max(0L, Duration.between(now, currentBlock.end).getSeconds()))
                     .blockStartTime(currentBlock.start)
                     .blockEndTime(currentBlock.end)
+                    .expectedTienMatDauCa(expectedTienMatDauCa)
                     .expectedTienTaiKhoanDauCa(expectedTienTaiKhoanDauCa)
                     .message("Bạn đang đúng ca phân công")
                     .build();
@@ -139,6 +142,7 @@ public class GiaoCaService {
                     .secondsToEnd(null)
                     .blockStartTime(nextBlock.start)
                     .blockEndTime(nextBlock.end)
+                    .expectedTienMatDauCa(expectedTienMatDauCa)
                     .expectedTienTaiKhoanDauCa(expectedTienTaiKhoanDauCa)
                     .message("Chưa tới giờ ca làm việc")
                     .build();
@@ -158,6 +162,7 @@ public class GiaoCaService {
                 .secondsToEnd(null)
                 .blockStartTime(null)
                 .blockEndTime(null)
+                .expectedTienMatDauCa(expectedTienMatDauCa)
                 .expectedTienTaiKhoanDauCa(expectedTienTaiKhoanDauCa)
                 .message("Không tìm thấy lịch phân công")
                 .build();
@@ -187,20 +192,31 @@ public class GiaoCaService {
         }
 
         // Validate tiền tài khoản đầu ca phải khớp tiền tài khoản thực tế ca trước
-        BigDecimal expected = expectedTienTaiKhoanDauCa(nv.getId());
+        BigDecimal expectedTienMat = expectedTienMatDauCa(nv.getId());
+        BigDecimal expectedTienTaiKhoan = expectedTienTaiKhoanDauCa(nv.getId());
+
+        BigDecimal inputTienMatDauCa = safeMoney(req != null ? req.getTienMatDauCa() : null);
         BigDecimal inputTienTaiKhoanDauCa = safeMoney(req != null ? req.getTienTaiKhoanDauCa() : null);
-        if (inputTienTaiKhoanDauCa.compareTo(expected) != 0) {
-            throw new RuntimeException("Vui lòng kiểm tra lại doanh thu ca trước.");
+
+        if (inputTienMatDauCa.compareTo(expectedTienMat) != 0) {
+            throw new RuntimeException(
+                    "Tiền mặt đầu ca không khớp. Số tiền đúng là "
+                            + formatMoneyPlain(expectedTienMat)
+                            + " đ."
+            );
         }
 
-        ShiftSegment seg = findSegmentContaining(currentBlock, now);
-        CaLamViec ca = seg != null ? seg.ca : null;
-        LocalDate ngayLamViec = seg != null ? seg.ngayLamViec : LocalDate.now();
-
-        // Nếu FE truyền idCaLamViec thì có thể dùng để tham chiếu (optional)
-        if (ca == null && req != null && req.getIdCaLamViec() != null) {
-            ca = caLamViecRepository.findById(req.getIdCaLamViec()).orElse(null);
+        if (inputTienTaiKhoanDauCa.compareTo(expectedTienTaiKhoan) != 0) {
+            throw new RuntimeException(
+                    "Tiền chuyển khoản đầu ca không khớp. Số tiền đúng là "
+                            + formatMoneyPlain(expectedTienTaiKhoan)
+                            + " đ."
+            );
         }
+
+        ShiftSegment currentSegment = findSegmentContaining(currentBlock, now);
+        CaLamViec ca = currentSegment != null ? currentSegment.ca : null;
+        LocalDate ngayLamViec = currentSegment != null ? currentSegment.ngayLamViec : now.toLocalDate();
 
         String ma = buildMaPhien(nv.getMaNhanVien(), now);
         PhienCa phien = PhienCa.builder()
@@ -209,7 +225,7 @@ public class GiaoCaService {
                 .caLamViec(ca)
                 .ngayLamViec(ngayLamViec)
                 .thoiGianMo(now)
-                .tienMatDauCa(safeMoney(req != null ? req.getTienMatDauCa() : null))
+                .tienMatDauCa(inputTienMatDauCa)
                 .tienTaiKhoanDauCa(inputTienTaiKhoanDauCa)
                 .ghiChu(req != null ? req.getGhiChu() : null)
                 .trangThai(PhienCa.TRANG_THAI_DANG_MO)
@@ -238,8 +254,8 @@ public class GiaoCaService {
         LocalDateTime dong = LocalDateTime.now();
         LocalDateTime from = phien.getThoiGianMo();
 
-        BigDecimal doanhThuTienMat = giaoDichThanhToanRepository.sumTienMatByHoaDonCreatedRange(from, dong, HOA_DON_HOAN_THANH);
-        BigDecimal doanhThuKhac = giaoDichThanhToanRepository.sumKhacTienMatByHoaDonCreatedRange(from, dong, HOA_DON_HOAN_THANH);
+        BigDecimal doanhThuTienMat = lichSuThanhToanRepository.sumTienMatByThanhToanRange(from, dong, nv.getId());
+        BigDecimal doanhThuKhac = lichSuThanhToanRepository.sumKhacTienMatByThanhToanRange(from, dong, nv.getId());
 
         BigDecimal tong = safeMoney(doanhThuTienMat).add(safeMoney(doanhThuKhac));
 
@@ -308,9 +324,20 @@ public class GiaoCaService {
         return v == null ? BigDecimal.ZERO : v;
     }
 
+    private static String formatMoneyPlain(BigDecimal v) {
+        return safeMoney(v).stripTrailingZeros().toPlainString();
+    }
+
     private static String buildMaPhien(String maNhanVien, LocalDateTime now) {
         String ts = now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         return "PC-" + (maNhanVien != null ? maNhanVien : "NV") + "-" + ts;
+    }
+
+    private BigDecimal expectedTienMatDauCa(Long nhanVienId) {
+        return phienCaRepository
+                .findFirstByNhanVien_IdAndTrangThaiOrderByThoiGianDongDesc(nhanVienId, PhienCa.TRANG_THAI_DA_DONG)
+                .map(p -> safeMoney(p.getTienMatThucTe()))
+                .orElse(BigDecimal.ZERO);
     }
 
     private BigDecimal expectedTienTaiKhoanDauCa(Long nhanVienId) {

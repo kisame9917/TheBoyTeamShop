@@ -99,7 +99,7 @@
                   <th class="text-end">DT Tiền mặt</th>
                   <th class="text-end">DT CK/Thẻ</th>
                   <th class="text-end">Tổng DT</th>
-                  <th class="text-end">Chênh</th>
+<!--                  <th class="text-end">Chênh</th>-->
                   <th class="text-center">Trạng thái</th>
                 </tr>
                 </thead>
@@ -119,11 +119,10 @@
                   <td class="text-end">{{ money(r.doanhThuTienMat) }}</td>
                   <td class="text-end">{{ money(r.doanhThuCkThe) }}</td>
                   <td class="text-end fw-semibold">{{ money(r.tongDoanhThu) }}</td>
-                  <td class="text-end">{{ money(r.chenhLech) }}</td>
                   <td class="text-center">
-                      <span class="status" :class="r.trangThai === 'MO' ? 'st-open' : 'st-closed'">
-                        {{ r.trangThai === "MO" ? "Đang mở" : "Đã đóng" }}
-                      </span>
+                    <span class="status" :class="Number(r.trangThai) === 1 ? 'st-open' : 'st-closed'">
+                      {{ Number(r.trangThai) === 1 ? "Đang mở" : "Đã đóng" }}
+                    </span>
                   </td>
                 </tr>
                 </tbody>
@@ -154,7 +153,7 @@
                   <div class="fw-semibold">Thông tin ca</div>
                   <div class="text-muted mt-1">{{ phien.tenCa || phien.caTen || "Ca làm việc" }}</div>
                   <div class="mt-2 small text-muted">
-                    Mở lúc: <b>{{ fmtDt(phien.gioMo || phien.batDau || phien.createdAt) }}</b>
+                    Mở lúc: <b>{{ fmtDt(phien.thoiGianMo) }}</b>
                   </div>
                   <div class="small text-muted" v-if="shift.secondsToEnd !== null">
                     Còn lại: <b>{{ fmtCountdown(shift.secondsToEnd) }}</b>
@@ -287,8 +286,13 @@ async function loadStaff() {
   try {
     loading.value = true;
     phien.value = await giaoCaApi.hienTai();
+
+    tienMatThucTe.value = Number(phien.value?.tienMatThucTe || 0);
+    tienTaiKhoanThucTe.value = Number(phien.value?.tienTaiKhoanThucTe || 0);
   } catch {
     phien.value = null;
+    tienMatThucTe.value = 0;
+    tienTaiKhoanThucTe.value = 0;
   } finally {
     loading.value = false;
   }
@@ -396,7 +400,7 @@ onMounted(async () => {
 }
 .custom-table {
   width: 100%;
-  min-width: 1100px;
+  min-width: 1000px;
   border-collapse: separate;
   border-spacing: 0;
 }

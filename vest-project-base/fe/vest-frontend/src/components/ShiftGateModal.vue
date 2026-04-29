@@ -54,20 +54,31 @@
           <div class="row g-2 mt-3">
             <div class="col-12">
               <label class="form-label mb-1">Tiền mặt đầu ca</label>
-              <input class="form-control" type="number" inputmode="numeric" v-model.number="tienMatDauCa" :disabled="opening" />
+              <input
+                  class="form-control"
+                  type="text"
+                  inputmode="numeric"
+                  :value="tienMatDauCaText"
+                  :disabled="opening"
+                  @input="onTienMatInput"
+              />
+<!--              <div class="form-text" v-if="expectedCash !== null">-->
+<!--                Số dự kiến từ ca trước: <b>{{ money(expectedCash) }}</b>-->
+<!--              </div>-->
             </div>
             <div class="col-12">
               <label class="form-label mb-1">Tiền tài khoản đầu ca</label>
               <input
                   class="form-control"
-                  type="number"
+                  type="text"
                   inputmode="numeric"
-                  v-model.number="tienTaiKhoanDauCa"
+                  :value="tienTaiKhoanDauCaText"
                   :disabled="opening"
+                  @input="onTienTaiKhoanInput"
               />
-              <div class="form-text" v-if="expectedTransfer !== null">
-                Số dự kiến từ ca trước: <b>{{ money(expectedTransfer) }}</b>
-              </div>
+<!--              <div class="form-text" v-if="expectedTransfer !== null">-->
+<!--                Số dự kiến từ ca trước: <b>{{ money(expectedTransfer) }}</b>-->
+<!--              </div>-->
               <div v-if="errorMsg" class="text-danger small mt-1">{{ errorMsg }}</div>
             </div>
           </div>
@@ -110,12 +121,38 @@ const visible = computed(() => auth.isStaff && shift.gateOpen && !shift.checking
 const opening = ref(false);
 const tienMatDauCa = ref(0);
 const tienTaiKhoanDauCa = ref(0);
+const tienMatDauCaText = ref("0");
+const tienTaiKhoanDauCaText = ref("0");
 const errorMsg = ref("");
 
 const subtitle = computed(() => {
   if (shift.gateReason === "NEED_CLOSE") return "Bạn cần kết toán ca trước khi tiếp tục";
   return "Vui lòng xác nhận vào ca làm việc";
 });
+
+function parseMoneyInput(value) {
+  const raw = String(value ?? "").replace(/[^\d]/g, "");
+  return raw ? Number(raw) : 0;
+}
+
+function formatMoneyInput(value) {
+  const numberValue = Number(value || 0);
+  return numberValue.toLocaleString("vi-VN");
+}
+
+function onTienMatInput(event) {
+  const value = parseMoneyInput(event.target.value);
+  tienMatDauCa.value = value;
+  tienMatDauCaText.value = value ? formatMoneyInput(value) : "";
+  event.target.value = tienMatDauCaText.value;
+}
+
+function onTienTaiKhoanInput(event) {
+  const value = parseMoneyInput(event.target.value);
+  tienTaiKhoanDauCa.value = value;
+  tienTaiKhoanDauCaText.value = value ? formatMoneyInput(value) : "";
+  event.target.value = tienTaiKhoanDauCaText.value;
+}
 
 const staffName = computed(() => shift.caInfo?.tenNhanVien || auth.user?.tenNhanVien || auth.user?.taiKhoan || "Nhân viên");
 const staffCode = computed(() => shift.caInfo?.maNhanVien || auth.user?.id || auth.user?.maNhanVien || "");
@@ -172,6 +209,16 @@ const allowOpen = computed(() => {
   return v === undefined ? true : !!v;
 });
 
+const expectedCash = computed(() => {
+  const v =
+      shift.caInfo?.expectedTienMatDauCa ??
+      shift.caInfo?.tienMatDuKien ??
+      shift.caInfo?.soTienMatDauCaDuKien ??
+      shift.caInfo?.duKienTienMat;
+  if (v === undefined || v === null || v === "") return null;
+  return Number(v);
+});
+
 const expectedTransfer = computed(() => {
   const v =
       shift.caInfo?.expectedTienTaiKhoanDauCa ??
@@ -186,12 +233,15 @@ watch(
     () => shift.gateOpen,
     (open) => {
       if (!open) return;
-      // reset form mỗi lần mở
+
       opening.value = false;
       errorMsg.value = "";
-      tienMatDauCa.value = 0;
-      // mặc định account start = số dự kiến (nếu có)
+
+      tienMatDauCa.value = expectedCash.value ?? 0;
       tienTaiKhoanDauCa.value = expectedTransfer.value ?? 0;
+
+      tienMatDauCaText.value = formatMoneyInput(tienMatDauCa.value);
+      tienTaiKhoanDauCaText.value = formatMoneyInput(tienTaiKhoanDauCa.value);
     },
     { immediate: true }
 );
@@ -238,11 +288,22 @@ async function confirmOpen() {
   errorMsg.value = "";
 
   // validate tiền tài khoản đầu ca phải khớp ca trước
+  if (expectedCash.value !== null) {
+    const input = Number(tienMatDauCa.value || 0);
+    const exp = Number(expectedCash.value || 0);
+
+    if (Math.abs(input - exp) > 0.0001) {
+      errorMsg.value = `Tiền mặt đầu ca không khớp. Số tiền đúng là ${money(exp)}.`;
+      return;
+    }
+  }
+
   if (expectedTransfer.value !== null) {
     const input = Number(tienTaiKhoanDauCa.value || 0);
     const exp = Number(expectedTransfer.value || 0);
+
     if (Math.abs(input - exp) > 0.0001) {
-      errorMsg.value = "vui lòng kiểm tra lại doanh thu ca trước.";
+      errorMsg.value = `Tiền tài khoản đầu ca không khớp. Số tiền đúng là ${money(exp)}.`;
       return;
     }
   }

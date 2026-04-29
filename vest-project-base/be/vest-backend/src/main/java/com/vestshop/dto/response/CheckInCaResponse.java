@@ -53,6 +53,16 @@ public class CheckInCaResponse {
      * NEW: tiền tài khoản đầu ca expected = tiền tài khoản thực tế ca trước (đã đóng).
      * Nếu không có ca trước => 0
      */
+    /**
+     * Tiền mặt đầu ca expected = tiền mặt thực tế ca trước đã đóng.
+     * Nếu không có ca trước => 0.
+     */
+    private BigDecimal expectedTienMatDauCa;
+
+    /**
+     * Tiền tài khoản đầu ca expected = tiền tài khoản thực tế ca trước đã đóng.
+     * Nếu không có ca trước => 0.
+     */
     private BigDecimal expectedTienTaiKhoanDauCa;
 
     private String message;
