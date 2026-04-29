@@ -5,7 +5,7 @@
         <i class="bi bi-calendar-check fs-4"></i>
         <h5 class="mb-0">Xếp Lịch Nhân Viên</h5>
       </div>
-
+---ơp
       <div class="d-flex align-items-center gap-2">
         <!-- Toggle view -->
         <div class="btn-group btn-group-sm" role="group" aria-label="Chế độ hiển thị">
@@ -114,7 +114,7 @@
             <!-- ✅ Chỉ dùng Từ/Đến ngày cho Danh sách (vì calendar theo tuần riêng) -->
             <div class="col-12 col-lg-3" v-if="viewMode === 'list'">
               <label class="form-label">Từ ngày</label>
-              <div class="input-group">
+              <div class="input-group date-picker-group">
                 <input ref="fromPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" />
                 <button class="btn btn-outline-secondary" type="button" @click="openFromPicker" title="Chọn ngày">
                   <i class="bi bi-calendar3"></i>
@@ -127,7 +127,7 @@
 
             <div class="col-12 col-lg-3" v-if="viewMode === 'list'">
               <label class="form-label">Đến ngày</label>
-              <div class="input-group">
+              <div class="input-group date-picker-group">
                 <input ref="toPickerRef" type="text" class="form-control" placeholder="dd/mm/yyyy" />
                 <button class="btn btn-outline-secondary" type="button" @click="openToPicker" title="Chọn ngày">
                   <i class="bi bi-calendar3"></i>
@@ -988,6 +988,14 @@ function initListPickersIfNeeded() {
       allowInput: true,
       dateFormat: "d/m/Y",
       defaultDate: isoToLocalDate(filters.from),
+      appendTo: document.body,
+      positionElement: fromPickerRef.value,
+      position: "below left",
+      onOpen: () => {
+        setTimeout(() => {
+          fromPickerInstance?._positionCalendar?.();
+        }, 0);
+      },
       onChange: (selectedDates) => {
         filters.from = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
         page.page = 1;
@@ -1002,6 +1010,14 @@ function initListPickersIfNeeded() {
       allowInput: true,
       dateFormat: "d/m/Y",
       defaultDate: isoToLocalDate(filters.to),
+      appendTo: document.body,
+      positionElement: toPickerRef.value,
+      position: "below left",
+      onOpen: () => {
+        setTimeout(() => {
+          toPickerInstance?._positionCalendar?.();
+        }, 0);
+      },
       onChange: (selectedDates) => {
         filters.to = selectedDates?.[0] ? toDateStr(selectedDates[0]) : "";
         page.page = 1;
@@ -2325,5 +2341,12 @@ async function submitBulkAssign() {
   overflow-y: auto;
   z-index: 9999;
   background: #fff;
+}
+.date-picker-group {
+  position: relative;
+}
+
+:global(.flatpickr-calendar) {
+  z-index: 20000 !important;
 }
 </style>

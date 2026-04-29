@@ -672,104 +672,99 @@
       </div>
 
       <div class="voucher-modal__body">
-  <div v-if="eligibleVoucherEntries.length === 0" class="text-muted">
-    Không có phiếu giảm giá phù hợp với đơn hàng này.
-  </div>
+        <div v-if="eligibleVoucherEntries.length === 0" class="text-muted">
+          Không có phiếu giảm giá phù hợp với đơn hàng này.
+        </div>
 
-  <template v-if="personalEligibleVoucherEntries.length">
-    <div class="voucher-group-title">Mã cá nhân của bạn</div>
+        <template v-if="publicEligibleVoucherEntries.length">
+          <div class="voucher-group-title">Mã công khai có thể dùng</div>
 
-    <label
-      v-for="e in personalEligibleVoucherEntries"
-      :key="`personal-${e.v.id}`"
-      class="voucher-item"
-      :class="{ active: selectedVoucherId === e.v.id }"
-    >
-      <input
-        type="radio"
-        :value="e.v.id"
-        v-model="selectedVoucherId"
-        hidden
-      />
-
-      <div class="voucher-item__left">
-        <div class="voucher-item__code">
-          {{ e.v.ma_giam_gia }}
-
-          <span class="badge-personal">Cá nhân</span>
-
-          <span
-            v-if="bestEligibleVoucherEntry?.v?.id === e.v.id"
-            class="badge-best"
+          <label
+            v-for="e in publicEligibleVoucherEntries"
+            :key="`public-${e.v.id}`"
+            class="voucher-item"
+            :class="{ active: selectedVoucherId === e.v.id }"
           >
-            Tốt nhất
-          </span>
-        </div>
+            <input
+              type="radio"
+              :value="e.v.id"
+              v-model="selectedVoucherId"
+              hidden
+            />
 
-        <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+            <div class="voucher-item__left">
+              <div class="voucher-item__code">
+                {{ e.v.ma_giam_gia }}
+                <span class="badge-public">Công khai</span>
+                <span
+                  v-if="bestEligibleVoucherEntry?.v?.id === e.v.id"
+                  class="badge-best"
+                >
+                  Tốt nhất
+                </span>
+              </div>
 
-        <div class="voucher-item__discount text-danger">
-          Giảm {{ money(e.discount) }} đ
-        </div>
+              <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
 
-        <div class="voucher-item__meta">
-          Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
-        </div>
-      </div>
+              <div class="voucher-item__discount text-danger">
+                Giảm {{ money(e.discount) }} đ
+              </div>
 
-      <div class="voucher-item__right">
-        <span v-if="selectedVoucherId === e.v.id">✔</span>
-      </div>
-    </label>
-  </template>
+              <div class="voucher-item__meta">
+                Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+              </div>
+            </div>
 
-  <template v-if="publicEligibleVoucherEntries.length">
-    <div class="voucher-group-title mt-2">Mã công khai có thể dùng</div>
+            <div class="voucher-item__right">
+              <span v-if="selectedVoucherId === e.v.id">✔</span>
+            </div>
+          </label>
+        </template>
 
-    <label
-      v-for="e in publicEligibleVoucherEntries"
-      :key="`public-${e.v.id}`"
-      class="voucher-item"
-      :class="{ active: selectedVoucherId === e.v.id }"
-    >
-      <input
-        type="radio"
-        :value="e.v.id"
-        v-model="selectedVoucherId"
-        hidden
-      />
+        <template v-if="personalEligibleVoucherEntries.length">
+          <div class="voucher-group-title mt-2">Mã cá nhân của bạn</div>
 
-      <div class="voucher-item__left">
-        <div class="voucher-item__code">
-          {{ e.v.ma_giam_gia }}
-
-          <span class="badge-public">Công khai</span>
-
-          <span
-            v-if="bestEligibleVoucherEntry?.v?.id === e.v.id"
-            class="badge-best"
+          <label
+            v-for="e in personalEligibleVoucherEntries"
+            :key="`personal-${e.v.id}`"
+            class="voucher-item"
+            :class="{ active: selectedVoucherId === e.v.id }"
           >
-            Tốt nhất
-          </span>
-        </div>
+            <input
+              type="radio"
+              :value="e.v.id"
+              v-model="selectedVoucherId"
+              hidden
+            />
 
-        <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
+            <div class="voucher-item__left">
+              <div class="voucher-item__code">
+                {{ e.v.ma_giam_gia }}
+                <span
+                  v-if="bestEligibleVoucherEntry?.v?.id === e.v.id"
+                  class="badge-best"
+                >
+                  Tốt nhất
+                </span>
+              </div>
 
-        <div class="voucher-item__discount text-danger">
-          Giảm {{ money(e.discount) }} đ
-        </div>
+              <div class="voucher-item__name">{{ e.v.ten_giam_gia }}</div>
 
-        <div class="voucher-item__meta">
-          Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
-        </div>
+              <div class="voucher-item__discount text-danger">
+                Giảm {{ money(e.discount) }} đ
+              </div>
+
+              <div class="voucher-item__meta">
+                Đơn tối thiểu: {{ money(e.v.don_hang_toi_thieu) }} đ
+              </div>
+            </div>
+
+            <div class="voucher-item__right">
+              <span v-if="selectedVoucherId === e.v.id">✔</span>
+            </div>
+          </label>
+        </template>
       </div>
-
-      <div class="voucher-item__right">
-        <span v-if="selectedVoucherId === e.v.id">✔</span>
-      </div>
-    </label>
-  </template>
-</div>
 
       <div class="voucher-modal__footer">
         <button

@@ -81,7 +81,7 @@
       <div class="section-head">
         <div>
           <div class="section-subtitle">Bộ sưu tập mới</div>
-          <h4 class="section-title mb-0">HÀNG MỚI VỀ</h4>
+          <h4 class="section-title mb-0">SẢN PHẨM MỚI VỀ</h4>
         </div>
 
         <button class="section-btn" @click="goShop">
@@ -94,16 +94,64 @@
       <div v-else-if="products.length === 0" class="state-box">
         Hiện chưa có sản phẩm nào.
       </div>
+      <div v-else-if="newProducts.length === 0" class="state-box">
+        Hiện chưa có sản phẩm mới về trong {{ newBadgeDays }} ngày gần đây.
+      </div>
 
       <div v-else class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4">
-        <div class="col" v-for="product in products" :key="'new-' + product.id">
+        <div class="col" v-for="product in newProducts" :key="'new-' + product.id">
           <div
               class="product-card"
               role="button"
               @click="goProduct(product.id)"
           >
             <div class="product-card__img-wrap">
-              <span v-if="isNewProduct(product)" class="product-card__badge">Mới về</span>
+              <span class="product-card__badge">Mới về</span>
+              <img
+                  :src="product.image"
+                  class="product-card__img"
+                  :alt="product.name"
+                  @error="onProductImgError"
+              />
+            </div>
+
+            <div class="product-card__body">
+              <div class="product-card__name">
+                {{ product.name }}
+              </div>
+              <div class="product-card__price">
+                {{ money(product.price) }} đ
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="!loading && !error && products.length > 0" class="container pb-5">
+      <div class="section-head">
+        <div>
+          <div class="section-subtitle">Danh sách sản phẩm</div>
+          <h4 class="section-title mb-0">SẢN PHẨM CỦA CỬA HÀNG</h4>
+        </div>
+
+        <button class="section-btn" @click="goShop">
+          Xem tất cả
+        </button>
+      </div>
+
+      <div v-if="storeProducts.length === 0" class="state-box">
+        Các sản phẩm hiện tại đều đang nằm trong nhóm mới về.
+      </div>
+
+      <div v-else class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4">
+        <div class="col" v-for="product in storeProducts" :key="'store-' + product.id">
+          <div
+              class="product-card"
+              role="button"
+              @click="goProduct(product.id)"
+          >
+            <div class="product-card__img-wrap">
               <img
                   :src="product.image"
                   class="product-card__img"
@@ -243,7 +291,7 @@ const error = ref('');
 const products = ref([]);
 const currentBannerIndex = ref(0);
 const intervalMs = 3500;
-const newBadgeDays = 15;
+const newBadgeDays = 5;
 let timer = null;
 
 const fallbackProductImage =
@@ -312,6 +360,21 @@ function isNewProduct(product) {
   return diff >= 0 && diff <= limit;
 }
 
+const maxNewProducts = 10;
+const maxStoreProducts = 10;
+
+const newProducts = computed(() =>
+    products.value
+        .filter((product) => isNewProduct(product))
+        .slice(0, maxNewProducts)
+);
+
+const storeProducts = computed(() =>
+    products.value
+        .filter((product) => !isNewProduct(product))
+        .slice(0, maxStoreProducts)
+);
+
 const banners = computed(() => {
   if (configuredHeroBanners.value.length) {
     return configuredHeroBanners.value.slice(0, 5);
@@ -342,7 +405,7 @@ async function fetchProducts() {
     loading.value = true;
     error.value = '';
 
-const data = await getProducts({ page: 0, size: 1000 });
+    const data = await getProducts({ page: 0, size: 1000 });
 
     const raw = Array.isArray(data?.content)
         ? data.content
@@ -354,7 +417,7 @@ const data = await getProducts({ page: 0, size: 1000 });
                     ? data
                     : [];
 
-  const sorted = sortNewestFirst(raw);
+    const sorted = sortNewestFirst(raw);
 
     const enriched = await Promise.all(
         sorted.map(async (item) => {
@@ -782,7 +845,7 @@ onBeforeUnmount(() => stopAuto());
   color: rgba(255, 255, 255, 0.84);
   max-width: 520px;
   margin-bottom: 22px;
-} 
+}
 
 .mid-banner__btn {
   min-height: 48px;
