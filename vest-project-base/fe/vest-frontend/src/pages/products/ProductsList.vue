@@ -425,12 +425,36 @@ const selectedTypeFilter = computed({
 })
 
 /** ✅ Helpers: tồn kho */
-function isInStock(p) {
-  return Number(p?.soLuongTon ?? 0) > 0
+function normalizeStatus(value) {
+  if (value === undefined || value === null || value === '') return true
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  if (['true', '1', 'active', 'enabled', 'hoat dong', 'con hang'].includes(normalized)) return true
+  if (['false', '0', 'inactive', 'disabled', 'ngung hoat dong', 'het hang', 'tat'].includes(normalized)) return false
+
+  return true
 }
+
+function isProductActive(p) {
+  return normalizeStatus(p?.trangThai ?? p?.trang_thai ?? p?.active ?? p?.status)
+}
+
+function isInStock(p) {
+  return isProductActive(p) && Number(p?.soLuongTon ?? 0) > 0
+}
+
 function stockText(p) {
   return isInStock(p) ? 'Còn hàng' : 'Hết hàng'
 }
+
 function badgeClassByStock(p) {
   return isInStock(p) ? 'badge-success' : 'badge-danger'
 }
@@ -1172,4 +1196,88 @@ onBeforeUnmount(() => {
 }
 
 
+/* ===== Đồng bộ filter với màn chi tiết ===== */
+.filter-card {
+  overflow: visible;
+}
+
+.filter-body {
+  overflow: visible;
+}
+
+.filter-layout {
+  grid-template-columns: 1.35fr 1.45fr 0.8fr;
+}
+
+.fg-brand,
+.fg-type {
+  min-width: 0;
+}
+
+.fg-qty,
+.fg-status {
+  min-width: 0;
+}
+
+.price-display {
+  color: #059669 !important;
+}
+
+.slider-range {
+  background-color: #059669 !important;
+}
+
+.range-slider input[type="range"] {
+  accent-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+  border-color: #059669 !important;
+}
+
+.filter-multiselect {
+  width: 100%;
+  min-width: 0;
+}
+
+.filter-multiselect :deep(.multiselect) {
+  width: 100%;
+  min-width: 0;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 46px 6px 12px;
+  overflow: visible;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  width: 100%;
+  min-width: 100%;
+  max-width: none;
+  z-index: 999;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-qty .form-input {
+  font-weight: 400;
+}
+
+@media (max-width: 1100px) {
+  .filter-layout {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

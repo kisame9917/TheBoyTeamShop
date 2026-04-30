@@ -56,7 +56,7 @@
       <div v-show="isFilterOpen" class="p-3">
         <!-- Row 1 -->
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-lg-6">
+          <div class="col-12 col-lg-5">
             <label class="form-label small fw-semibold">Tìm kiếm</label>
             <input
                 v-model="filters.keyword"
@@ -65,7 +65,7 @@
             />
           </div>
 
-          <div class="col-12 col-lg-3">
+          <div class="col-12 col-lg-4">
             <label class="form-label small fw-semibold">Màu sắc</label>
             <Multiselect
               v-model="selectedColorFilter"
@@ -98,7 +98,7 @@
 
         <!-- Row 2 -->
         <div class="row g-3 align-items-end mt-1">
-          <div class="col-12 col-lg-6">
+          <div class="col-12 col-lg-5">
             <div class="d-flex justify-content-between align-items-center mb-1">
               <label class="form-label small fw-semibold mb-0">
                 Khoảng giá:
@@ -130,7 +130,7 @@
             </div>
           </div>
 
-          <div class="col-12 col-lg-3">
+          <div class="col-12 col-lg-4">
             <label class="form-label small fw-semibold">Kích cỡ</label>
             <Multiselect
               v-model="selectedSizeFilter"
@@ -254,10 +254,10 @@
                 <span
                     :class="[
                     'badge rounded-pill px-3',
-                    v.trangThai ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
+                    isVariantAvailable(v) ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
                   ]"
                 >
-                  {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
+                  {{ variantStatusText(v) }}
                 </span>
             </td>
 
@@ -297,7 +297,8 @@
                   <input
                       class="form-check-input"
                       type="checkbox"
-                      :checked="!!v.trangThai"
+                      :checked="isVariantActive(v)"
+                      :disabled="isOutOfStock(v)"
                       @click.prevent="requestToggleStatus(v)"
                   />
                 </div>
@@ -499,7 +500,7 @@
             <label class="form-label small fw-semibold">Trạng thái</label>
             <div class="d-flex gap-3">
               <label class="d-flex align-items-center gap-2 small mb-0">
-                <input type="radio" :value="true" v-model="editingVariant.trangThai" /> Còn hàng
+                <input type="radio" :value="true" v-model="editingVariant.trangThai" :disabled="Number(editingVariant.soLuongTon || 0) <= 0" /> Còn hàng
               </label>
               <label class="d-flex align-items-center gap-2 small mb-0">
                 <input type="radio" :value="false" v-model="editingVariant.trangThai" /> Hết hàng
@@ -851,9 +852,49 @@ async function loadAttributes() {
   }
 }
 
+function normalizeStatus(value) {
+  if (value === undefined || value === null || value === '') return true
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  if (['true', '1', 'active', 'enabled', 'hoat dong', 'con hang'].includes(normalized)) return true
+  if (['false', '0', 'inactive', 'disabled', 'ngung hoat dong', 'het hang', 'tat'].includes(normalized)) return false
+
+  return true
+}
+
+function isOutOfStock(v) {
+  return Number(v?.soLuongTon ?? 0) <= 0
+}
+
+function isVariantActive(v) {
+  return normalizeStatus(v?.trangThai ?? v?.trang_thai ?? v?.active ?? v?.status)
+}
+
+function isVariantAvailable(v) {
+  return isVariantActive(v) && !isOutOfStock(v)
+}
+
+function variantStatusText(v) {
+  return isVariantAvailable(v) ? 'Còn hàng' : 'Hết hàng'
+}
+
 function mapVariant(item) {
+  const stock = Number(item?.soLuongTon ?? 0)
+  const active = stock > 0
+    ? normalizeStatus(item?.trangThai ?? item?.trang_thai ?? item?.active ?? item?.status)
+    : false
+
   return {
     ...item,
+    trangThai: active,
     mediaPrimaryId: item.mediaPrimaryId ?? item.idMediaPrimary ?? item.id_media_primary ?? null
   }
 }
@@ -933,8 +974,8 @@ const filteredItems = computed(() => {
     }
 
     let matchStatus = true
-    if (filters.status === 'in') matchStatus = !!v.trangThai === true
-    if (filters.status === 'out') matchStatus = !!v.trangThai === false
+    if (filters.status === 'in') matchStatus = isVariantAvailable(v)
+    if (filters.status === 'out') matchStatus = !isVariantAvailable(v)
 
     const price = Number(v.donGia ?? 0)
     const matchPrice = price >= Number(filters.priceMin) && price <= Number(filters.priceMax)
@@ -1005,8 +1046,16 @@ function goBack() {
 
 /** status toggle with confirm modal */
 function requestToggleStatus(variant) {
+  if (!variant?.id) return
+
+  const next = !isVariantActive(variant)
+  if (next && isOutOfStock(variant)) {
+    error('Số lượng tồn = 0 nên không thể bật “Còn hàng”.')
+    return
+  }
+
   pendingVariant.value = variant
-  pendingNext.value = !variant.trangThai
+  pendingNext.value = next
   showConfirmToggle.value = true
 }
 
@@ -1023,6 +1072,13 @@ async function confirmToggleStatus() {
   const v = pendingVariant.value
   const next = pendingNext.value
 
+  if (next && isOutOfStock(v)) {
+    closeToggleModal()
+    error('Số lượng tồn = 0 nên không thể bật “Còn hàng”.')
+    toggleLoading.value = false
+    return
+  }
+
   try {
     await updateDetail(v.id, {
       idSanPham: v.idSanPham,
@@ -1031,7 +1087,7 @@ async function confirmToggleStatus() {
       soLuongTon: v.soLuongTon,
       donGia: v.donGia,
       ghiChu: v.ghiChu,
-      trangThai: next,
+      trangThai: Number(v.soLuongTon ?? 0) > 0 ? next : false,
       anh: v.anh,
       mediaPrimaryId: v.mediaPrimaryId ?? null
     })
@@ -1040,7 +1096,7 @@ async function confirmToggleStatus() {
       productDetailId: v.id,
       soLuongTon: v.soLuongTon,
       donGia: v.donGia,
-      trangThai: next,
+      trangThai: Number(v.soLuongTon ?? 0) > 0 ? next : false,
     })
 
     closeToggleModal()
@@ -1073,6 +1129,10 @@ function closeEditModal() {
   showEditModal.value = false
 }
 
+watch(() => editingVariant.soLuongTon, (stock) => {
+  if (Number(stock || 0) <= 0) editingVariant.trangThai = false
+})
+
 async function submitEdit() {
   if (!editingVariant.id) return
   try {
@@ -1083,7 +1143,7 @@ async function submitEdit() {
       soLuongTon: editingVariant.soLuongTon,
       donGia: editingVariant.donGia,
       ghiChu: editingVariant.ghiChu,
-      trangThai: editingVariant.trangThai,
+      trangThai: Number(editingVariant.soLuongTon ?? 0) > 0 ? !!editingVariant.trangThai : false,
       anh: editingVariant.anh,
       mediaPrimaryId: editingVariant.mediaPrimaryId
           })
@@ -1092,7 +1152,7 @@ async function submitEdit() {
       productDetailId: editingVariant.id,
       soLuongTon: editingVariant.soLuongTon,
       donGia: editingVariant.donGia,
-      trangThai: editingVariant.trangThai,
+      trangThai: Number(editingVariant.soLuongTon ?? 0) > 0 ? !!editingVariant.trangThai : false,
     })
 
     success('Cập nhật thành công')
@@ -1188,7 +1248,7 @@ function buildVariantExcelRows(items = []) {
     'Kích cỡ': v.tenKichCo ?? '',
     'Số lượng tồn': v.soLuongTon ?? 0,
     'Giá bán': v.donGia ?? 0,
-    'Trạng thái': v.trangThai ? 'Còn hàng' : 'Hết hàng',
+    'Trạng thái': isVariantAvailable(v) ? 'Còn hàng' : 'Hết hàng',
     'Ghi chú': v.ghiChu ?? ''
   }))
 }
@@ -1678,5 +1738,116 @@ function onPriceBlur(e) {
 .select-col {
   width: 44px;
   min-width: 44px;
+}
+/* ===== Đồng bộ giao diện filter với màn detail ===== */
+.variant-page .card {
+  overflow: visible;
+}
+
+.variant-page .p-3,
+.variant-page .row {
+  overflow: visible;
+}
+
+.variant-page .form-select {
+  font-weight: 400 !important;
+  color: #374151 !important;
+}
+
+.variant-page .form-select option {
+  font-weight: 400 !important;
+}
+
+.text-success,
+.range-green {
+  color: #059669 !important;
+  accent-color: #059669 !important;
+}
+
+.range-green::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.range-green::-moz-range-thumb {
+  border-color: #059669 !important;
+}
+
+.filter-multiselect {
+  width: 100% !important;
+  min-height: 38px;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect),
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  padding: 7px 46px 6px 12px !important;
+  overflow: visible !important;
+}
+
+.filter-multiselect :deep(.multiselect__select) {
+  width: 42px !important;
+  right: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  max-width: 100% !important;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  z-index: 999 !important;
+  border-color: #2563eb !important;
+}
+
+.filter-multiselect :deep(.multiselect__tags:focus-within),
+.filter-multiselect.multiselect--active :deep(.multiselect__tags) {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15) !important;
+}
+
+.filter-multiselect :deep(.multiselect__option--highlight),
+.filter-multiselect :deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.filter-multiselect :deep(.multiselect__option--highlight::after),
+.filter-multiselect :deep(.multiselect__option--selected.multiselect__option--highlight::after) {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  font-weight: 700 !important;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected::after) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+.filter-multiselect :deep(.multiselect__spinner::before),
+.filter-multiselect :deep(.multiselect__spinner::after) {
+  border-top-color: #2563eb !important;
+}
+
+.form-switch .form-check-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 </style>
