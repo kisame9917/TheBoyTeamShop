@@ -1103,7 +1103,7 @@
                       <td class="text-center">
                         <button
                           class="btn btn-dark btn-sm"
-                          :disabled="p.stock <= 0"
+                          :disabled="!p.active || p.stock <= 0"
                           @click="chooseProduct(p)"
                         >
                           Chọn
@@ -1923,9 +1923,7 @@ async function onProductQrDecoded(decodedText) {
 
     await stopProductQr();
 
-    if (!allProducts.value.length) {
-      await fetchAllProducts();
-    }
+    await fetchAllProducts();
 
     let found = allProducts.value.find(
       (x) => String(x.code || "").toLowerCase() === code.toLowerCase(),
@@ -1933,7 +1931,7 @@ async function onProductQrDecoded(decodedText) {
 
     if (!found) {
       const res = await getDetailByCode(code);
-      found = mapSpct(res.data);
+      found = mapSpct(res?.data ?? res);
     }
 
     await chooseProduct(found);
@@ -2241,8 +2239,34 @@ const productPriceRange = reactive({
 const productPage = ref(0);
 const productSize = ref(10);
 
+function normalizeVariantStatus(value) {
+  if (value === undefined || value === null || value === "") return true;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (["true", "1", "active", "enabled", "hoat dong", "con hang"].includes(normalized)) return true;
+  if (["false", "0", "inactive", "disabled", "ngung hoat dong", "het hang", "tat"].includes(normalized)) return false;
+
+  return true;
+}
+
+function isVariantActive(p) {
+  return normalizeVariantStatus(p?.active ?? p?.trangThai ?? p?.trang_thai ?? p?.status);
+}
+
 function mapSpct(x) {
   const stock = Number(x.soLuongTon || 0);
+  const active = normalizeVariantStatus(
+    x.trangThai ?? x.trang_thai ?? x.active ?? x.status ?? true,
+  );
+
   return {
     idSpct: Number(x.id),
     code: x.maSanPhamChiTiet || "",
@@ -2251,6 +2275,7 @@ function mapSpct(x) {
     size: x.tenKichCo || "",
     stock,
     _baseStock: stock,
+    active,
     price: Number(x.donGia || 0),
     image: buildImgUrl(
       x.anh || x.anhDaiDien || x.primaryImageUrl || x.mediaAsset,
@@ -2302,20 +2327,20 @@ async function fetchAllProducts() {
     const firstData = firstRes?.data ?? firstRes;
 
     if (Array.isArray(firstData)) {
-      allProducts.value = firstData.map(mapSpct);
+      allProducts.value = firstData.map(mapSpct).filter(isVariantActive);
       return;
     }
 
     const totalPages = Number(firstData?.totalPages || 1);
-    let all = [...(firstData?.content || []).map(mapSpct)];
+    let all = [...(firstData?.content || []).map(mapSpct).filter(isVariantActive)];
 
     for (let page = 1; page < totalPages; page++) {
       const res = await getAllDetails(page, 100);
       const data = res?.data ?? res;
-      all = all.concat((data?.content || []).map(mapSpct));
+      all = all.concat((data?.content || []).map(mapSpct).filter(isVariantActive));
     }
 
-    allProducts.value = all;
+    allProducts.value = all.filter(isVariantActive);
   } catch (e) {
     console.error(e);
     toastShow("Không tải được danh sách biến thể", "danger");
@@ -2490,7 +2515,7 @@ async function openProductModal() {
   showCustomerModal.value = false;
   showAddressModal.value = false;
   showProductModal.value = true;
-  if (!allProducts.value.length) await fetchAllProducts();
+  await fetchAllProducts();
   resetProductFilters();
 }
 
@@ -2643,6 +2668,8 @@ async function chooseProduct(p) {
   const id = Number(p.idSpct);
   if (!Number.isFinite(id))
     return toastShow("Sản phẩm không hợp lệ", "warning");
+  if (!isVariantActive(p))
+    return toastShow(`Biến thể ${p.code || ""} đang tắt trạng thái nên không thể thêm vào đơn`, "warning");
   if ((Number(p.stock) || 0) <= 0)
     return toastShow(`Sản phẩm ${p.code} hiện đã hết tồn kho`, "warning");
 
@@ -5952,6 +5979,7 @@ onBeforeUnmount(() => {
   object-fit: contain;
   display: block;
   margin: 0 auto;
+  
   border-radius: 14px;
   background: #fff;
   padding: 0;
