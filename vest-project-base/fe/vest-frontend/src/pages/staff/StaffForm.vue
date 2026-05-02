@@ -6,15 +6,24 @@
         <h5 class="mb-0">{{ isEdit ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h5>
       </div>
 
-      <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-outline-primary btn-sm" @click="openScanModal">
-          <i class="bi bi-qr-code-scan me-1"></i> Quét QR CCCD
-        </button>
+      <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+  <button type="button" class="btn btn-outline-primary btn-sm" @click="openScanModal">
+    <i class="bi bi-qr-code-scan me-1"></i> Quét QR CCCD
+  </button>
 
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
-          <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
-        </button>
-      </div>
+  <button
+    v-if="canChangeOwnPassword"
+    type="button"
+    class="btn btn-outline-warning btn-sm"
+    @click="openChangePasswordModal"
+  >
+    <i class="bi bi-shield-lock me-1"></i> Đổi mật khẩu
+  </button>
+
+  <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+    <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+  </button>
+</div>
     </div>
 
     <div class="card shadow-sm staff-form-card">
@@ -50,8 +59,6 @@
                 @change="onAvatarFileChange"
             />
           </div>
-
-          <div class="small text-muted mt-2" v-if="avatarNameText">{{ avatarNameText }}</div>
           <div class="small text-muted">PNG, JPG, JPEG - tối đa {{ MAX_AVATAR_MB }}MB.</div>
         </div>
 
@@ -287,6 +294,127 @@
         </div>
       </div>
     </div>
+    <div v-if="showChangePasswordModal" class="modal-overlay" @click.self="closeChangePasswordModal">
+  <div class="modal-card change-password-modal">
+    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+      <div>
+        <h3 class="modal-title mb-1">Đổi mật khẩu</h3>
+        <div class="modal-desc mb-0">
+          Mã OTP sẽ được gửi về email của tài khoản đang đăng nhập.
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn-close"
+        @click="closeChangePasswordModal"
+        :disabled="passwordSubmitting || otpSending"
+      ></button>
+    </div>
+
+    <div class="email-box mb-3">
+      <div class="email-box-icon">
+        <i class="bi bi-envelope-check"></i>
+      </div>
+      <div>
+        <div class="email-box-label">Email nhận OTP</div>
+        <div class="email-box-value">{{ form.email || '-' }}</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Mật khẩu hiện tại</label>
+      <div class="input-group">
+        <input
+          :type="showOldPassword ? 'text' : 'password'"
+          class="form-control"
+          v-model.trim="passwordForm.oldPassword"
+          placeholder="Nhập mật khẩu hiện tại"
+          autocomplete="current-password"
+        />
+        <button class="btn btn-outline-secondary" type="button" @click="showOldPassword = !showOldPassword">
+          <i :class="showOldPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Mật khẩu mới</label>
+      <div class="input-group">
+        <input
+          :type="showNewPassword ? 'text' : 'password'"
+          class="form-control"
+          v-model.trim="passwordForm.newPassword"
+          placeholder="Nhập mật khẩu mới"
+          autocomplete="new-password"
+        />
+        <button class="btn btn-outline-secondary" type="button" @click="showNewPassword = !showNewPassword">
+          <i :class="showNewPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Xác nhận mật khẩu mới</label>
+      <div class="input-group">
+        <input
+          :type="showConfirmPassword ? 'text' : 'password'"
+          class="form-control"
+          v-model.trim="passwordForm.confirmPassword"
+          placeholder="Nhập lại mật khẩu mới"
+          autocomplete="new-password"
+        />
+        <button class="btn btn-outline-secondary" type="button" @click="showConfirmPassword = !showConfirmPassword">
+          <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Mã OTP</label>
+      <div class="input-group">
+        <input
+          type="text"
+          class="form-control otp-input"
+          v-model.trim="passwordForm.otp"
+          maxlength="6"
+          placeholder="Nhập mã OTP"
+          autocomplete="one-time-code"
+          @input="passwordForm.otp = onlyNumber(passwordForm.otp)"
+        />
+        <button
+          class="btn btn-outline-primary"
+          type="button"
+          @click="sendChangePasswordOtp"
+          :disabled="otpSending || otpCooldown > 0"
+        >
+          <span v-if="otpSending" class="spinner-border spinner-border-sm me-1"></span>
+          {{ otpButtonText }}
+        </button>
+      </div>
+      <div class="form-text">
+        Bấm gửi OTP trước, sau đó kiểm tra email để lấy mã xác nhận.
+      </div>
+    </div>
+
+    <div class="modal-actions mt-3">
+      <button
+        class="btn btn-outline"
+        :disabled="passwordSubmitting || otpSending"
+        @click="closeChangePasswordModal"
+      >
+        Hủy
+      </button>
+
+      <button
+        class="btn btn-confirm-primary"
+        :disabled="passwordSubmitting"
+        @click="changePassword"
+      >
+        {{ passwordSubmitting ? 'Đang xử lý...' : 'Xác nhận đổi mật khẩu' }}
+      </button>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -305,7 +433,50 @@ const MAX_AVATAR_MB = 5
 const auth = useAuthStore()
 const isAdmin = computed(() => !!auth.isAdmin)
 const ROLE_TO_ID = { ADMIN: 1, NHAN_VIEN: 2 }
+const showChangePasswordModal = ref(false)
+const otpSending = ref(false)
+const passwordSubmitting = ref(false)
+const otpCooldown = ref(0)
+const otpTimer = ref(null)
 
+const showOldPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+  otp: ''
+})
+
+const otpButtonText = computed(() => {
+  if (otpCooldown.value > 0) return `Gửi lại sau ${otpCooldown.value}s`
+  return 'Gửi OTP'
+})
+
+const currentLoginUsername = computed(() => {
+  const candidates = [
+    auth?.user?.taiKhoan,
+    auth?.user?.username,
+    auth?.user?.sub,
+    auth?.profile?.taiKhoan,
+    auth?.profile?.username,
+    auth?.account?.taiKhoan,
+    auth?.taiKhoan,
+    auth?.username,
+    getJwtSubjectFromLocalStorage()
+  ]
+
+  return String(candidates.find(Boolean) || '').trim()
+})
+
+const canChangeOwnPassword = computed(() => {
+  if (!isEdit.value) return false
+  const current = String(currentLoginUsername.value || '').trim().toLowerCase()
+  const target = String(form.taiKhoan || '').trim().toLowerCase()
+  return !!current && !!target && current === target
+})
 const route = useRoute()
 const router = useRouter()
 
@@ -979,7 +1150,169 @@ function validateForm() {
 
   return ''
 }
+function getJwtSubjectFromLocalStorage() {
+  try {
+    const jwtRegex = /eyJ[\w-]+\.[\w-]+\.[\w-]+/g
 
+    for (const key of Object.keys(localStorage)) {
+      const value = localStorage.getItem(key)
+      if (!value) continue
+
+      const matches = String(value).match(jwtRegex)
+      if (!matches || !matches.length) continue
+
+      for (const token of matches) {
+        const parts = token.split('.')
+        if (parts.length !== 3) continue
+
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
+        const payload = JSON.parse(atob(padded))
+
+        if (payload?.sub) return payload.sub
+      }
+    }
+  } catch {
+  }
+
+  return ''
+}
+
+function onlyNumber(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 6)
+}
+
+function resetPasswordForm() {
+  passwordForm.oldPassword = ''
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+  passwordForm.otp = ''
+  showOldPassword.value = false
+  showNewPassword.value = false
+  showConfirmPassword.value = false
+}
+
+function openChangePasswordModal() {
+  resetPasswordForm()
+  showChangePasswordModal.value = true
+}
+
+function closeChangePasswordModal() {
+  if (passwordSubmitting.value || otpSending.value) return
+  showChangePasswordModal.value = false
+  resetPasswordForm()
+}
+
+function startOtpCooldown() {
+  otpCooldown.value = 60
+
+  if (otpTimer.value) clearInterval(otpTimer.value)
+
+  otpTimer.value = setInterval(() => {
+    otpCooldown.value -= 1
+
+    if (otpCooldown.value <= 0) {
+      clearInterval(otpTimer.value)
+      otpTimer.value = null
+      otpCooldown.value = 0
+    }
+  }, 1000)
+}
+
+function validatePasswordBeforeSendOtp() {
+  if (!canChangeOwnPassword.value) {
+    toast.warning('Bạn chỉ có thể đổi mật khẩu của tài khoản đang đăng nhập')
+    return false
+  }
+
+  if (!passwordForm.oldPassword) {
+    toast.warning('Vui lòng nhập mật khẩu hiện tại')
+    return false
+  }
+
+  if (!passwordForm.newPassword) {
+    toast.warning('Vui lòng nhập mật khẩu mới')
+    return false
+  }
+
+  if (passwordForm.newPassword.length < 6) {
+    toast.warning('Mật khẩu mới phải có ít nhất 6 ký tự')
+    return false
+  }
+
+  if (passwordForm.newPassword === passwordForm.oldPassword) {
+    toast.warning('Mật khẩu mới không được trùng mật khẩu hiện tại')
+    return false
+  }
+
+  if (!passwordForm.confirmPassword) {
+    toast.warning('Vui lòng xác nhận mật khẩu mới')
+    return false
+  }
+
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    toast.warning('Mật khẩu xác nhận không khớp')
+    return false
+  }
+
+  return true
+}
+
+function validateChangePassword() {
+  if (!validatePasswordBeforeSendOtp()) return false
+
+  if (!passwordForm.otp) {
+    toast.warning('Vui lòng nhập mã OTP')
+    return false
+  }
+
+  if (passwordForm.otp.length !== 6) {
+    toast.warning('Mã OTP phải gồm 6 chữ số')
+    return false
+  }
+
+  return true
+}
+
+async function sendChangePasswordOtp() {
+  if (!validatePasswordBeforeSendOtp()) return
+
+  otpSending.value = true
+
+  try {
+    await http.post('/api/nhan-vien/doi-mat-khau/gui-otp')
+    toast.success('Mã OTP đã được gửi về email của bạn')
+    startOtpCooldown()
+  } catch (e) {
+    const m = e?.response?.data?.message || e?.message || 'Không gửi được mã OTP'
+    toast.error(m)
+  } finally {
+    otpSending.value = false
+  }
+}
+
+async function changePassword() {
+  if (!validateChangePassword()) return
+
+  passwordSubmitting.value = true
+
+  try {
+    await http.post('/api/nhan-vien/doi-mat-khau/xac-nhan', {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+      confirmPassword: passwordForm.confirmPassword,
+      otp: passwordForm.otp
+    })
+
+    toast.success('Đổi mật khẩu thành công')
+    closeChangePasswordModal()
+  } catch (e) {
+    const m = e?.response?.data?.message || e?.message || 'Đổi mật khẩu thất bại'
+    toast.error(m)
+  } finally {
+    passwordSubmitting.value = false
+  }
+}
 function goBack() {
   router.push({ name: 'staff' })
 }
@@ -1096,9 +1429,15 @@ async function submit() {
 }
 
 onMounted(loadData)
+
 onBeforeUnmount(async () => {
   revokeLocalBlob()
   await stopQrScanner()
+
+  if (otpTimer.value) {
+    clearInterval(otpTimer.value)
+    otpTimer.value = null
+  }
 })
 </script>
 
@@ -1326,5 +1665,47 @@ onBeforeUnmount(async () => {
     width: 100%;
     justify-content: flex-end;
   }
+}
+.change-password-modal {
+  width: min(520px, calc(100% - 32px));
+}
+
+.email-box {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.email-box-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.email-box-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.email-box-value {
+  color: #0f172a;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.otp-input {
+  letter-spacing: 4px;
+  font-weight: 700;
 }
 </style>
