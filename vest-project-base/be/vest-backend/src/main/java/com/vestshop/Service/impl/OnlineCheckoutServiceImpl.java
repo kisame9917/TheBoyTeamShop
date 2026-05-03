@@ -300,6 +300,10 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
             paymentStatus = Boolean.TRUE.equals(gdtt.getTrangThai()) ? "PAID" : "PENDING";
         }
 
+        if (Integer.valueOf(TrangThaiDonHang.HOAN_THANH.getCode()).equals(hoaDon.getTrangThaiDon())) {
+            paymentStatus = "PAID";
+        }
+
         TrangThaiDonHang trangThai = TrangThaiDonHang.fromCode(hoaDon.getTrangThaiDon());
 
         return OnlineOrderLookupResponse.builder()
@@ -644,7 +648,8 @@ public class OnlineCheckoutServiceImpl implements OnlineCheckoutService {
                 .findFirstByHoaDon_IdOrderByIdDesc(orderId)
                 .orElse(null);
 
-        boolean paid = gdtt != null && Boolean.TRUE.equals(gdtt.getTrangThai());
+        boolean completed = Integer.valueOf(TrangThaiDonHang.HOAN_THANH.getCode()).equals(hoaDon.getTrangThaiDon());
+        boolean paid = completed || (gdtt != null && Boolean.TRUE.equals(gdtt.getTrangThai()));
 
         String paymentStatus;
         if (paid) {

@@ -137,6 +137,10 @@ public class ClientOrderController {
             paymentStatus = Boolean.TRUE.equals(gdtt.getTrangThai()) ? "PAID" : "PENDING";
         }
 
+        if (Integer.valueOf(TrangThaiDonHang.HOAN_THANH.getCode()).equals(hoaDon.getTrangThaiDon())) {
+            paymentStatus = "PAID";
+        }
+
         int tongSanPham = hoaDonChiTietRepository.findAllByHoaDon_Id(hoaDon.getId())
                 .stream()
                 .mapToInt(x -> x.getSoLuong() == null ? 0 : x.getSoLuong())
@@ -223,6 +227,10 @@ public class ClientOrderController {
             }
 
             paymentStatus = Boolean.TRUE.equals(gdtt.getTrangThai()) ? "PAID" : "PENDING";
+        }
+
+        if (Integer.valueOf(TrangThaiDonHang.HOAN_THANH.getCode()).equals(hoaDon.getTrangThaiDon())) {
+            paymentStatus = "PAID";
         }
 
         TrangThaiDonHang trangThai = TrangThaiDonHang.fromCode(hoaDon.getTrangThaiDon());
