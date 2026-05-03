@@ -394,12 +394,6 @@
               </div>
 
               <small v-if="errors.kichCo" class="error-text">{{ errors.kichCo }}</small>
-
-              <small v-if="showPolicyHint" class="hint">
-                Kích cỡ đang áp dụng cho
-                <b>{{ policyTargetText }}</b>:
-                <b>{{ allowedSizeText }}</b>
-              </small>
             </div>
           </div>
 
@@ -525,8 +519,8 @@
     </div>
 
     <div v-if="showApplyModal" class="modal-overlay" @click.self="closeApplyModal">
-      <div class="modal-box">
-        <h3 class="modal-title">Áp dụng chung ({{ applyTarget?.name }})</h3>
+      <div class="modal-box apply-modal-box">
+        <h3 class="modal-title apply-modal-title">Áp dụng chung ({{ applyTarget?.name }})</h3>
 
         <div class="grid-2">
           <div class="form-group">
@@ -1722,7 +1716,7 @@ function getColorCode(name) {
 
 .title {
   font-size: 1.35rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #374151;
 }
 
@@ -1745,7 +1739,7 @@ function getColorCode(name) {
 .section-title {
   margin: 0 0 14px;
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #1f2937;
   border-bottom: 1px solid #f3f4f6;
   padding-bottom: 10px;
@@ -1857,7 +1851,7 @@ function getColorCode(name) {
   border: 1px solid #d1d5db;
   background: #f9fafb;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1982,7 +1976,7 @@ function getColorCode(name) {
 .size-hint {
   margin-left: 8px;
   color: #dc2626;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 0.8rem;
 }
 
@@ -2006,7 +2000,7 @@ function getColorCode(name) {
   border-radius: 999px;
   padding: 2px 8px;
   margin: 2px 6px 2px 0;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .ms-tag-x {
@@ -2050,7 +2044,7 @@ function getColorCode(name) {
   margin: 0;
   color: #fff;
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .btn-outline-white {
@@ -2088,7 +2082,7 @@ function getColorCode(name) {
 }
 
 .group-title {
-  font-weight: 900;
+  font-weight: 700;
   color: #1e40af;
   display: flex;
   align-items: center;
@@ -2138,7 +2132,7 @@ function getColorCode(name) {
   border: 1px solid #d1d5db;
   background: #f3f4f6;
   border-radius: 8px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .btn-icon {
@@ -2167,7 +2161,7 @@ function getColorCode(name) {
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -2183,7 +2177,7 @@ function getColorCode(name) {
 
 .section-title-sm {
   margin: 0 0 12px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .image-upload-grid {
@@ -2203,7 +2197,7 @@ function getColorCode(name) {
   padding: 10px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2268,7 +2262,7 @@ function getColorCode(name) {
 
 .modal-title {
   margin: 0 0 12px;
-  font-weight: 900;
+  font-weight: 700;
   color: #111827;
 }
 
@@ -2309,7 +2303,7 @@ function getColorCode(name) {
 .confirm-header h3 {
   margin: 0;
   font-size: 1.05rem;
-  font-weight: 900;
+  font-weight: 700;
   color: #111827;
 }
 
@@ -2371,7 +2365,7 @@ function getColorCode(name) {
 }
 
 .toast2-title {
-  font-weight: 900;
+  font-weight: 700;
   margin-bottom: 4px;
   color: #16a34a;
 }
@@ -2408,6 +2402,48 @@ function getColorCode(name) {
 .error-msg {
   margin-top: 10px;
   color: #b02a37;
-  font-weight: 900;
+  font-weight: 700;
+}
+.apply-modal-box {
+  width: 560px;
+}
+
+.apply-modal-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+.modal-title,
+.title,
+.section-title,
+.section-title-white,
+.group-title,
+.size-badge,
+.toast2-title,
+.error-msg,
+.confirm-header h3,
+.btn-plus,
+.btn,
+.ms-tag,
+.hint,
+.ms-empty,
+.size-hint,
+.count-gray,
+.card-upload-header,
+.upload-placeholder,
+.toast2-msg {
+  font-weight: min(700, inherit);
+}
+
+@media (max-width: 575.98px) {
+  .apply-modal-box {
+    width: calc(100vw - 24px);
+  }
+
+  .apply-modal-title {
+    font-size: 1.05rem;
+  }
 }
 </style>
