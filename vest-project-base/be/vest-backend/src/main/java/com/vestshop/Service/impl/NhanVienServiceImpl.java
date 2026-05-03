@@ -15,7 +15,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.vestshop.dto.request.NhanVienChangePasswordRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,7 +35,11 @@ public class NhanVienServiceImpl implements NhanVienService {
     private final QuyenHanRepository quyenHanRepository;
     private final EmailService emailService;
     private final CloudinaryMediaStorageService mediaStorageService;
+    private final PasswordEncoder passwordEncoder;
 
+    private final Map<String, ChangePasswordOtpData> changePasswordOtpStore = new ConcurrentHashMap<>();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int CHANGE_PASSWORD_OTP_EXPIRE_MINUTES = 10;
     private static final String DEFAULT_AVATAR = "/uploads/defaults/user.jpg";
     private static final int USERNAME_MAX_LEN = 80;
 
@@ -296,5 +308,137 @@ public class NhanVienServiceImpl implements NhanVienService {
         return nhanVienRepository.findByTaiKhoan(taiKhoan)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
 
+    }
+    @Override
+    public void sendChangePasswordOtpForCurrentUser() {
+        NhanVien nv = getCurrentNhanVien();
+
+        if (nv.getEmail() == null || nv.getEmail().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Tài khoản của bạn chưa có email nên không thể nhận OTP");
+        }
+
+        if (Boolean.FALSE.equals(nv.getTrangThai())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Tài khoản nhân viên đã ngừng hoạt động");
+        }
+
+        String otp = generateOtp();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(CHANGE_PASSWORD_OTP_EXPIRE_MINUTES);
+
+        emailService.sendResetPasswordOtp(
+                nv.getEmail().trim(),
+                nv.getTenNhanVien(),
+                otp
+        );
+
+        changePasswordOtpStore.put(
+                nv.getTaiKhoan(),
+                new ChangePasswordOtpData(otp, expiresAt)
+        );
+    }
+
+    @Override
+    @Transactional
+    public void changePasswordForCurrentUser(NhanVienChangePasswordRequest request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Dữ liệu đổi mật khẩu không hợp lệ");
+        }
+
+        String oldPassword = trim(request.getOldPassword());
+        String newPassword = trim(request.getNewPassword());
+        String confirmPassword = trim(request.getConfirmPassword());
+        String otp = trim(request.getOtp());
+
+        if (oldPassword.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Vui lòng nhập mật khẩu hiện tại");
+        }
+
+        if (newPassword.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Vui lòng nhập mật khẩu mới");
+        }
+
+        if (newPassword.length() < 6) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải có ít nhất 6 ký tự");
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu xác nhận không khớp");
+        }
+
+        if (oldPassword.equals(newPassword)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng mật khẩu hiện tại");
+        }
+
+        if (otp.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Vui lòng nhập mã OTP");
+        }
+
+        if (!otp.matches("^\\d{6}$")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mã OTP phải gồm 6 chữ số");
+        }
+
+        NhanVien nv = getCurrentNhanVien();
+
+        if (Boolean.FALSE.equals(nv.getTrangThai())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Tài khoản nhân viên đã ngừng hoạt động");
+        }
+
+        if (!passwordEncoder.matches(oldPassword, nv.getMatKhau())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không đúng");
+        }
+
+        ChangePasswordOtpData otpData = changePasswordOtpStore.get(nv.getTaiKhoan());
+
+        if (otpData == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Bạn chưa yêu cầu gửi OTP hoặc OTP đã hết hạn");
+        }
+
+        if (LocalDateTime.now().isAfter(otpData.expiresAt())) {
+            changePasswordOtpStore.remove(nv.getTaiKhoan());
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mã OTP đã hết hạn");
+        }
+
+        if (!otpData.otp().equals(otp)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mã OTP không đúng");
+        }
+
+        nv.setMatKhau(passwordEncoder.encode(newPassword));
+        nv.setNgayCapNhat(LocalDateTime.now());
+
+        nhanVienRepository.save(nv);
+        changePasswordOtpStore.remove(nv.getTaiKhoan());
+    }
+
+    private NhanVien getCurrentNhanVien() {
+        String taiKhoan = getCurrentUsername();
+
+        return nhanVienRepository.findByTaiKhoan(taiKhoan)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Không tìm thấy tài khoản nhân viên đang đăng nhập"));
+    }
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập");
+        }
+
+        String username = authentication.getName();
+
+        if ("anonymousUser".equals(username)) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập");
+        }
+
+        return username;
+    }
+
+    private String generateOtp() {
+        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+    }
+
+    private String trim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private record ChangePasswordOtpData(String otp, LocalDateTime expiresAt) {
     }
 }

@@ -68,7 +68,7 @@
         <div v-show="filterOpen" class="filter-body">
           <!-- ✅ mx-0 để bỏ margin âm của bootstrap row (hay làm lệch viền) -->
           <div class="row g-3 align-items-end mx-0">
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Tìm kiếm</label>
               <input
                   v-model="filters.keyword"
@@ -80,14 +80,22 @@
               />
             </div>
 
-            <div class="col-12 col-lg-3">
+            <div class="col-12 col-lg-5">
               <label class="form-label">Màu sắc</label>
-              <select v-model="filters.colorId" class="form-select" @change="applyFilters">
-                <option value="">-- Chọn Màu sắc --</option>
-                <option v-for="c in attributes.mauSac" :key="c.id" :value="String(c.id)">
-                  {{ c.ten }}
-                </option>
-              </select>
+              <Multiselect
+                v-model="selectedColorFilter"
+                :options="attributes.mauSac"
+                track-by="id"
+                label="ten"
+                placeholder="-- Chọn Màu sắc --"
+                :searchable="true"
+                :allow-empty="true"
+                :show-labels="false"
+                class="filter-multiselect"
+              >
+                <template #noResult>Không tìm thấy màu sắc</template>
+                <template #noOptions>Không có màu sắc</template>
+              </Multiselect>
             </div>
 
             <div class="col-12 col-lg-3">
@@ -101,7 +109,7 @@
               </select>
             </div>
 
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
               <div class="price-label">
                 Khoảng giá:
                 <span class="price-green">
@@ -140,14 +148,22 @@
               </small>
             </div>
 
-            <div class="col-12 col-lg-3">
+            <div class="col-12 col-lg-5">
               <label class="form-label">Kích cỡ</label>
-              <select v-model="filters.sizeId" class="form-select" @change="applyFilters">
-                <option value="">-- Chọn Kích cỡ --</option>
-                <option v-for="s in attributes.kichCo" :key="s.id" :value="String(s.id)">
-                  {{ s.soSize }}
-                </option>
-              </select>
+              <Multiselect
+                v-model="selectedSizeFilter"
+                :options="attributes.kichCo"
+                track-by="id"
+                label="soSize"
+                placeholder="-- Chọn Kích cỡ --"
+                :searchable="true"
+                :allow-empty="true"
+                :show-labels="false"
+                class="filter-multiselect"
+              >
+                <template #noResult>Không tìm thấy kích cỡ</template>
+                <template #noOptions>Không có kích cỡ</template>
+              </Multiselect>
             </div>
 
             <div class="col-12 col-lg-3">
@@ -431,6 +447,8 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
 
 import attributeService from '../../services/attributeService'
 import { getByProductId, updateDetail, uploadImage } from '../../services/sanPhamChiTietApi'
@@ -511,6 +529,26 @@ const filters = reactive({
   status: '',
   priceMin: 0,
   priceMax: 0
+})
+
+const selectedColorFilter = computed({
+  get() {
+    return attributes.mauSac.find((c) => String(c.id) === String(filters.colorId)) || null
+  },
+  set(value) {
+    filters.colorId = value?.id ? String(value.id) : ''
+    applyFilters()
+  }
+})
+
+const selectedSizeFilter = computed({
+  get() {
+    return attributes.kichCo.find((s) => String(s.id) === String(filters.sizeId)) || null
+  },
+  set(value) {
+    filters.sizeId = value?.id ? String(value.id) : ''
+    applyFilters()
+  }
 })
 
 function onKeywordInput() {
@@ -646,6 +684,20 @@ async function getData() {
   }
 }
 
+function getSizeValue(item) {
+  const raw = item?.soSize ?? item?.ten ?? ''
+  const num = Number(String(raw).replace(',', '.'))
+  return Number.isFinite(num) ? num : Number.MAX_SAFE_INTEGER
+}
+
+function sortSizes(list = []) {
+  return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
+    const byNumber = getSizeValue(a) - getSizeValue(b)
+    if (byNumber !== 0) return byNumber
+    return String(a?.soSize ?? a?.ten ?? '').localeCompare(String(b?.soSize ?? b?.ten ?? ''), 'vi')
+  })
+}
+
 async function loadAttributes() {
   const [resSize, resColor] = await Promise.all([
     attributeService.getAllList('kich-co'),
@@ -653,7 +705,7 @@ async function loadAttributes() {
   ])
   const sizeArr = resSize?.data || resSize || []
   const colorArr = resColor?.data || resColor || []
-  attributes.kichCo = (sizeArr || []).filter((x) => x?.trangThai !== false)
+  attributes.kichCo = sortSizes((sizeArr || []).filter((x) => x?.trangThai !== false))
   attributes.mauSac = (colorArr || []).filter((x) => x?.trangThai !== false)
 }
 
@@ -1878,4 +1930,681 @@ function getColorCode(name) {
   }
 }
 
+
+.filter-multiselect {
+  min-height: 38px;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  min-height: 38px;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  padding-top: 7px;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+.filter-multiselect {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.filter-multiselect :deep(.multiselect) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100%;
+  max-width: 100%;
+  min-height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 7px 40px 6px 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.filter-multiselect:focus-within :deep(.multiselect__tags),
+.filter-multiselect :deep(.multiselect--active .multiselect__tags) {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15) !important;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  display: block;
+  max-width: 100%;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  line-height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-multiselect :deep(.multiselect__input) {
+  max-width: 100%;
+  min-width: 0;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  line-height: 22px;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  z-index: 120;
+  max-width: 100%;
+  border-color: #2563eb;
+}
+
+.filter-multiselect :deep(.multiselect__option--highlight),
+.filter-multiselect :deep(.multiselect__option--selected.multiselect__option--highlight) {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.filter-multiselect :deep(.multiselect__option--highlight::after),
+.filter-multiselect :deep(.multiselect__option--selected.multiselect__option--highlight::after) {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.filter-multiselect :deep(.multiselect__option--selected) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  font-weight: 800;
+}
+
+.filter-multiselect :deep(.multiselect__spinner::before),
+.filter-multiselect :deep(.multiselect__spinner::after) {
+  border-top-color: #2563eb !important;
+}
+
+.product-detail-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.product-detail-page *,
+.product-detail-page *::before,
+.product-detail-page *::after {
+  box-sizing: border-box;
+}
+
+:global(html),
+:global(body),
+:global(#app) {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page-header,
+.content-wrapper,
+.filter-card,
+.table-card,
+.filter-body,
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.page-header {
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.page-title {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 420px;
+}
+
+.page-title-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-actions {
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+}
+
+.filter-card {
+  overflow: visible;
+}
+
+.filter-body {
+  overflow: visible;
+}
+
+.filter-body .row {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.filter-body .row > [class*="col-"] {
+  min-width: 0;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.form-control,
+.form-select,
+.filter-multiselect {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+.table-responsive {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.variants-table {
+  width: 100% !important;
+  min-width: 1180px !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.variants-table th,
+.variants-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.col-check {
+  width: 46px !important;
+}
+
+.col-stt {
+  width: 60px !important;
+}
+
+.col-img {
+  width: 150px !important;
+}
+
+.col-pcode {
+  width: 120px !important;
+}
+
+.col-name {
+  width: 180px !important;
+}
+
+.col-code {
+  width: 140px !important;
+}
+
+.col-color {
+  width: 130px !important;
+}
+
+.col-size {
+  width: 90px !important;
+}
+
+.col-stock {
+  width: 110px !important;
+}
+
+.col-price {
+  width: 130px !important;
+}
+
+.col-status {
+  width: 120px !important;
+}
+
+.col-action {
+  width: 120px !important;
+}
+
+.img-cell--lg {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.variant-img--lg {
+  width: 120px;
+  height: 120px;
+}
+
+.price-green {
+  color: #2563eb !important;
+}
+
+.slider-range {
+  background: #2563eb !important;
+}
+
+.range-slider input[type="range"] {
+  accent-color: #2563eb !important;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  border-color: #2563eb !important;
+}
+
+@media (max-width: 991.98px) {
+  .product-detail-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .page-title-text {
+    white-space: normal;
+  }
+
+  .variants-table {
+    min-width: 1050px !important;
+  }
+}
+.product-detail-page {
+  width: 100% !important;
+  max-width: calc(100vw - 330px) !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  overflow-x: hidden !important;
+}
+
+.content-wrapper,
+.page-header,
+.filter-card,
+.table-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.page-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  overflow: hidden !important;
+}
+
+.page-title {
+  flex: 1 1 420px !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.page-title-text {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.page-actions {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.page-actions .btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+.filter-card {
+  overflow: hidden !important;
+}
+
+.filter-head,
+.filter-body {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-body {
+  overflow: visible !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+.filter-body .row {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  --bs-gutter-x: 12px;
+}
+
+.filter-body .row > [class*="col-"] {
+  min-width: 0 !important;
+}
+
+.filter-body .form-control,
+.filter-body .form-select,
+.filter-body .filter-multiselect {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.table-card {
+  overflow: hidden !important;
+}
+
+.table-responsive {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.variants-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.variants-table th,
+.variants-table td {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  overflow-wrap: anywhere !important;
+}
+
+.col-stt {
+  width: 5% !important;
+}
+
+.col-img {
+  width: 12% !important;
+}
+
+.col-pcode {
+  width: 10% !important;
+}
+
+.col-name {
+  width: 14% !important;
+}
+
+.col-code {
+  width: 12% !important;
+}
+
+.col-color {
+  width: 11% !important;
+}
+
+.col-size {
+  width: 8% !important;
+}
+
+.col-stock {
+  width: 10% !important;
+}
+
+.col-price {
+  width: 11% !important;
+}
+
+.col-status {
+  width: 10% !important;
+}
+
+.col-action {
+  width: 9% !important;
+}
+
+.img-cell--lg {
+  width: 110px !important;
+  height: 110px !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.variant-img--lg {
+  width: 110px !important;
+  height: 110px !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 1500px) {
+  .product-detail-page {
+    max-width: calc(100vw - 315px) !important;
+  }
+
+  .page-title {
+    flex-basis: 360px !important;
+  }
+
+  .page-actions .btn {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .img-cell--lg,
+  .variant-img--lg {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .product-detail-page {
+    max-width: 100% !important;
+  }
+
+  .page-title-text {
+    white-space: normal !important;
+  }
+
+  .variants-table {
+    min-width: 1050px !important;
+  }
+}
+/* ===== FIX THEO YÊU CẦU: khoảng giá xanh lá + combobox lọc dài hơn ===== */
+.price-green {
+  color: #059669 !important;
+}
+
+.slider-range {
+  background: #059669 !important;
+}
+
+.range-slider input[type="range"] {
+  accent-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+  border-color: #059669 !important;
+}
+
+.filter-multiselect {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect),
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (min-width: 992px) {
+  .filter-body .col-lg-4 .filter-multiselect {
+    min-width: 100% !important;
+  }
+}
+.price-green {
+  color: #059669 !important;
+}
+
+.slider-range {
+  background: #059669 !important;
+}
+
+.range-slider input[type="range"] {
+  accent-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+  border-color: #059669 !important;
+}
+
+.filter-card {
+  overflow: visible !important;
+}
+
+.filter-body {
+  overflow: visible !important;
+}
+
+.filter-body .row {
+  overflow: visible !important;
+}
+
+.filter-body .form-select {
+  font-weight: 400 !important;
+  color: #374151 !important;
+  font-size: 0.95rem !important;
+}
+
+.filter-body .form-select option {
+  font-weight: 400 !important;
+}
+
+.filter-multiselect {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 7px 46px 6px 12px !important;
+  overflow: visible !important;
+}
+
+.filter-multiselect :deep(.multiselect__select) {
+  width: 42px !important;
+  right: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  max-width: 100% !important;
+  padding-right: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  z-index: 999 !important;
+  border-color: #2563eb !important;
+}
+
+.table-responsive {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+.variants-table {
+  width: 100% !important;
+  min-width: 1480px !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+}
+
+.col-img {
+  width: 220px !important;
+}
+
+.img-cell--lg {
+  width: 200px !important;
+  height: 200px !important;
+  min-height: 200px !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.variant-img--lg,
+.no-img--lg {
+  width: 200px !important;
+  height: 200px !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 1500px) {
+  .variants-table {
+    min-width: 1450px !important;
+  }
+
+  .col-img {
+    width: 210px !important;
+  }
+
+  .img-cell--lg,
+  .variant-img--lg,
+  .no-img--lg {
+    width: 190px !important;
+    height: 190px !important;
+    min-height: 190px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .variants-table {
+    min-width: 1280px !important;
+  }
+}
 </style>

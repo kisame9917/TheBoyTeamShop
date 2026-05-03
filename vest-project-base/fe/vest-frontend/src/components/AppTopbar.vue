@@ -73,18 +73,22 @@
               </button>
             </li>
           </ul>
-
-          <!-- <div class="dropdown-foot">
-            <RouterLink class="view-all" to="/admin/notifications"
-              >Xem tất cả</RouterLink
-            >
-          </div> -->
         </div>
       </div>
 
       <div class="dd-wrap">
         <button class="user-btn" type="button" @click.stop="toggleUser">
-          <span class="avatar">{{ initials }}</span>
+          <span class="avatar">
+            <img
+              v-if="avatarUrl"
+              :src="avatarUrl"
+              class="avatar-img"
+              alt="avatar"
+              @error="onAvatarError"
+            />
+            <span v-else>{{ initials }}</span>
+          </span>
+
           <span class="user-name">{{ admin.name }}</span>
 
           <svg viewBox="0 0 24 24" class="chev" aria-hidden="true">
@@ -99,14 +103,24 @@
 
         <div v-if="showUser" class="dropdown user-dd">
           <div class="user-card">
-            <div class="u-name">{{ admin.name }}</div>
-            <div class="u-mail">{{ roleLabel }}</div>
+            <div class="user-card-top">
+              <span class="user-card-avatar">
+                <img
+                  v-if="avatarUrl"
+                  :src="avatarUrl"
+                  class="user-card-avatar-img"
+                  alt="avatar"
+                  @error="onAvatarError"
+                />
+                <span v-else>{{ initials }}</span>
+              </span>
+
+              <div>
+                <div class="u-name">{{ admin.name }}</div>
+                <div class="u-mail">{{ roleLabel }}</div>
+              </div>
+            </div>
           </div>
-
-          <div class="divider"></div>
-
-          <RouterLink class="menu" to="/admin/profile">Hồ sơ</RouterLink>
-          <RouterLink class="menu" to="/admin/settings">Cài đặt</RouterLink>
 
           <div class="divider"></div>
 
@@ -125,6 +139,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useShiftStore } from "@/stores/shift";
 import { useNotificationStore } from "@/stores/notification";
+import http from "@/services/http";
+import { resolveMediaUrl } from "@/utils/media";
 
 const props = defineProps({
   title: { type: String, default: "" },
@@ -172,29 +188,65 @@ function readUserFromLocal() {
     const raw = localStorage.getItem("vest_user");
     if (raw) {
       const u = JSON.parse(raw);
-      const name = cleanName(u?.tenNhanVien || "");
+      const name = cleanName(
+        u?.tenNhanVien ||
+          u?.name ||
+          u?.hoTen ||
+          localStorage.getItem("vest_name") ||
+          "",
+      );
+
       return {
+        id: u?.id ?? null,
         name: name || (role.value === "STAFF" ? "Staff" : "Admin"),
+        email: u?.email || "",
+        taiKhoan: u?.taiKhoan || "",
+        avatar:
+          u?.anhDaiDien ||
+          u?.avatarUrl ||
+          u?.avatar ||
+          u?.mediaAvatarUrl ||
+          localStorage.getItem("vest_avatar") ||
+          "",
       };
     }
   } catch {}
 
   const name = cleanName(localStorage.getItem("vest_name") || "");
   return {
+    id: null,
     name: name || (role.value === "STAFF" ? "Staff" : "Admin"),
+    email: "",
+    taiKhoan: "",
+    avatar: localStorage.getItem("vest_avatar") || "",
   };
 }
 
 const admin = ref(readUserFromLocal());
+const avatarError = ref(false);
 
-watch(role, () => {
+watch(role, async () => {
   admin.value = readUserFromLocal();
+  avatarError.value = false;
+  await loadCurrentNhanVienAvatar();
 });
 
 function onStorage(e) {
   if (!e || !e.key) return;
-  if (["vest_user", "vest_name", "vest_role", "role"].includes(e.key)) {
+  if (
+    [
+      "vest_user",
+      "vest_name",
+      "vest_avatar",
+      "vest_role",
+      "role",
+      "token",
+      "vest_token",
+    ].includes(e.key)
+  ) {
     admin.value = readUserFromLocal();
+    avatarError.value = false;
+    loadCurrentNhanVienAvatar();
   }
 }
 
@@ -211,7 +263,7 @@ const showUser = ref(false);
 const now = ref(new Date());
 let timer;
 
-onMounted(() => {
+onMounted(async () => {
   timer = setInterval(() => {
     now.value = new Date();
   }, 60_000);
@@ -220,6 +272,8 @@ onMounted(() => {
   window.addEventListener("storage", onStorage);
 
   admin.value = readUserFromLocal();
+  await loadCurrentNhanVienAvatar();
+
   notificationStore.init();
 });
 
@@ -251,9 +305,80 @@ const resolvedSubtitle = computed(() => {
 
 const initials = computed(() => {
   const name = (admin.value.name || "").trim() || "AD";
-  const parts = name.split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase()).join("");
+  const parts = name.split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) return "AD";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 });
+
+const avatarUrl = computed(() => {
+  if (avatarError.value) return "";
+
+  const raw = String(admin.value?.avatar || "").trim();
+  if (!raw) return "";
+
+  return resolveMediaUrl(raw);
+});
+
+function onAvatarError() {
+  avatarError.value = true;
+}
+
+function unwrapObj(data) {
+  if (!data) return null;
+  if (data.result && typeof data.result === "object") return data.result;
+  return data;
+}
+
+async function loadCurrentNhanVienAvatar() {
+  const id = admin.value?.id;
+  if (!id) return;
+
+  try {
+    const res = await http.get("/api/nhan-vien/" + id);
+    const data = unwrapObj(res?.data);
+
+    const avatar =
+      data?.anhDaiDien ||
+      data?.avatarUrl ||
+      data?.avatar ||
+      data?.mediaAvatarUrl ||
+      "";
+
+    const name = cleanName(data?.tenNhanVien || admin.value?.name || "");
+
+    admin.value = {
+      ...admin.value,
+      name: name || admin.value?.name || "Admin",
+      email: data?.email || admin.value?.email || "",
+      taiKhoan: data?.taiKhoan || admin.value?.taiKhoan || "",
+      avatar,
+    };
+
+    const raw = localStorage.getItem("vest_user");
+    const oldUser = raw ? JSON.parse(raw) : {};
+
+    localStorage.setItem(
+      "vest_user",
+      JSON.stringify({
+        ...oldUser,
+        id: data?.id ?? oldUser?.id ?? id,
+        tenNhanVien: data?.tenNhanVien || oldUser?.tenNhanVien,
+        email: data?.email || oldUser?.email,
+        taiKhoan: data?.taiKhoan || oldUser?.taiKhoan,
+        anhDaiDien: avatar,
+        avatarUrl: avatar,
+      }),
+    );
+
+    if (avatar) {
+      localStorage.setItem("vest_avatar", avatar);
+      avatarError.value = false;
+    }
+  } catch {}
+}
 
 function toggleNoti() {
   showNoti.value = !showNoti.value;
@@ -291,6 +416,7 @@ function logout() {
 
   localStorage.removeItem("vest_user");
   localStorage.removeItem("vest_name");
+  localStorage.removeItem("vest_avatar");
   localStorage.removeItem("vest_role");
   localStorage.removeItem("role");
   localStorage.removeItem("token");
@@ -314,26 +440,31 @@ function logout() {
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
 }
+
 .left {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
 }
+
 .title {
   font-weight: 800;
   font-size: 16px;
   color: #111827;
 }
+
 .subtitle {
   margin-top: 4px;
   font-size: 12.5px;
   color: #6b7280;
 }
+
 .right {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .view-mode-pill {
   height: 28px;
   padding: 0 10px;
@@ -347,12 +478,15 @@ function logout() {
   border: none;
   cursor: pointer;
 }
+
 .view-mode-pill:hover {
   filter: brightness(0.95);
 }
+
 .dd-wrap {
   position: relative;
 }
+
 .icon-btn {
   position: relative;
   width: 40px;
@@ -365,14 +499,17 @@ function logout() {
   align-items: center;
   justify-content: center;
 }
+
 .icon-btn:hover {
   background: #f9fafb;
 }
+
 .icon {
   width: 20px;
   height: 20px;
   color: #111827;
 }
+
 .badge {
   position: absolute;
   top: -6px;
@@ -389,22 +526,7 @@ function logout() {
   justify-content: center;
   border: 2px solid #fff;
 }
-.mode-badge {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: #0ea5e9;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #fff;
-}
+
 .user-btn {
   height: 40px;
   padding: 0 10px;
@@ -416,9 +538,11 @@ function logout() {
   align-items: center;
   gap: 8px;
 }
+
 .user-btn:hover {
   background: #f9fafb;
 }
+
 .avatar {
   width: 26px;
   height: 26px;
@@ -430,17 +554,29 @@ function logout() {
   justify-content: center;
   font-weight: 800;
   font-size: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .user-name {
   font-weight: 700;
   font-size: 14px;
   color: #111827;
 }
+
 .chev {
   width: 18px;
   height: 18px;
   color: #6b7280;
 }
+
 .dropdown {
   position: absolute;
   right: 0;
@@ -452,6 +588,7 @@ function logout() {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
+
 .dropdown-head {
   display: flex;
   justify-content: space-between;
@@ -459,10 +596,12 @@ function logout() {
   padding: 10px 12px;
   border-bottom: 1px solid #f3f4f6;
 }
+
 .dropdown-title {
   font-weight: 800;
   color: #111827;
 }
+
 .link-btn {
   border: none;
   background: transparent;
@@ -470,15 +609,18 @@ function logout() {
   color: #2563eb;
   font-size: 13px;
 }
+
 .link-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .empty {
   padding: 12px;
   color: #6b7280;
   font-size: 13px;
 }
+
 .list {
   list-style: none;
   margin: 0;
@@ -486,6 +628,7 @@ function logout() {
   max-height: 320px;
   overflow: auto;
 }
+
 .item {
   display: flex;
   align-items: flex-start;
@@ -495,22 +638,27 @@ function logout() {
   border-radius: 12px;
   cursor: pointer;
 }
+
 .item:hover {
   background: #f9fafb;
 }
+
 .item.unread {
   background: #eff6ff;
 }
+
 .item-title {
   font-weight: 700;
   color: #111827;
   font-size: 13px;
 }
+
 .item-time {
   margin-top: 2px;
   font-size: 12px;
   color: #6b7280;
 }
+
 .mini {
   width: 28px;
   height: 28px;
@@ -519,40 +667,63 @@ function logout() {
   background: #fff;
   cursor: pointer;
 }
+
 .mini:hover {
   background: #f9fafb;
 }
-.dropdown-foot {
-  padding: 10px 12px;
-  border-top: 1px solid #f3f4f6;
-}
-.view-all {
-  color: #2563eb;
-  font-size: 13px;
-  text-decoration: none;
-}
-.view-all:hover {
-  text-decoration: underline;
-}
+
 .user-dd {
-  width: 240px;
+  width: 260px;
 }
+
 .user-card {
   padding: 12px;
 }
+
+.user-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-card-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-card-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .u-name {
   font-weight: 900;
   color: #111827;
 }
+
 .u-mail {
   margin-top: 2px;
   font-size: 12.5px;
   color: #6b7280;
 }
+
 .divider {
   height: 1px;
   background: #f3f4f6;
 }
+
 .menu {
   display: block;
   padding: 10px 12px;
@@ -565,9 +736,11 @@ function logout() {
   cursor: pointer;
   font-weight: 600;
 }
+
 .menu:hover {
   background: #f9fafb;
 }
+
 .menu.danger {
   color: #dc2626;
 }

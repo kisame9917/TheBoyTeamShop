@@ -1,18 +1,17 @@
 package com.vestshop.Controller;
 
 import com.vestshop.Service.NhanVienService;
+import com.vestshop.dto.request.NhanVienChangePasswordRequest;
 import com.vestshop.dto.request.NhanVienRequest;
+import com.vestshop.dto.request.NhanVienTrangThaiRequest;
 import com.vestshop.dto.response.NhanVienResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.vestshop.dto.request.NhanVienTrangThaiRequest;
-import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.Map;
 import java.util.List;
 
 @RestController
@@ -55,7 +54,6 @@ public class NhanVienController {
             @RequestBody NhanVienTrangThaiRequest req,
             @RequestHeader(value = "X-ROLE-ID", required = false) String roleId
     ) {
-        // ✅ chặn quyền
         if (!"1".equals(roleId)) {
             return ResponseEntity.status(403).body("Chỉ ADMIN mới được đổi trạng thái");
         }
@@ -63,5 +61,16 @@ public class NhanVienController {
         nhanVienService.updateTrangThai(id, req.getTrangThai());
         return ResponseEntity.ok().build();
     }
-}
 
+    @PostMapping("/doi-mat-khau/gui-otp")
+    public ResponseEntity<?> sendChangePasswordOtp() {
+        nhanVienService.sendChangePasswordOtpForCurrentUser();
+        return ResponseEntity.ok(Map.of("message", "Mã OTP đã được gửi về email của bạn"));
+    }
+
+    @PostMapping("/doi-mat-khau/xac-nhan")
+    public ResponseEntity<?> changePassword(@RequestBody NhanVienChangePasswordRequest request) {
+        nhanVienService.changePasswordForCurrentUser(request);
+        return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công"));
+    }
+}
