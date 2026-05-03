@@ -731,6 +731,8 @@ public class HoaDonServiceImpl implements HoaDonService {
         ls.setTrangThai(true);
         lichSuHoaDonRepository.save(ls);
 
+        pushThongBaoTrangThaiDonHangToCustomer(hd, newSt);
+
         return buildDetail(hd);
     }
 
@@ -1281,5 +1283,23 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         return "-";
+    }
+    private void pushThongBaoTrangThaiDonHangToCustomer(HoaDon hd, TrangThaiDonHang newSt) {
+        if (hd == null) return;
+        if (newSt == null) return;
+        if (hd.getKhachHang() == null) return;
+        if (hd.getKhachHang().getId() == null) return;
+
+        notificationRealtimeService.pushToUser(
+                hd.getKhachHang().getId(),
+                NotificationEventResponse.builder()
+                        .id("ORDER_STATUS_" + hd.getId() + "_" + System.currentTimeMillis())
+                        .title("Đơn hàng " + hd.getMaHoaDon() + " đã chuyển sang trạng thái: " + newSt.getTen())
+                        .time("Vừa xong")
+                        .link("/my-orders")
+                        .type("ORDER_STATUS")
+                        .createdAt(java.time.OffsetDateTime.now().toString())
+                        .build()
+        );
     }
 }

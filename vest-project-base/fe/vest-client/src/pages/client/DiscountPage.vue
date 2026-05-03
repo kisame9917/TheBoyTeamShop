@@ -262,9 +262,7 @@
           </div>
         </div>
         <div v-else class="empty-box">
-  <div class="empty-box__icon">
-    <i :class="activeTab === 'mine' && !isLoggedIn ? 'bi bi-person-lock' : 'bi bi-ticket-perforated'"></i>
-  </div>
+ 
 
   <template v-if="activeTab === 'mine' && !isLoggedIn">
     <h5>Đăng nhập để xem mã cá nhân</h5>
@@ -284,17 +282,6 @@
     </button>
   </template>
 
-  <template v-else>
-    <h5>Chưa có mã công khai đang áp dụng</h5>
-    <p>
-      Hiện tại hệ thống chưa có mã giảm giá công khai còn hiệu lực.
-      Bạn có thể quay lại sau hoặc tiếp tục xem sản phẩm.
-    </p>
-
-    <button class="hero-btn hero-btn--primary" @click="goShop">
-      Xem sản phẩm
-    </button>
-  </template>
 </div>
       </template>
     </section>

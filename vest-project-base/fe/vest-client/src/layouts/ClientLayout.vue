@@ -31,6 +31,72 @@
           </div>
 
           <div class="header-icons d-flex gap-3 fs-5 align-items-center">
+            <div v-if="isLoggedIn" class="client-noti-wrap" ref="notificationWrap">
+              <button
+                class="client-noti-trigger text-white position-relative"
+                type="button"
+                aria-label="Thông báo"
+                @click.stop="toggleNotification"
+              >
+                <i class="bi bi-bell"></i>
+                <span
+                  v-if="unreadCount > 0"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger client-noti-badge"
+                >
+                  {{ unreadCount }}
+                </span>
+              </button>
+
+              <div v-if="notificationOpen" class="client-noti-menu">
+                <div class="client-noti-head">
+                  <div class="client-noti-title">Thông báo</div>
+
+                  <button
+                    class="client-noti-read-all"
+                    type="button"
+                    :disabled="notificationsLocal.length === 0 || unreadCount === 0"
+                    @click="markAllRead"
+                  >
+                    Đã đọc tất cả
+                  </button>
+                </div>
+
+                <div v-if="notificationsLocal.length === 0" class="client-noti-empty">
+                  Không có thông báo.
+                </div>
+
+                <ul v-else class="client-noti-list">
+                  <li
+                    v-for="n in notificationsLocal"
+                    :key="n.id"
+                    class="client-noti-item"
+                    :class="{ unread: !n.read }"
+                    @click="openNotification(n)"
+                  >
+                    <div class="client-noti-main">
+                      <div class="client-noti-item-title">
+                        {{ n.title }}
+                      </div>
+
+                      <div class="client-noti-item-time">
+                        {{ n.time }}
+                      </div>
+                    </div>
+
+                    <button
+                      v-if="!n.read"
+                      class="client-noti-mini"
+                      type="button"
+                      title="Đánh dấu đã đọc"
+                      @click.stop="markRead(n.id)"
+                    >
+                      ✓
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
             <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
               <button
                 class="user-btn text-white"
@@ -75,10 +141,6 @@
             <router-link v-else to="/login" class="text-white" aria-label="Tài khoản">
               <i class="bi bi-person"></i>
             </router-link>
-
-<!--            <a href="#" class="text-white" aria-label="Yêu thích" @click.prevent>-->
-<!--              <i class="bi bi-heart"></i>-->
-<!--            </a>-->
 
             <div class="cart-wrap" ref="cartWrap">
               <button
@@ -323,17 +385,25 @@ import CartAddedToast from '../components/common/CartAddedToast.vue';
 import { useCart } from '../composables/useCart';
 import { getSiteLogoUrl, resolveMediaUrl } from '../utils/media';
 import { CART_ADDED_EVENT } from '../services/cartService';
+import { useNotificationStore } from "../stores/notification";
 
 const router = useRouter();
 const route = useRoute();
+const notificationStore = useNotificationStore();
 
 const cartOpen = ref(false);
 const cartWrap = ref(null);
+const notificationWrap = ref(null);
+const notificationOpen = ref(false);
 const { totalQty, clearCart, syncCart } = useCart();
+
+const notificationsLocal = computed(() => notificationStore.items || []);
+const unreadCount = computed(() => notificationStore.unreadCount || 0);
 
 function toggleCart() {
   cartOpen.value = !cartOpen.value;
   userMenuOpen.value = false;
+  notificationOpen.value = false;
 }
 
 function closeCart() {
@@ -342,12 +412,14 @@ function closeCart() {
 
 function goToCart() {
   closeCart();
+  notificationOpen.value = false;
   cartToast.value.open = false;
   router.push({ name: 'Cart' });
 }
 
 function checkout() {
   closeCart();
+  notificationOpen.value = false;
   router.push({ name: 'Checkout' });
 }
 
@@ -362,9 +434,7 @@ const discountRoute = computed(() => {
     if (resolved?.matched?.length) {
       return route;
     }
-  } catch {
-    // Fallback nếu project chưa khai báo route name Discount.
-  }
+  } catch {}
 
   return { name: 'Search', query: { cat: 'giam-gia' } };
 });
@@ -420,6 +490,15 @@ function syncAuth() {
     'Khách hàng';
 }
 
+function initNotification() {
+  if (isLoggedIn.value) {
+    notificationStore.init?.();
+  } else {
+    notificationOpen.value = false;
+    notificationStore.disconnect?.();
+  }
+}
+
 function getNameFromVestUser() {
   const raw =
     localStorage.getItem('vest_user') ||
@@ -442,24 +521,56 @@ function getNameFromVestUser() {
   }
 }
 
+function toggleNotification() {
+  notificationOpen.value = !notificationOpen.value;
+  userMenuOpen.value = false;
+  cartOpen.value = false;
+}
+
+function markRead(id) {
+  notificationStore.markRead?.(id);
+}
+
+function markAllRead() {
+  notificationStore.markAllRead?.();
+}
+
+function openNotification(n) {
+  if (!n?.read && n?.id) {
+    notificationStore.markRead?.(n.id);
+  }
+
+  notificationOpen.value = false;
+  userMenuOpen.value = false;
+  cartOpen.value = false;
+
+  if (n?.link) {
+    router.push(n.link);
+  }
+}
+
 function toggleUserMenu() {
   userMenuOpen.value = !userMenuOpen.value;
   cartOpen.value = false;
+  notificationOpen.value = false;
 }
 
 function openProfile() {
   userMenuOpen.value = false;
+  notificationOpen.value = false;
   router.push({ name: 'ClientProfile' });
 }
 
 function openMyOrders() {
   userMenuOpen.value = false;
+  notificationOpen.value = false;
   router.push({ name: 'MyOrders' });
 }
 
 function openLogoutConfirm() {
   userMenuOpen.value = false;
   cartOpen.value = false;
+  notificationOpen.value = false;
   logoutConfirmOpen.value = true;
 }
 
@@ -564,7 +675,10 @@ function logout() {
   logoutConfirmOpen.value = false;
   userMenuOpen.value = false;
   cartOpen.value = false;
+  notificationOpen.value = false;
   cartToast.value.open = false;
+
+  notificationStore.disconnect?.();
 
   clearCart();
   syncCart();
@@ -588,10 +702,15 @@ function handleClickOutside(e) {
   if (cartWrap.value && !cartWrap.value.contains(e.target)) {
     cartOpen.value = false;
   }
+
+  if (notificationWrap.value && !notificationWrap.value.contains(e.target)) {
+    notificationOpen.value = false;
+  }
 }
 
 function handleStorageChange() {
   syncAuth();
+  initNotification();
 }
 
 const cartToast = ref({
@@ -625,6 +744,8 @@ function handleCartAdded(event) {
 
 onMounted(() => {
   syncAuth();
+  initNotification();
+
   document.addEventListener('click', handleClickOutside);
   window.addEventListener('storage', handleStorageChange);
   window.addEventListener(CART_ADDED_EVENT, handleCartAdded);
@@ -634,6 +755,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
   window.removeEventListener('storage', handleStorageChange);
   window.removeEventListener(CART_ADDED_EVENT, handleCartAdded);
+
+  notificationStore.disconnect?.();
 
   if (cartToastTimer) {
     clearTimeout(cartToastTimer);
@@ -677,6 +800,143 @@ onBeforeUnmount(() => {
 
 .header-icons i {
   font-size: 20px;
+}
+
+.client-noti-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.client-noti-trigger {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.client-noti-badge {
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.client-noti-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 330px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: 1100;
+  color: #111827;
+}
+
+.client-noti-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+}
+
+.client-noti-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.client-noti-read-all {
+  border: 0;
+  background: transparent;
+  color: #0d6efd;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.client-noti-read-all:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.client-noti-empty {
+  padding: 14px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.client-noti-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.client-noti-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.client-noti-item:hover {
+  background: #f8fafc;
+}
+
+.client-noti-item.unread {
+  background: #eff6ff;
+}
+
+.client-noti-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.client-noti-item-title {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: #111827;
+}
+
+.client-noti-item-time {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.client-noti-mini {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.client-noti-mini:hover {
+  background: #f9fafb;
 }
 
 .cart-badge {
@@ -937,6 +1197,11 @@ main {
 @media (max-width: 767.98px) {
   .logo-img {
     max-width: 132px;
+  }
+
+  .client-noti-menu {
+    width: min(330px, calc(100vw - 24px));
+    right: -96px;
   }
 
   .cart-mini {
