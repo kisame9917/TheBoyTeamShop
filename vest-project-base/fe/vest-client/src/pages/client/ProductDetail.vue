@@ -356,7 +356,10 @@ const selectedSize = ref("");
 const quantity = ref(1);
 
 const productId = computed(() => route.params.id);
-
+const selectedVariantId = computed(() => {
+  const id = Number(route.query.variantId);
+  return Number.isFinite(id) && id > 0 ? id : null;
+});
 const productTitle = computed(() => {
   if (!product.value) return "";
   return (
@@ -613,11 +616,17 @@ async function fetchProductDetail() {
     product.value = productRes;
     variants.value = Array.isArray(variantRes) ? variantRes : [];
 
-    const firstVariant = normalizedVariants.value[0] || null;
-    if (firstVariant) {
-      selectedColor.value = firstVariant.color || "";
-      selectedSize.value = firstVariant.size || "";
-    }
+    const targetVariant =
+  normalizedVariants.value.find(
+    (v) => Number(v.idSanPhamChiTiet) === selectedVariantId.value
+  ) || null;
+
+const firstVariant = targetVariant || normalizedVariants.value[0] || null;
+
+if (firstVariant) {
+  selectedColor.value = firstVariant.color || "";
+  selectedSize.value = firstVariant.size || "";
+}
   } catch (error) {
     console.error("fetchProductDetail error:", error);
     loadError.value =
@@ -662,6 +671,12 @@ watch(quantity, (val) => {
 });
 
 onMounted(fetchProductDetail);
+watch(
+  () => [route.params.id, route.query.variantId],
+  () => {
+    fetchProductDetail();
+  }
+);
 </script>
 
 <style scoped>

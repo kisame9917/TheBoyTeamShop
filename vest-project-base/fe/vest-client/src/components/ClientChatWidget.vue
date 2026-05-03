@@ -401,8 +401,15 @@ async function createConversationAndSendFirstMessage(content) {
 }
 
 function goToProduct(p) {
-  if (!p?.sanPhamChiTietId) return;
-  router.push(`/product/${p.sanPhamChiTietId}`);
+  const productId = p?.sanPhamId || p?.idSanPham || p?.productId;
+  const variantId = p?.sanPhamChiTietId || p?.idSanPhamChiTiet;
+
+  if (!productId) return;
+
+  router.push({
+    path: `/product/${productId}`,
+    query: variantId ? { variantId } : {},
+  });
 }
 
 async function sendQuickOption(text) {
