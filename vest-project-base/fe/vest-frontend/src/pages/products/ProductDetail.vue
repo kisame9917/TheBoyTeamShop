@@ -100,7 +100,7 @@
 
             <div class="col-12 col-lg-3">
               <label class="form-label">Số lượng tồn</label>
-              <select v-model="filters.stock" class="form-select" @change="applyFilters">
+              <select v-model="filters.stock" class="form-select" :class="{ 'placeholder-select': !filters.stock }" @change="applyFilters">
                 <option value="">-- Chọn Số lượng tồn --</option>
                 <option value="lt10">&lt; 10</option>
                 <option value="10_50">10 - 50</option>
@@ -1252,7 +1252,7 @@ function getColorCode(name) {
 .page-title-text {
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #111827;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -1261,12 +1261,12 @@ function getColorCode(name) {
 .title-sep {
   margin: 0 8px;
   color: #9ca3af;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .title-code {
   color: #111827;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .title-name {
@@ -1313,7 +1313,7 @@ function getColorCode(name) {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .filter-head-right {
@@ -1327,7 +1327,7 @@ function getColorCode(name) {
 
 .form-label {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: #111827;
   margin-bottom: 6px;
 }
@@ -1348,14 +1348,14 @@ function getColorCode(name) {
 
 .price-label {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: #111827;
   margin-bottom: 6px;
 }
 
 .price-green {
   color: #059669;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .hint {
@@ -1526,13 +1526,13 @@ function getColorCode(name) {
 }
 
 .text-bold {
-  font-weight: 800;
+  font-weight: 700;
   color: #111827;
 }
 
 .text-highlight {
   color: #0f766e;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .img-cell {
@@ -1615,7 +1615,7 @@ function getColorCode(name) {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1725,7 +1725,7 @@ function getColorCode(name) {
 
 .error-text {
   color: #b02a37;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .modal-overlay {
@@ -1768,7 +1768,7 @@ function getColorCode(name) {
 .modal-header h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 700;
   color: #111827;
   overflow-wrap: anywhere;
 }
@@ -2018,7 +2018,7 @@ function getColorCode(name) {
 .filter-multiselect :deep(.multiselect__option--selected) {
   background: #dbeafe !important;
   color: #1e40af !important;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .filter-multiselect :deep(.multiselect__spinner::before),
@@ -2605,6 +2605,157 @@ function getColorCode(name) {
 @media (max-width: 1200px) {
   .variants-table {
     min-width: 1280px !important;
+  }
+}
+/* ===== FIX: canh đều filter giống màn danh sách sản phẩm ===== */
+.filter-body {
+  padding: 16px !important;
+  overflow: visible !important;
+}
+
+.filter-body .row {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  --bs-gutter-x: 18px;
+  --bs-gutter-y: 18px;
+  align-items: start !important;
+}
+
+.filter-body .row > [class*="col-"] {
+  min-width: 0 !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+.filter-body .form-label,
+.filter-body .price-label {
+  min-height: 21px !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+}
+
+.filter-body .form-control,
+.filter-body .form-select,
+.filter-body .filter-multiselect :deep(.multiselect__tags) {
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 6px !important;
+}
+
+.filter-body .form-control,
+.filter-body .form-select {
+  padding: 8px 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  color: #374151 !important;
+  background-color: #fff !important;
+}
+
+.filter-body .form-control::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+  font-weight: 400 !important;
+}
+
+.filter-body .form-select.placeholder-select {
+  color: #9ca3af !important;
+  font-weight: 400 !important;
+}
+
+.filter-body .form-select,
+.filter-body .form-select option {
+  font-weight: 400 !important;
+}
+
+.filter-multiselect {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+}
+
+.filter-multiselect :deep(.multiselect),
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  padding: 8px 46px 7px 12px !important;
+  overflow: visible !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 24px !important;
+  color: #9ca3af !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.filter-multiselect :deep(.multiselect__single) {
+  color: #374151 !important;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  z-index: 999 !important;
+}
+
+.price-green {
+  color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+.slider-range {
+  background: #059669 !important;
+}
+
+.range-slider input[type="range"] {
+  accent-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+  border-color: #059669 !important;
+}
+
+.status-radio {
+  min-height: 40px !important;
+  align-items: center !important;
+}
+
+@media (min-width: 992px) {
+  .filter-body .col-lg-4 {
+    width: 33.333333% !important;
+    flex: 0 0 auto !important;
+  }
+
+  .filter-body .col-lg-5 {
+    width: 41.666667% !important;
+    flex: 0 0 auto !important;
+  }
+
+  .filter-body .col-lg-3 {
+    width: 25% !important;
+    flex: 0 0 auto !important;
   }
 }
 </style>

@@ -75,7 +75,7 @@
               class="progress-step"
               :class="{ active: step.active }"
             >
-              <div class="progress-step__dot"></div>
+              <div class="progress-step__dot"><span v-if="step.active">✓</span></div>
               <div class="progress-step__label">{{ step.label }}</div>
             </div>
           </div>
@@ -225,27 +225,30 @@ const order = ref(null);
 
 const showProgress = computed(() => {
   const code = Number(order.value?.trangThaiDon);
-  return ![5, 6, 7].includes(code) && code >= 0;
+  return ![5, 6, 7, 9].includes(code) && code >= 0;
 });
 
-const progressSteps = computed(() => {
-  const code = Number(order.value?.trangThaiDon ?? -1);
+function getProgressIndex(code) {
+  const n = Number(code);
+  if (n === 0) return 0;
+  if (n === 8) return 1;
+  if (n === 1) return 2;
+  if (n === 2) return 3;
+  if (n === 3) return 4;
+  if (n === 4) return 5;
+  return -1;
+}
 
-  const currentIndex = (() => {
-    if (code <= 0) return 0;
-    if (code === 1) return 1;
-    if (code === 2) return 2;
-    if (code === 3) return 3;
-    if (code === 4) return 4;
-    return -1;
-  })();
+const progressSteps = computed(() => {
+  const currentIndex = getProgressIndex(order.value?.trangThaiDon);
 
   return [
-    { key: "confirm", label: "Chờ xác nhận", active: currentIndex >= 0 },
-    { key: "process", label: "Đang xử lý", active: currentIndex >= 1 },
-    { key: "shipping", label: "Đang giao", active: currentIndex >= 2 },
-    { key: "delivered", label: "Đã giao", active: currentIndex >= 3 },
-    { key: "done", label: "Hoàn thành", active: currentIndex >= 4 },
+    { key: "waiting", label: "Chờ xác nhận", active: currentIndex >= 0 },
+    { key: "confirmed", label: "Đã xác nhận", active: currentIndex >= 1 },
+    { key: "process", label: "Đang xử lý", active: currentIndex >= 2 },
+    { key: "shipping", label: "Đang giao", active: currentIndex >= 3 },
+    { key: "delivered", label: "Đã giao", active: currentIndex >= 4 },
+    { key: "done", label: "Hoàn thành", active: currentIndex >= 5 },
   ];
 });
 
@@ -282,6 +285,7 @@ function statusClass(code) {
 }
 
 function paymentStatusText(value) {
+  if (Number(order.value?.trangThaiDon) === 4) return "Đã thanh toán";
   const v = String(value || "").toUpperCase();
   if (v === "PAID") return "Đã thanh toán";
   if (v === "PENDING") return "Chờ thanh toán";
@@ -289,6 +293,7 @@ function paymentStatusText(value) {
 }
 
 function paymentStatusClass(value) {
+  if (Number(order.value?.trangThaiDon) === 4) return "payment-success";
   const v = String(value || "").toUpperCase();
   if (v === "PAID") return "payment-success";
   if (v === "PENDING") return "payment-warning";
@@ -516,7 +521,7 @@ onMounted(() => {
 
 .progress-line {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
 }
 
@@ -545,6 +550,36 @@ onMounted(() => {
 .progress-step.active .progress-step__label {
   color: #0f172a;
   font-weight: 700;
+}
+
+.progress-step {
+  position: relative;
+}
+
+.progress-step:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: calc(-50% - 6px);
+  width: calc(100% + 12px);
+  height: 2px;
+  background: #dbe2ea;
+  z-index: 0;
+}
+
+.progress-step.active:not(:first-child)::before {
+  background: #12379d;
+}
+
+.progress-step__dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .detail-card__title,

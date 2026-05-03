@@ -95,7 +95,7 @@
 
           <div class="form-group fg-qty">
             <label>Số lượng</label>
-            <select v-model="filters.soLuong" class="form-input" @change="onFilterChanged">
+            <select v-model="filters.soLuong" class="form-input" :class="{ 'placeholder-select': !filters.soLuong }" @change="onFilterChanged">
               <option value="">-- Chọn Số lượng --</option>
               <option value="1">Dưới 10</option>
               <option value="2">10 - 100</option>
@@ -1278,6 +1278,177 @@ onBeforeUnmount(() => {
 @media (max-width: 1100px) {
   .filter-layout {
     grid-template-columns: 1fr;
+  }
+}
+/* ===== FIX: canh đều filter + số lượng mờ như combobox ===== */
+.filter-body {
+  padding: 16px !important;
+  overflow: visible !important;
+}
+
+.filter-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.08fr) minmax(220px, 0.68fr) !important;
+  column-gap: 18px !important;
+  row-gap: 18px !important;
+  align-items: start !important;
+}
+
+.fg-search,
+.fg-brand,
+.fg-qty,
+.fg-price,
+.fg-type,
+.fg-status {
+  min-width: 0 !important;
+}
+
+.fg-search {
+  grid-column: 1 / 2 !important;
+  grid-row: 1 !important;
+}
+
+.fg-brand {
+  grid-column: 2 / 3 !important;
+  grid-row: 1 !important;
+}
+
+.fg-qty {
+  grid-column: 3 / 4 !important;
+  grid-row: 1 !important;
+}
+
+.fg-price {
+  grid-column: 1 / 2 !important;
+  grid-row: 2 !important;
+}
+
+.fg-type {
+  grid-column: 2 / 3 !important;
+  grid-row: 2 !important;
+}
+
+.fg-status {
+  grid-column: 3 / 4 !important;
+  grid-row: 2 !important;
+}
+
+.form-group label {
+  min-height: 21px !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+  font-weight: 500 !important;
+}
+
+.form-input,
+.filter-multiselect :deep(.multiselect__tags) {
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 6px !important;
+}
+
+.form-input {
+  padding: 8px 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  color: #374151 !important;
+  background-color: #fff !important;
+}
+
+.form-input::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+  font-weight: 400 !important;
+}
+
+.fg-qty .form-input.placeholder-select {
+  color: #9ca3af !important;
+  font-weight: 400 !important;
+}
+
+.fg-qty .form-input,
+.fg-qty .form-input option {
+  font-weight: 400 !important;
+}
+
+.filter-multiselect {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+}
+
+.filter-multiselect :deep(.multiselect),
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  padding: 8px 46px 7px 12px !important;
+  border: 1px solid #d1d5db !important;
+  overflow: visible !important;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 24px !important;
+  color: #9ca3af !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.filter-multiselect :deep(.multiselect__single) {
+  color: #374151 !important;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  z-index: 999 !important;
+}
+
+.price-display {
+  color: #059669 !important;
+}
+
+.slider-range {
+  background-color: #059669 !important;
+}
+
+.range-slider input[type="range"] {
+  accent-color: #059669 !important;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.fg-reset {
+  grid-column: 3 / 4 !important;
+  grid-row: 3 !important;
+}
+
+@media (max-width: 1100px) {
+  .filter-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .fg-search,
+  .fg-brand,
+  .fg-qty,
+  .fg-price,
+  .fg-type,
+  .fg-status,
+  .fg-reset {
+    grid-column: 1 / -1 !important;
   }
 }
 </style>

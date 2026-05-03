@@ -411,6 +411,10 @@ public class ClientOrderMutationServiceImpl implements ClientOrderMutationServic
             paymentStatus = Boolean.TRUE.equals(gdtt.getTrangThai()) ? "PAID" : "PENDING";
         }
 
+        if (Integer.valueOf(TrangThaiDonHang.HOAN_THANH.getCode()).equals(hoaDon.getTrangThaiDon())) {
+            paymentStatus = "PAID";
+        }
+
         TrangThaiDonHang trangThai = TrangThaiDonHang.fromCode(hoaDon.getTrangThaiDon());
         String tenTrangThai = trangThai != null ? trangThai.getTen() : "Không xác định";
 
