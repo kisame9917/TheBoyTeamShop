@@ -223,6 +223,7 @@
               <th class="text-center col-stock">Số lượng tồn</th>
               <th class="text-center col-price">Giá bán</th>
               <th class="text-center col-status">Trạng thái</th>
+              <th class="text-center col-qr">QR biến thể</th>
               <th class="text-center col-action">Hành động</th>
             </tr>
             </thead>
@@ -268,6 +269,28 @@
                   <span class="badge-pill" :class="v.trangThai ? 'badge-success' : 'badge-danger'">
                     {{ v.trangThai ? 'Còn hàng' : 'Hết hàng' }}
                   </span>
+              </td>
+
+              <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                  <button
+                      class="btn btn-outline-dark btn-sm"
+                      type="button"
+                      title="Xem QR"
+                      @click="previewVariantQr(v)"
+                  >
+                    <i class="bi bi-qr-code me-1"></i>Xem QR
+                  </button>
+
+                  <button
+                      class="btn btn-outline-success btn-sm"
+                      type="button"
+                      title="Tải PNG"
+                      @click="downloadVariantQr(v)"
+                  >
+                    <i class="bi bi-download me-1"></i>Tải PNG
+                  </button>
+                </div>
               </td>
 
               <td class="text-center">
@@ -334,6 +357,69 @@
               <option :value="50">50 bản ghi / trang</option>
             </select>
           </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- QR Scan Modal -->
+    <div v-if="showQrModal" class="modal-overlay" @click.self="closeQrModal">
+      <div class="modals qr-modal-box">
+        <div class="modal-header">
+          <h3>Quét QR sản phẩm / biến thể</h3>
+          <button class="close-btn" type="button" @click="closeQrModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="small text-muted mb-3">
+            Quét <b>mã sản phẩm</b> để lọc toàn bộ biến thể của sản phẩm, hoặc quét <b>mã SP chi tiết</b> để lọc đúng 1 biến thể.
+          </div>
+
+          <div id="product-detail-qr-reader" class="qr-reader-box mb-3"></div>
+
+          <label class="form-label">Hoặc dán mã</label>
+          <div class="qr-manual-row">
+            <input
+                v-model.trim="qrManualInput"
+                type="text"
+                class="form-control"
+                placeholder="Nhập mã sản phẩm hoặc mã SP chi tiết..."
+                @keyup.enter="applyManualQr"
+            />
+            <button class="btn btn-primary btn-sm" type="button" @click="applyManualQr">Áp dụng</button>
+          </div>
+
+          <div v-if="qrErrorMessage" class="text-danger small mt-3">
+            {{ qrErrorMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Preview Modal -->
+    <div v-if="showQrPreviewModal" class="modal-overlay" @click.self="closeQrPreviewModal">
+      <div class="modals qr-preview-modal">
+        <div class="modal-header">
+          <h3>QR biến thể</h3>
+          <button class="close-btn" type="button" @click="closeQrPreviewModal">×</button>
+        </div>
+
+        <div class="modal-body text-center">
+          <div class="small text-muted mb-2">Mã SP chi tiết</div>
+          <div class="fw-semibold mb-3">{{ qrPreviewCode || '—' }}</div>
+
+          <div v-if="qrPreviewUrl" class="qr-preview-frame">
+            <img :src="qrPreviewUrl" alt="QR biến thể" class="qr-preview-image" />
+          </div>
+
+          <div v-else class="text-muted small py-4">Đang tạo mã QR...</div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary btn-sm" type="button" @click="closeQrPreviewModal">Đóng</button>
+          <button class="btn btn-primary btn-sm" type="button" @click="downloadVariantQr(qrPreviewVariant)" :disabled="!qrPreviewVariant">
+            Tải PNG
+          </button>
         </div>
       </div>
     </div>
@@ -444,9 +530,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
+import QRCode from 'qrcode'
+import { Html5Qrcode } from 'html5-qrcode'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
 
@@ -485,6 +573,17 @@ function normalizeVariant(v) {
   const trangThai = sl > 0 ? !!v?.trangThai : false
   return { ...v, trangThai, anh: v?.anh ?? v?.anhDaiDien ?? v?.primaryImageUrl ?? '', mediaPrimaryId: v?.mediaPrimaryId ?? v?.idMediaPrimary ?? v?.id_media_primary ?? null, __imgErr: false }
 }
+
+
+/** ===== QR scan / QR tải PNG ===== */
+const showQrModal = ref(false)
+const qrManualInput = ref('')
+const qrErrorMessage = ref('')
+const showQrPreviewModal = ref(false)
+const qrPreviewUrl = ref('')
+const qrPreviewCode = ref('')
+const qrPreviewVariant = ref(null)
+let variantQrScanner = null
 
 /** ===== product info ===== */
 function getProductCode(v) {
@@ -667,6 +766,10 @@ function jumpPage() {
 
 /** ===== load data ===== */
 onMounted(getData)
+onBeforeUnmount(() => {
+  void stopVariantQr()
+  closeQrPreviewModal()
+})
 watch(() => props.id, () => getData())
 
 async function getData() {
@@ -738,7 +841,152 @@ async function loadPriceMaxFromDb() {
 /** ===== nav ===== */
 function goBack() { router.push('/products') }
 function goToGlobalList() { router.push('/variants') }
-function scanQr() { console.log('scan qr') }
+
+function normalizeQrValue(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function buildVariantQrText(variant) {
+  return String(variant?.maSanPhamChiTiet || '').trim()
+}
+
+async function makeVariantQrDataUrl(variant, width = 320) {
+  const text = buildVariantQrText(variant)
+  if (!text) throw new Error('Biến thể chưa có mã SP chi tiết')
+
+  return QRCode.toDataURL(text, {
+    width,
+    margin: 1
+  })
+}
+
+async function previewVariantQr(variant) {
+  try {
+    qrPreviewVariant.value = variant
+    qrPreviewCode.value = buildVariantQrText(variant)
+    qrPreviewUrl.value = await makeVariantQrDataUrl(variant, 320)
+    showQrPreviewModal.value = true
+  } catch (e) {
+    console.error(e)
+    error('Không tạo được mã QR cho biến thể')
+  }
+}
+
+function closeQrPreviewModal() {
+  showQrPreviewModal.value = false
+  qrPreviewUrl.value = ''
+  qrPreviewCode.value = ''
+  qrPreviewVariant.value = null
+}
+
+async function downloadVariantQr(variant) {
+  try {
+    const text = buildVariantQrText(variant)
+    if (!text) {
+      error('Biến thể chưa có mã SP chi tiết')
+      return
+    }
+
+    const url = await makeVariantQrDataUrl(variant, 800)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${text}.png`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    success(`Đã tải QR của ${text}`)
+  } catch (e) {
+    console.error(e)
+    error('Không tải được mã QR')
+  }
+}
+
+async function scanQr() {
+  showQrModal.value = true
+  qrErrorMessage.value = ''
+  qrManualInput.value = ''
+  await nextTick()
+  await startVariantQr()
+}
+
+async function closeQrModal() {
+  await stopVariantQr()
+  showQrModal.value = false
+}
+
+async function startVariantQr() {
+  try {
+    if (!variantQrScanner) {
+      variantQrScanner = new Html5Qrcode('product-detail-qr-reader')
+    }
+
+    const cameras = await Html5Qrcode.getCameras()
+    if (!cameras?.length) {
+      qrErrorMessage.value = 'Không tìm thấy camera.'
+      return
+    }
+
+    await variantQrScanner.start(
+      { deviceId: { exact: cameras[0].id } },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      async (decodedText) => {
+        await applyQrCode(decodedText)
+      }
+    )
+  } catch (e) {
+    console.error(e)
+    qrErrorMessage.value = 'Không mở được camera hoặc bị chặn quyền.'
+  }
+}
+
+async function stopVariantQr() {
+  try {
+    if (variantQrScanner && (await variantQrScanner.getState()) === 2) {
+      await variantQrScanner.stop()
+      await variantQrScanner.clear()
+    }
+  } catch (_) {}
+}
+
+async function applyQrCode(rawValue) {
+  const code = normalizeQrValue(rawValue)
+  if (!code) {
+    qrErrorMessage.value = 'Mã QR không hợp lệ.'
+    return
+  }
+
+  const exactVariant = variants.value.find(
+    (v) => normalizeQrValue(v.maSanPhamChiTiet) === code
+  )
+
+  if (exactVariant) {
+    filters.keyword = exactVariant.maSanPhamChiTiet || ''
+    currentPage.value = 0
+    pageInput.value = 1
+    await closeQrModal()
+    success(`Đã lọc theo biến thể ${exactVariant.maSanPhamChiTiet}`)
+    return
+  }
+
+  const productVariants = variants.value.filter(
+    (v) => normalizeQrValue(getProductCode(v)) === code
+  )
+
+  if (productVariants.length > 0) {
+    filters.keyword = getProductCode(productVariants[0]) || ''
+    currentPage.value = 0
+    pageInput.value = 1
+    await closeQrModal()
+    success(`Đã lọc ${productVariants.length} biến thể của mã sản phẩm ${getProductCode(productVariants[0])}`)
+    return
+  }
+
+  qrErrorMessage.value = 'Không tìm thấy sản phẩm hoặc biến thể theo mã QR.'
+}
+
+async function applyManualQr() {
+  await applyQrCode(qrManualInput.value)
+}
 
 /** ===== format ===== */
 function formatPrice(val) {
@@ -752,7 +1000,7 @@ const exporting = ref(false)
 const selectedIds = ref([])
 const selectedRows = reactive({})
 
-const tableColspan = computed(() => (exportMode.value ? 12 : 11))
+const tableColspan = computed(() => (exportMode.value ? 13 : 12))
 
 function openExportMode() { exportMode.value = true }
 function cancelExportMode() {
@@ -2756,6 +3004,526 @@ function getColorCode(name) {
   .filter-body .col-lg-3 {
     width: 25% !important;
     flex: 0 0 auto !important;
+  }
+}
+.col-qr {
+  width: 150px;
+}
+
+.qr-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qr-modal-box {
+  width: 720px;
+  max-width: min(720px, calc(100vw - 24px));
+}
+
+.qr-reader-box {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.qr-manual-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.qr-manual-row .form-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.qr-preview-modal {
+  width: 440px;
+  max-width: min(440px, calc(100vw - 24px));
+}
+
+.qr-preview-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+}
+
+.qr-preview-image {
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.variants-table {
+  min-width: 1600px !important;
+}
+
+@media (max-width: 1200px) {
+  .variants-table {
+    min-width: 1400px !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .qr-manual-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+/* ===== FIX: Chi tiết SP giống màn Danh sách biến thể ===== */
+.page-header {
+  margin-bottom: 14px !important;
+}
+
+.page-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.page-actions .btn {
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
+
+.table-card {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+.table-responsive {
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.variants-table {
+  width: 100% !important;
+  min-width: 1580px !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+  margin-bottom: 0 !important;
+}
+
+.variants-table thead th {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  padding: 11px 10px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+.variants-table td {
+  padding: 12px 10px !important;
+  vertical-align: middle !important;
+  color: #111827 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.col-check {
+  width: 46px !important;
+}
+
+.col-stt {
+  width: 70px !important;
+}
+
+.col-img {
+  width: 220px !important;
+}
+
+.col-pcode {
+  width: 130px !important;
+}
+
+.col-name {
+  width: 160px !important;
+}
+
+.col-code {
+  width: 150px !important;
+}
+
+.col-color {
+  width: 140px !important;
+}
+
+.col-size {
+  width: 90px !important;
+}
+
+.col-stock {
+  width: 120px !important;
+}
+
+.col-price {
+  width: 140px !important;
+}
+
+.col-status {
+  width: 125px !important;
+}
+
+.col-qr {
+  width: 170px !important;
+}
+
+.col-action {
+  width: 110px !important;
+}
+
+.img-cell--lg {
+  width: 200px !important;
+  height: 200px !important;
+  min-height: 200px !important;
+  margin: 0 auto !important;
+}
+
+.variant-img--lg,
+.no-img--lg {
+  width: 200px !important;
+  height: 200px !important;
+  max-width: 100% !important;
+}
+
+.no-img--lg {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+}
+
+.text-bold {
+  font-weight: 600 !important;
+}
+
+.text-highlight {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.color-cell {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.color-dot {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid #e5e7eb !important;
+  flex-shrink: 0 !important;
+}
+
+.color-name {
+  max-width: 95px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.badge-pill {
+  font-weight: 700 !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 0.78rem !important;
+}
+
+.badge-success {
+  background: #d1fae5 !important;
+  color: #059669 !important;
+}
+
+.badge-danger {
+  background: #f8d7da !important;
+  color: #dc2626 !important;
+}
+
+.qr-actions,
+.action-buttons {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.action-buttons .btn,
+.qr-actions .btn,
+.variants-table .btn {
+  white-space: nowrap !important;
+}
+
+.edit-btn {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+}
+
+.switch {
+  margin-bottom: 0 !important;
+}
+
+.paging-bar {
+  margin: 14px 0 0 0 !important;
+}
+
+@media (max-width: 1500px) {
+  .variants-table {
+    min-width: 1500px !important;
+  }
+
+  .col-img {
+    width: 210px !important;
+  }
+
+  .img-cell--lg,
+  .variant-img--lg,
+  .no-img--lg {
+    width: 190px !important;
+    height: 190px !important;
+    min-height: 190px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .variants-table {
+    min-width: 1350px !important;
+  }
+
+  .img-cell--lg,
+  .variant-img--lg,
+  .no-img--lg {
+    width: 160px !important;
+    height: 160px !important;
+    min-height: 160px !important;
+  }
+}
+/* ===== FIX: Bỏ kéo ngang, thu bảng chi tiết cho giống danh sách biến thể ===== */
+.table-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.table-responsive {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+.variants-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+.variants-table thead th {
+  padding: 10px 6px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.variants-table td {
+  padding: 10px 6px !important;
+  font-size: 0.86rem !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  overflow-wrap: anywhere !important;
+}
+
+.col-check {
+  width: 3.2% !important;
+}
+
+.col-stt {
+  width: 4.2% !important;
+}
+
+.col-img {
+  width: 13.5% !important;
+}
+
+.col-pcode {
+  width: 8.2% !important;
+}
+
+.col-name {
+  width: 10.8% !important;
+}
+
+.col-code {
+  width: 10.2% !important;
+}
+
+.col-color {
+  width: 8.6% !important;
+}
+
+.col-size {
+  width: 5.3% !important;
+}
+
+.col-stock {
+  width: 6.8% !important;
+}
+
+.col-price {
+  width: 8.4% !important;
+}
+
+.col-status {
+  width: 7.2% !important;
+}
+
+.col-qr {
+  width: 8.8% !important;
+}
+
+.col-action {
+  width: 5.8% !important;
+}
+
+.img-cell--lg {
+  width: 150px !important;
+  height: 150px !important;
+  min-height: 150px !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.variant-img--lg,
+.no-img--lg {
+  width: 150px !important;
+  height: 150px !important;
+  max-width: 100% !important;
+}
+
+.color-cell {
+  gap: 6px !important;
+}
+
+.color-name {
+  max-width: 78px !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+.badge-pill {
+  padding: 4px 9px !important;
+  font-size: 0.72rem !important;
+  max-width: 100% !important;
+}
+
+.qr-actions,
+.action-buttons {
+  gap: 5px !important;
+}
+
+.qr-actions .btn,
+.action-buttons .btn,
+.variants-table .btn {
+  padding: 5px 7px !important;
+  font-size: 0.78rem !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+.qr-actions {
+  flex-direction: column !important;
+}
+
+.edit-btn {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+}
+
+.switch {
+  width: 38px !important;
+  height: 20px !important;
+}
+
+.slider:before {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(18px) !important;
+}
+
+@media (max-width: 1500px) {
+  .variants-table thead th {
+    font-size: 0.78rem !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  .variants-table td {
+    font-size: 0.8rem !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  .img-cell--lg,
+  .variant-img--lg,
+  .no-img--lg {
+    width: 135px !important;
+    height: 135px !important;
+    min-height: 135px !important;
+  }
+
+  .qr-actions .btn,
+  .action-buttons .btn,
+  .variants-table .btn {
+    font-size: 0.72rem !important;
+    padding: 4px 5px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .table-responsive {
+    overflow-x: auto !important;
+  }
+
+  .variants-table {
+    min-width: 1180px !important;
   }
 }
 </style>
