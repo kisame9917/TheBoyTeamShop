@@ -1283,7 +1283,28 @@ function normalizeVoucher(x) {
     ngay_ket_thuc: x.ngayKetThuc ?? x.ngay_ket_thuc ?? null,
   };
 }
+function isPersonalVoucher(v) {
+  const lp = v?.loai_phieu;
+  if (lp === true) return true;
+  if (lp === false) return false;
+  const s = String(lp || "").toUpperCase();
+  return s === "CA_NHAN" || s === "PERSONAL";
+}
 
+function voucherBelongsToCustomer(v, customerId) {
+  if (!isPersonalVoucher(v)) return true;
+  if (!customerId) return false;
+
+  if (Array.isArray(v.khach_hang_ids) && v.khach_hang_ids.length) {
+    return v.khach_hang_ids.includes(Number(customerId));
+  }
+
+  if (v.khach_hang_id != null) {
+    return Number(v.khach_hang_id) === Number(customerId);
+  }
+
+  return true;
+}
 function toTime(v) {
   if (!v) return null;
   const t = new Date(v).getTime();
@@ -1400,14 +1421,26 @@ function showToast(message, type = "success") {
 
 async function loadVouchers() {
   try {
-    const customerId = null;
+    const customerId = isLoggedInCustomer ? currentCustomerId : null;
     const url = customerId
       ? `${API_BASE}/api/pgg/pos?khachHangId=${customerId}`
       : `${API_BASE}/api/pgg/pos`;
 
-    const res = await fetch(url);
-    const data = await res.json();
-    vouchers.value = Array.isArray(data) ? data.map(normalizeVoucher) : [];
+    const res = await fetch(url, {
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    });
+
+    const data = await res.json().catch(() => []);
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Không tải được mã giảm giá");
+    }
+
+    vouchers.value = Array.isArray(data)
+      ? data.map(normalizeVoucher).filter((v) => voucherBelongsToCustomer(v, customerId))
+      : [];
+
+    syncAppliedVoucher();
   } catch (error) {
     console.error("loadVouchers error:", error);
     vouchers.value = [];
@@ -1422,17 +1455,12 @@ const eligibleVoucherEntries = computed(() => {
 });
 
 const publicEligibleVoucherEntries = computed(() => {
-  return eligibleVoucherEntries.value.filter(
-    (x) => x.v.loai_phieu === "CONG_KHAI",
-  );
+  return eligibleVoucherEntries.value.filter((x) => !isPersonalVoucher(x.v));
 });
 
 const personalEligibleVoucherEntries = computed(() => {
-  return eligibleVoucherEntries.value.filter(
-    (x) => x.v.loai_phieu === "CA_NHAN",
-  );
+  return eligibleVoucherEntries.value.filter((x) => isPersonalVoucher(x.v));
 });
-
 const bestEligibleVoucherEntry = computed(() => {
   return eligibleVoucherEntries.value[0] || null;
 });

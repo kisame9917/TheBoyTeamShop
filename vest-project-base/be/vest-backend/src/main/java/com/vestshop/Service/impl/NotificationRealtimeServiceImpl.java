@@ -14,11 +14,13 @@ public class NotificationRealtimeServiceImpl implements NotificationRealtimeServ
 
     @Override
     public void pushToUser(Long userId, NotificationEventResponse event) {
+        if (userId == null || event == null) return;
         messagingTemplate.convertAndSend("/topic/users/" + userId + "/notifications", event);
     }
 
     @Override
     public void pushToRole(String role, NotificationEventResponse event) {
-        messagingTemplate.convertAndSend("/topic/roles/" + role.toUpperCase() + "/notifications", event);
+        if (role == null || role.trim().isEmpty() || event == null) return;
+        messagingTemplate.convertAndSend("/topic/roles/" + role.trim().toUpperCase() + "/notifications", event);
     }
 }
