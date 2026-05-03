@@ -374,7 +374,7 @@
       <div class="input-group">
         <input
           type="text"
-          class="form-control otp-input"
+          class="form-control"
           v-model.trim="passwordForm.otp"
           maxlength="6"
           placeholder="Nhập mã OTP"
@@ -391,9 +391,7 @@
           {{ otpButtonText }}
         </button>
       </div>
-      <div class="form-text">
-        Bấm gửi OTP trước, sau đó kiểm tra email để lấy mã xác nhận.
-      </div>
+      
     </div>
 
     <div class="modal-actions mt-3">
@@ -1704,8 +1702,5 @@ onBeforeUnmount(async () => {
   word-break: break-all;
 }
 
-.otp-input {
-  letter-spacing: 4px;
-  font-weight: 700;
-}
+
 </style>
