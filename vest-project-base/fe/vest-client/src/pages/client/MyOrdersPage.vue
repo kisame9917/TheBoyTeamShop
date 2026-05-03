@@ -84,8 +84,8 @@
               <div>
                 <strong>Thanh toán:</strong>
                 {{ item.paymentMethod || "-" }}
-                <span class="payment-badge ms-2" :class="paymentStatusClass(item.paymentStatus)">
-                  {{ paymentStatusText(item.paymentStatus) }}
+                <span class="payment-badge ms-2" :class="paymentStatusClass(item.paymentStatus, item.trangThaiDon)">
+                  {{ paymentStatusText(item.paymentStatus, item.trangThaiDon) }}
                 </span>
               </div>
             </div>
@@ -143,6 +143,20 @@
                   >
                     Sửa sản phẩm
                   </button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="showSelectedProgress" class="progress-card mt-3">
+              <div class="progress-line">
+                <div
+                  v-for="step in selectedProgressSteps"
+                  :key="step.key"
+                  class="progress-step"
+                  :class="{ active: step.active }"
+                >
+                  <div class="progress-step__dot"><span v-if="step.active">✓</span></div>
+                  <div class="progress-step__label">{{ step.label }}</div>
                 </div>
               </div>
             </div>
@@ -228,8 +242,8 @@
                     <span>Phương thức</span>
                     <strong>
                       {{ selectedOrder.paymentMethod || "-" }}
-                      <span class="payment-badge ms-2" :class="paymentStatusClass(selectedOrder.paymentStatus)">
-                        {{ paymentStatusText(selectedOrder.paymentStatus) }}
+                      <span class="payment-badge ms-2" :class="paymentStatusClass(selectedOrder.paymentStatus, selectedOrder.trangThaiDon)">
+                        {{ paymentStatusText(selectedOrder.paymentStatus, selectedOrder.trangThaiDon) }}
                       </span>
                     </strong>
                   </div>
@@ -466,6 +480,7 @@ const isSelectedOrderCod = computed(() => isCod(selectedOrder.value));
 const filterOptions = [
   { label: "Tất cả", value: "ALL" },
   { label: "Chờ xác nhận", value: 0 },
+  { label: "Đã xác nhận", value: 8 },
   { label: "Đang xử lý", value: 1 },
   { label: "Đang giao", value: 2 },
   { label: "Đã giao", value: 3 },
@@ -512,6 +527,40 @@ function fullAddress(o) {
     .join(", ");
 }
 
+function isSpecialOrderStatus(code) {
+  return [5, 6, 7, 9].includes(Number(code));
+}
+
+function getProgressIndex(code) {
+  const n = Number(code);
+  if (n === 0) return 0;
+  if (n === 8) return 1;
+  if (n === 1) return 2;
+  if (n === 2) return 3;
+  if (n === 3) return 4;
+  if (n === 4) return 5;
+  return -1;
+}
+
+function buildProgressSteps(code) {
+  const currentIndex = getProgressIndex(code);
+  return [
+    { key: "waiting", label: "Chờ xác nhận", active: currentIndex >= 0 },
+    { key: "confirmed", label: "Đã xác nhận", active: currentIndex >= 1 },
+    { key: "process", label: "Đang xử lý", active: currentIndex >= 2 },
+    { key: "shipping", label: "Đang giao", active: currentIndex >= 3 },
+    { key: "delivered", label: "Đã giao", active: currentIndex >= 4 },
+    { key: "done", label: "Hoàn thành", active: currentIndex >= 5 },
+  ];
+}
+
+const showSelectedProgress = computed(() => {
+  const code = Number(selectedOrder.value?.trangThaiDon);
+  return !isSpecialOrderStatus(code) && code >= 0;
+});
+
+const selectedProgressSteps = computed(() => buildProgressSteps(selectedOrder.value?.trangThaiDon));
+
 function statusClass(code) {
   const n = Number(code);
   if (n === 4) return "status-success";
@@ -520,14 +569,16 @@ function statusClass(code) {
   return "status-primary";
 }
 
-function paymentStatusText(value) {
+function paymentStatusText(value, statusCode = null) {
+  if (Number(statusCode) === 4) return "Đã thanh toán";
   const v = String(value || "").toUpperCase();
   if (v === "PAID") return "Đã thanh toán";
   if (v === "PENDING") return "Chờ thanh toán";
   return "Chưa thanh toán";
 }
 
-function paymentStatusClass(value) {
+function paymentStatusClass(value, statusCode = null) {
+  if (Number(statusCode) === 4) return "payment-success";
   const v = String(value || "").toUpperCase();
   if (v === "PAID") return "payment-success";
   if (v === "PENDING") return "payment-warning";
@@ -988,6 +1039,71 @@ onMounted(loadOrders);
   color: #475569;
 }
 
+.progress-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.progress-line {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.progress-step {
+  position: relative;
+  text-align: center;
+}
+
+.progress-step:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: calc(-50% - 6px);
+  width: calc(100% + 12px);
+  height: 2px;
+  background: #dbe2ea;
+  z-index: 0;
+}
+
+.progress-step.active:not(:first-child)::before {
+  background: #12379d;
+}
+
+.progress-step__dot {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #dbe2ea;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.progress-step.active .progress-step__dot {
+  background: #12379d;
+}
+
+.progress-step__label {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.progress-step.active .progress-step__label {
+  color: #0f172a;
+  font-weight: 700;
+}
+
 .detail-actions {
   display: flex;
   flex-direction: column;
@@ -1114,6 +1230,10 @@ onMounted(loadOrders);
 }
 
 @media (max-width: 768px) {
+  .progress-line {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .detail-actions {
     align-items: stretch;
     width: 100%;

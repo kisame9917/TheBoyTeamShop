@@ -919,33 +919,30 @@
 
                     <div class="col-12 col-md-6 col-lg-3">
                       <label class="form-label mb-1">Màu sắc</label>
-                      <select
-                        class="form-select"
+                      <Multiselect
                         v-model="productFilters.color"
-                      >
-                        <option value="">-- Chọn màu sắc --</option>
-                        <option
-                          v-for="c in productColorOptions"
-                          :key="c"
-                          :value="c"
-                        >
-                          {{ c }}
-                        </option>
-                      </select>
+                        :options="productColorOptions"
+                        placeholder="-- Chọn màu sắc --"
+                        :searchable="true"
+                        :can-clear="true"
+                        :can-deselect="true"
+                        no-options-text="Không có màu sắc"
+                        no-results-text="Không tìm thấy màu sắc"
+                      />
                     </div>
 
                     <div class="col-12 col-md-6 col-lg-3">
                       <label class="form-label mb-1">Size</label>
-                      <select class="form-select" v-model="productFilters.size">
-                        <option value="">-- Chọn size --</option>
-                        <option
-                          v-for="s in productSizeOptions"
-                          :key="s"
-                          :value="s"
-                        >
-                          {{ s }}
-                        </option>
-                      </select>
+                      <Multiselect
+                        v-model="productFilters.size"
+                        :options="productSizeOptions"
+                        placeholder="-- Chọn size --"
+                        :searchable="true"
+                        :can-clear="true"
+                        :can-deselect="true"
+                        no-options-text="Không có size"
+                        no-results-text="Không tìm thấy size"
+                      />
                     </div>
 
                     <div class="col-12 col-lg-7">
@@ -2424,10 +2421,19 @@ const productColorOptions = computed(() => {
   ].sort((a, b) => String(a).localeCompare(String(b), "vi"));
 });
 
+function getSizeSortValue(value) {
+  const number = Number(String(value ?? "").replace(",", "."));
+  return Number.isFinite(number) ? number : Number.MAX_SAFE_INTEGER;
+}
+
 const productSizeOptions = computed(() => {
   return [
     ...new Set(allProducts.value.map((p) => p.size).filter(Boolean)),
-  ].sort((a, b) => String(a).localeCompare(String(b), "vi"));
+  ].sort((a, b) => {
+    const byNumber = getSizeSortValue(a) - getSizeSortValue(b);
+    if (byNumber !== 0) return byNumber;
+    return String(a).localeCompare(String(b), "vi");
+  });
 });
 
 const filteredProductsAll = computed(() => {
