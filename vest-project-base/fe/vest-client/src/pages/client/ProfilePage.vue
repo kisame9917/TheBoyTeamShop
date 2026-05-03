@@ -789,7 +789,10 @@ function closeChangePasswordModal() {
   showChangePasswordModal.value = false;
   resetPasswordForm();
 }
-
+function forceCloseChangePasswordModal() {
+  showChangePasswordModal.value = false;
+  resetPasswordForm();
+}
 function startOtpCooldown() {
   otpCooldown.value = 60;
 
@@ -938,8 +941,8 @@ async function changePassword() {
       throw new Error(data?.message || data?.error || "Đổi mật khẩu thất bại.");
     }
 
-    successMessage.value = "Đổi mật khẩu thành công.";
-    closeChangePasswordModal();
+successMessage.value = "Đổi mật khẩu thành công.";
+forceCloseChangePasswordModal();
   } catch (err) {
     error.value = err?.message || "Đổi mật khẩu thất bại.";
   } finally {
