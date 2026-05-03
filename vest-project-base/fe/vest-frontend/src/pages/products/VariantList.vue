@@ -85,7 +85,7 @@
 
           <div class="col-12 col-lg-3">
             <label class="form-label small fw-semibold">Số lượng tồn</label>
-            <select v-model="filters.stockRange" class="form-select">
+            <select v-model="filters.stockRange" class="form-select" :class="{ 'placeholder-select': !filters.stockRange }">
               <option value="">-- Chọn Số lượng tồn --</option>
               <option value="0">= 0</option>
               <option value="1-10">1 - 10</option>
@@ -1849,5 +1849,159 @@ function onPriceBlur(e) {
 .form-switch .form-check-input:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+/* ===== FIX: canh đều filter giống màn danh sách sản phẩm ===== */
+.variant-page .card {
+  overflow: visible !important;
+}
+
+.variant-page .p-3 {
+  padding: 16px !important;
+  overflow: visible !important;
+}
+
+.variant-page .row {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  --bs-gutter-x: 18px;
+  --bs-gutter-y: 18px;
+  align-items: start !important;
+  overflow: visible !important;
+}
+
+.variant-page .row > [class*="col-"] {
+  min-width: 0 !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+.variant-page .form-label {
+  min-height: 21px !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+}
+
+.variant-page .form-control,
+.variant-page .form-select,
+.variant-page .filter-multiselect :deep(.multiselect__tags) {
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 6px !important;
+}
+
+.variant-page .form-control,
+.variant-page .form-select {
+  padding: 8px 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  color: #374151 !important;
+  background-color: #fff !important;
+}
+
+.variant-page .form-control::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+  font-weight: 400 !important;
+}
+
+.variant-page .form-select.placeholder-select {
+  color: #9ca3af !important;
+  font-weight: 400 !important;
+}
+
+.variant-page .form-select,
+.variant-page .form-select option {
+  font-weight: 400 !important;
+}
+
+.filter-multiselect {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+}
+
+.filter-multiselect :deep(.multiselect),
+.filter-multiselect :deep(.multiselect__tags) {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.filter-multiselect :deep(.multiselect__tags) {
+  padding: 8px 46px 7px 12px !important;
+  overflow: visible !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.filter-multiselect :deep(.multiselect__placeholder),
+.filter-multiselect :deep(.multiselect__single) {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 24px !important;
+  color: #9ca3af !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.filter-multiselect :deep(.multiselect__single) {
+  color: #374151 !important;
+}
+
+.filter-multiselect :deep(.multiselect__content-wrapper) {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  z-index: 999 !important;
+}
+
+.text-success,
+.range-green {
+  color: #059669 !important;
+  accent-color: #059669 !important;
+}
+
+.text-success.fw-bold,
+.fw-bold,
+.fw-semibold {
+  font-weight: 600 !important;
+}
+
+.range-green::-webkit-slider-thumb {
+  border-color: #059669 !important;
+}
+
+.range-green::-moz-range-thumb {
+  border-color: #059669 !important;
+}
+
+.variant-page .d-flex.gap-3.flex-wrap.align-items-center {
+  min-height: 40px !important;
+  align-items: center !important;
+}
+
+@media (min-width: 992px) {
+  .variant-page .col-lg-5 {
+    width: 41.666667% !important;
+    flex: 0 0 auto !important;
+  }
+
+  .variant-page .col-lg-4 {
+    width: 33.333333% !important;
+    flex: 0 0 auto !important;
+  }
+
+  .variant-page .col-lg-3 {
+    width: 25% !important;
+    flex: 0 0 auto !important;
+  }
 }
 </style>
