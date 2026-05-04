@@ -2,25 +2,7 @@
   <div class="product-detail-page">
     <section class="detail-hero">
       <div class="container">
-        <nav aria-label="breadcrumb" class="detail-breadcrumb">
-          <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item">
-              <router-link to="/" class="text-decoration-none">
-                Trang chủ
-              </router-link>
-            </li>
-
-            <li class="breadcrumb-item">
-              <router-link to="/search" class="text-decoration-none">
-                Sản phẩm
-              </router-link>
-            </li>
-
-            <li class="breadcrumb-item active" aria-current="page">
-              {{ productTitle || "Chi tiết sản phẩm" }}
-            </li>
-          </ol>
-        </nav>
+      
 
         <div class="hero-title-box">
           <div>
@@ -62,11 +44,6 @@
                     class="main-image"
                     @error="onImgError"
                 />
-
-                <div class="image-badge">
-                  <i class="bi bi-stars"></i>
-                  Sản phẩm vest nam
-                </div>
               </div>
 
               <div v-if="galleryImages.length > 1" class="thumb-list">
@@ -133,21 +110,17 @@
               </h1>
 
               <div class="code-row">
-                <span v-if="selectedVariant?.code" class="product-code">
-                  Mã SPCT: {{ selectedVariant.code }}
-                </span>
-
-                <span
-                    class="total-stock-badge"
-                    :class="{ out: totalAvailableStock <= 0 }"
-                >
-                  {{
-                    totalAvailableStock > 0
-                        ? `${totalAvailableStock} sản phẩm còn hàng`
-                        : "Hết hàng"
-                  }}
-                </span>
-              </div>
+  <span
+      class="total-stock-badge"
+      :class="{ out: selectedVariantStock <= 0 }"
+  >
+    {{
+      selectedVariantStock > 0
+          ? `${selectedVariantStock} sản phẩm còn hàng`
+          : "Hết hàng"
+    }}
+  </span>
+</div>
 
               <div class="price-wrap">
                 <div>
@@ -337,14 +310,14 @@
                     </div>
 
                     <div class="spec-item">
-                      <span class="spec-label">Mã biến thể</span>
+                      <span class="spec-label">Mã sản phẩm chi tiết</span>
                       <strong>{{
                           selectedVariant?.code || "Đang cập nhật"
                         }}</strong>
                     </div>
 
                     <div class="spec-item">
-                      <span class="spec-label">Tồn kho biến thể</span>
+                      <span class="spec-label">Tồn kho sản phẩm chi tiết</span>
                       <strong>{{ selectedVariant?.stock ?? 0 }}</strong>
                     </div>
                   </div>
@@ -713,7 +686,9 @@ const totalAvailableStock = computed(() => {
     return sum + Number(item.stock || 0);
   }, 0);
 });
-
+const selectedVariantStock = computed(() => {
+  return Number(selectedVariant.value?.stock || 0);
+});
 const warningMessage = computed(() => {
   if (!normalizedVariants.value.length) {
     return "Sản phẩm hiện chưa có biến thể khả dụng.";

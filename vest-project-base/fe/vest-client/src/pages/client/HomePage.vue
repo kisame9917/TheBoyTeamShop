@@ -121,10 +121,6 @@
               />
 
               <div class="home-product-card__badges">
-                <span class="home-product-card__badge">
-                  {{ product.categoryLabel }}
-                </span>
-
                 <span class="home-product-card__new">Mới về</span>
               </div>
             </div>

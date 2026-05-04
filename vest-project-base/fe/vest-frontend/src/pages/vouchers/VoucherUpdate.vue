@@ -299,7 +299,7 @@
                         class="btn btn-outline-secondary btn-sm"
                         type="button"
                         @click="toggleSelectAll"
-                        :disabled="isEnded || loadingCustomers"
+                        :disabled="isEnded || loadingCustomers || !canToggleSelectAll"
                       >
                         {{ isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả" }}
                       </button>
@@ -352,13 +352,13 @@
 
                         <div v-else class="kh-row" v-for="c in pagedItems" :key="c.id">
                           <div class="kh-col kh-check">
-                            <input
-                              type="checkbox"
-                              class="form-check-input"
-                              :checked="selectedCustomerIds.includes(Number(c.id))"
-                              @change="toggleCustomer(c.id)"
-                              :disabled="isEnded"
-                            />
+                           <input
+  type="checkbox"
+  class="form-check-input"
+  :checked="selectedCustomerIds.includes(Number(c.id))"
+  @change="toggleCustomer(c.id)"
+  :disabled="isEnded || isOriginalCustomerSelected(c.id)"
+/>
                           </div>
 
                           <div class="kh-col kh-ma">{{ c.maKhachHang ?? c.ma ?? "-" }}</div>
@@ -668,20 +668,33 @@ function parseYMD(ymd) {
   if (!y || !m || !d) return null;
   return new Date(y, m - 1, d);
 }
+function todayYMD() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function isBeforeToday(ymd) {
+  if (!ymd) return false;
+  return String(ymd).slice(0, 10) < todayYMD();
+}
 
 function initPickers() {
   if (startPickerRef.value && !fpStart) {
     fpStart = flatpickr(startPickerRef.value, {
-      locale: Vietnamese,
-      dateFormat: "d/m/Y",
-      allowInput: true,
-      defaultDate: parseYMD(form.value.ngayBatDau),
-      onChange: (selectedDates) => {
-        const d = selectedDates?.[0] || null;
-        form.value.ngayBatDau = d ? flatpickr.formatDate(d, "Y-m-d") : "";
-        if (fpEnd) fpEnd.set("minDate", d || null);
-      },
-    });
+  locale: Vietnamese,
+  dateFormat: "d/m/Y",
+  allowInput: true,
+  minDate: "today",
+  defaultDate: parseYMD(form.value.ngayBatDau),
+  onChange: (selectedDates) => {
+    const d = selectedDates?.[0] || null;
+    form.value.ngayBatDau = d ? flatpickr.formatDate(d, "Y-m-d") : "";
+    if (fpEnd) fpEnd.set("minDate", d || null);
+  },
+});
   }
 
   if (endPickerRef.value && !fpEnd) {
@@ -782,8 +795,22 @@ const customers = ref([]);
 const loadingCustomers = ref(false);
 const customersError = ref("");
 const customerKeyword = ref("");
-const selectedCustomerIds = ref([]); // luôn Number
+const selectedCustomerIds = ref([]);
+const originalSelectedCustomerIds = ref([]);
+const originalSelectedSet = computed(() => new Set(originalSelectedCustomerIds.value));
 
+function isOriginalCustomerSelected(idVal) {
+  const idNum = Number(idVal);
+  if (!Number.isFinite(idNum)) return false;
+  return originalSelectedSet.value.has(idNum);
+}
+
+const canToggleSelectAll = computed(() => {
+  return filteredCustomers.value.some((x) => {
+    const idNum = Number(x.id);
+    return Number.isFinite(idNum) && !isOriginalCustomerSelected(idNum);
+  });
+});
 function formatDob(ymd) {
   if (!ymd) return "-";
   const s = String(ymd).slice(0, 10);
@@ -826,14 +853,20 @@ async function loadSelectedCustomerIds() {
     const res = await http.get(`${API}/${id}/khach-hang`);
     const ds = res?.data ?? res;
     const arr = Array.isArray(ds) ? ds : [];
+
     const ids = arr
       .map((r) => r.idKhachHang ?? r.id_khach_hang ?? r.id)
       .filter((x) => x !== null && x !== undefined)
       .map((x) => Number(x))
       .filter((x) => Number.isFinite(x));
-    selectedCustomerIds.value = Array.from(new Set(ids)).sort((a, b) => a - b);
+
+    const uniqueIds = Array.from(new Set(ids)).sort((a, b) => a - b);
+
+    selectedCustomerIds.value = uniqueIds;
+    originalSelectedCustomerIds.value = [...uniqueIds];
   } catch {
     selectedCustomerIds.value = [];
+    originalSelectedCustomerIds.value = [];
   }
 }
 
@@ -898,7 +931,11 @@ watch([customerKeyword, sortKey, sortDir, customers], () => {
   setPage(0);
 });
 const isAllSelected = computed(() => {
-  const ids = filteredCustomers.value.map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
+  const ids = filteredCustomers.value
+    .map((x) => Number(x.id))
+    .filter((x) => Number.isFinite(x))
+    .filter((cid) => !isOriginalCustomerSelected(cid));
+
   if (ids.length === 0) return false;
   return ids.every((cid) => selectedCustomerIds.value.includes(cid));
 });
@@ -906,17 +943,22 @@ const isAllSelected = computed(() => {
 function toggleCustomer(idVal) {
   const idNum = Number(idVal);
   if (!Number.isFinite(idNum)) return;
+  if (isOriginalCustomerSelected(idNum)) return;
 
   const arr = [...selectedCustomerIds.value];
   const idx = arr.indexOf(idNum);
+
   if (idx >= 0) arr.splice(idx, 1);
   else arr.push(idNum);
 
   selectedCustomerIds.value = arr.sort((a, b) => a - b);
 }
-
 function toggleSelectAll() {
-  const ids = filteredCustomers.value.map((x) => Number(x.id)).filter((x) => Number.isFinite(x));
+  const ids = filteredCustomers.value
+    .map((x) => Number(x.id))
+    .filter((x) => Number.isFinite(x))
+    .filter((cid) => !isOriginalCustomerSelected(cid));
+
   if (ids.length === 0) return;
 
   if (isAllSelected.value) {
@@ -998,9 +1040,10 @@ function validate() {
 
   if (!isNum(form.value.donHangToiThieu) || form.value.donHangToiThieu < 0) return "Đơn hàng tối thiểu phải >= 0";
 
-  if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu";
-  if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc";
-  if (form.value.ngayKetThuc < form.value.ngayBatDau) return "Ngày kết thúc phải >= ngày bắt đầu";
+if (isBlank(form.value.ngayBatDau)) return "Vui lòng chọn ngày bắt đầu";
+if (isBeforeToday(form.value.ngayBatDau)) return "Ngày bắt đầu không thể là ngày trong quá khứ";
+if (isBlank(form.value.ngayKetThuc)) return "Vui lòng chọn ngày kết thúc";
+if (form.value.ngayKetThuc < form.value.ngayBatDau) return "Ngày kết thúc phải >= ngày bắt đầu";
 
   if (form.value.loaiPhieu !== originalLoaiPhieu.value) return "Không thể đổi loại phiếu khi cập nhật";
 
@@ -1043,10 +1086,14 @@ async function doUpdate() {
 
   await http.put(`${API}/update/${id}`, payload);
 
-  if (payload.loaiPhieu === true) {
-    const req = { khachHangIds: [...selectedCustomerIds.value] };
+ if (payload.loaiPhieu === true) {
+  const newCustomerIds = selectedCustomerIds.value.filter((cid) => !isOriginalCustomerSelected(cid));
+
+  if (newCustomerIds.length > 0) {
+    const req = { khachHangIds: newCustomerIds };
     await http.put(`${API}/${id}/khach-hang`, req);
   }
+}
 }
 
 async function submit() {

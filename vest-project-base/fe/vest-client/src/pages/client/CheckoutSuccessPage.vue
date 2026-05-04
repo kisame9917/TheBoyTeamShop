@@ -8,9 +8,9 @@
           </div>
         </div>
 
-        <h1 class="success-title">Thanh toán thành công</h1>
+        <h1 class="success-title">Đặt hàng thành công</h1>
         <p class="success-desc">
-          Đơn hàng của bạn đã được xác nhận thanh toán thành công.
+          Đơn hàng của bạn đã được xác nhận đặt hàng thành công.
         </p>
 
         <div class="success-info-box">

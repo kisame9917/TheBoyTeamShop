@@ -560,8 +560,12 @@ function dateFromYMD(ymd, endOfDay = false) {
   if (endOfDay) d.setHours(23, 59, 59, 999);
   return d;
 }
-
+function isSoldOutPersonal(v) {
+  return isPersonal(v) && Number(v?.soLuong ?? 0) <= 0;
+}
 function getBizStatusText(v) {
+  if (isSoldOutPersonal(v)) return "Kết thúc";
+
   const start = toDate(v.ngayBatDau);
   const end = toDate(v.ngayKetThuc);
   const now = new Date();
@@ -626,7 +630,7 @@ const filteredItems = computed(() => {
   const lp = String(filters.loaiPhieu || "").toUpperCase();
   const from = String(filters.from || "");
   const to = String(filters.to || "");
-  const now = new Date();
+  
 
   return (items.value || [])
     .filter((v) => v.trangThai === true)
@@ -665,14 +669,16 @@ const filteredItems = computed(() => {
       return true;
     })
     .filter((v) => {
-      if (!biz) return true;
-      const start = toDate(v.ngayBatDau);
-      const end = toDate(v.ngayKetThuc);
+  if (!biz) return true;
 
-      if (biz === "UPCOMING") return start && now < start;
-      if (biz === "EXPIRED") return end && now > end;
-      return (!start || now >= start) && (!end || now <= end);
-    });
+  const status = getBizStatusText(v);
+
+  if (biz === "UPCOMING") return status === "Sắp diễn ra";
+  if (biz === "EXPIRED") return status === "Kết thúc";
+  if (biz === "ACTIVE") return status === "Đang áp dụng";
+
+  return true;
+});
 });
 
 const sortedItems = computed(() => {

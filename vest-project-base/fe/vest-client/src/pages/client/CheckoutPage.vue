@@ -2311,6 +2311,7 @@ async function submitOrder() {
     errors.general = "";
 
     const payload = buildOrderPayload();
+    const finalTotalBeforeClear = Number(safeGrandTotal.value) || 0;
 
     console.log("RAW CART ITEMS:", JSON.parse(JSON.stringify(cartItems.value)));
     console.log("ORDER PAYLOAD:", payload);
@@ -2326,6 +2327,12 @@ async function submitOrder() {
     }
 
     const data = await checkoutApi(payload);
+
+    const responseAmount = Number(data?.amount);
+    const finalPayable =
+        Number.isFinite(responseAmount) && responseAmount > 0
+            ? responseAmount
+            : finalTotalBeforeClear;
 
     placedOrderItems.value = JSON.parse(JSON.stringify(cartItems.value));
     placedOrder.value = {
@@ -2343,7 +2350,7 @@ async function submitOrder() {
       subtotal: Number(safeSubtotal.value) || 0,
       shippingFee: Number(shippingFee.value) || 0,
       discount: Number(discount.value) || 0,
-      total: Number(safeGrandTotal.value) || 0,
+      total: finalPayable,
     };
 
     showConfirmModal.value = false;
@@ -2375,9 +2382,13 @@ async function submitOrder() {
       address: fullDeliveryAddress.value || "",
       paymentMethod: form.paymentMethod || "cod",
       paymentLabel:
-        selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
-      total: Number(safeGrandTotal.value || 0),
+          selectedPaymentOption.value?.title || "Thanh toán khi nhận hàng",
+      total: finalPayable,
     });
+
+    if (typeof clearCart === "function") {
+      clearCart();
+    }
 
     if (form.invoice) {
       setTimeout(async () => {

@@ -2,18 +2,7 @@
   <div class="search-page">
     <section class="search-hero">
       <div class="container">
-        <nav aria-label="breadcrumb" class="mb-3">
-          <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item">
-              <router-link to="/" class="text-white-50 text-decoration-none">
-                Trang chủ
-              </router-link>
-            </li>
-            <li class="breadcrumb-item active text-white" aria-current="page">
-              Sản phẩm
-            </li>
-          </ol>
-        </nav>
+       
 
         <div class="hero-card">
           <div>
@@ -398,11 +387,7 @@
                     @error="onImgError"
                   />
 
-                  <div class="product-badges">
-                    <span class="badge-soft">
-                      {{ item.categoryLabel }}
-                    </span>
-                  </div>
+              
                 </div>
 
                 <div class="product-body">
