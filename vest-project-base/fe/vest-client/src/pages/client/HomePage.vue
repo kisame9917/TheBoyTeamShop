@@ -454,7 +454,7 @@ const dbColors = ref([]);
 const currentBannerIndex = ref(0);
 
 const intervalMs = 3500;
-const newBadgeDays = 5;
+const newBadgeDays = 1;
 const maxNewProducts = 10;
 const maxStoreProducts = 10;
 
@@ -1137,7 +1137,7 @@ onBeforeUnmount(() => stopAuto());
   align-items: center;
   gap: 12px;
   color: #334155;
-  font-weight: 800;
+  font-weight: 750;
   min-height: 52px;
 }
 
@@ -1168,13 +1168,13 @@ onBeforeUnmount(() => stopAuto());
   letter-spacing: 0.12em;
   color: #2563eb;
   margin-bottom: 8px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .section-title {
   font-size: 30px;
   color: #0f172a;
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: -0.02em;
   text-transform: none;
 }
@@ -1189,7 +1189,7 @@ onBeforeUnmount(() => stopAuto());
   border: 1px solid #07143f;
   background: #07143f;
   color: #ffffff;
-  font-weight: 800;
+  font-weight: 700;
   transition: all 0.25s ease;
   box-shadow: 0 14px 28px rgba(7, 20, 63, 0.18);
 }
@@ -1258,7 +1258,7 @@ onBeforeUnmount(() => stopAuto());
   padding: 0 9px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   backdrop-filter: blur(10px);
 }
 
@@ -1280,18 +1280,18 @@ onBeforeUnmount(() => stopAuto());
   margin-bottom: 7px;
   color: #2563eb;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .home-product-card__name {
-  min-height: 48px;
-  margin: 0 0 12px;
+  min-height: 36px;
+  margin: 0 0 4px;
   color: #0f172a;
-  font-size: 17px;
+  font-size: 20px;
   line-height: 1.35;
-  font-weight: 850;
+  font-weight: 750;
   letter-spacing: 0;
 }
 
@@ -1312,7 +1312,7 @@ onBeforeUnmount(() => stopAuto());
   color: #dc2626;
   font-size: 21px;
   line-height: 1.1;
-  font-weight: 850;
+  font-weight: 750;
   letter-spacing: 0;
 }
 
@@ -1354,8 +1354,8 @@ onBeforeUnmount(() => stopAuto());
   border-radius: 999px;
   color: #0f172a;
   background: #f1f5f9;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .home-chip-more {
@@ -1388,8 +1388,8 @@ onBeforeUnmount(() => stopAuto());
 
 .home-product-card__extra strong {
   color: #0f172a;
-  font-size: 13px;
-  font-weight: 850;
+  font-size: 16px;
+  font-weight: 750;
 }
 
 .home-detail-btn {
@@ -1404,8 +1404,8 @@ onBeforeUnmount(() => stopAuto());
   border-radius: 13px;
   color: #ffffff;
   background: #07143f;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   box-shadow: none;
   transition: all 0.2s ease;
 }

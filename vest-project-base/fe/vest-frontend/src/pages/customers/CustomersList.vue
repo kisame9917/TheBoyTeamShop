@@ -539,6 +539,22 @@ function normalizeCustomer(x) {
   };
 }
 
+function sortCustomersDesc(arr) {
+  return [...(arr || [])].sort((a, b) => {
+    const idA = Number(a?.id || 0);
+    const idB = Number(b?.id || 0);
+
+    if (Number.isFinite(idA) && Number.isFinite(idB) && idA !== idB) {
+      return idB - idA;
+    }
+
+    return String(b?.maKhachHang || "").localeCompare(String(a?.maKhachHang || ""), "vi", {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+}
+
 function formatNgaySinh(v) {
   const raw = String(v || "").trim();
   if (!raw) return "-";
@@ -600,7 +616,7 @@ async function fetchList() {
   loading.value = true;
   try {
     const res = await http.get("/api/khach-hang");
-    list.value = unwrapList(res.data).map(normalizeCustomer);
+    list.value = sortCustomersDesc(unwrapList(res.data).map(normalizeCustomer));
   } catch (e) {
     console.error(e);
     toast.error("Không tải được danh sách khách hàng.");

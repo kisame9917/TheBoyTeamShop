@@ -421,7 +421,7 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
   top: 0;
   left: 0;
   bottom: 0;
-  width: 260px;
+  width: 280px;
   height: 100vh;
   overflow-y: hidden;
   overflow-x: hidden;
@@ -439,11 +439,11 @@ watch(() => route.path, syncGroupsWithRoute, { immediate: true });
 }
 
 .brand-box {
-  padding: 18px 14px 16px !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.9));
-  border-bottom: 1px solid rgba(37, 99, 235, 0.14) !important;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.05);
+  //padding: 18px 14px 16px !important;
+  //background:
+  //  linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.9));
+  //border-bottom: 1px solid rgba(37, 99, 235, 0.14) !important;
+  //box-shadow: 0 10px 22px rgba(37, 99, 235, 0.05);
 }
 
 .brand-logo {

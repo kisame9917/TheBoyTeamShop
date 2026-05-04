@@ -1,18 +1,16 @@
 <template>
   <div class="container-fluid py-3">
-    <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-bar-chart-line fs-4"></i>
         <h5 class="mb-0">Thống kê</h5>
       </div>
     </div>
-    <!-- ================= TỔNG QUAN ĐẦU TRANG ================= -->
     <div class="row g-3 mb-3">
       <div
           v-for="card in tongQuanCards"
           :key="card.key"
-          class="col-12 col-sm-6 col-xxl-3"
+          class="col-12 col-sm-6 col-xl"
       >
         <div class="card shadow-sm h-100 summary-card border-0">
           <div class="card-body p-3">
@@ -56,9 +54,38 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ================= DOANH THU ================= -->
+      <div class="col-12 col-sm-6 col-xl">
+        <div class="card shadow-sm h-100 summary-card voucher-summary-card border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+              <div>
+                <div class="summary-label">Tổng tiền voucher đã áp dụng</div>
+                <div class="summary-revenue voucher-revenue">{{ formatCurrency(totalVoucherApplied) }}</div>
+              </div>
+
+              <div class="summary-icon summary-icon-voucher">
+                <i class="bi bi-ticket-perforated"></i>
+              </div>
+            </div>
+
+            <div class="summary-inline mb-2">
+              <span>Năm nay</span>
+              <span class="dot"></span>
+              <span>Đơn hoàn thành</span>
+            </div>
+
+            <div class="voucher-note">
+              Tổng số tiền giảm từ voucher đã áp dụng cho hóa đơn hoàn thành thanh toán.
+            </div>
+
+            <div v-if="loadingSummary" class="summary-overlay">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -76,8 +103,6 @@
               <option value="QUY">Theo quý</option>
               <option value="NAM">Theo năm</option>
             </select>
-
-            <!-- THÁNG -->
             <template v-if="chartFilter.type === 'THANG'">
               <input
                   type="month"
@@ -87,8 +112,6 @@
                   @change="loadRevenue(false)"
               />
             </template>
-
-            <!-- QUÝ -->
             <template v-else-if="chartFilter.type === 'QUY'">
               <select
                   class="form-select form-select-sm"
@@ -108,8 +131,6 @@
                 <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
               </select>
             </template>
-
-            <!-- NĂM -->
             <template v-else>
               <select
                   class="form-select form-select-sm"
@@ -138,8 +159,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Chart -->
         <div class="chart-wrap">
           <div v-if="loadingChart" class="d-flex align-items-center justify-content-center text-muted h-100">
             <div class="spinner-border spinner-border-sm me-2" role="status"></div>
@@ -152,13 +171,10 @@
             Chưa có dữ liệu
           </div>
         </div>
-
-        <!-- Tổng doanh thu dưới biểu đồ -->
         <div class="mt-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div class="text-muted total-revenue-line">
             <span class="fw-semibold">Tổng doanh thu {{ currentPeriodLabel }}:</span>
             <span class="ms-1 total-revenue-value">{{ formatCurrency(totalRevenue) }}</span>
-
             <span v-if="compareMeta.active" class="ms-2">
               <span class="text-muted">| So sánh:</span>
               <span class="ms-1 fw-semibold text-dark">{{ compareMeta.labelA }}</span>
@@ -173,12 +189,9 @@
         </div>
       </div>
     </div>
-
-    <!-- ================= FILTER RANGE (flatpickr giống trang khác) ================= -->
     <div class="card shadow-sm mb-3">
       <div class="card-body py-3">
         <form @submit.prevent="fetchTabularData" class="row g-3 align-items-end">
-          <!-- Từ ngày -->
           <div class="col-12 col-lg-3">
             <label class="form-label">Từ ngày</label>
             <div class="input-group">
@@ -191,8 +204,6 @@
               </button>
             </div>
           </div>
-
-          <!-- Đến ngày -->
           <div class="col-12 col-lg-3">
             <label class="form-label">Đến ngày</label>
             <div class="input-group">
@@ -205,8 +216,6 @@
               </button>
             </div>
           </div>
-
-          <!-- Actions -->
           <div class="col-12 col-lg-6 d-flex justify-content-end gap-2">
             <button type="submit" class="btn btn-primary btn-sm" :disabled="loadingTable || !filter.from || !filter.to">
               <i class="bi bi-funnel me-1"></i>
@@ -220,8 +229,6 @@
         </form>
       </div>
     </div>
-
-    <!-- ================= TOP BÁN CHẠY + ĐƠN HÀNG (6/6) ================= -->
     <div class="row g-3 mb-3">
       <div class="col-12 col-lg-6">
         <div class="card shadow-sm h-100">
@@ -347,8 +354,6 @@
         </div>
       </div>
     </div>
-
-    <!-- ================= KHÁCH HÀNG VIP + BÁN CHẬM/TỒN KHO (6/6) ================= -->
     <div class="row g-3">
       <div class="col-12 col-lg-6">
         <div class="card shadow-sm h-100">
@@ -467,8 +472,6 @@
         </div>
       </div>
     </div>
-
-    <!-- ================= MODAL SO SÁNH (BOOTSTRAP CHUẨN - ĐẸP NHƯ BAN ĐẦU) ================= -->
     <div
         v-if="compareModal.open"
         class="modal fade show d-block"
@@ -589,7 +592,7 @@ import { Line } from "vue-chartjs";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-/** =================== STATE =================== */
+
 const loadingChart = ref(false);
 const loadingTable = ref(false);
 const loadingSummary = ref(false);
@@ -603,7 +606,7 @@ const slowMoving = ref([]);
 const topCustomers = ref([]);
 const orderStats = ref([]);
 
-/** ======= Chart filter (mặc định: tháng hiện tại) ======= */
+
 const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
@@ -617,10 +620,10 @@ const chartFilter = reactive({
   year: currentYear,
 });
 
-/** ======= Filter range ISO ======= */
+
 const filter = reactive({ from: "", to: "" });
 
-/** ======= Flatpickr refs ======= */
+
 const fromPickerRef = ref(null);
 const toPickerRef = ref(null);
 let fpFrom = null;
@@ -639,7 +642,6 @@ function initPickers() {
       locale: Vietnamese,
       dateFormat: "d/m/Y",
       allowInput: true,
-      // ✅ fix vị trí: input bên trái -> xổ dưới và canh phải để không đè sidebar
       position: "below right",
       defaultDate: parseYMD(filter.from),
       onChange: (selectedDates) => {
@@ -654,7 +656,6 @@ function initPickers() {
       locale: Vietnamese,
       dateFormat: "d/m/Y",
       allowInput: true,
-      // ✅ input bên phải -> canh trái
       position: "below left",
       defaultDate: parseYMD(filter.to),
       onChange: (selectedDates) => {
@@ -663,8 +664,6 @@ function initPickers() {
       },
     });
   }
-
-  // sync min/max
   if (fpTo) fpTo.set("minDate", filter.from ? parseYMD(filter.from) : null);
   if (fpFrom) fpFrom.set("maxDate", filter.to ? parseYMD(filter.to) : null);
 }
@@ -704,7 +703,7 @@ onBeforeUnmount(() => {
   try { fpTo?.destroy(); } catch {}
 });
 
-/** =================== OPTIONS =================== */
+
 const yearOptions = computed(() => {
   const y = new Date().getFullYear();
   return Array.from({ length: 10 }, (_, i) => y - i);
@@ -743,7 +742,7 @@ const quarterOptions = computed(() => {
   return opts;
 });
 
-/** =================== CHART =================== */
+
 const chartData = ref({ labels: [], datasets: [] });
 
 const chartOptions = {
@@ -755,7 +754,6 @@ const chartOptions = {
       position: "top",
       align: "end",
       labels: {
-        // ✅ legend to hơn
         font: { size: 13, weight: "600" },
         boxWidth: 28,
         boxHeight: 10,
@@ -786,7 +784,7 @@ const chartOptions = {
   },
 };
 
-/** =================== COMPARE =================== */
+
 const compareMeta = reactive({ active: false, labelA: "", labelB: "" });
 
 const compareModal = reactive({
@@ -804,12 +802,11 @@ const compareModal = reactive({
 watch(
     () => compareModal.open,
     (open) => {
-      // hiệu ứng giống bootstrap modal (khóa scroll)
       document.body.style.overflow = open ? "hidden" : "";
     }
 );
 
-/** =================== COMPUTED =================== */
+
 const currentPeriodLabel = computed(() => {
   if (chartFilter.type === "THANG") return `tháng ${formatMonthLabel(chartFilter.monthValue)}`;
   if (chartFilter.type === "QUY") return `Q${chartFilter.quarter}/${chartFilter.year}`;
@@ -837,6 +834,7 @@ const tongQuanCards = computed(() => {
   return cards.map((item) => ({
     ...item,
     doanhThu: Number(item.doanhThu || 0),
+    tongTienGiam: Number(item.tongTienGiam || 0),
     sanPhamDaBan: Number(item.sanPhamDaBan || 0),
     donHang: Number(item.donHang || 0),
     hoanThanh: Number(item.hoanThanh || 0),
@@ -845,7 +843,9 @@ const tongQuanCards = computed(() => {
   }));
 });
 
-/** =================== HELPERS =================== */
+const totalVoucherApplied = computed(() => Number(tongQuan.value?.namNay?.tongTienGiam || 0));
+
+
 function formatCurrency(val) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(val || 0));
 }
@@ -876,6 +876,7 @@ function sumRevenue(list) {
   return (list || []).reduce((s, x) => s + Number(x.doanhThu || 0), 0);
 }
 
+
 function sortLabelsByType(type, labels) {
   if (type === "THANG") return labels.map(String).sort((a, b) => Number(a) - Number(b));
   return labels.map(String).sort((a, b) => Number(a.replace("T", "")) - Number(b.replace("T", "")));
@@ -887,7 +888,7 @@ function buildSeriesByLabels(list, labels) {
   return labels.map((lb) => map.get(String(lb)) ?? 0);
 }
 
-/** icon helpers */
+
 function iconClass(st) {
   const k = String(st?.trangThai || "");
   if (k === "CHO_XAC_NHAN") return "bi-clock";
@@ -910,7 +911,7 @@ function iconBgClass(style) {
   return "bg-primary-subtle text-primary";
 }
 
-/** =================== API LOADERS =================== */
+
 async function loadTongQuan() {
   loadingSummary.value = true;
   try {
@@ -992,7 +993,7 @@ async function fetchTabularData() {
   }
 }
 
-/** =================== FILTER METHODS =================== */
+
 function resetFilter() {
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -1004,8 +1005,6 @@ function resetFilter() {
 
   filter.from = dateToISO(firstDay);
   filter.to = dateToISO(today);
-
-  // sync UI pickers nếu đã init
   fpFrom?.setDate(parseYMD(filter.from), false);
   fpTo?.setDate(parseYMD(filter.to), false);
   if (fpTo) fpTo.set("minDate", parseYMD(filter.from));
@@ -1014,7 +1013,7 @@ function resetFilter() {
   fetchTabularData();
 }
 
-/** =================== CHART TYPE CHANGE =================== */
+
 function onChangeChartType() {
   const d = new Date();
   const y = d.getFullYear();
@@ -1033,7 +1032,7 @@ function onChangeChartType() {
   loadRevenue(false);
 }
 
-/** =================== COMPARE MODAL =================== */
+
 function openCompareModal() {
   compareModal.open = true;
   compareModal.loading = false;
@@ -1120,8 +1119,6 @@ async function applyCompare() {
 
     const seriesA = buildSeriesByLabels(dataA, labels);
     const seriesB = buildSeriesByLabels(dataB, labels);
-
-    // đồng bộ filter UI theo kỳ A
     chartFilter.type = type;
     if (type === "THANG") {
       chartFilter.monthValue = compareModal.monthA;
@@ -1176,7 +1173,7 @@ async function applyCompare() {
   }
 }
 
-/** =================== INIT =================== */
+
 onMounted(async () => {
   loadTongQuan();
   loadRevenue(false);
@@ -1184,8 +1181,6 @@ onMounted(async () => {
 
   await nextTick();
   initPickers();
-
-  // sync picker theo filter đã reset
   fpFrom?.setDate(parseYMD(filter.from), false);
   fpTo?.setDate(parseYMD(filter.to), false);
 });
@@ -1217,9 +1212,10 @@ onMounted(async () => {
 .summary-revenue {
   color: #1f2a3a;
   font-size: 1.45rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
 }
+
 
 .summary-inline {
   display: flex;
@@ -1315,6 +1311,30 @@ onMounted(async () => {
   color: #946200;
 }
 
+.summary-icon-voucher {
+  background: rgba(220, 53, 69, 0.12);
+  color: #dc3545;
+}
+
+.voucher-summary-card::before {
+  background: linear-gradient(90deg, #dc3545 0%, #ff8a00 100%);
+}
+
+.voucher-revenue {
+  color: #dc3545;
+}
+
+.voucher-note {
+  min-height: 55px;
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.14);
+  color: #b02a37;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
 .summary-overlay {
   position: absolute;
   inset: 0;
@@ -1328,17 +1348,16 @@ onMounted(async () => {
   position: relative;
 }
 
-/* tổng doanh thu to hơn */
+
 .total-revenue-line {
   font-size: 1.02rem;
 }
 .total-revenue-value {
   font-size: 1.12rem;
-  font-weight: 600; /* ✅ mảnh hơn */
+  font-weight: 600;
   color: #111;
 }
 
-/* Order widget */
 .order-states {
   display: flex;
   flex-direction: column;
@@ -1372,16 +1391,16 @@ onMounted(async () => {
   color: #ffffff !important;
 }
 
-/* badge nền sáng vẫn giữ chữ đen */
+
 .stats-card-header .badge.bg-light {
   color: #111 !important;
 }
 
-/* đảm bảo modal/backdrop luôn nằm trên chart */
+
 .modal { z-index: 1055; }
 .modal-backdrop { z-index: 1050; }
 
-/* nếu có tooltip chart “đè” lên modal (hiếm), giảm ưu tiên tooltip */
+
 :deep(.chartjs-tooltip),
 :deep(.chartjs-tooltip-key) {
   z-index: 1 !important;

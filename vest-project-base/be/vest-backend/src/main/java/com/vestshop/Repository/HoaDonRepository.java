@@ -21,7 +21,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     Optional<HoaDon> findFirstByMaHoaDonIgnoreCase(String maHoaDon);
 
     // ✅ Doanh thu trong range theo status int (trangThaiDon)
-    @Query("SELECT COALESCE(SUM(h.tongTien), 0) " +
+    @Query("SELECT COALESCE(SUM(COALESCE(h.tongTien, 0) - COALESCE(h.tongTienGiam, 0)), 0) " +
             "FROM HoaDon h " +
             "WHERE h.ngayTao BETWEEN :startDate AND :endDate " +
             "AND h.trangThaiDon = :status")
@@ -29,14 +29,23 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
                                   @Param("endDate") LocalDateTime endDate,
                                   @Param("status") Integer status);
 
+    @Query("SELECT COALESCE(SUM(COALESCE(h.tongTienGiam, 0)), 0) " +
+            "FROM HoaDon h " +
+            "WHERE h.ngayTao BETWEEN :startDate AND :endDate " +
+            "AND h.trangThaiDon = :status")
+    BigDecimal sumTienGiamInRange(@Param("startDate") LocalDateTime startDate,
+                                  @Param("endDate") LocalDateTime endDate,
+                                  @Param("status") Integer status);
+
     // ✅ Top khách hàng theo chi tiêu trong range
     @Query("SELECT new com.vestshop.dto.response.TopKhachHangResponse(" +
-            "kh.id, kh.tenKhachHang, kh.soDienThoai, COUNT(h), SUM(h.tongTien)) " +
+            "kh.id, kh.tenKhachHang, kh.soDienThoai, COUNT(h), " +
+            "COALESCE(SUM(COALESCE(h.tongTien, 0) - COALESCE(h.tongTienGiam, 0)), 0)) " +
             "FROM HoaDon h JOIN h.khachHang kh " +
             "WHERE h.ngayTao BETWEEN :startDate AND :endDate " +
             "AND h.trangThaiDon = :status " +
             "GROUP BY kh.id, kh.tenKhachHang, kh.soDienThoai " +
-            "ORDER BY SUM(h.tongTien) DESC")
+            "ORDER BY COALESCE(SUM(COALESCE(h.tongTien, 0) - COALESCE(h.tongTienGiam, 0)), 0) DESC")
     List<TopKhachHangResponse> findTopKhachHang(@Param("startDate") LocalDateTime startDate,
                                                 @Param("endDate") LocalDateTime endDate,
                                                 @Param("status") Integer status);
@@ -46,7 +55,9 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
     // ==============================
 
     // Theo ngày trong tháng
-    @Query("SELECT FUNCTION('day', h.ngayTao), COALESCE(SUM(h.tongTien), 0) " +
+    @Query("SELECT FUNCTION('day', h.ngayTao), " +
+            "COALESCE(SUM(COALESCE(h.tongTien, 0) - COALESCE(h.tongTienGiam, 0)), 0), " +
+            "COALESCE(SUM(COALESCE(h.tongTienGiam, 0)), 0) " +
             "FROM HoaDon h " +
             "WHERE FUNCTION('month', h.ngayTao) = :month " +
             "AND FUNCTION('year', h.ngayTao) = :year " +
@@ -58,7 +69,9 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
                                           @Param("status") Integer status);
 
     // Theo tháng trong năm
-    @Query("SELECT FUNCTION('month', h.ngayTao), COALESCE(SUM(h.tongTien), 0) " +
+    @Query("SELECT FUNCTION('month', h.ngayTao), " +
+            "COALESCE(SUM(COALESCE(h.tongTien, 0) - COALESCE(h.tongTienGiam, 0)), 0), " +
+            "COALESCE(SUM(COALESCE(h.tongTienGiam, 0)), 0) " +
             "FROM HoaDon h " +
             "WHERE FUNCTION('year', h.ngayTao) = :year " +
             "AND h.trangThaiDon = :status " +
@@ -68,7 +81,9 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long>, JpaSpecif
                                           @Param("status") Integer status);
 
     // Theo tháng trong quý (startMonth..endMonth)
-    @Query("SELECT FUNCTION('month', h.ngayTao), COALESCE(SUM(h.tongTien), 0) " +
+    @Query("SELECT FUNCTION('month', h.ngayTao), " +
+            "COALESCE(SUM(COALESCE(h.tongTien, 0) - COALESCE(h.tongTienGiam, 0)), 0), " +
+            "COALESCE(SUM(COALESCE(h.tongTienGiam, 0)), 0) " +
             "FROM HoaDon h " +
             "WHERE FUNCTION('year', h.ngayTao) = :year " +
             "AND FUNCTION('month', h.ngayTao) BETWEEN :startMonth AND :endMonth " +

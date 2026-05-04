@@ -221,7 +221,15 @@
 
               <div class="col-12">
                 <div class="info-card">
-                  <div class="info-title">Thanh toán</div>
+                  <div class="info-title info-title-payment">
+                    <span>Thanh toán</span>
+                    <span
+                        class="payment-badge"
+                        :class="paymentStatusClass(selectedOrder.paymentStatus, selectedOrder.trangThaiDon)"
+                    >
+        {{ paymentStatusText(selectedOrder.paymentStatus, selectedOrder.trangThaiDon) }}
+      </span>
+                  </div>
 
                   <div class="sum-row">
                     <span>Tiền hàng</span>
@@ -240,12 +248,7 @@
 
                   <div class="sum-row">
                     <span>Phương thức</span>
-                    <strong>
-                      {{ selectedOrder.paymentMethod || "-" }}
-                      <span class="payment-badge ms-2" :class="paymentStatusClass(selectedOrder.paymentStatus, selectedOrder.trangThaiDon)">
-                        {{ paymentStatusText(selectedOrder.paymentStatus, selectedOrder.trangThaiDon) }}
-                      </span>
-                    </strong>
+                    <strong>{{ selectedOrder.paymentMethod || "-" }}</strong>
                   </div>
 
                   <div class="sum-row total">
@@ -254,6 +257,7 @@
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
 
@@ -324,22 +328,76 @@
 
           <div class="col-12 col-md-6">
             <label class="form-label">Tỉnh / Thành</label>
-            <input
-              v-model.trim="shippingForm.tinhThanhNhanHang"
-              class="form-control"
-              type="text"
-              :disabled="!isSelectedOrderCod"
-            />
+            <div class="address-select-wrap">
+              <input
+                  v-model.trim="provinceSearch"
+                  class="form-control"
+                  type="text"
+                  autocomplete="off"
+                  :disabled="!isSelectedOrderCod || provinceLoading"
+                  :placeholder="provinceLoading ? 'Đang tải tỉnh/thành...' : 'Chọn hoặc tìm tỉnh/thành'"
+                  @focus="openProvinceDropdown"
+                  @click="openProvinceDropdown"
+                  @input="onShippingProvinceSearch"
+                  @blur="closeAddressDropdown('province')"
+              />
+
+              <div v-if="provinceDropdownOpen && isSelectedOrderCod" class="address-dropdown">
+                <button
+                    v-for="province in filteredProvinces"
+                    :key="province.code"
+                    type="button"
+                    class="address-option"
+                    @mousedown.prevent="selectShippingProvince(province)"
+                >
+                  {{ province.name }}
+                </button>
+
+                <div v-if="!filteredProvinces.length" class="address-empty">
+                  Không tìm thấy tỉnh/thành
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="col-12 col-md-6">
             <label class="form-label">Phường / Xã</label>
-            <input
-              v-model.trim="shippingForm.phuongXaNhanHang"
-              class="form-control"
-              type="text"
-              :disabled="!isSelectedOrderCod"
-            />
+            <div class="address-select-wrap">
+              <input
+                  v-model.trim="wardSearch"
+                  class="form-control"
+                  type="text"
+                  autocomplete="off"
+                  :disabled="!isSelectedOrderCod || !selectedProvinceCode || wardLoading"
+                  :placeholder="
+    !selectedProvinceCode
+      ? 'Chọn tỉnh/thành trước'
+      : wardLoading
+      ? 'Đang tải phường/xã...'
+      : 'Chọn hoặc tìm phường/xã'
+  "
+                  @focus="openWardDropdown"
+                  @click="openWardDropdown"
+                  @input="onShippingWardSearch"
+                  @blur="closeAddressDropdown('ward')"
+              />
+
+              <div v-if="wardDropdownOpen && isSelectedOrderCod && selectedProvinceCode" class="address-dropdown">
+                <button
+                    v-for="ward in filteredWards"
+                    :key="ward.code"
+                    type="button"
+                    class="address-option"
+                    @mousedown.prevent="selectShippingWard(ward)"
+                >
+                  {{ ward.name }}
+                </button>
+
+                <div v-if="!filteredWards.length" class="address-empty">
+                  Không tìm thấy phường/xã
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="col-12 ">
@@ -438,6 +496,7 @@ import { computed, onMounted, ref } from "vue";
 import { getMyOrderDetail, getMyOrders, cancelMyOrder, updateMyOrderShipping, updateMyOrderItems } from "../../services/Api";
 import ChatWidget from "../../components/ClientChatWidget.vue";
 import { resolveMediaUrl } from "../../utils/media";
+import vnUnitsData from "../../assets/vn_units.json";
 import {
   canCancelOrder,
   canEditShipping,
@@ -472,10 +531,48 @@ const itemDrafts = ref([]);
 const shippingSaving = ref(false);
 const itemsSaving = ref(false);
 
+const provinces = ref([]);
+const wards = ref([]);
+const provinceLoading = ref(false);
+const wardLoading = ref(false);
+const selectedProvinceCode = ref("");
+const selectedWardCode = ref("");
+const provinceSearch = ref("");
+const wardSearch = ref("");
+const provinceDropdownOpen = ref(false);
+const wardDropdownOpen = ref(false);
+
+const provinceUserTyping = ref(false);
+const wardUserTyping = ref(false);
+
 const canCancelSelected = computed(() => canCancelOrder(selectedOrder.value));
 const canEditShippingSelected = computed(() => canEditShipping(selectedOrder.value));
 const canEditItemsSelected = computed(() => canEditItems(selectedOrder.value));
 const isSelectedOrderCod = computed(() => isCod(selectedOrder.value));
+
+const filteredProvinces = computed(() => {
+  if (!provinceUserTyping.value) return provinces.value;
+
+  const keyword = normalizeText(provinceSearch.value);
+
+  if (!keyword) return provinces.value;
+
+  return provinces.value.filter((province) =>
+      normalizeText(province.name).includes(keyword)
+  );
+});
+
+const filteredWards = computed(() => {
+  if (!wardUserTyping.value) return wards.value;
+
+  const keyword = normalizeText(wardSearch.value);
+
+  if (!keyword) return wards.value;
+
+  return wards.value.filter((ward) =>
+      normalizeText(ward.name).includes(keyword)
+  );
+});
 
 const filterOptions = [
   { label: "Tất cả", value: "ALL" },
@@ -644,8 +741,167 @@ async function confirmCancelOrder() {
   }
 }
 
-function openShippingModal() {
+async function loadProvinces() {
+  try {
+    provinceLoading.value = true;
+
+    provinces.value = (Array.isArray(vnUnitsData) ? vnUnitsData : []).map((province) => ({
+      code: province.Code,
+      name: province.FullName,
+      wards: (province.Wards || []).map((ward) => ({
+        code: ward.Code,
+        name: ward.FullName,
+        provinceCode: ward.ProvinceCode,
+      })),
+    }));
+  } catch (error) {
+    console.error(error);
+    provinces.value = [];
+  } finally {
+    provinceLoading.value = false;
+  }
+}
+
+async function loadWardsByProvinceCode(provinceCode) {
+  if (!provinceCode) {
+    wards.value = [];
+    return;
+  }
+
+  try {
+    wardLoading.value = true;
+
+    const province = provinces.value.find(
+        (item) => String(item.code) === String(provinceCode)
+    );
+
+    wards.value = province?.wards || [];
+  } catch (error) {
+    console.error(error);
+    wards.value = [];
+  } finally {
+    wardLoading.value = false;
+  }
+}
+
+function normalizeText(value) {
+  return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+}
+
+function findProvinceByCode(code) {
+  return (
+      provinces.value.find((item) => String(item.code) === String(code)) || null
+  );
+}
+
+function findProvinceByName(name) {
+  const normalized = normalizeText(name);
+
+  return (
+      provinces.value.find((item) => normalizeText(item.name) === normalized) ||
+      null
+  );
+}
+
+function findWardByCode(code) {
+  return (
+      wards.value.find((item) => String(item.code) === String(code)) || null
+  );
+}
+
+function findWardByName(name) {
+  const normalized = normalizeText(name);
+
+  return (
+      wards.value.find((item) => normalizeText(item.name) === normalized) || null
+  );
+}
+
+function openProvinceDropdown() {
+  if (!isSelectedOrderCod.value) return;
+
+  provinceUserTyping.value = false;
+  provinceDropdownOpen.value = true;
+  wardDropdownOpen.value = false;
+}
+
+function openWardDropdown() {
+  if (!isSelectedOrderCod.value || !selectedProvinceCode.value) return;
+
+  wardUserTyping.value = false;
+  wardDropdownOpen.value = true;
+  provinceDropdownOpen.value = false;
+}
+
+function closeAddressDropdown(type) {
+  setTimeout(() => {
+    if (type === "province") provinceDropdownOpen.value = false;
+    if (type === "ward") wardDropdownOpen.value = false;
+  }, 150);
+}
+
+function onShippingProvinceSearch() {
+  provinceUserTyping.value = true;
+  provinceDropdownOpen.value = true;
+
+  const matchedProvince = findProvinceByName(provinceSearch.value);
+
+  if (!matchedProvince) {
+    selectedProvinceCode.value = "";
+    selectedWardCode.value = "";
+    shippingForm.value.tinhThanhNhanHang = "";
+    shippingForm.value.phuongXaNhanHang = "";
+    wardSearch.value = "";
+    wards.value = [];
+  }
+}
+
+function onShippingWardSearch() {
+  wardUserTyping.value = true;
+  wardDropdownOpen.value = true;
+
+  const matchedWard = findWardByName(wardSearch.value);
+
+  if (!matchedWard) {
+    selectedWardCode.value = "";
+    shippingForm.value.phuongXaNhanHang = "";
+  }
+}
+
+async function selectShippingProvince(province) {
+  selectedProvinceCode.value = String(province.code || "");
+  selectedWardCode.value = "";
+  provinceSearch.value = province.name || "";
+  wardSearch.value = "";
+  shippingForm.value.tinhThanhNhanHang = province.name || "";
+  shippingForm.value.phuongXaNhanHang = "";
+  provinceDropdownOpen.value = false;
+  wardDropdownOpen.value = false;
+  provinceUserTyping.value = false;
+  wardUserTyping.value = false;
+
+  await loadWardsByProvinceCode(selectedProvinceCode.value);
+}
+
+function selectShippingWard(ward) {
+  selectedWardCode.value = String(ward.code || "");
+  wardSearch.value = ward.name || "";
+  shippingForm.value.phuongXaNhanHang = ward.name || "";
+  wardUserTyping.value = false;
+  wardDropdownOpen.value = false;
+}
+
+async function openShippingModal() {
   if (!selectedOrder.value || !canEditShippingSelected.value) return;
+
+  if (!provinces.value.length) {
+    await loadProvinces();
+  }
 
   shippingForm.value = {
     tenNguoiNhanHang: selectedOrder.value.tenNguoiNhanHang || "",
@@ -655,6 +911,32 @@ function openShippingModal() {
     tinhThanhNhanHang: selectedOrder.value.tinhThanhNhanHang || "",
     ghiChu: selectedOrder.value.ghiChu || "",
   };
+
+  provinceDropdownOpen.value = false;
+  wardDropdownOpen.value = false;
+  selectedProvinceCode.value = "";
+  selectedWardCode.value = "";
+  provinceSearch.value = shippingForm.value.tinhThanhNhanHang || "";
+  wardSearch.value = shippingForm.value.phuongXaNhanHang || "";
+  wards.value = [];
+
+  const matchedProvince = findProvinceByName(shippingForm.value.tinhThanhNhanHang);
+
+  if (matchedProvince?.code) {
+    selectedProvinceCode.value = String(matchedProvince.code);
+    provinceSearch.value = matchedProvince.name;
+    shippingForm.value.tinhThanhNhanHang = matchedProvince.name;
+
+    await loadWardsByProvinceCode(matchedProvince.code);
+
+    const matchedWard = findWardByName(shippingForm.value.phuongXaNhanHang);
+
+    if (matchedWard?.code) {
+      selectedWardCode.value = String(matchedWard.code);
+      wardSearch.value = matchedWard.name;
+      shippingForm.value.phuongXaNhanHang = matchedWard.name;
+    }
+  }
 
   shippingModalOpen.value = true;
 }
@@ -668,6 +950,24 @@ async function submitShipping() {
 
   try {
     shippingSaving.value = true;
+
+    if (isSelectedOrderCod.value) {
+      const province = findProvinceByCode(selectedProvinceCode.value);
+      const ward = findWardByCode(selectedWardCode.value);
+
+      if (!province) {
+        showMessage("Vui lòng chọn tỉnh/thành từ danh sách.", "warning");
+        return;
+      }
+
+      if (!ward) {
+        showMessage("Vui lòng chọn phường/xã từ danh sách.", "warning");
+        return;
+      }
+
+      shippingForm.value.tinhThanhNhanHang = province.name;
+      shippingForm.value.phuongXaNhanHang = ward.name;
+    }
 
     const payload = {
       tenNguoiNhanHang: shippingForm.value.tenNguoiNhanHang,
@@ -814,7 +1114,9 @@ async function viewDetail(id) {
   }
 }
 
-onMounted(loadOrders);
+onMounted(async () => {
+  await Promise.all([loadProvinces(), loadOrders()]);
+});
 </script>
 
 <style scoped>
@@ -825,7 +1127,7 @@ onMounted(loadOrders);
 
 .page-title {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
 }
 
@@ -878,7 +1180,7 @@ onMounted(loadOrders);
 .order-code,
 .detail-code {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
 }
 
@@ -895,7 +1197,7 @@ onMounted(loadOrders);
 
 .order-total {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: #dc2626;
 }
 
@@ -917,9 +1219,16 @@ onMounted(loadOrders);
 
 .info-title {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 16px;
   color: #0f172a;
+}
+
+.info-title-payment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .info-grid {
@@ -989,7 +1298,7 @@ onMounted(loadOrders);
 .sum-row.total {
   border-bottom: none;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: #dc2626;
 }
 
@@ -1153,7 +1462,7 @@ onMounted(loadOrders);
 
 .mock-modal__title {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .mock-modal__close {
@@ -1268,5 +1577,46 @@ onMounted(loadOrders);
   .item-price {
     min-width: unset;
   }
+}
+
+.address-select-wrap {
+  position: relative;
+}
+
+.address-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10000;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.16);
+  padding: 6px;
+}
+
+.address-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.address-option:hover {
+  background: #eef4ff;
+  color: #12379d;
+}
+
+.address-empty {
+  padding: 10px;
+  color: #64748b;
+  font-size: 14px;
 }
 </style>

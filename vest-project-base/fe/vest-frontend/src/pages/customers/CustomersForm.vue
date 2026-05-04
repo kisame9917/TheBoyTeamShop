@@ -6,7 +6,7 @@
       </div>
 
       <!-- ✅ yêu cầu: có popup xác nhận khi hủy -->
-      <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBack">
+      <button type="button" class="btn btn-outline-secondary btn-sm" style="font-weight: 500" @click="goBack">
         <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
       </button>
     </div>
@@ -18,7 +18,7 @@
             <img v-if="avatarPreview" :src="avatarPreview" class="avatar-img" alt="avatar" />
             <div v-else class="avatar-fallback">👤</div>
           </div>
-          <div class="avatar-hint">Bấm vào ảnh để chọn (png/jpg/webp). Ảnh sẽ upload lên server.</div>
+          <div class="avatar-hint">Bấm vào ảnh để chọn (png/jpg/webp)</div>
 
           <input
               ref="fileInput"
@@ -1479,8 +1479,9 @@ onBeforeUnmount(() => {
   border-color:#1d4ed8;
   background:#1d4ed8;
   color:#fff;
+  font-weight: 700;
 }
-.btn-ghost{ background:#fff; }
+.btn-ghost{ background:#fff; font-weight: 700; }
 .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
 /* Modal overlay */

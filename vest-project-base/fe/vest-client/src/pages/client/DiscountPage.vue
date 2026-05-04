@@ -1135,7 +1135,7 @@ watch(activeTab, () => {
   margin-bottom: 4px;
   color: #64748b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -1191,7 +1191,7 @@ watch(activeTab, () => {
   margin-bottom: 6px;
   color: #64748b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .meta-item strong {
@@ -1291,7 +1291,7 @@ watch(activeTab, () => {
   min-height: 170px;
   padding: 28px;
   color: #475569;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .state-box--error {
@@ -1706,7 +1706,7 @@ section.container.py-5 {
 
 .voucher-ticket__left strong {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .copy-btn {
@@ -1725,7 +1725,7 @@ section.container.py-5 {
   color: #dc2626;
   font-size: 28px;
   line-height: 1.12;
-  font-weight: 800;
+  font-weight: 750;
   letter-spacing: 0;
 }
 
@@ -2018,7 +2018,7 @@ section.container.py-5 {
   background: #eef2ff;
   color: #1d4ed8;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .tab-btn.active {

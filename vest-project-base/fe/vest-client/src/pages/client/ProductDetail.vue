@@ -57,10 +57,10 @@
             <section class="gallery-card">
               <div class="main-image-wrap">
                 <img
-                  :src="currentImage"
-                  :alt="productTitle"
-                  class="main-image"
-                  @error="onImgError"
+                    :src="currentImage"
+                    :alt="productTitle"
+                    class="main-image"
+                    @error="onImgError"
                 />
 
                 <div class="image-badge">
@@ -71,12 +71,12 @@
 
               <div v-if="galleryImages.length > 1" class="thumb-list">
                 <button
-                  v-for="img in galleryImages"
-                  :key="img"
-                  type="button"
-                  class="thumb-btn"
-                  :class="{ active: currentImage === img }"
-                  @click="manualImage = img"
+                    v-for="img in galleryImages"
+                    :key="img"
+                    type="button"
+                    class="thumb-btn"
+                    :class="{ active: currentImage === img }"
+                    @click="manualImage = img"
                 >
                   <img :src="img" :alt="productTitle" @error="onThumbError" />
                 </button>
@@ -138,13 +138,13 @@
                 </span>
 
                 <span
-                  class="total-stock-badge"
-                  :class="{ out: totalAvailableStock <= 0 }"
+                    class="total-stock-badge"
+                    :class="{ out: totalAvailableStock <= 0 }"
                 >
                   {{
                     totalAvailableStock > 0
-                      ? `${totalAvailableStock} sản phẩm còn hàng`
-                      : "Hết hàng"
+                        ? `${totalAvailableStock} sản phẩm còn hàng`
+                        : "Hết hàng"
                   }}
                 </span>
               </div>
@@ -155,11 +155,6 @@
                   <div class="product-price">
                     {{ formatCurrency(displayPrice) }}
                   </div>
-                </div>
-
-                <div class="price-side">
-                  <span>{{ availableColors.length }} màu</span>
-                  <strong>{{ availableSizes.length }} size</strong>
                 </div>
               </div>
 
@@ -188,23 +183,20 @@
                 <div class="variant-header">
                   <div>
                     <div class="variant-label">Màu sắc</div>
-                    <div class="variant-helper">Chọn màu sản phẩm còn hàng</div>
                   </div>
-
-                  <span>{{ selectedColorName || "Chưa chọn" }}</span>
                 </div>
 
                 <div class="variant-options">
                   <button
-                    v-for="color in availableColors"
-                    :key="color.key"
-                    type="button"
-                    class="color-swatch-btn"
-                    :class="{
+                      v-for="color in availableColors"
+                      :key="color.key"
+                      type="button"
+                      class="color-swatch-btn"
+                      :class="{
                       active: String(selectedColor) === String(color.key),
                     }"
-                    :title="color.name"
-                    @click="selectColor(color.key)"
+                      :title="color.name"
+                      @click="selectColor(color.key)"
                   >
                     <span :style="{ backgroundColor: color.code }"></span>
                   </button>
@@ -215,22 +207,17 @@
                 <div class="variant-header">
                   <div>
                     <div class="variant-label">Kích thước</div>
-                    <div class="variant-helper">
-                      Size thay đổi theo màu đang chọn
-                    </div>
                   </div>
-
-                  <span>{{ selectedSize || "Chưa chọn" }}</span>
                 </div>
 
                 <div class="variant-options">
                   <button
-                    v-for="size in availableSizes"
-                    :key="size"
-                    type="button"
-                    class="size-btn"
-                    :class="{ active: selectedSize === size }"
-                    @click="selectSize(size)"
+                      v-for="size in availableSizes"
+                      :key="size"
+                      type="button"
+                      class="size-btn"
+                      :class="{ active: selectedSize === size }"
+                      @click="selectSize(size)"
                   >
                     {{ size }}
                   </button>
@@ -241,37 +228,32 @@
                 <div class="variant-header">
                   <div>
                     <div class="variant-label">Số lượng</div>
-                    <div class="variant-helper">
-                      Không vượt quá số lượng còn trong kho
-                    </div>
                   </div>
-
-                  <span>Tối đa {{ maxQty }}</span>
                 </div>
 
                 <div class="qty-wrap">
                   <button
-                    type="button"
-                    class="qty-btn"
-                    @click="decreaseQty"
-                    :disabled="quantity <= 1"
+                      type="button"
+                      class="qty-btn"
+                      @click="decreaseQty"
+                      :disabled="quantity <= 1"
                   >
                     -
                   </button>
 
                   <input
-                    v-model.number="quantity"
-                    type="number"
-                    min="1"
-                    :max="maxQty"
-                    class="qty-input"
+                      v-model.number="quantity"
+                      type="number"
+                      min="1"
+                      :max="maxQty"
+                      class="qty-input"
                   />
 
                   <button
-                    type="button"
-                    class="qty-btn"
-                    @click="increaseQty"
-                    :disabled="quantity >= maxQty"
+                      type="button"
+                      class="qty-btn"
+                      @click="increaseQty"
+                      :disabled="quantity >= maxQty"
                   >
                     +
                   </button>
@@ -285,10 +267,10 @@
 
               <div class="action-wrap">
                 <button
-                  type="button"
-                  class="btn-add-cart"
-                  :disabled="!canAddToCart"
-                  @click="handleAddToCart"
+                    type="button"
+                    class="btn-add-cart"
+                    :disabled="!canAddToCart"
+                    @click="handleAddToCart"
                 >
                   <i class="bi bi-cart-plus"></i>
                   Thêm vào giỏ hàng
@@ -357,8 +339,8 @@
                     <div class="spec-item">
                       <span class="spec-label">Mã biến thể</span>
                       <strong>{{
-                        selectedVariant?.code || "Đang cập nhật"
-                      }}</strong>
+                          selectedVariant?.code || "Đang cập nhật"
+                        }}</strong>
                     </div>
 
                     <div class="spec-item">
@@ -376,29 +358,29 @@
 
                 <div class="detail-block__body">
                   <div
-                    v-if="availableVariants.length"
-                    class="variant-table-wrap"
+                      v-if="availableVariants.length"
+                      class="variant-table-wrap"
                   >
                     <table class="variant-table">
                       <thead>
-                        <tr>
-                          <th>Màu sắc</th>
-                          <th>Size</th>
-                          <th>Giá</th>
-                          <th>Số lượng</th>
-                          <th>Mã SPCT</th>
-                        </tr>
+                      <tr>
+                        <th>Màu sắc</th>
+                        <th>Size</th>
+                        <th>Giá</th>
+                        <th>Số lượng</th>
+                        <th>Mã SPCT</th>
+                      </tr>
                       </thead>
 
                       <tbody>
-                        <tr
+                      <tr
                           v-for="item in availableVariants"
                           :key="item.idSanPhamChiTiet"
-                        >
-                          <td>
+                      >
+                        <td>
                             <span class="table-color">
                               <i
-                                :style="{
+                                  :style="{
                                   backgroundColor: getColorCode(
                                     item.colorKey,
                                     item.color,
@@ -407,13 +389,13 @@
                               ></i>
                               {{ item.color || "Đang cập nhật" }}
                             </span>
-                          </td>
+                        </td>
 
-                          <td>{{ item.size || "Đang cập nhật" }}</td>
-                          <td>{{ formatCurrency(item.price) }}</td>
-                          <td>{{ item.stock }}</td>
-                          <td>{{ item.code || "Đang cập nhật" }}</td>
-                        </tr>
+                        <td>{{ item.size || "Đang cập nhật" }}</td>
+                        <td>{{ formatCurrency(item.price) }}</td>
+                        <td>{{ item.stock }}</td>
+                        <td>{{ item.code || "Đang cập nhật" }}</td>
+                      </tr>
                       </tbody>
                     </table>
                   </div>
@@ -508,7 +490,7 @@
                     <div class="highlight-item">
                       <i class="bi bi-wallet2"></i>
                       <span
-                        >Mức giá hiển thị minh bạch theo từng biến thể.</span
+                      >Mức giá hiển thị minh bạch theo từng biến thể.</span
                       >
                     </div>
 
@@ -517,25 +499,6 @@
                       <span>Đóng gói cẩn thận trước khi giao hàng.</span>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <div class="detail-block mt-4">
-                <div class="detail-block__header">
-                  <span>Lưu ý khi đặt hàng</span>
-                </div>
-
-                <div class="detail-block__body">
-                  <ul class="note-list mb-0">
-                    <li>
-                      Chọn đúng màu sắc và kích thước trước khi thêm vào giỏ.
-                    </li>
-                    <li>Kiểm tra số lượng còn lại trước khi tăng số lượng.</li>
-                    <li>Đơn hàng online hỗ trợ COD và thanh toán QR.</li>
-                    <li>
-                      Liên hệ cửa hàng nếu cần hỗ trợ chọn form vest phù hợp.
-                    </li>
-                  </ul>
                 </div>
               </div>
             </div>
@@ -570,7 +533,7 @@ const route = useRoute();
 const { addToCart } = useCart();
 
 const fallbackImage =
-  "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='820'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='30'%3ENo Image%3C/text%3E%3C/svg%3E";
+    "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='820'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='30'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 const FALLBACK_COLOR_MAP = {
   den: "#111827",
@@ -611,14 +574,15 @@ const selectedVariantId = computed(() => {
   const id = Number(route.query.variantId);
   return Number.isFinite(id) && id > 0 ? id : null;
 });
+
 const productTitle = computed(() => {
   if (!product.value) return "";
 
   return (
-    product.value.tenSanPham ||
-    product.value.title ||
-    product.value.name ||
-    "Sản phẩm"
+      product.value.tenSanPham ||
+      product.value.title ||
+      product.value.name ||
+      "Sản phẩm"
   );
 });
 
@@ -632,7 +596,7 @@ const productDescription = computed(() => {
 });
 
 const defaultDescription =
-  "Sản phẩm được thiết kế theo phong cách lịch lãm, phù hợp cho môi trường công sở, sự kiện, cưới hỏi và các dịp cần hình ảnh chỉn chu, sang trọng.";
+    "Sản phẩm được thiết kế theo phong cách lịch lãm, phù hợp cho môi trường công sở, sự kiện, cưới hỏi và các dịp cần hình ảnh chỉn chu, sang trọng.";
 
 const normalizedVariants = computed(() => {
   return (variants.value || []).map(mapVariant);
@@ -665,7 +629,7 @@ const selectedColorName = computed(() => {
   if (!selectedColor.value) return "";
 
   const found = availableColors.value.find(
-    (item) => String(item.key) === String(selectedColor.value),
+      (item) => String(item.key) === String(selectedColor.value),
   );
 
   return found?.name || "";
@@ -675,7 +639,7 @@ const filteredSizesByColor = computed(() => {
   if (!selectedColor.value) return availableVariants.value;
 
   return availableVariants.value.filter(
-    (v) => String(v.colorKey) === String(selectedColor.value),
+      (v) => String(v.colorKey) === String(selectedColor.value),
   );
 });
 
@@ -686,17 +650,17 @@ const availableSizes = computed(() => {
 
 const selectedVariant = computed(() => {
   return (
-    availableVariants.value.find((v) => {
-      const matchColor = selectedColor.value
-        ? String(v.colorKey) === String(selectedColor.value)
-        : true;
+      availableVariants.value.find((v) => {
+        const matchColor = selectedColor.value
+            ? String(v.colorKey) === String(selectedColor.value)
+            : true;
 
-      const matchSize = selectedSize.value
-        ? String(v.size) === String(selectedSize.value)
-        : true;
+        const matchSize = selectedSize.value
+            ? String(v.size) === String(selectedSize.value)
+            : true;
 
-      return matchColor && matchSize;
-    }) || null
+        return matchColor && matchSize;
+      }) || null
   );
 });
 
@@ -714,9 +678,9 @@ const currentImage = computed(() => {
   if (selectedVariant.value?.image) return selectedVariant.value.image;
 
   return pickProductImage(
-    product.value,
-    normalizedVariants.value,
-    fallbackImage,
+      product.value,
+      normalizedVariants.value,
+      fallbackImage,
   );
 });
 
@@ -724,9 +688,9 @@ const galleryImages = computed(() => {
   const list = [];
 
   const productImage = pickProductImage(
-    product.value,
-    normalizedVariants.value,
-    "",
+      product.value,
+      normalizedVariants.value,
+      "",
   );
 
   if (productImage) list.push(productImage);
@@ -809,18 +773,18 @@ watch(quantity, (val) => {
 
 function normalizeText(text) {
   return String(text || "")
-    .trim()
-    .toLowerCase()
-    .replace(/đ/g, "d")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
+      .trim()
+      .toLowerCase()
+      .replace(/đ/g, "d")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ");
 }
 
 function normalizeColorName(name) {
   return normalizeText(name)
-    .replace(/\(.*?\)/g, "")
-    .trim();
+      .replace(/\(.*?\)/g, "")
+      .trim();
 }
 
 function normalizeColorCode(value) {
@@ -875,7 +839,7 @@ function resolveColorCode(value, colorName = "") {
 
 function findDbColor(colorId, colorName = "") {
   const byId = dbColors.value.find(
-    (item) => String(item.id) === String(colorId),
+      (item) => String(item.id) === String(colorId),
   );
 
   if (byId) return byId;
@@ -891,8 +855,8 @@ function getColorCode(colorKey, colorName = "") {
   const dbColor = findDbColor(colorKey, colorName);
 
   return resolveColorCode(
-    dbColor?.ma || dbColor?.code || dbColor?.maMau || dbColor?.colorCode || "",
-    dbColor?.ten || dbColor?.name || colorName,
+      dbColor?.ma || dbColor?.code || dbColor?.maMau || dbColor?.colorCode || "",
+      dbColor?.ten || dbColor?.name || colorName,
   );
 }
 
@@ -925,39 +889,39 @@ function mapVariant(v) {
   const colorObj = typeof v.mauSac === "object" ? v.mauSac : null;
 
   const rawColorId =
-    v.idMauSac ??
-    v.id_mau_sac ??
-    v.mauSacId ??
-    v.id_mau ??
-    colorObj?.id ??
-    null;
+      v.idMauSac ??
+      v.id_mau_sac ??
+      v.mauSacId ??
+      v.id_mau ??
+      colorObj?.id ??
+      null;
 
   const rawColorName =
-    v.tenMauSac ||
-    v.ten_mau_sac ||
-    v.mauSacTen ||
-    v.mau_sac_ten ||
-    colorObj?.ten ||
-    colorObj?.name ||
-    v.mau ||
-    "";
+      v.tenMauSac ||
+      v.ten_mau_sac ||
+      v.mauSacTen ||
+      v.mau_sac_ten ||
+      colorObj?.ten ||
+      colorObj?.name ||
+      v.mau ||
+      "";
 
   const dbColor = findDbColor(rawColorId, rawColorName);
 
   const colorId =
-    rawColorId != null && rawColorId !== ""
-      ? String(rawColorId)
-      : dbColor?.id != null
-        ? String(dbColor.id)
-        : "";
+      rawColorId != null && rawColorId !== ""
+          ? String(rawColorId)
+          : dbColor?.id != null
+              ? String(dbColor.id)
+              : "";
 
   const colorName =
-    dbColor?.ten || dbColor?.name || rawColorName || "Đang cập nhật";
+      dbColor?.ten || dbColor?.name || rawColorName || "Đang cập nhật";
 
   const colorKey = colorId || `name:${normalizeColorName(colorName)}`;
 
   const colorCode = resolveColorCode(
-    v.maMauSac ||
+      v.maMauSac ||
       v.ma_mau_sac ||
       v.colorCode ||
       v.color_code ||
@@ -967,20 +931,20 @@ function mapVariant(v) {
       dbColor?.ma ||
       dbColor?.code ||
       "",
-    colorName,
+      colorName,
   );
 
   const sizeName =
-    normalizeSizeName(v.kichCo) ||
-    normalizeSizeName(v.tenKichCo) ||
-    normalizeSizeName(v.size) ||
-    "";
+      normalizeSizeName(v.kichCo) ||
+      normalizeSizeName(v.tenKichCo) ||
+      normalizeSizeName(v.size) ||
+      "";
 
   const image =
-    pickVariantImage(v) ||
-    pickProductImage(product.value, [], fallbackImage) ||
-    normalizeImage(v.anh || v.imageUrl || v.image) ||
-    fallbackImage;
+      pickVariantImage(v) ||
+      pickProductImage(product.value, [], fallbackImage) ||
+      normalizeImage(v.anh || v.imageUrl || v.image) ||
+      fallbackImage;
 
   return {
     idSanPhamChiTiet: v.id,
@@ -1025,9 +989,9 @@ function selectColor(colorKey) {
   selectedColor.value = String(colorKey || "");
 
   const validSizes = availableVariants.value
-    .filter((v) => String(v.colorKey) === String(colorKey))
-    .map((v) => v.size)
-    .filter(Boolean);
+      .filter((v) => String(v.colorKey) === String(colorKey))
+      .map((v) => v.size)
+      .filter(Boolean);
 
   if (!validSizes.includes(selectedSize.value)) {
     selectedSize.value = validSizes[0] || "";
@@ -1078,21 +1042,33 @@ async function fetchProductDetail() {
     product.value = productRes;
     variants.value = Array.isArray(variantRes) ? variantRes : [];
 
-    const targetVariant =
-  normalizedVariants.value.find(
-    (v) => Number(v.idSanPhamChiTiet) === selectedVariantId.value
-  ) || null;
+    const targetVariant = selectedVariantId.value
+        ? availableVariants.value.find(
+            (v) => Number(v.idSanPhamChiTiet) === selectedVariantId.value,
+        ) ||
+        normalizedVariants.value.find(
+            (v) => Number(v.idSanPhamChiTiet) === selectedVariantId.value,
+        ) ||
+        null
+        : null;
 
-const firstVariant = targetVariant || normalizedVariants.value[0] || null;
+    const firstVariant =
+        targetVariant || availableVariants.value[0] || normalizedVariants.value[0] || null;
 
-if (firstVariant) {
-  selectedColor.value = firstVariant.color || "";
-  selectedSize.value = firstVariant.size || "";
-}
+    if (firstVariant) {
+      selectedColor.value = firstVariant.colorKey || "";
+      selectedSize.value = firstVariant.size || "";
+    } else {
+      selectedColor.value = "";
+      selectedSize.value = "";
+    }
+
+    quantity.value = 1;
+    manualImage.value = "";
   } catch (error) {
     console.error("fetchProductDetail error:", error);
     loadError.value =
-      error?.response?.data?.message || "Không tải được chi tiết sản phẩm.";
+        error?.response?.data?.message || "Không tải được chi tiết sản phẩm.";
   } finally {
     loading.value = false;
   }
@@ -1104,40 +1080,33 @@ function handleAddToCart() {
   if ((selectedVariant.value.stock ?? 0) <= 0) return;
 
   addToCart(
-    {
-      idSanPhamChiTiet: selectedVariant.value.idSanPhamChiTiet,
-      productId: selectedVariant.value.productId,
-      name: productTitle.value,
-      image: selectedVariant.value.image,
-      color: selectedVariant.value.color,
-      size: selectedVariant.value.size,
-      price: selectedVariant.value.price,
-      stock: selectedVariant.value.stock,
-      code: selectedVariant.value.code,
-    },
-    quantity.value,
+      {
+        idSanPhamChiTiet: selectedVariant.value.idSanPhamChiTiet,
+        productId: selectedVariant.value.productId,
+        name: productTitle.value,
+        image: selectedVariant.value.image,
+        color: selectedVariant.value.color,
+        size: selectedVariant.value.size,
+        price: selectedVariant.value.price,
+        stock: selectedVariant.value.stock,
+        code: selectedVariant.value.code,
+      },
+      quantity.value,
   );
 
   quantity.value = 1;
 }
 
-watch(quantity, (val) => {
-  if (!val || val < 1) {
-    quantity.value = 1;
-    return;
-  }
-
-  if (selectedVariant.value?.stock && val > selectedVariant.value.stock) {
-    quantity.value = selectedVariant.value.stock;
-  }
+onMounted(async () => {
+  await fetchColors();
+  await fetchProductDetail();
 });
 
-onMounted(fetchProductDetail);
 watch(
-  () => [route.params.id, route.query.variantId],
-  () => {
-    fetchProductDetail();
-  }
+    () => [route.params.id, route.query.variantId],
+    () => {
+      fetchProductDetail();
+    },
 );
 </script>
 
@@ -1145,12 +1114,12 @@ watch(
 .product-detail-page {
   min-height: 100vh;
   background:
-    radial-gradient(
-      circle at top left,
-      rgba(37, 99, 235, 0.08),
-      transparent 34%
-    ),
-    linear-gradient(180deg, #f5f7fc 0%, #f8fafc 52%, #ffffff 100%);
+      radial-gradient(
+          circle at top left,
+          rgba(37, 99, 235, 0.08),
+          transparent 34%
+      ),
+      linear-gradient(180deg, #f5f7fc 0%, #f8fafc 52%, #ffffff 100%);
   color: #0f172a;
 }
 

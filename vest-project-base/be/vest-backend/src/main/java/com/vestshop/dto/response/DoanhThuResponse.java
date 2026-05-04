@@ -13,4 +13,11 @@ import java.math.BigDecimal;
 public class DoanhThuResponse {
     private String thoiGian; // VD: "Quý 1/2024"
     private BigDecimal doanhThu;
+    private BigDecimal tongTienGiam;
+
+    public DoanhThuResponse(String thoiGian, BigDecimal doanhThu) {
+        this.thoiGian = thoiGian;
+        this.doanhThu = doanhThu;
+        this.tongTienGiam = BigDecimal.ZERO;
+    }
 }

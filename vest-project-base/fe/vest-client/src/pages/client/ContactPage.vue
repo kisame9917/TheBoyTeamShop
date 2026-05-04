@@ -5,10 +5,10 @@
         <div class="contact-hero__content">
           <div class="contact-hero__badge">THE BOY TEAM</div>
           <h1 class="contact-hero__title">LIÊN HỆ VỚI CHÚNG TÔI</h1>
-          <p class="contact-hero__desc">
-            VestShop luôn sẵn sàng hỗ trợ tư vấn sản phẩm, chọn size, theo dõi đơn hàng
-            và tiếp nhận mọi góp ý từ bạn.
-          </p>
+<!--          <p class="contact-hero__desc">-->
+<!--            VestShop luôn sẵn sàng hỗ trợ tư vấn sản phẩm, chọn size, theo dõi đơn hàng-->
+<!--            và tiếp nhận mọi góp ý từ bạn.-->
+<!--          </p>-->
         </div>
       </div>
     </section>
@@ -20,7 +20,7 @@
             <div class="section-subtitle">Thông tin liên hệ</div>
             <h2 class="section-title">Kết nối với VestShop</h2>
             <p class="contact-info-text">
-              Bạn có thể liên hệ trực tiếp qua hotline, email hoặc ghé cửa hàng để được tư vấn nhanh hơn.
+              Bạn có thể liên hệ trực tiếp qua hotline, email hoặc ghé cửa hàng để được tư vấn.
             </p>
 
             <div class="contact-info-list">

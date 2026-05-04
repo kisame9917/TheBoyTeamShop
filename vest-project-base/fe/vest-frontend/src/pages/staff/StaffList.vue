@@ -203,7 +203,7 @@
                   </div>
                 </td>
 
-                <td>{{ s.maNhanVien || "-" }}</td>
+                <td class="fw-semibold">{{ s.maNhanVien || "-" }}</td>
                 <td>{{ s.tenNhanVien || "-" }}</td>
 
                 <td class="text-truncate" :title="s.email || ''">
@@ -569,6 +569,22 @@ function normalizeStaff(x) {
   };
 }
 
+function sortStaffDesc(arr) {
+  return [...(arr || [])].sort((a, b) => {
+    const idA = Number(a?.id || 0);
+    const idB = Number(b?.id || 0);
+
+    if (Number.isFinite(idA) && Number.isFinite(idB) && idA !== idB) {
+      return idB - idA;
+    }
+
+    return String(b?.maNhanVien || "").localeCompare(String(a?.maNhanVien || ""), "vi", {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+}
+
 function safeStr(v) {
   return String(v == null ? "" : v).toLowerCase().trim();
 }
@@ -608,7 +624,7 @@ async function fetchList() {
   loading.value = true;
   try {
     const res = await http.get("/api/nhan-vien");
-    list.value = unwrapList(res.data).map(normalizeStaff);
+    list.value = sortStaffDesc(unwrapList(res.data).map(normalizeStaff));
   } catch (e) {
     console.error(e);
     toast.error("Không tải được danh sách nhân viên.");
@@ -882,7 +898,7 @@ onMounted(async () => {
 }
 
 .table-body-normal td {
-  font-weight: 400;
+  font-weight: 450;
   text-transform: none;
 }
 

@@ -435,8 +435,9 @@ function logout() {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  height: 56px;
-  padding: 0 16px;
+  min-height: 64px;
+  padding: 10px 24px;
+  box-sizing: border-box;
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -444,19 +445,28 @@ function logout() {
 .left {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1.25;
+  margin-left: 12px;
 }
 
 .title {
   font-weight: 800;
   font-size: 16px;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .subtitle {
   margin-top: 4px;
   font-size: 12.5px;
   color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .right {

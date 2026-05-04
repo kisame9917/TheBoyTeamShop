@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 public class ThongKeTongQuanCardResponse {
     private String nhan;
     private BigDecimal doanhThu;
+    private BigDecimal tongTienGiam;
     private Long sanPhamDaBan;
     private Long donHang;
     private Long hoanThanh;

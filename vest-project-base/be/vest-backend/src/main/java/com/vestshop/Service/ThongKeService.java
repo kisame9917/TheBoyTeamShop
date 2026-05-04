@@ -91,9 +91,14 @@ public class ThongKeService {
                 hoaDonRepository.countDonHangNotInStatusesInRange(from, to, TRANG_THAI_KET_THUC)
         );
 
+        BigDecimal tongTienGiam = defaultBigDecimal(
+                hoaDonRepository.sumTienGiamInRange(from, to, TRANG_THAI_HOAN_THANH)
+        );
+
         return ThongKeTongQuanCardResponse.builder()
                 .nhan(nhan)
                 .doanhThu(doanhThu)
+                .tongTienGiam(tongTienGiam)
                 .sanPhamDaBan(sanPhamDaBan)
                 .donHang(donHang)
                 .hoanThanh(hoanThanh)
