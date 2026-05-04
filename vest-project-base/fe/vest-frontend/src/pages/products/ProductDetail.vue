@@ -3526,4 +3526,21 @@ function getColorCode(name) {
     min-width: 1180px !important;
   }
 }
+/* ===== FIX: chỉ sửa QR actions nằm ngang ===== */
+.qr-actions {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+}
+
+.qr-actions .btn {
+  white-space: nowrap !important;
+}
+
+.col-qr {
+  width: 180px !important;
+}
 </style>
