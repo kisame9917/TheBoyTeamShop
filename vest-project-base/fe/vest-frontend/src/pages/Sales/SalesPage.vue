@@ -85,33 +85,32 @@
               <div class="fw-semibold">Chưa có sản phẩm nào</div>
             </div>
 
-            <div v-else class="table-responsive">
-              <table class="table align-middle mb-0">
+            <div v-else class="table-responsive sales-product-table-wrap">
+              <table class="table align-middle mb-0 sales-product-table">
                 <thead class="table-light">
                   <tr>
-                    <th style="width: 70px">Ảnh</th>
-                    <th>Sản phẩm</th>
-                    <th class="text-end" style="width: 140px">Đơn giá</th>
-                    <th class="text-center" style="width: 170px">Số lượng</th>
-                    <th class="text-end" style="width: 160px">Thành tiền</th>
-                    <th class="text-center" style="width: 80px">Xóa</th>
+                    <th class="col-img">Ảnh</th>
+                    <th class="col-product">Sản phẩm</th>
+                    <th class="text-end col-price">Đơn giá</th>
+                    <th class="text-center col-qty">Số lượng</th>
+                    <th class="text-end col-total">Thành tiền</th>
+                    <th class="text-center col-remove">Xóa</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   <tr v-for="(it, idx) in activeOrder.cart" :key="it.key">
-                    <td>
+                    <td class="product-img-cell">
                       <img
                         :src="it.image || placeholderImg"
-                        class="rounded"
-                        style="width: 56px; height: 56px; object-fit: cover"
+                        class="product-cart-img"
                       />
                     </td>
 
-                    <td>
-                      <div class="fw-semibold">{{ it.name }}</div>
-                      <div class="text-muted small">{{ it.meta }}</div>
-                      <div class="text-muted small">
+                    <td class="product-info-cell">
+                      <div class="fw-semibold product-cart-name">{{ it.name }}</div>
+                      <div class="text-muted small product-cart-meta">{{ it.meta }}</div>
+                      <div class="text-muted small product-cart-meta">
                         CTSP: <span class="fw-semibold">{{ it.code }}</span> •
                         Tồn: <span class="fw-semibold">{{ it.stock }}</span>
                       </div>
@@ -132,14 +131,14 @@
                         v-if="it.lineStatus === 'missing'"
                         class="small text-danger fw-semibold mt-1"
                       >
-                        Biến thể không còn hợp lệ, vui lòng xóa khỏi giỏ.
+                        Sản phẩm không còn hợp lệ, vui lòng xóa khỏi giỏ.
                       </div>
                     </td>
 
-                    <td class="text-end fw-semibold">{{ money(it.price) }}</td>
+                    <td class="text-end fw-semibold product-money-cell">{{ money(it.price) }}</td>
 
-                    <td class="text-center">
-                      <div class="btn-group" role="group">
+                    <td class="text-center product-qty-cell">
+                      <div class="btn-group product-qty-group" role="group">
                         <button
                           class="btn btn-outline-secondary btn-sm"
                           @click="decQty(idx)"
@@ -174,13 +173,13 @@
                       </div>
                     </td>
 
-                    <td class="text-end fw-bold">
+                    <td class="text-end fw-bold product-money-cell product-total-cell">
                       {{ money(it.price * it.qty) }}
                     </td>
 
-                    <td class="text-center">
+                    <td class="text-center product-remove-cell">
                       <button
-                        class="btn btn-outline-danger btn-sm"
+                        class="btn btn-outline-danger btn-sm product-remove-btn"
                         @click="removeItem(idx)"
                       >
                         🗑
@@ -4872,24 +4871,80 @@ function handleDocumentVisibility() {
   }
 }
 
+
+async function fetchProductsForCartValidation() {
+  const firstRes = await getAllDetails(0, 100);
+  const firstData = firstRes?.data ?? firstRes;
+
+  if (Array.isArray(firstData)) {
+    return firstData.map(mapSpct);
+  }
+
+  const totalPages = Number(firstData?.totalPages || 1);
+  let all = (firstData?.content || []).map(mapSpct);
+
+  for (let page = 1; page < totalPages; page++) {
+    const res = await getAllDetails(page, 100);
+    const data = res?.data ?? res;
+    all = all.concat((data?.content || []).map(mapSpct));
+  }
+
+  return all;
+}
+
+async function findLatestProductForCartItem(item, validationProducts) {
+  let latest =
+    validationProducts.find(
+      (p) => Number(p.idSpct) === Number(item.idSpct),
+    ) || null;
+
+  if (latest) return latest;
+
+  const code = String(item?.code || "").trim();
+  if (!code) return null;
+
+  try {
+    const res = await getDetailByCode(code);
+    const raw = res?.data ?? res;
+    return raw ? mapSpct(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function refreshProductsInCart() {
+  let validationProducts = [];
+
+  try {
+    validationProducts = await fetchProductsForCartValidation();
+  } catch (e) {
+    console.error("fetchProductsForCartValidation error", e);
+    validationProducts = [];
+  }
+
   await fetchAllProducts();
 
   for (const order of orders.value) {
     if (!order || !Array.isArray(order.cart)) continue;
 
     for (const item of order.cart) {
-      const latest =
-        allProducts.value.find(
-          (p) => Number(p.idSpct) === Number(item.idSpct),
-        ) || null;
+      const latest = await findLatestProductForCartItem(item, validationProducts);
 
-      const repriced = findRepricedProductInList(item, allProducts.value);
+      const repriced = findRepricedProductInList(item, validationProducts);
 
       if (!latest && !repriced) {
         item.stockBase = 0;
         item.stock = 0;
-        item.priceChangedLocked = true;
+        item.priceChangedLocked = false;
+        item.newPrice = null;
+        item.lineStatus = "missing";
+        continue;
+      }
+
+      if (latest && !isVariantActive(latest)) {
+        item.stockBase = 0;
+        item.stock = 0;
+        item.priceChangedLocked = false;
         item.newPrice = null;
         item.lineStatus = "missing";
         continue;
@@ -4898,8 +4953,8 @@ async function refreshProductsInCart() {
       item.lineStatus = "ok";
       const latestStock = Number((latest?.stock ?? repriced?.stock) || 0);
 
-      // stockBase là "tồn trước khi giữ chỗ của dòng hiện tại"
-      // nên phải cộng lại số lượng item hiện có trong giỏ
+      // Tồn hiện tại trên BE có thể đã bị trừ vì đơn nháp đang giữ hàng.
+      // Vì vậy cộng lại số lượng đang nằm trong giỏ để không tự báo hết hàng/đổi giá khi mở tab khác quay lại.
       item.stockBase = latestStock + Number(item.qty || 0);
 
       const sameVariantPriceChanged =
@@ -6045,5 +6100,456 @@ onBeforeUnmount(() => {
 
 .customer-table tbody tr:has(.customer-pick-btn:disabled) td {
   color: #6b7280;
+}
+/* ===== FIX: bảng sản phẩm bán hàng cân đối hơn ===== */
+.sales-product-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+}
+
+.sales-product-table {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+.sales-product-table thead th {
+  background: #f8fafc;
+  color: #111827;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 12px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.sales-product-table tbody td {
+  padding: 14px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sales-product-table .col-img {
+  width: 8%;
+  min-width: 78px;
+}
+
+.sales-product-table .col-product {
+  width: 46%;
+}
+
+.sales-product-table .col-price {
+  width: 13%;
+}
+
+.sales-product-table .col-qty {
+  width: 15%;
+}
+
+.sales-product-table .col-total {
+  width: 13%;
+}
+
+.sales-product-table .col-remove {
+  width: 5%;
+  min-width: 64px;
+}
+
+.product-img-cell {
+  text-align: center;
+}
+
+.product-cart-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  display: inline-block;
+}
+
+.product-info-cell {
+  min-width: 0;
+}
+
+.product-cart-name {
+  color: #111827;
+  line-height: 1.35;
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+
+.product-cart-meta {
+  line-height: 1.35;
+}
+
+.product-money-cell {
+  color: #111827;
+  white-space: nowrap;
+}
+
+.product-total-cell {
+  font-size: 0.95rem;
+}
+
+.product-qty-cell {
+  white-space: nowrap;
+}
+
+.product-qty-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-qty-group .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-qty-group .form-control {
+  width: 52px !important;
+  height: 32px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.product-remove-cell {
+  white-space: nowrap;
+}
+
+.product-remove-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1366px) {
+  .sales-product-table {
+    min-width: 900px;
+  }
+
+  .sales-product-table thead th,
+  .sales-product-table tbody td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .sales-product-table .col-product {
+    width: 43%;
+  }
+
+  .sales-product-table .col-price,
+  .sales-product-table .col-total {
+    width: 14%;
+  }
+
+  .product-cart-img {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+@media (max-width: 992px) {
+  .sales-product-table {
+    min-width: 860px;
+  }
+}
+/* ===== FIX: tách cột bảng sản phẩm đều như màn quản lý thuộc tính ===== */
+.sales-product-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+
+.sales-product-table thead th {
+  text-align: center !important;
+}
+
+.sales-product-table tbody td {
+  text-align: center;
+}
+
+.sales-product-table .col-img {
+  width: 10% !important;
+}
+
+.sales-product-table .col-product {
+  width: 34% !important;
+}
+
+.sales-product-table .col-price {
+  width: 15% !important;
+}
+
+.sales-product-table .col-qty {
+  width: 16% !important;
+}
+
+.sales-product-table .col-total {
+  width: 17% !important;
+}
+
+.sales-product-table .col-remove {
+  width: 8% !important;
+}
+
+.sales-product-table .product-info-cell {
+  text-align: left !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+
+.sales-product-table .product-money-cell,
+.sales-product-table .product-qty-cell,
+.sales-product-table .product-remove-cell {
+  text-align: center !important;
+}
+
+.sales-product-table .product-money-cell {
+  white-space: nowrap !important;
+}
+
+.sales-product-table thead th,
+.sales-product-table tbody td {
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.sales-product-table .product-img-cell {
+  text-align: center !important;
+}
+
+.sales-product-table tfoot,
+.sales-product-table + .d-flex {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+@media (max-width: 1366px) {
+  .sales-product-table {
+    min-width: 0 !important;
+  }
+
+  .sales-product-table .col-img {
+    width: 10% !important;
+  }
+
+  .sales-product-table .col-product {
+    width: 32% !important;
+  }
+
+  .sales-product-table .col-price {
+    width: 16% !important;
+  }
+
+  .sales-product-table .col-qty {
+    width: 17% !important;
+  }
+
+  .sales-product-table .col-total {
+    width: 17% !important;
+  }
+
+  .sales-product-table .col-remove {
+    width: 8% !important;
+  }
+
+  .sales-product-table thead th,
+  .sales-product-table tbody td {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .sales-product-table {
+    min-width: 820px !important;
+  }
+}
+/* ===== FIX: căn lại dòng sản phẩm không bị lệch ===== */
+.sales-product-table-wrap {
+  overflow-x: hidden !important;
+}
+
+.sales-product-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+
+.sales-product-table thead th {
+  height: 44px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.sales-product-table tbody tr {
+  min-height: 82px !important;
+}
+
+.sales-product-table tbody td {
+  height: 82px !important;
+  vertical-align: middle !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+.sales-product-table .col-img {
+  width: 10% !important;
+}
+
+.sales-product-table .col-product {
+  width: 34% !important;
+}
+
+.sales-product-table .col-price {
+  width: 15% !important;
+}
+
+.sales-product-table .col-qty {
+  width: 16% !important;
+}
+
+.sales-product-table .col-total {
+  width: 17% !important;
+}
+
+.sales-product-table .col-remove {
+  width: 8% !important;
+}
+
+.product-img-cell {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.product-cart-img {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 10px !important;
+  object-fit: cover !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.product-info-cell {
+  text-align: left !important;
+  vertical-align: middle !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.product-info-cell > .product-cart-name,
+.product-info-cell > .product-cart-meta,
+.product-info-cell > div {
+  display: block !important;
+}
+
+.product-cart-name {
+  margin-bottom: 4px !important;
+  line-height: 1.3 !important;
+}
+
+.product-cart-meta {
+  line-height: 1.3 !important;
+}
+
+.product-money-cell,
+.product-qty-cell,
+.product-remove-cell {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.product-money-cell {
+  white-space: nowrap !important;
+}
+
+.product-qty-group {
+  margin: 0 auto !important;
+}
+
+.product-remove-btn {
+  margin: 0 auto !important;
+}
+
+.sales-product-table + .d-flex {
+  align-items: center !important;
+  padding: 10px 14px 0 !important;
+  margin-top: 0 !important;
+}
+
+@media (max-width: 1366px) {
+  .sales-product-table .col-product {
+    width: 32% !important;
+  }
+
+  .sales-product-table .col-price {
+    width: 16% !important;
+  }
+
+  .sales-product-table .col-qty {
+    width: 17% !important;
+  }
+
+  .sales-product-table .col-total {
+    width: 17% !important;
+  }
+
+  .product-info-cell {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .sales-product-table-wrap {
+    overflow-x: auto !important;
+  }
+
+  .sales-product-table {
+    min-width: 820px !important;
+  }
+}
+/* ===== FIX: dóng cột Sản phẩm thẳng giữa theo header ===== */
+.sales-product-table .product-info-cell {
+  text-align: center !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.sales-product-table .product-cart-name,
+.sales-product-table .product-cart-meta {
+  text-align: center !important;
+}
+
+.sales-product-table .product-info-cell > div {
+  text-align: center !important;
+}
+
+.sales-product-table .product-info-cell .text-danger {
+  text-align: center !important;
+}
+
+.sales-product-table .col-product {
+  text-align: center !important;
+}
+
+@media (max-width: 1366px) {
+  .sales-product-table .product-info-cell {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
 }
 </style>
