@@ -11,7 +11,7 @@
       <form @submit.prevent="onSubmit">
         <div class="field">
           <label>Tài khoản</label>
-          <input v-model.trim="taiKhoan" autocomplete="username" placeholder="vd: nv1" />
+          <input v-model.trim="taiKhoan" autocomplete="username" />
         </div>
 
         <div class="field">
@@ -23,7 +23,7 @@
               v-model="matKhau"
               :type="showPassword ? 'text' : 'password'"
               autocomplete="current-password"
-              placeholder="vd: 123456"
+             
             />
 
             <button

@@ -9,7 +9,7 @@
 
         <div class="field">
           <label>OTP</label>
-          <input v-model.trim="otp" inputmode="numeric" placeholder="6 số" />
+          <input v-model.trim="otp" inputmode="numeric"  />
         </div>
 
         <!-- ✅ nhớ type="submit" -->

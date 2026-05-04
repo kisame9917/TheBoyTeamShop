@@ -17,7 +17,7 @@
           <!-- LEFT -->
           <div class="col-12 col-lg-6">
             <label class="form-label">Tên phiếu giảm giá <span class="req">*</span></label>
-            <input class="form-control text-start" v-model.trim="form.tenGiamGia" placeholder="Ví dụ: Sale 1/6" />
+            <input class="form-control text-start" v-model.trim="form.tenGiamGia"  />
 
             <div class="mt-3">
               <label class="form-label">Ngày bắt đầu <span class="req">*</span></label>

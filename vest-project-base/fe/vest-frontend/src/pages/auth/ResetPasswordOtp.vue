@@ -12,7 +12,7 @@
             <input
               v-model="newPassword"
               :type="showPassword ? 'text' : 'password'"
-              placeholder="tối thiểu 6 ký tự"
+            
               autocomplete="new-password"
             />
 
@@ -44,7 +44,7 @@
             <input
               v-model="confirmPassword"
               :type="showPassword ? 'text' : 'password'"
-              placeholder="nhập lại mật khẩu mới"
+            
               autocomplete="new-password"
             />
 

@@ -7,7 +7,7 @@
       <form @submit.prevent="onSendOtp">
         <div class="field">
           <label>Email</label>
-          <input v-model.trim="email" type="email" placeholder="vd: abc@gmail.com" />
+          <input v-model.trim="email" type="email"  />
         </div>
 
         <button class="btn btn-primary" :disabled="loading">
