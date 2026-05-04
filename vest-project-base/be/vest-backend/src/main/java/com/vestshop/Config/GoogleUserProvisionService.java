@@ -74,23 +74,24 @@ public class GoogleUserProvisionService {
                 .findTopByMaKhachHangStartingWithOrderByMaKhachHangDesc(prefix)
                 .orElse(null);
 
-        if (last == null || last.getMaKhachHang() == null || last.getMaKhachHang().isBlank()) {
-            return "KH000001";
+        int next = 1;
+
+        if (last != null && last.getMaKhachHang() != null && !last.getMaKhachHang().isBlank()) {
+            String digits = last.getMaKhachHang().replaceAll("[^0-9]", "");
+            if (!digits.isBlank()) {
+                try {
+                    next = Integer.parseInt(digits) + 1;
+                } catch (Exception ignored) {
+                }
+            }
         }
 
-        String digits = last.getMaKhachHang().replaceAll("\\D+", "");
-        int num = 0;
-        try {
-            num = Integer.parseInt(digits);
-        } catch (Exception ignored) {
-        }
-
-        String next;
+        String code;
         do {
-            num++;
-            next = String.format("KH%06d", num);
-        } while (khRepo.existsByMaKhachHang(next));
+            code = prefix + String.format("%03d", next);
+            next++;
+        } while (khRepo.existsByMaKhachHang(code));
 
-        return next;
+        return code;
     }
 }
