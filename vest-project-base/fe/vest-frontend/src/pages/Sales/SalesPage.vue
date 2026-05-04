@@ -1931,6 +1931,14 @@ async function onProductQrDecoded(decodedText) {
       found = mapSpct(res?.data ?? res);
     }
 
+    if (!isProductSelectable(found)) {
+      scanQrError.value = Number(found?.stock || 0) <= 0
+        ? "Sản phẩm đã hết hàng nên không thể thêm vào đơn."
+        : "Biến thể đang tắt hoạt động nên không thể thêm vào đơn.";
+      await startProductQr();
+      return;
+    }
+
     await chooseProduct(found);
     showScanQrModal.value = false;
   } catch (e) {
@@ -2258,6 +2266,10 @@ function isVariantActive(p) {
   return normalizeVariantStatus(p?.active ?? p?.trangThai ?? p?.trang_thai ?? p?.status);
 }
 
+function isProductSelectable(p) {
+  return isVariantActive(p) && Number(p?.stock || 0) > 0;
+}
+
 function mapSpct(x) {
   const stock = Number(x.soLuongTon || 0);
   const active = normalizeVariantStatus(
@@ -2324,20 +2336,20 @@ async function fetchAllProducts() {
     const firstData = firstRes?.data ?? firstRes;
 
     if (Array.isArray(firstData)) {
-      allProducts.value = firstData.map(mapSpct).filter(isVariantActive);
+      allProducts.value = firstData.map(mapSpct).filter(isProductSelectable);
       return;
     }
 
     const totalPages = Number(firstData?.totalPages || 1);
-    let all = [...(firstData?.content || []).map(mapSpct).filter(isVariantActive)];
+    let all = [...(firstData?.content || []).map(mapSpct).filter(isProductSelectable)];
 
     for (let page = 1; page < totalPages; page++) {
       const res = await getAllDetails(page, 100);
       const data = res?.data ?? res;
-      all = all.concat((data?.content || []).map(mapSpct).filter(isVariantActive));
+      all = all.concat((data?.content || []).map(mapSpct).filter(isProductSelectable));
     }
 
-    allProducts.value = all.filter(isVariantActive);
+    allProducts.value = all.filter(isProductSelectable);
   } catch (e) {
     console.error(e);
     toastShow("Không tải được danh sách biến thể", "danger");
@@ -2726,6 +2738,31 @@ const customerLoading = ref(false);
 const customerPage = ref(0);
 const customerSize = ref(10);
 
+function normalizeCustomerStatus(value) {
+  if (value === undefined || value === null || value === "") return true;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (["true", "1", "active", "enabled", "hoat dong", "con hoat dong"].includes(normalized)) return true;
+  if (["false", "0", "inactive", "disabled", "ngung hoat dong", "khong hoat dong", "tat"].includes(normalized)) return false;
+
+  return true;
+}
+
+function isCustomerActive(c) {
+  return normalizeCustomerStatus(
+    c?.active ?? c?.trangThai ?? c?.trang_thai ?? c?.status ??
+    c?.raw?.trangThai ?? c?.raw?.trang_thai ?? c?.raw?.active ?? c?.raw?.status
+  );
+}
+
 function mapCustomer(x) {
   const addr =
     x.diaChi ||
@@ -2740,6 +2777,7 @@ function mapCustomer(x) {
     phone: x.soDienThoai || "",
     email: x.email || "",
     address: addr,
+    active: normalizeCustomerStatus(x.trangThai ?? x.trang_thai ?? x.active ?? x.status ?? true),
     raw: x,
   };
 }
@@ -2759,21 +2797,21 @@ async function fetchCustomersAll() {
     const firstData = firstRes?.data ?? firstRes;
 
     if (Array.isArray(firstData)) {
-      customers.value = firstData.map(mapCustomer);
+      customers.value = firstData.map(mapCustomer).filter(isCustomerActive);
       customerPage.value = 0;
       return;
     }
 
     const totalPages = Number(firstData?.totalPages || 1);
-    let all = [...(firstData?.content || []).map(mapCustomer)];
+    let all = [...(firstData?.content || []).map(mapCustomer).filter(isCustomerActive)];
 
     for (let page = 1; page < totalPages; page++) {
       const res = await listKhachHang(page, 100);
       const data = res?.data ?? res;
-      all = all.concat((data?.content || []).map(mapCustomer));
+      all = all.concat((data?.content || []).map(mapCustomer).filter(isCustomerActive));
     }
 
-    customers.value = all;
+    customers.value = all.filter(isCustomerActive);
     customerPage.value = 0;
   } catch (e) {
     console.error(e);
@@ -2846,6 +2884,10 @@ function closeCustomerModal() {
 async function chooseCustomer(c) {
   const o = activeOrder.value;
   if (!o) return;
+
+  if (!isCustomerActive(c)) {
+    return toastShow("Khách hàng đã tắt hoạt động nên không thể chọn", "warning");
+  }
 
   o.customer = {
     id: c.id,
@@ -5518,7 +5560,7 @@ onBeforeUnmount(() => {
 
 .qr-pay-amount {
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
   color: #dc2626;
 }
@@ -5774,7 +5816,7 @@ onBeforeUnmount(() => {
 .qr-pay-amount {
   font-size: 27px;
   line-height: 1.1;
-  font-weight: 800;
+  font-weight: 700;
   color: #e03131;
   word-break: break-word;
 }
@@ -5991,5 +6033,17 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 1px solid #e5e7eb;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+.customer-pick-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.customer-table tbody tr:has(.customer-pick-btn:disabled) {
+  background: #f8fafc;
+}
+
+.customer-table tbody tr:has(.customer-pick-btn:disabled) td {
+  color: #6b7280;
 }
 </style>
