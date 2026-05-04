@@ -47,10 +47,8 @@
     </div>
 
     <!-- Actions -->
-    <div
-      class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"
-    >
-      <div class="d-flex flex-wrap gap-2">
+    <div class="order-action-bar mb-3">
+      <div class="order-action-group">
         <button
           type="button"
           class="btn btn-primary btn-sm"
@@ -67,46 +65,49 @@
           class="btn btn-outline-danger btn-sm"
           @click="openConfirmCancelModal"
         >
-          <i class="bi bi-x-circle me-1"></i> Huỷ đơn
+          <i class="bi bi-x-circle me-1"></i>
+          Huỷ đơn
+        </button>
+
+        <button
+          v-if="canApproveCancel"
+          type="button"
+          class="btn btn-danger btn-sm"
+          @click="openApproveCancelModal"
+        >
+          <i class="bi bi-check2-circle me-1"></i>
+          Xác nhận hủy
+        </button>
+
+        <button
+          v-if="canRejectCancel"
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          @click="openRejectCancelModal"
+        >
+          <i class="bi bi-arrow-counterclockwise me-1"></i>
+          Từ chối hủy
+        </button>
+
+        <button
+          v-if="canConfirmRefund"
+          type="button"
+          class="btn btn-warning btn-sm"
+          @click="openRefundModal"
+        >
+          <i class="bi bi-cash-coin me-1"></i>
+          Xác nhận hoàn tiền
         </button>
       </div>
-      <button
-        v-if="canApproveCancel"
-        type="button"
-        class="btn btn-danger btn-sm"
-        @click="openApproveCancelModal"
-      >
-        <i class="bi bi-check2-circle me-1"></i>
-        Xác nhận hủy
-      </button>
 
-      <button
-        v-if="canRejectCancel"
-        type="button"
-        class="btn btn-outline-secondary btn-sm"
-        @click="openRejectCancelModal"
-      >
-        <i class="bi bi-arrow-counterclockwise me-1"></i>
-        Từ chối hủy
-      </button>
-
-      <button
-        v-if="canConfirmRefund"
-        type="button"
-        class="btn btn-warning btn-sm"
-        @click="openRefundModal"
-      >
-        <i class="bi bi-cash-coin me-1"></i>
-        Xác nhận hoàn tiền
-      </button>
-
-      <div class="d-flex gap-2">
+      <div class="order-action-group order-action-group--right">
         <button
           type="button"
           class="btn btn-outline-secondary btn-sm"
           @click="openHistoryModal"
         >
-          <i class="bi bi-clock-history me-1"></i> Chi tiết
+          <i class="bi bi-clock-history me-1"></i>
+          Chi tiết
         </button>
 
         <button
@@ -114,7 +115,8 @@
           class="btn btn-outline-success btn-sm"
           @click="openPrintModal"
         >
-          <i class="bi bi-printer me-1"></i> Xuất hóa đơn
+          <i class="bi bi-printer me-1"></i>
+          Xuất hóa đơn
         </button>
       </div>
     </div>
@@ -1649,6 +1651,45 @@ onMounted(async () => {
   font-size: 15px;
 }
 
+
+.order-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e9edf3;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
+.order-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-action-group--right {
+  justify-content: flex-end;
+}
+
+.order-action-bar .btn {
+  min-height: 38px;
+  border-radius: 10px;
+  font-weight: 600;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.order-action-bar .btn-danger {
+  box-shadow: 0 8px 18px rgba(220, 53, 69, 0.18);
+}
+
 /* Info blocks */
 .info-box {
   border: 1px solid #eef1f5;
@@ -2286,7 +2327,25 @@ h6.mb-0 {
     width: 100%;
     text-align: left;
   }
+
+  .order-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .order-action-group,
+  .order-action-group--right {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
+
+@media (max-width: 576px) {
+  .order-action-group .btn {
+    width: 100%;
+  }
+}
+
 .status-gray {
   background: #6c757d !important;
   color: #fff !important;
