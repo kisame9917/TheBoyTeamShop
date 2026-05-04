@@ -2,7 +2,9 @@
   <div class="client-layout">
     <div class="site-header">
       <header class="py-3 border-bottom" style="background-color: #000f51">
-        <div class="container d-flex justify-content-between align-items-center">
+        <div
+          class="container d-flex justify-content-between align-items-center"
+        >
           <div class="logo">
             <router-link to="/" aria-label="Trang chủ">
               <img :src="logoUrl" alt="Logo" class="logo-img" />
@@ -31,72 +33,6 @@
           </div>
 
           <div class="header-icons d-flex gap-3 fs-5 align-items-center">
-            <div v-if="isLoggedIn" class="client-noti-wrap" ref="notificationWrap">
-              <button
-                class="client-noti-trigger text-white position-relative"
-                type="button"
-                aria-label="Thông báo"
-                @click.stop="toggleNotification"
-              >
-                <i class="bi bi-bell"></i>
-                <span
-                  v-if="unreadCount > 0"
-                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger client-noti-badge"
-                >
-                  {{ unreadCount }}
-                </span>
-              </button>
-
-              <div v-if="notificationOpen" class="client-noti-menu">
-                <div class="client-noti-head">
-                  <div class="client-noti-title">Thông báo</div>
-
-                  <button
-                    class="client-noti-read-all"
-                    type="button"
-                    :disabled="notificationsLocal.length === 0 || unreadCount === 0"
-                    @click="markAllRead"
-                  >
-                    Đã đọc tất cả
-                  </button>
-                </div>
-
-                <div v-if="notificationsLocal.length === 0" class="client-noti-empty">
-                  Không có thông báo.
-                </div>
-
-                <ul v-else class="client-noti-list">
-                  <li
-                    v-for="n in notificationsLocal"
-                    :key="n.id"
-                    class="client-noti-item"
-                    :class="{ unread: !n.read }"
-                    @click="openNotification(n)"
-                  >
-                    <div class="client-noti-main">
-                      <div class="client-noti-item-title">
-                        {{ n.title }}
-                      </div>
-
-                      <div class="client-noti-item-time">
-                        {{ n.time }}
-                      </div>
-                    </div>
-
-                    <button
-                      v-if="!n.read"
-                      class="client-noti-mini"
-                      type="button"
-                      title="Đánh dấu đã đọc"
-                      @click.stop="markRead(n.id)"
-                    >
-                      ✓
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
             <div v-if="isLoggedIn" class="user-dd" ref="userWrap">
               <button
                 class="user-btn text-white"
@@ -138,9 +74,89 @@
               </div>
             </div>
 
-            <router-link v-else to="/login" class="text-white" aria-label="Tài khoản">
+            <router-link
+              v-else
+              to="/login"
+              class="text-white"
+              aria-label="Tài khoản"
+            >
               <i class="bi bi-person"></i>
             </router-link>
+
+            <div
+              v-if="isLoggedIn"
+              class="client-noti-wrap"
+              ref="notificationWrap"
+            >
+              <button
+                class="client-noti-trigger text-white position-relative"
+                type="button"
+                aria-label="Thông báo"
+                @click.stop="toggleNotification"
+              >
+                <i class="bi bi-bell"></i>
+                <span
+                  v-if="unreadCount > 0"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger client-noti-badge"
+                >
+                  {{ unreadCount }}
+                </span>
+              </button>
+
+              <div v-if="notificationOpen" class="client-noti-menu">
+                <div class="client-noti-head">
+                  <div class="client-noti-title">Thông báo</div>
+
+                  <button
+                    class="client-noti-read-all"
+                    type="button"
+                    :disabled="
+                      notificationsLocal.length === 0 || unreadCount === 0
+                    "
+                    @click="markAllRead"
+                  >
+                    Đã đọc tất cả
+                  </button>
+                </div>
+
+                <div
+                  v-if="notificationsLocal.length === 0"
+                  class="client-noti-empty"
+                >
+                  Không có thông báo.
+                </div>
+
+                <ul v-else class="client-noti-list">
+                  <li
+                    v-for="n in notificationsLocal"
+                    :key="n.id"
+                    class="client-noti-item"
+                    :class="{ unread: !n.read }"
+                    @click="openNotification(n)"
+                  >
+                    <div class="client-noti-main">
+                      <div class="client-noti-item-title">
+                        {{ n.title }}
+                      </div>
+
+                      <div class="client-noti-item-time">
+                        {{ n.time }}
+                      </div>
+                    </div>
+
+                    <button
+                      v-if="!n.read"
+                      class="client-noti-mini"
+                      type="button"
+                      title="Đánh dấu đã đọc"
+                      @click.stop="markRead(n.id)"
+                    >
+                      ✓
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
 
             <div class="cart-wrap" ref="cartWrap">
               <button
@@ -222,7 +238,12 @@
       <div class="container">
         <div class="row">
           <div class="col-lg-3 col-md-6 mb-4 text-center text-lg-start">
-            <img :src="logoUrl" alt="Logo" class="img-fluid" style="max-height: 100px" />
+            <img
+              :src="logoUrl"
+              alt="Logo"
+              class="img-fluid"
+              style="max-height: 100px"
+            />
           </div>
 
           <div class="col-lg-2 col-md-3 col-6 mb-4 text-white">
@@ -255,7 +276,10 @@
                 </router-link>
               </li>
               <li>
-                <router-link :to="{ name: 'Search', query: { cat: 'vest-nam' } }" class="footer-link">
+                <router-link
+                  :to="{ name: 'Search', query: { cat: 'vest-nam' } }"
+                  class="footer-link"
+                >
                   Vest nam
                 </router-link>
               </li>
@@ -278,22 +302,42 @@
             <h6 class="fw-bold mb-3 text-white">Kết nối</h6>
             <ul class="list-unstyled d-flex gap-3 align-items-center mb-4">
               <li>
-                <a href="#" class="footer-link footer-icon" aria-label="Facebook" @click.prevent>
+                <a
+                  href="#"
+                  class="footer-link footer-icon"
+                  aria-label="Facebook"
+                  @click.prevent
+                >
                   <i class="bi bi-facebook"></i>
                 </a>
               </li>
               <li>
-                <a href="#" class="footer-link footer-icon" aria-label="Instagram" @click.prevent>
+                <a
+                  href="#"
+                  class="footer-link footer-icon"
+                  aria-label="Instagram"
+                  @click.prevent
+                >
                   <i class="bi bi-instagram"></i>
                 </a>
               </li>
               <li>
-                <a href="#" class="footer-link footer-icon" aria-label="YouTube" @click.prevent>
+                <a
+                  href="#"
+                  class="footer-link footer-icon"
+                  aria-label="YouTube"
+                  @click.prevent
+                >
                   <i class="bi bi-youtube"></i>
                 </a>
               </li>
               <li>
-                <a href="#" class="footer-link footer-icon" aria-label="TikTok" @click.prevent>
+                <a
+                  href="#"
+                  class="footer-link footer-icon"
+                  aria-label="TikTok"
+                  @click.prevent
+                >
                   <i class="bi bi-tiktok"></i>
                 </a>
               </li>
@@ -307,14 +351,15 @@
                 </span>
               </li>
               <li>
-                <span class="payment-badge" title="Thẻ nội địa / Internet Banking">
+                <span
+                  class="payment-badge"
+                  title="Thẻ nội địa / Internet Banking"
+                >
                   ATM
                 </span>
               </li>
               <li>
-                <span class="payment-badge" title="Visa">
-                  VISA
-                </span>
+                <span class="payment-badge" title="Visa"> VISA </span>
               </li>
             </ul>
           </div>
@@ -364,11 +409,7 @@
             Hủy
           </button>
 
-          <button
-            type="button"
-            class="btn-confirm-logout"
-            @click="logout"
-          >
+          <button type="button" class="btn-confirm-logout" @click="logout">
             Đăng xuất
           </button>
         </div>
@@ -378,13 +419,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import CartMiniModal from '../components/cart/CartMiniModal.vue';
-import CartAddedToast from '../components/common/CartAddedToast.vue';
-import { useCart } from '../composables/useCart';
-import { getSiteLogoUrl, resolveMediaUrl } from '../utils/media';
-import { CART_ADDED_EVENT } from '../services/cartService';
+import { computed, onMounted, onBeforeUnmount, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import CartMiniModal from "../components/cart/CartMiniModal.vue";
+import CartAddedToast from "../components/common/CartAddedToast.vue";
+import { useCart } from "../composables/useCart";
+import { getSiteLogoUrl, resolveMediaUrl } from "../utils/media";
+import { CART_ADDED_EVENT } from "../services/cartService";
 import { useNotificationStore } from "../stores/notification";
 
 const router = useRouter();
@@ -414,21 +455,21 @@ function goToCart() {
   closeCart();
   notificationOpen.value = false;
   cartToast.value.open = false;
-  router.push({ name: 'Cart' });
+  router.push({ name: "Cart" });
 }
 
 function checkout() {
   closeCart();
   notificationOpen.value = false;
-  router.push({ name: 'Checkout' });
+  router.push({ name: "Checkout" });
 }
 
-const keyword = ref('');
+const keyword = ref("");
 const logoUrl = computed(() => getSiteLogoUrl());
 
 const discountRoute = computed(() => {
   try {
-    const route = { name: 'Discount' };
+    const route = { name: "Discount" };
     const resolved = router.resolve(route);
 
     if (resolved?.matched?.length) {
@@ -436,58 +477,63 @@ const discountRoute = computed(() => {
     }
   } catch {}
 
-  return { name: 'Search', query: { cat: 'giam-gia' } };
+  return { name: "Search", query: { cat: "giam-gia" } };
 });
 
 const isShopActive = computed(() => {
-  return route.path === '/' || route.path === '/shop' || route.name === 'Home' || route.name === 'Shop';
+  return (
+    route.path === "/" ||
+    route.path === "/shop" ||
+    route.name === "Home" ||
+    route.name === "Shop"
+  );
 });
 
 const isVestNamActive = computed(() => {
-  return route.name === 'Search' && route.query?.cat === 'vest-nam';
+  return route.name === "Search" && route.query?.cat === "vest-nam";
 });
 
 const isDiscountActive = computed(() => {
   return (
-    route.name === 'Discount' ||
-    route.path === '/discount' ||
-    (route.name === 'Search' && route.query?.cat === 'giam-gia')
+    route.name === "Discount" ||
+    route.path === "/discount" ||
+    (route.name === "Search" && route.query?.cat === "giam-gia")
   );
 });
 
 const isContactActive = computed(() => {
-  return route.name === 'Contact';
+  return route.name === "Contact";
 });
 
 const isOrderLookupActive = computed(() => {
-  return route.name === 'OrderLookup';
+  return route.name === "OrderLookup";
 });
 
 function doSearch() {
   const q = keyword.value.trim();
-  router.push({ name: 'Search', query: q ? { q } : {} });
+  router.push({ name: "Search", query: q ? { q } : {} });
 }
 
 const userMenuOpen = ref(false);
 const userWrap = ref(null);
 const isLoggedIn = ref(false);
-const userName = ref('Khách hàng');
+const userName = ref("Khách hàng");
 const logoutConfirmOpen = ref(false);
 
 function syncAuth() {
   const token =
-    localStorage.getItem('USER_ACCESS_TOKEN') ||
-    sessionStorage.getItem('USER_ACCESS_TOKEN') ||
-    localStorage.getItem('vest_token') ||
-    sessionStorage.getItem('vest_token');
+    localStorage.getItem("USER_ACCESS_TOKEN") ||
+    sessionStorage.getItem("USER_ACCESS_TOKEN") ||
+    localStorage.getItem("vest_token") ||
+    sessionStorage.getItem("vest_token");
 
   isLoggedIn.value = !!token;
 
   userName.value =
-    localStorage.getItem('USER_NAME') ||
-    sessionStorage.getItem('USER_NAME') ||
+    localStorage.getItem("USER_NAME") ||
+    sessionStorage.getItem("USER_NAME") ||
     getNameFromVestUser() ||
-    'Khách hàng';
+    "Khách hàng";
 }
 
 function initNotification() {
@@ -501,10 +547,9 @@ function initNotification() {
 
 function getNameFromVestUser() {
   const raw =
-    localStorage.getItem('vest_user') ||
-    sessionStorage.getItem('vest_user');
+    localStorage.getItem("vest_user") || sessionStorage.getItem("vest_user");
 
-  if (!raw) return '';
+  if (!raw) return "";
 
   try {
     const user = JSON.parse(raw);
@@ -514,10 +559,10 @@ function getNameFromVestUser() {
       user?.fullName ||
       user?.name ||
       user?.email ||
-      ''
+      ""
     );
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -558,13 +603,13 @@ function toggleUserMenu() {
 function openProfile() {
   userMenuOpen.value = false;
   notificationOpen.value = false;
-  router.push({ name: 'ClientProfile' });
+  router.push({ name: "ClientProfile" });
 }
 
 function openMyOrders() {
   userMenuOpen.value = false;
   notificationOpen.value = false;
-  router.push({ name: 'MyOrders' });
+  router.push({ name: "MyOrders" });
 }
 
 function openLogoutConfirm() {
@@ -601,7 +646,7 @@ function removeStorageKeysByKeyword(storage, keywords) {
 
   for (let i = 0; i < storage.length; i += 1) {
     const key = storage.key(i);
-    const lowerKey = key ? key.toLowerCase() : '';
+    const lowerKey = key ? key.toLowerCase() : "";
 
     if (key && keywords.some((keyword) => lowerKey.includes(keyword))) {
       keysToRemove.push(key);
@@ -613,18 +658,18 @@ function removeStorageKeysByKeyword(storage, keywords) {
 
 function clearClientAuthStorage() {
   const authKeys = [
-    'USER_ACCESS_TOKEN',
-    'USER_NAME',
-    'USER_ID',
-    'USER_EMAIL',
-    'USER_ROLE',
-    'vest_user',
-    'vest_token',
-    'vest_role',
-    'accessToken',
-    'refreshToken',
-    'token',
-    'user',
+    "USER_ACCESS_TOKEN",
+    "USER_NAME",
+    "USER_ID",
+    "USER_EMAIL",
+    "USER_ROLE",
+    "vest_user",
+    "vest_token",
+    "vest_role",
+    "accessToken",
+    "refreshToken",
+    "token",
+    "user",
   ];
 
   removeStorageKeys(localStorage, authKeys);
@@ -633,32 +678,32 @@ function clearClientAuthStorage() {
 
 function clearChatConversationStorage() {
   const chatKeys = [
-    'conversationId',
-    'conversation_id',
-    'chatConversationId',
-    'chat_conversation_id',
-    'CLIENT_CHAT_CONVERSATION_ID',
-    'clientChatConversationId',
+    "conversationId",
+    "conversation_id",
+    "chatConversationId",
+    "chat_conversation_id",
+    "CLIENT_CHAT_CONVERSATION_ID",
+    "clientChatConversationId",
   ];
 
   const prefixes = [
-    'conversationId:',
-    'conversation_id:',
-    'chatConversationId:',
-    'chat_conversation_id:',
-    'CLIENT_CHAT_CONVERSATION_ID:',
-    'clientChatConversationId:',
+    "conversationId:",
+    "conversation_id:",
+    "chatConversationId:",
+    "chat_conversation_id:",
+    "CLIENT_CHAT_CONVERSATION_ID:",
+    "clientChatConversationId:",
   ];
 
   const keywords = [
-    'conversationid',
-    'conversation_id',
-    'chatconversation',
-    'chat_conversation',
-    'client_chat_conversation',
-    'clientchatconversation',
-    'convoid',
-    'convo_id',
+    "conversationid",
+    "conversation_id",
+    "chatconversation",
+    "chat_conversation",
+    "client_chat_conversation",
+    "clientchatconversation",
+    "convoid",
+    "convo_id",
   ];
 
   removeStorageKeys(localStorage, chatKeys);
@@ -688,10 +733,10 @@ function logout() {
 
   syncAuth();
 
-  window.dispatchEvent(new Event('auth-changed'));
-  window.dispatchEvent(new Event('cart-changed'));
+  window.dispatchEvent(new Event("auth-changed"));
+  window.dispatchEvent(new Event("cart-changed"));
 
-  router.push({ name: 'Home' });
+  router.push({ name: "Home" });
 }
 
 function handleClickOutside(e) {
@@ -715,8 +760,8 @@ function handleStorageChange() {
 
 const cartToast = ref({
   open: false,
-  itemName: '',
-  image: '',
+  itemName: "",
+  image: "",
   qty: 1,
 });
 
@@ -728,8 +773,10 @@ function handleCartAdded(event) {
 
   cartToast.value = {
     open: true,
-    itemName: item.name || item.tenSanPham || 'Sản phẩm',
-    image: resolveMediaUrl(item.image || item.imageUrl || item.anh || item.hinhAnh || ''),
+    itemName: item.name || item.tenSanPham || "Sản phẩm",
+    image: resolveMediaUrl(
+      item.image || item.imageUrl || item.anh || item.hinhAnh || "",
+    ),
     qty: Math.max(1, Number(detail.qtyAdded || 1) || 1),
   };
 
@@ -746,14 +793,14 @@ onMounted(() => {
   syncAuth();
   initNotification();
 
-  document.addEventListener('click', handleClickOutside);
-  window.addEventListener('storage', handleStorageChange);
+  document.addEventListener("click", handleClickOutside);
+  window.addEventListener("storage", handleStorageChange);
   window.addEventListener(CART_ADDED_EVENT, handleCartAdded);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
-  window.removeEventListener('storage', handleStorageChange);
+  document.removeEventListener("click", handleClickOutside);
+  window.removeEventListener("storage", handleStorageChange);
   window.removeEventListener(CART_ADDED_EVENT, handleCartAdded);
 
   notificationStore.disconnect?.();
