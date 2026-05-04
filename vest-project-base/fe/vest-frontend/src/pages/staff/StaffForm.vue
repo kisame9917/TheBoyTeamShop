@@ -3,7 +3,7 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-person-badge fs-4"></i>
-        <h5 class="mb-0">{{ isEdit ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h5>
+        <h5 class="mb-0" style="font-weight: 800">{{ isEdit ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h5>
       </div>
 
       <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
@@ -102,7 +102,7 @@
               <input
                   class="form-control"
                   v-model="form.soDienThoai"
-                  placeholder="VD: 0912345678"
+
                   inputmode="numeric"
                   maxlength="10"
                   @input="form.soDienThoai = normalizePhoneInput(form.soDienThoai)"
@@ -115,7 +115,7 @@
                   class="form-control"
                   type="text"
                   v-model="form.email"
-                  placeholder="VD: abc@gmail.com"
+
               />
             </div>
 
@@ -174,7 +174,7 @@
 
             <div class="col-12 col-lg-6">
               <label class="form-label">Tên đường</label>
-              <input class="form-control" v-model="addr.detail" placeholder="Số nhà, tên đường..." />
+              <input class="form-control" v-model="addr.detail"/>
             </div>
 
             <div class="col-12 col-lg-6">

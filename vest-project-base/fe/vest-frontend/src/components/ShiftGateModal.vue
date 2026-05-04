@@ -62,9 +62,9 @@
                   :disabled="opening"
                   @input="onTienMatInput"
               />
-<!--              <div class="form-text" v-if="expectedCash !== null">-->
-<!--                Số dự kiến từ ca trước: <b>{{ money(expectedCash) }}</b>-->
-<!--              </div>-->
+              <div class="form-text" v-if="expectedCash !== null">
+                Số dự kiến từ ca trước: <b>{{ money(expectedCash) }}</b>
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label mb-1">Tiền tài khoản đầu ca</label>
@@ -76,9 +76,9 @@
                   :disabled="opening"
                   @input="onTienTaiKhoanInput"
               />
-<!--              <div class="form-text" v-if="expectedTransfer !== null">-->
-<!--                Số dự kiến từ ca trước: <b>{{ money(expectedTransfer) }}</b>-->
-<!--              </div>-->
+              <div class="form-text" v-if="expectedTransfer !== null">
+                Số dự kiến từ ca trước: <b>{{ money(expectedTransfer) }}</b>
+              </div>
               <div v-if="errorMsg" class="text-danger small mt-1">{{ errorMsg }}</div>
             </div>
           </div>
@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useShiftStore } from "@/stores/shift";
@@ -117,7 +117,6 @@ const shift = useShiftStore();
 
 const visible = computed(() => auth.isStaff && shift.gateOpen && !shift.checking);
 
-
 const opening = ref(false);
 const tienMatDauCa = ref(0);
 const tienTaiKhoanDauCa = ref(0);
@@ -125,9 +124,65 @@ const tienMatDauCaText = ref("0");
 const tienTaiKhoanDauCaText = ref("0");
 const errorMsg = ref("");
 
-const subtitle = computed(() => {
-  if (shift.gateReason === "NEED_CLOSE") return "Bạn cần kết toán ca trước khi tiếp tục";
-  return "Vui lòng xác nhận vào ca làm việc";
+const countdownSeconds = ref(0);
+const countdownHadSource = ref(false);
+let countdownTimer = null;
+
+function readCountdownSeconds() {
+  const raw = shift.caInfo?.secondsToStart ?? shift.caInfo?.secondsToOpen;
+  const sec = Number(raw);
+  if (!Number.isFinite(sec)) return 0;
+  return Math.max(0, Math.ceil(sec));
+}
+
+function resetCountdown() {
+  countdownSeconds.value = readCountdownSeconds();
+  countdownHadSource.value =
+      shift.caInfo?.secondsToStart !== undefined ||
+      shift.caInfo?.secondsToOpen !== undefined;
+}
+
+function stopCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+}
+
+function startCountdown() {
+  stopCountdown();
+  resetCountdown();
+
+  if (!visible.value) return;
+
+  countdownTimer = setInterval(() => {
+    if (countdownSeconds.value > 0) {
+      countdownSeconds.value -= 1;
+    } else {
+      countdownSeconds.value = 0;
+    }
+  }, 1000);
+}
+
+watch(
+    () => [
+      visible.value,
+      shift.caInfo?.secondsToStart,
+      shift.caInfo?.secondsToOpen,
+      shift.gateOpen,
+    ],
+    ([isVisible]) => {
+      if (isVisible) {
+        startCountdown();
+      } else {
+        stopCountdown();
+      }
+    },
+    { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  stopCountdown();
 });
 
 function parseMoneyInput(value) {
@@ -154,14 +209,21 @@ function onTienTaiKhoanInput(event) {
   event.target.value = tienTaiKhoanDauCaText.value;
 }
 
-const staffName = computed(() => shift.caInfo?.tenNhanVien || auth.user?.tenNhanVien || auth.user?.taiKhoan || "Nhân viên");
-const staffCode = computed(() => shift.caInfo?.maNhanVien || auth.user?.id || auth.user?.maNhanVien || "");
+const staffName = computed(() => {
+  return shift.caInfo?.tenNhanVien || auth.user?.tenNhanVien || auth.user?.taiKhoan || "Nhân viên";
+});
+
+const staffCode = computed(() => {
+  return shift.caInfo?.maNhanVien || auth.user?.id || auth.user?.maNhanVien || "";
+});
 
 const serverNowText = computed(() => {
   const v = shift.caInfo?.serverNow || shift.caInfo?.now;
   if (!v) return "";
+
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return String(v);
+
   return new Intl.DateTimeFormat("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
@@ -174,39 +236,52 @@ const serverNowText = computed(() => {
 });
 
 const countdownText = computed(() => {
-  const sec = Number(shift.caInfo?.secondsToStart ?? shift.caInfo?.secondsToOpen ?? 0);
+  const sec = Number(countdownSeconds.value || 0);
   if (!Number.isFinite(sec) || sec <= 0) return "";
+
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = Math.floor(sec % 60);
+
   return `Bắt đầu sau ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 });
 
-const hintText = computed(() => {
-  // Ưu tiên message từ BE (nếu có)
-  const msg = shift.caInfo?.message || shift.caInfo?.thongBao;
-  if (msg) return String(msg);
+const allowOpen = computed(() => {
+  if (shift.caInfo?.coLichPhanCong === false) return false;
 
+  const v = shift.caInfo?.allowOpen ?? shift.caInfo?.canOpen ?? shift.caInfo?.duocMoCa;
+
+  if (v === undefined) return true;
+  if (v) return true;
+
+  return countdownHadSource.value && countdownSeconds.value <= 0;
+});
+
+const hintText = computed(() => {
   const hasSchedule = shift.caInfo?.coLichPhanCong;
-  if (hasSchedule === false) return "Bạn không có lịch phân công. Bạn chỉ có thể vào chế độ xem.";
-  if (!allowOpen.value) return "Chưa tới ca. Bạn có thể vào chế độ xem để tham khảo.";
+  if (hasSchedule === false) {
+    return "Bạn không có lịch phân công. Bạn chỉ có thể vào chế độ xem.";
+  }
+
+  if (!allowOpen.value) {
+    const msg = shift.caInfo?.message || shift.caInfo?.thongBao;
+    return msg ? String(msg) : "Chưa tới ca. Bạn có thể vào chế độ xem để tham khảo.";
+  }
+
   return "";
 });
 
-const caName = computed(() => shift.caInfo?.tenCa || shift.caInfo?.caTen || shift.caInfo?.name || "Ca làm việc");
+const caName = computed(() => {
+  return shift.caInfo?.tenCa || shift.caInfo?.caTen || shift.caInfo?.name || "Ca làm việc";
+});
 
 const timeRange = computed(() => {
   const s = shift.caInfo?.startAt || shift.caInfo?.gioBatDau || shift.caInfo?.batDau;
   const e = shift.caInfo?.endAt || shift.caInfo?.gioKetThuc || shift.caInfo?.ketThuc;
-  if (!s || !e) return "";
-  return `${fmtTime(s)} - ${fmtTime(e)}`;
-});
 
-const allowOpen = computed(() => {
-  // ✅ Không có lịch phân công thì tuyệt đối không cho vào ca
-  if (shift.caInfo?.coLichPhanCong === false) return false;
-  const v = shift.caInfo?.allowOpen ?? shift.caInfo?.canOpen ?? shift.caInfo?.duocMoCa;
-  return v === undefined ? true : !!v;
+  if (!s || !e) return "";
+
+  return `${fmtTime(s)} - ${fmtTime(e)}`;
 });
 
 const expectedCash = computed(() => {
@@ -215,7 +290,9 @@ const expectedCash = computed(() => {
       shift.caInfo?.tienMatDuKien ??
       shift.caInfo?.soTienMatDauCaDuKien ??
       shift.caInfo?.duKienTienMat;
+
   if (v === undefined || v === null || v === "") return null;
+
   return Number(v);
 });
 
@@ -225,7 +302,9 @@ const expectedTransfer = computed(() => {
       shift.caInfo?.tienTaiKhoanDuKien ??
       shift.caInfo?.soTienTaiKhoanDauCaDuKien ??
       shift.caInfo?.duKienTienTaiKhoan;
+
   if (v === undefined || v === null || v === "") return null;
+
   return Number(v);
 });
 
@@ -253,23 +332,34 @@ function money(v) {
 
 function fmtTime(v) {
   if (v === null || v === undefined) return "";
+
   if (typeof v === "string") {
-    // LocalTime: HH:mm:ss
     if (/^\d{2}:\d{2}/.test(v)) return v.slice(0, 5);
-    // ISO datetime
+
     if (v.includes("T")) {
       const d = new Date(v);
       if (!Number.isNaN(d.getTime())) {
-        return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
+        return new Intl.DateTimeFormat("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(d);
       }
     }
+
     return v;
   }
-  // Date
+
   const d = new Date(v);
+
   if (!Number.isNaN(d.getTime())) {
-    return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
+    return new Intl.DateTimeFormat("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(d);
   }
+
   return String(v);
 }
 
@@ -285,9 +375,9 @@ function gotoHandover() {
 
 async function confirmOpen() {
   if (!allowOpen.value) return;
+
   errorMsg.value = "";
 
-  // validate tiền tài khoản đầu ca phải khớp ca trước
   if (expectedCash.value !== null) {
     const input = Number(tienMatDauCa.value || 0);
     const exp = Number(expectedCash.value || 0);
@@ -310,17 +400,18 @@ async function confirmOpen() {
 
   try {
     opening.value = true;
+
     await shift.openShift({
       tienMatDauCa: Number(tienMatDauCa.value || 0),
       tienTaiKhoanDauCa: Number(tienTaiKhoanDauCa.value || 0),
     });
   } catch (e) {
-    // ✅ hiện lỗi để user biết vì sao không vào ca được
     const msg =
         e?.response?.data?.message ||
         e?.response?.data?.error ||
         e?.message ||
         "Không thể vào ca. Vui lòng thử lại.";
+
     errorMsg.value = String(msg);
   } finally {
     opening.value = false;

@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="d-flex align-items-center gap-2">
-        <h5 class="mb-0">Thêm phiếu giảm giá</h5>
+        <h5 class="mb-0" style="font-weight: 800">Thêm phiếu giảm giá</h5>
       </div>
 
       <button class="btn btn-outline-secondary btn-sm" @click="goBack">

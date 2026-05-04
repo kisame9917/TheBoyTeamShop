@@ -24,11 +24,18 @@
             <table class="table align-middle mb-0 cart-table">
               <thead>
               <tr>
+                <th class="cart-head cart-check-head ps-4 py-3 text-center">
+                  <input
+                      class="cart-checkbox"
+                      type="checkbox"
+                      :checked="isAllSelected"
+                      @change="toggleSelectAll"
+                      aria-label="Chọn tất cả sản phẩm"
+                  />
+                </th>
                 <th class="cart-head px-4 py-3">Sản phẩm</th>
                 <th class="cart-head py-3 text-center">Số lượng</th>
-                <th class="cart-head py-3 text-center">
-<!--                  <i class="bi bi-trash3"></i>-->
-                </th>
+                <th class="cart-head py-3 text-center"></th>
                 <th class="cart-head py-3 text-end">Đơn giá</th>
                 <th class="cart-head px-4 py-3 text-end">Tổng tiền</th>
               </tr>
@@ -36,6 +43,15 @@
 
               <tbody v-if="items.length">
               <tr v-for="it in items" :key="it.key" class="cart-row">
+                <td class="ps-4 py-3 text-center cart-check-cell">
+                  <input
+                      class="cart-checkbox"
+                      type="checkbox"
+                      :checked="selectedKeys.includes(it.key)"
+                      @change="toggleSelectItem(it.key)"
+                      :aria-label="`Chọn ${it.name}`"
+                  />
+                </td>
                 <td class="px-4 py-3">
                   <div class="d-flex gap-3 align-items-center">
                     <div class="cart-img-wrap">
@@ -97,18 +113,18 @@
                 </td>
 
                 <td class="py-3 text-end fw-semibold cart-price">
-                  {{ formatMoney(it.price) }} đ
+                  <span class="money-text">{{ formatMoney(it.price) }} đ</span>
                 </td>
 
                 <td class="px-4 py-3 text-end fw-bold cart-total">
-                  {{ formatMoney((Number(it.price) || 0) * (Number(it.qty) || 0)) }} đ
+                  <span class="money-text">{{ formatMoney((Number(it.price) || 0) * (Number(it.qty) || 0)) }} đ</span>
                 </td>
               </tr>
               </tbody>
 
               <tbody v-else>
               <tr>
-                <td class="px-4 py-5 text-center text-muted cart-empty" colspan="5">
+                <td class="px-4 py-5 text-center text-muted cart-empty" colspan="6">
                   <div class="cart-empty__icon">
                     <i class="bi bi-bag-x"></i>
                   </div>
@@ -133,7 +149,7 @@
 
         <div class="cart-actions mt-4">
           <button class="btn-continue" type="button" @click="goShopping">
-            TIẾP TỤC MUA HÀNG
+            Tiếp tục mua hàng
           </button>
 
 <!--          <button class="btn-checkout" type="button" :disabled="!items.length" @click="checkout">-->
@@ -144,29 +160,29 @@
 
       <div class="col-lg-4">
         <div class="summary-card">
-          <div class="summary-card__head">TÓM TẮT ĐƠN HÀNG</div>
+          <div class="summary-card__head text-center">Tóm tắt đơn hàng</div>
 
           <div class="summary-card__body">
             <div class="sum-row">
               <span>Tổng sản phẩm</span>
-              <strong>{{ totalQty }}</strong>
+              <strong>{{ selectedTotalQty }}</strong>
             </div>
 
             <div class="sum-row">
               <span>Tạm tính</span>
-              <strong>{{ formatMoney(subtotal) }} đ</strong>
+              <strong>{{ formatMoney(selectedSubtotal) }} đ</strong>
             </div>
 
             <div class="sum-row total">
               <span>Thành tiền</span>
-              <strong class="sum-amount">{{ formatMoney(subtotal) }} đ</strong>
+              <strong class="sum-amount">{{ formatMoney(selectedSubtotal) }} đ</strong>
             </div>
 
             <div class="summary-note">
               Giá chưa bao gồm các ưu đãi hoặc phí phát sinh khác nếu có.
             </div>
 
-            <button class="summary-btn" type="button" :disabled="!items.length" @click="checkout">
+            <button class="summary-btn" type="button" :disabled="!selectedItems.length" @click="checkout">
               Tiến hành đặt hàng
             </button>
           </div>
@@ -242,7 +258,7 @@
 </template>
 
 <script setup>
-import { ref , onMounted } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useCart } from "../../composables/useCart";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
@@ -256,13 +272,54 @@ import {
 import { pickProductImage, resolveMediaUrl } from "../../utils/media";
 import ChatWidget from '../../components/ClientChatWidget.vue';
 const router = useRouter();
-const { items, totalQty, subtotal, removeItem, updateQty } = useCart();
+const { items, totalQty, removeItem, updateQty } = useCart();
+
+const selectedKeys = ref([]);
+const selectionInitialized = ref(false);
+
+const selectedItems = computed(() => {
+  const keySet = new Set(selectedKeys.value.map((key) => String(key)));
+  return items.value.filter((item) => keySet.has(String(item.key)));
+});
+
+const selectedTotalQty = computed(() =>
+    selectedItems.value.reduce((sum, item) => sum + Number(item.qty || 0), 0),
+);
+
+const selectedSubtotal = computed(() =>
+    selectedItems.value.reduce(
+        (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
+        0,
+    ),
+);
+
+const isAllSelected = computed(() =>
+    items.value.length > 0 && selectedKeys.value.length === items.value.length,
+);
 
 const confirmOpen = ref(false);
 const pendingKey = ref(null);
 const relatedProducts = ref([]);
 const fallbackImage =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23f1f3f5'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%2399a1aa' font-size='18'%3EProduct%3C/text%3E%3C/svg%3E";
+
+watch(
+    items,
+    (nextItems) => {
+      const itemKeys = nextItems.map((item) => String(item.key));
+
+      if (!selectionInitialized.value) {
+        selectedKeys.value = itemKeys;
+        selectionInitialized.value = true;
+        return;
+      }
+
+      const currentSet = new Set(selectedKeys.value.map((key) => String(key)));
+      selectedKeys.value = itemKeys.filter((key) => currentSet.has(key));
+    },
+    { immediate: true },
+);
+
 onMounted(async () => {
   try {
     const data = await getProducts({ page: 0, size: 12 });
@@ -343,6 +400,28 @@ onMounted(async () => {
     relatedProducts.value = [];
   }
 });
+
+function toggleSelectItem(itemKey) {
+  const key = String(itemKey);
+  const currentSet = new Set(selectedKeys.value.map((value) => String(value)));
+
+  if (currentSet.has(key)) {
+    selectedKeys.value = selectedKeys.value.filter((value) => String(value) !== key);
+    return;
+  }
+
+  selectedKeys.value = [...selectedKeys.value, itemKey];
+}
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedKeys.value = [];
+    return;
+  }
+
+  selectedKeys.value = items.value.map((item) => item.key);
+}
+
 function askRemove(it) {
   pendingKey.value = it?.key || it?.idSanPhamChiTiet || null;
   confirmOpen.value = true;
@@ -371,7 +450,17 @@ function goShopping() {
 }
 
 function checkout() {
-  router.push({ name: "Checkout" });
+  if (!selectedItems.value.length) {
+    window.alert("Vui lòng chọn ít nhất 1 sản phẩm để đặt hàng");
+    return;
+  }
+
+  router.push({
+    name: "Checkout",
+    query: {
+      selected: JSON.stringify(selectedItems.value.map((item) => item.key)),
+    },
+  });
 }
 </script>
 
@@ -390,7 +479,7 @@ function checkout() {
 }
 
 .cart-title {
-  font-weight: 750;
+  font-weight: 800;
   letter-spacing: 0.4px;
   color: #0f172a;
   margin: 0;
@@ -428,6 +517,17 @@ function checkout() {
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
+}
+.cart-check-head,
+.cart-check-cell {
+  width: 52px;
+}
+
+.cart-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0f2f98;
 }
 
 .cart-table thead tr {
@@ -561,8 +661,25 @@ function checkout() {
 
 .cart-price {
   color: #334155;
+  white-space: nowrap;
 }
 
+.cart-total {
+  color: #000f51;
+  font-size: 1.04rem;
+  white-space: nowrap;
+}
+
+.money-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.qty,
+.cart-price,
+.cart-total {
+  min-width: 118px;
+}
 .cart-total {
   color: #000f51;
   font-size: 1.04rem;

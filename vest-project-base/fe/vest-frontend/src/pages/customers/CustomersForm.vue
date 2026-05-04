@@ -42,7 +42,7 @@
             <input
                 class="form-input"
                 v-model="form.tenKhachHang"
-                placeholder="Nhập tên khách hàng"
+
                 :disabled="isViewLocked"
             />
           </div>
@@ -53,7 +53,7 @@
             <input
                 class="form-input"
                 v-model="form.soDienThoai"
-                placeholder="VD: 0912345678"
+
                 inputmode="numeric"
                 maxlength="10"
                 @input="form.soDienThoai = normalizePhoneInput(form.soDienThoai)"
@@ -67,7 +67,7 @@
                 class="form-input"
                 type="email"
                 v-model="form.email"
-                placeholder="VD: abc@gmail.com"
+
                 :disabled="isViewLocked"
             />
           </div>
@@ -1369,7 +1369,7 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   padding: 12px 14px;
 }
-.addr-head-title{ font-weight: 800; color: #0d6efd; }
+.addr-head-title{ font-weight: 750; color: #0d6efd; }
 .addr-head-sub{ font-size: 13px; color: #5b6b6b; margin-top: 2px; }
 .btn-add-addr{
   height: 36px;
@@ -1379,7 +1379,7 @@ onBeforeUnmount(() => {
   background: #10b981;
   color:#fff;
   cursor:pointer;
-  font-weight:800;
+  font-weight:750;
 }
 .btn-add-addr:disabled{ opacity:.6; cursor:not-allowed; }
 
