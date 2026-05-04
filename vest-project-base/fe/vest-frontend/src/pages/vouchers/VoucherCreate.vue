@@ -843,7 +843,7 @@ function validate() {
   if (!isNum(form.value.giaTriGiam) || form.value.giaTriGiam < 1) return "Giá trị giảm phải >= 1";
 
   if (form.value.loaiGiam) {
-    if (form.value.giaTriGiam > 100) return "Giảm % tối đa 100";
+    if (form.value.giaTriGiam > 99) return "Giá trị giảm phải <= 99";
     if (!isNum(form.value.giaTriGiamToiDa) || form.value.giaTriGiamToiDa <= 0) return "Giảm tối đa phải > 0";
   }
 
