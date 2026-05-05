@@ -36,4 +36,8 @@ public class LichSuHoaDon {
     @Column(name="trang_thai", nullable=false)
     private Boolean trangThai;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="id_nhan_vien")
+    private NhanVien nhanVien;
+
 }

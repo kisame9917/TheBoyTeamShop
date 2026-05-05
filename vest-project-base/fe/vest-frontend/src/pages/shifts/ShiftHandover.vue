@@ -169,20 +169,22 @@
                       <label class="form-label mb-1">Tiền mặt</label>
                       <input
                           class="form-control"
-                          type="number"
+                          type="text"
                           inputmode="numeric"
-                          v-model.number="tienMatThucTe"
+                          :value="tienMatThucTeText"
                           :disabled="isLocked"
+                          @input="onTienMatThucTeInput"
                       />
                     </div>
                     <div class="col-12">
                       <label class="form-label mb-1">Chuyển khoản</label>
                       <input
                           class="form-control"
-                          type="number"
+                          type="text"
                           inputmode="numeric"
-                          v-model.number="tienTaiKhoanThucTe"
+                          :value="tienTaiKhoanThucTeText"
                           :disabled="isLocked"
+                          @input="onTienTaiKhoanThucTeInput"
                       />
                     </div>
                   </div>
@@ -228,6 +230,8 @@ const submitting = ref(false);
 const phien = ref(null);
 const tienMatThucTe = ref(0);
 const tienTaiKhoanThucTe = ref(0);
+const tienMatThucTeText = ref("0");
+const tienTaiKhoanThucTeText = ref("0");
 
 // ADMIN
 const adminRows = ref([]);
@@ -257,6 +261,32 @@ function resetFilters() {
 function money(v) {
   const n = Number(v || 0);
   return new Intl.NumberFormat("vi-VN").format(n) + " đ";
+}
+
+function onlyDigits(value) {
+  return String(value ?? "").replace(/[^\d]/g, "");
+}
+
+function formatMoneyInput(value) {
+  return Number(value || 0).toLocaleString("vi-VN");
+}
+
+function onTienMatThucTeInput(event) {
+  const raw = onlyDigits(event.target.value);
+  const value = raw ? Number(raw) : 0;
+
+  tienMatThucTe.value = value;
+  tienMatThucTeText.value = raw ? formatMoneyInput(value) : "";
+  event.target.value = tienMatThucTeText.value;
+}
+
+function onTienTaiKhoanThucTeInput(event) {
+  const raw = onlyDigits(event.target.value);
+  const value = raw ? Number(raw) : 0;
+
+  tienTaiKhoanThucTe.value = value;
+  tienTaiKhoanThucTeText.value = raw ? formatMoneyInput(value) : "";
+  event.target.value = tienTaiKhoanThucTeText.value;
 }
 
 function fmtDt(v) {
@@ -289,10 +319,15 @@ async function loadStaff() {
 
     tienMatThucTe.value = Number(phien.value?.tienMatThucTe || 0);
     tienTaiKhoanThucTe.value = Number(phien.value?.tienTaiKhoanThucTe || 0);
+
+    tienMatThucTeText.value = formatMoneyInput(tienMatThucTe.value);
+    tienTaiKhoanThucTeText.value = formatMoneyInput(tienTaiKhoanThucTe.value);
   } catch {
     phien.value = null;
     tienMatThucTe.value = 0;
     tienTaiKhoanThucTe.value = 0;
+    tienMatThucTeText.value = "0";
+    tienTaiKhoanThucTeText.value = "0";
   } finally {
     loading.value = false;
   }

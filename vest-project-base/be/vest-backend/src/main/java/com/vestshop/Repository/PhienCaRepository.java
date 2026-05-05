@@ -18,6 +18,8 @@ public interface PhienCaRepository extends JpaRepository<PhienCa, Long> {
 
     Optional<PhienCa> findFirstByNhanVien_IdAndTrangThaiOrderByThoiGianDongDesc(Long nhanVienId, Integer trangThai);
 
+    Optional<PhienCa> findFirstByTrangThaiOrderByThoiGianDongDesc(Integer trangThai);
+
     @Query("""
         select p
         from PhienCa p

@@ -97,6 +97,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         );
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
+        attachHistoryNhanVien(ls, nv);
         lichSuHoaDonRepository.save(ls);
 
         return buildDetail(hoaDon);
@@ -117,6 +118,11 @@ public class HoaDonServiceImpl implements HoaDonService {
     private String currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return (auth != null && auth.isAuthenticated()) ? auth.getName() : "system";
+    }
+
+    private void attachHistoryNhanVien(LichSuHoaDon lichSu, NhanVien nhanVien) {
+        if (lichSu == null) return;
+        lichSu.setNhanVien(nhanVien);
     }
 
     @Transactional
@@ -331,6 +337,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         );
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
+        attachHistoryNhanVien(ls, nv);
         lichSuHoaDonRepository.save(ls);
 
         LichSuThanhToan payHis = new LichSuThanhToan();
@@ -480,6 +487,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         ls.setGhiChu(req != null && req.getReason() != null ? req.getReason() : "Đóng tab bán hàng");
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
+        attachHistoryNhanVien(ls, nv);
         lichSuHoaDonRepository.save(ls);
 
         posRealtimeService.pushRemove(hd.getId());
@@ -589,23 +597,22 @@ public class HoaDonServiceImpl implements HoaDonService {
     @Override
     @Transactional(readOnly = true)
     public List<LichSuHoaDonResponse> getLichSuHoaDon(Long idHoaDon) {
-        HoaDon hd = hoaDonRepository.findById(idHoaDon)
+        hoaDonRepository.findById(idHoaDon)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hoá đơn"));
-
-        NhanVien nv = hd.getNhanVien();
-        String maNv = nv == null ? null : nv.getMaNhanVien();
-        String tenNv = nv == null ? null : nv.getTenNhanVien();
 
         return lichSuHoaDonRepository.findAllByHoaDon_IdOrderByThoiGianDesc(idHoaDon)
                 .stream()
-                .map(x -> LichSuHoaDonResponse.builder()
-                        .id(x.getId())
-                        .hanhDong(x.getHanhDong())
-                        .ghiChu(x.getGhiChu())
-                        .thoiGian(x.getThoiGian())
-                        .maNhanVien(maNv)
-                        .tenNhanVien(tenNv)
-                        .build())
+                .map(x -> {
+                    NhanVien nv = x.getNhanVien();
+                    return LichSuHoaDonResponse.builder()
+                            .id(x.getId())
+                            .hanhDong(x.getHanhDong())
+                            .ghiChu(x.getGhiChu())
+                            .thoiGian(x.getThoiGian())
+                            .maNhanVien(nv == null ? null : nv.getMaNhanVien())
+                            .tenNhanVien(nv == null ? null : nv.getTenNhanVien())
+                            .build();
+                })
                 .toList();
     }
 
@@ -729,6 +736,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         );
         ls.setThoiGian(LocalDateTime.now());
         ls.setTrangThai(true);
+        attachHistoryNhanVien(ls, nv);
         lichSuHoaDonRepository.save(ls);
 
         pushThongBaoTrangThaiDonHangToCustomer(hd, newSt);

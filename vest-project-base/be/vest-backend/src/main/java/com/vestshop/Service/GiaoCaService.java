@@ -335,14 +335,14 @@ public class GiaoCaService {
 
     private BigDecimal expectedTienMatDauCa(Long nhanVienId) {
         return phienCaRepository
-                .findFirstByNhanVien_IdAndTrangThaiOrderByThoiGianDongDesc(nhanVienId, PhienCa.TRANG_THAI_DA_DONG)
+                .findFirstByTrangThaiOrderByThoiGianDongDesc(PhienCa.TRANG_THAI_DA_DONG)
                 .map(p -> safeMoney(p.getTienMatThucTe()))
                 .orElse(BigDecimal.ZERO);
     }
 
     private BigDecimal expectedTienTaiKhoanDauCa(Long nhanVienId) {
         return phienCaRepository
-                .findFirstByNhanVien_IdAndTrangThaiOrderByThoiGianDongDesc(nhanVienId, PhienCa.TRANG_THAI_DA_DONG)
+                .findFirstByTrangThaiOrderByThoiGianDongDesc(PhienCa.TRANG_THAI_DA_DONG)
                 .map(p -> safeMoney(p.getTienTaiKhoanThucTe()))
                 .orElse(BigDecimal.ZERO);
     }
